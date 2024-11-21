@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from database.models import Ad
+from database._generate_fake_ads import main as _generate_fake_ads
 
 router = APIRouter()
 
@@ -9,4 +10,4 @@ async def get_ads():
 
 @router.post("/fake")
 async def generate_fake_ads():
-    return generate_fake_ads()
+    return await _generate_fake_ads()
