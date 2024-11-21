@@ -13,7 +13,7 @@ def main():
         create_tables()
 
         # Path to the CSV file
-        csv_file_path = 'sample.csv'
+        csv_file_path = 'fake_ads.csv'
 
         # Read CSV and insert data into the database
         with open(csv_file_path, 'r', encoding='utf-8') as file:

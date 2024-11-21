@@ -1,14 +1,17 @@
 import faiss
 import numpy as np
 
-from database.models import Ad
+from fastapi import APIRouter
+from database.models import AdModel
 from sentence_transformers import SentenceTransformer
 
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+router = APIRouter()
+# model = SentenceTransformer('all-MiniLM-L12-v1') # TODO: try using APEX embedding 7b
+model = SentenceTransformer('all-MiniLM-L6-v2') # TODO: try using APEX embedding 7b
 
 
-def _generate_index(candidates: list[Ad]) -> faiss.IndexFlatIP:
+def _generate_index(candidates: list[AdModel]) -> faiss.IndexFlatIP:
     # Generate embeddings for each ad
     embeddings = [model.encode(c.description) for c in candidates]  # Using list comprehension instead of DataFrame operations
 
@@ -26,7 +29,8 @@ def _generate_index(candidates: list[Ad]) -> faiss.IndexFlatIP:
 
 
 
-def select_top_k_ads(query: str, output: str, candidates: list[Ad], k: int, context: str = None) -> list[dict]:
+@router.post("/")
+def select_top_k_ads(query: str, output: str, candidates: list[AdModel], k: int, context: str = None) -> list[dict]:
 
     index = _generate_index(candidates)
 
@@ -39,4 +43,6 @@ def select_top_k_ads(query: str, output: str, candidates: list[Ad], k: int, cont
     top_ads = [candidates[i] for i in indices[0]]
     similarity_scores = distances[0]
 
-    return [{'ad': ad, 'similarity': similarity} for ad, similarity in zip(top_ads, similarity_scores)]
+    print([{'ad': ad, 'similarity': similarity.item()} for ad, similarity in zip(top_ads, similarity_scores)])
+
+    return [{'ad': ad, 'similarity': similarity.item()} for ad, similarity in zip(top_ads, similarity_scores)]

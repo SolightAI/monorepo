@@ -11,6 +11,15 @@ class AuctionCandidate:
     satisfaction_rate: float
     click_through_rate: float
 
+    def asdict(self):
+        return {
+            "ad": self.ad.asdict(),
+            "modified_output": self.modified_output,
+            "bid": self.bid,
+            "satisfaction_rate": self.satisfaction_rate,
+            "click_through_rate": self.click_through_rate,
+        }
+
 
 def dummy_objective_function(satisfaction_rate: float, click_through_rate: float, bid: float) -> float:
     """
