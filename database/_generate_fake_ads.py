@@ -9,7 +9,7 @@ from datetime import datetime
 
 from urllib.parse import urlparse
 from tqdm.asyncio import tqdm_asyncio
-from models import Ad, Advertiser, database, create_tables
+from database.models import Ad, Advertiser, database, create_tables
 
 
 client = openai.AsyncOpenAI()
