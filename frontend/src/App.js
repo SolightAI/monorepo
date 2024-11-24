@@ -1,17 +1,21 @@
 import React from 'react';
-import './App.css';
-import Header from './components/Header';
-import MainContent from './components/MainContent';
-import Footer from './components/Footer';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
+import FAQ from './pages/FAQ';
+import NotFound from './pages/NotFound';
+import Landing from './pages/Landing';
 
 function App() {
-    return (
-        <div className="App">
-            <Header />
-            <MainContent />
-            <Footer />
-        </div>
-    );
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <Analytics />
+    </BrowserRouter>
+  );
 }
 
 export default App;
