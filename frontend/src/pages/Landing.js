@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check, Send } from 'lucide-react';
-
+import { Chatbot } from '../components/Chatbot/Chatbot';
 
 const APP_URL = process.env.REACT_APP_APP_URL;
 
@@ -292,15 +292,24 @@ const DemoSection = () => {
       <div className="container mx-auto space-y-12 px-4 md:px-6">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">
+
             <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-gray-900">
               See How It Works
             </h2>
+
             <p className="max-w-[900px] text-gray-600 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
               Watch how our platform seamlessly integrates ads into AI conversations.
             </p>
+
+            <div className="max-w-3xl mx-auto h-[500px] pt-8">
+              <Chatbot />
+            </div>
+
           </div>
         </div>
-        <div className="flex justify-center w-full h-full">
+
+        {/* Video demo */}
+        {/* <div className="flex justify-center w-full h-full">
           <div className="w-full max-w-3xl aspect-video">
             <iframe
               width="896"
@@ -314,7 +323,8 @@ const DemoSection = () => {
               allowFullScreen
             />
           </div>
-        </div>
+        </div> */}
+
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
           {[1, 2, 3].map((index) => (
             <div key={index} className="rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
