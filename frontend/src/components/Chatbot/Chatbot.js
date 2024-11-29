@@ -51,7 +51,7 @@ export const Chatbot = () => {
             conversationOptions={{
                 conversationStarters: [
                     {
-                        prompt: 'I want to go skying.'
+                        prompt: 'I want to go skiing.'
                     },
                     {
                         prompt: 'My laptop is overheating.'
