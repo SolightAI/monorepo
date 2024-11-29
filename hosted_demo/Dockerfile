@@ -18,4 +18,4 @@ COPY . .
 EXPOSE 8000
 
 # Command to run the application using uvicorn
-CMD ["fastapi", "dev", "--host", "0.0.0.0", "--port", "8000", "server.py"]
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
