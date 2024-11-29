@@ -6,7 +6,7 @@ import {useAsStreamAdapter} from '@nlux/react';
 
 
 const streamText = (message, observer, extra) => {
-  const socket = new WebSocket('ws://demo.laneo.ai/ws');
+  const socket = new WebSocket('ws://demo.laneo.io/ws');
 
   socket.onopen = () => {
     const messages = [
