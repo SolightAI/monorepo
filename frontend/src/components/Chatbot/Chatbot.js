@@ -1,34 +1,50 @@
 import React from 'react';
 import {AiChat} from '@nlux/react';
-import {useUnsafeChatAdapter} from '@nlux/openai-react';
 import '@nlux/themes/nova.css';
 import {highlighter} from '@nlux/highlighter';
-import {systemMessage} from './systemMessage';
+import {useAsStreamAdapter} from '@nlux/react';
 
 
-const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
+const streamText = (message, observer, extra) => {
+  const socket = new WebSocket('ws://demo.laneo.ai/ws');
 
+  socket.onopen = () => {
+    const messages = [
+      ...extra.conversationHistory.map(msg => ({
+        ...msg,
+        content: Array.isArray(msg.message) ? msg.message.join('') : msg.message
+      })),
+      { role: "user", content: message }
+    ];
+    socket.send(JSON.stringify(messages));
+  };
 
-const adapterOptions = {
-    apiKey: OPENAI_API_KEY,
-    model: 'gpt-4o-mini',
-    systemMessage: systemMessage,
+  socket.onmessage = (event) => {
+    observer.next(event.data);
+  };
+
+  socket.onerror = (error) => {
+    observer.error(error);
+  };
+
+  socket.onclose = () => {
+    observer.complete();
+  };
 };
 
 
-export const WavesBackground = () => {
-    return (
-        <div className="feather-background">
-            <div className="wave"></div>
-            <div className="wave"></div>
-            <div className="wave"></div>
-        </div>
-    );
+export const personas = {
+    assistant: {
+        name: 'Laneo',
+        avatar: 'https://i.ibb.co/rv8yHK6/laneo-black.png',
+        tagline: 'Monetize your chatbot with seamless ad integration'
+    },
 };
+
 
 export const Chatbot = () => {
 
-    const openAiAdapter = useUnsafeChatAdapter(adapterOptions);
+    const myCustomAdapter = useAsStreamAdapter(streamText, []);
 
     return (
         <AiChat
@@ -43,7 +59,8 @@ export const Chatbot = () => {
                     {
                         prompt: "I have a hard time sleeping."
                     }
-                ]
+                ],
+                historyPayloadSize: 10,
             }}
             displayOptions={{
                 themeId: 'nova',
@@ -53,10 +70,11 @@ export const Chatbot = () => {
             messageOptions={{
                 syntaxHighlighter: highlighter,
             }}
-            adapter={openAiAdapter}
+            adapter={myCustomAdapter}
             composerOptions={{
                 placeholder: 'How can I help you today?'
             }}
+            personaOptions={personas}
         />
     );
 };

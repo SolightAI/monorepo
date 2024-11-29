@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check, Send } from 'lucide-react';
-// import { Chatbot } from '../components/Chatbot/Chatbot';
+import { Chatbot } from '../components/Chatbot/Chatbot';
 
 const APP_URL = process.env.REACT_APP_APP_URL;
 
@@ -302,14 +302,14 @@ const DemoSection = () => {
             </p>
 
             <div className="max-w-3xl mx-auto h-[500px] pt-8">
-              {/* <Chatbot /> */}
+              <Chatbot />
             </div>
 
           </div>
         </div>
 
         {/* Video demo */}
-        <div className="flex justify-center w-full h-full">
+        {/* <div className="flex justify-center w-full h-full">
           <div className="w-full max-w-3xl aspect-video">
             <iframe
               width="896"
@@ -323,7 +323,7 @@ const DemoSection = () => {
               allowFullScreen
             />
           </div>
-        </div>
+        </div> */}
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
           {[1, 2, 3].map((index) => (

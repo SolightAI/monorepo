@@ -1,0 +1,14 @@
+export const adapter = {
+    streamText: (message, observer) => {
+        const socket = new WebSocket('ws://localhost:8080');
+
+        // We register listeners for the WebSocket events here
+        // and call the observer methods accordingly
+        socket.onmessage = (event) => observer.next(event.data);
+        socket.onclose = () => observer.complete();
+        socket.onerror = (error) => observer.error(error);
+
+        // This is where we send the user message to the API
+        socket.send(message);
+    }
+}
