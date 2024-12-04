@@ -1,9 +1,13 @@
+import os
 import json
 
 from openai import OpenAI
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import HTMLResponse
 from system_prompt import system_prompt
+
+
+DEMO_INFERENCE_WEBSOCKET_URL = os.getenv("DEMO_INFERENCE_WEBSOCKET_URL")
 
 
 app = FastAPI()
@@ -25,7 +29,7 @@ html = """
         <ul id='messages'>
         </ul>
         <script>
-            var ws = new WebSocket("wss://demo.laneo.io/ws");
+            var ws = new WebSocket("{DEMO_INFERENCE_WEBSOCKET_URL}");
             ws.onmessage = function(event) {
                 var messages = document.getElementById('messages')
                 var message = document.createElement('li')
@@ -42,7 +46,7 @@ html = """
         </script>
     </body>
 </html>
-"""
+""".format(DEMO_INFERENCE_WEBSOCKET_URL=DEMO_INFERENCE_WEBSOCKET_URL)
 
 
 @app.get("/")

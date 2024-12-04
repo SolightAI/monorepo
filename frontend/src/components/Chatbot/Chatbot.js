@@ -4,9 +4,10 @@ import '@nlux/themes/nova.css';
 import {highlighter} from '@nlux/highlighter';
 import {useAsStreamAdapter} from '@nlux/react';
 
+const socketUrl = process.env.REACT_APP_DEMO_INFERENCE_WEBSOCKET_URL || 'wss://default.url/ws'; // Fallback URL
 
 const streamText = (message, observer, extra) => {
-  const socket = new WebSocket('wss://demo.laneo.io/ws');
+  const socket = new WebSocket(socketUrl);
 
   socket.onopen = () => {
     const messages = [
