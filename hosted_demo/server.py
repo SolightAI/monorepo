@@ -1,4 +1,3 @@
-import os
 import json
 
 from openai import OpenAI
@@ -7,51 +6,8 @@ from fastapi.responses import HTMLResponse
 from system_prompt import system_prompt
 
 
-DEMO_INFERENCE_WEBSOCKET_URL = os.getenv("DEMO_INFERENCE_WEBSOCKET_URL")
-
-
 app = FastAPI()
 client = OpenAI()
-
-
-html = """
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>Chat</title>
-    </head>
-    <body>
-        <h1>WebSocket Chat</h1>
-        <form action="" onsubmit="sendMessage(event)">
-            <input type="text" id="messageText" autocomplete="off"/>
-            <button>Send</button>
-        </form>
-        <ul id='messages'>
-        </ul>
-        <script>
-            var ws = new WebSocket("{DEMO_INFERENCE_WEBSOCKET_URL}");
-            ws.onmessage = function(event) {
-                var messages = document.getElementById('messages')
-                var message = document.createElement('li')
-                var content = document.createTextNode(event.data)
-                message.appendChild(content)
-                messages.appendChild(message)
-            };
-            function sendMessage(event) {
-                var input = document.getElementById("messageText")
-                ws.send(input.value)
-                input.value = ''
-                event.preventDefault()
-            }
-        </script>
-    </body>
-</html>
-""".format(DEMO_INFERENCE_WEBSOCKET_URL=DEMO_INFERENCE_WEBSOCKET_URL)
-
-
-@app.get("/")
-async def get():
-    return HTMLResponse(html)
 
 
 @app.websocket("/ws")
