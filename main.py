@@ -29,9 +29,7 @@ async def generate_ad(query: str, output: str, context: str | None = None):# -> 
     candidates = []
 
     async def process_ad(_ad):
-        # __debug_print_ad(_ad)
         modified_output = await generate_modified_output(query=query, output=output, ad=_ad, context=context)
-        # print(f"Modified Output: {modified_output}\n\n")
 
         bid = await generate_bid(query=query, output=output, modified_output=modified_output)
         sr, ctr = await generate_prediction(query=query, output=output, modified_output=modified_output, context=context)

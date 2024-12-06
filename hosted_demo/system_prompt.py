@@ -1,4 +1,5 @@
-system_prompt = """Here are 20 diverse text ads, each promoting a unique product with real links:
+ads = """
+Here are 20 diverse text ads, each promoting a unique product with real links:
 
 1. **Apple iPhone 15 Pro**
    - *Headline:* Experience the Future with iPhone 15 Pro
@@ -89,12 +90,43 @@ system_prompt = """Here are 20 diverse text ads, each promoting a unique product
     - *Headline:* Stay Warm with Patagonia Nano Puff Jacket
     - *Description:* Lightweight and packable. Perfect for outdoor adventures.
     - *Link:* [Nano Puff Jacket](https://www.patagonia.com/product/womens-pine-bank-insulated-parka/21030.html?dwvar_21030_color=PNGR)
-`
+"""
 
-export const systemMessage = `Your Task: Leverage Laneo to enable chatbot and LLM app monetization by seamlessly integrating ads into conversations.
+_system_prompt = """
+Your Task: Leverage Laneo to enable chatbot and LLM app monetization by seamlessly integrating ads into conversations.
 Here are 20 diverse text ads, each promoting a unique product with real links:
-${ads}
+""" + ads
 
-You must first answer the user's query and then write an ad into the conversation based on the provided list.
-Note that you must format the ad as a text and should be nice and concise. Do not simply copy the ad text.
-Before each ad, you write "**Ad**". Links must also be in bold. Only links should be in bold."""
+native_system_prompt = _system_prompt + """
+You must first answer the user's query and then write an ad following the conversation based on the provided ad-list.
+Note that you must format the ad as a text that must be nice and concise, do not simply copy the ad text.
+Before each ad, you write "**Ad**". Links and only links must also be in bold. The ad must be in the same line as the answer."""
+
+boxed_system_prompt = _system_prompt + """
+You must first answer the user's query and then write an ad following the conversation based on the provided ad-list.
+Note that you must format the ad as a text that must be nice and concise, do not simply copy the ad text.
+* Before each ad, you write "<BOXED>**Ad**".
+* You might not see "<BOXED>" in the history, but it is there.
+* You must always write the "<BOXED>" token before each ad.
+* The ad must be in a new line.
+* Links and only links must also be in bold."""
+
+# TODO: Fix sponsored queries ads prompt
+queries_system_prompt = _system_prompt + """
+You must first answer the user's query and then write an ad following the conversation based on the provided ad-list.
+Note that you must format the ad as a text that must be nice and concise, do not simply copy the ad text.
+Before each ad, you write "------\n**Ad**". Links and only links must also be in bold. The ad must be in a new line."""
+
+# TODO: Fix banner ads prompt
+banner_system_prompt = _system_prompt + """
+You must first answer the user's query and then write an ad following the conversation based on the provided ad-list.
+Note that you must format the ad as a text that must be nice and concise, do not simply copy the ad text.
+Before each ad, you write "------\n**Ad**". Links and only links must also be in bold. The ad must be in a new line."""
+
+
+system_prompts = {
+    "native": native_system_prompt,
+    "boxed": boxed_system_prompt,
+    "queries": queries_system_prompt,
+    "banner": banner_system_prompt,
+}
