@@ -5,12 +5,23 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "aerich>=0.8.0",
     "asyncpg>=0.30.0",
+    "clickhouse-connect>=0.8.9",
+    "clickhouse-driver>=0.2.9",
     "fastapi[standard]>=0.115.6",
     "itsdangerous>=2.2.0",
     "passlib>=1.7.4",
     "pyjwt>=2.10.1",
+    "python-dateutil>=2.9.0.post0",
+    "redis[hiredis]>=5.2.1",
     "requests>=2.32.3",
+    "tomlkit>=0.13.2",
     "tortoise-orm>=0.22.1",
     "uvicorn>=0.32.1",
 ]
+
+[tool.aerich]
+tortoise_orm = "database.database.TORTOISE_ORM"
+location = "./migrations"
+src_folder = "./."

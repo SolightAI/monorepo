@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 from database.database import _get_db_config
 from endpoints.auth import router as auth_router
 from endpoints.user_endpoint import router as user_router
+from endpoints.campaign_endpoint import router as campaign_router
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -43,6 +45,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(user_router, prefix="/user", tags=["user"])
+app.include_router(campaign_router, prefix="/campaign", tags=["campaign"])
 
 
 if __name__ == "__main__":

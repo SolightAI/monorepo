@@ -41,12 +41,15 @@ def _get_db_config():
         },
         'apps': {
             'models': {
-                'models': ['database.models'],
-                # 'models': ['database.models', 'aerich.models'],
+                # 'models': ['database.models'],
+                'models': ['database.models', 'aerich.models'],
                 'default_connection': 'default',
             }
         }
     }
+
+
+TORTOISE_ORM = _get_db_config()
 
 
 async def init_db():
