@@ -38,18 +38,14 @@ class User(models.Model):
         if user_id is None or user_id == self.id:
             schema = _UserSchema(
                 id=self.id,
-                url=self.url,
                 username=self.username,
                 email=self.email,
                 created_at=self.created_at,
-                picture=self.picture,
             )
         else:
             schema = _UserPrivateSchema(
                 id=self.id,
-                url=self.url,
                 username=self.username,
-                picture=self.picture,
             )
 
         return schema

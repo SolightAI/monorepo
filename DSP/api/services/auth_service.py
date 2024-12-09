@@ -134,7 +134,7 @@ async def auth_google_callback(code: str, response: Response):
     })
 
     response = RedirectResponse(
-        url=f"{os.getenv('APP_URL')}/auth/google/callback?token={jwt_token}&url={user.url}"
+        url=f"{os.getenv('APP_URL')}/auth/google/callback?token={jwt_token}"
     )
     set_auth_cookie(response, jwt_token)
 
