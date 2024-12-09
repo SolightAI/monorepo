@@ -13,7 +13,7 @@ client = OpenAI()
 # FIXME: ça, ça drevrait juste être un wrapper ChatGPT, ça devrait pas intégrer les ads
 # Aussi, pour les ads pas besoin de faire un stream, un REST api devrait suffire
 @app.websocket("/ws/{type}")
-async def websocket_endpoint(websocket: WebSocket, type: str):
+async def websocket_endpoint(websocket: WebSocket, type: str = "native"):
     await websocket.accept()
 
     if type not in system_prompts:
