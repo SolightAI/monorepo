@@ -34,9 +34,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "http://localhost:3000",
-        "http://localhost:8888",
-        "https://anyrecs.app",
+        "https://app.dsp.laneo.io",
     ],
     allow_credentials=True,
     allow_methods=["*"],
