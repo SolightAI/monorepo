@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -34,16 +34,58 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
+
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
 
 const CampaignDetails = () => {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState('overview');
-  const campaign = campaigns.find(c => c.id === parseInt(id));
+  const [campaign, setCampaign] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  if (!campaign) {
+  useEffect(() => {
+    const fetchCampaignDetails = async () => {
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/campaign/${id}`, {
+          withCredentials: true,
+        });
+        
+        setCampaign(response.data);
+      } catch (error) {
+        console.error('Error fetching campaign details:', error);
+        setError(error.response?.data?.message || error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCampaignDetails();
+  }, [id]);
+
+  if (loading) {
     return (
       <div className="p-6">
-        <div className="text-center">Campaign not found</div>
+        <div className="text-center">Loading campaign details...</div>
+      </div>
+    );
+  }
+
+  if (error || !campaign) {
+    return (
+      <div className="p-6">
+        <div className="text-center text-red-600">
+          {error || 'Campaign not found'}
+        </div>
       </div>
     );
   }
@@ -118,6 +160,30 @@ const CampaignDetails = () => {
         />
       </div>
 
+      {/* Product Information Card */}
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-medium text-gray-900">Advertised Product</h2>
+          <a
+            href={campaign?.product_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center text-blue-600 hover:text-blue-700"
+          >
+            <span className="text-sm font-medium">Visit Product</span>
+            <ArrowUpRight className="w-4 h-4 ml-1" />
+          </a>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <div className="text-sm text-gray-500 mb-1">Product URL</div>
+            <div className="text-sm font-medium text-gray-900 break-all">
+              {campaign?.product_url}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Navigation Tabs */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="-mb-px flex space-x-8">
@@ -161,7 +227,9 @@ const CampaignDetails = () => {
                     </div>
                     <div>
                       <h4 className="text-sm font-medium text-gray-500">Campaign Duration</h4>
-                      <p className="mt-1 text-sm text-gray-900">Jan 1, 2024 - Mar 31, 2024</p>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {formatDate(campaign.start_date)} - {formatDate(campaign.end_date)}
+                      </p>
                     </div>
                     <div>
                       <h4 className="text-sm font-medium text-gray-500">Target Audience</h4>
@@ -951,4 +1019,4 @@ const displayAds = [
   }
 ];
 
-export default CampaignDetails; 
+export default CampaignDetails;

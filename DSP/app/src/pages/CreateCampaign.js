@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
+const API_URL = process.env.REACT_APP_API_URL;
 
 const CreateCampaign = () => {
   const navigate = useNavigate();
@@ -8,8 +11,28 @@ const CreateCampaign = () => {
     budget: '',
     startDate: '',
     endDate: '',
-    objective: 'awareness', // Default value
+    objective: 'awareness',
+    productUrl: '',
   });
+  const [dateError, setDateError] = useState('');
+
+  const validateDates = (startDate, endDate) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (start < today) {
+      return "Start date cannot be before today";
+    }
+
+    if (start > end) {
+      return "Start date cannot be after end date";
+    }
+
+    return "";
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -17,24 +40,61 @@ const CreateCampaign = () => {
       ...prev,
       [name]: value
     }));
+
+    // Clear date error when dates are changed
+    if (name === 'startDate' || name === 'endDate') {
+      const error = validateDates(
+        name === 'startDate' ? value : formData.startDate,
+        name === 'endDate' ? value : formData.endDate
+      );
+      setDateError(error);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implement API call to create campaign
+
+    // Validate dates before submission
+    const error = validateDates(formData.startDate, formData.endDate);
+    if (error) {
+      setDateError(error);
+      return;
+    }
+
     try {
-      // Add API integration here
+      // Convert string dates to ISO format
+      const campaignData = {
+        name: formData.name,
+        budget: parseInt(formData.budget),
+        start_date: new Date(formData.startDate).toISOString(),
+        end_date: new Date(formData.endDate).toISOString(),
+        status: 'Active',
+        product_url: formData.productUrl,
+      };
+
+      await axios.post(`${API_URL}/campaign`, campaignData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // This ensures cookies are sent with the request
+        withCredentials: true,
+      });
+
       navigate('/'); // Redirect to dashboard after success
     } catch (error) {
       console.error('Failed to create campaign:', error);
+      // You might want to add error handling UI here
     }
   };
+
+  // Get today's date in YYYY-MM-DD format for min attribute
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <div className="bg-gray-50 p-6">
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow p-6">
         <h1 className="text-2xl font-semibold text-gray-900 mb-6">Create New Campaign</h1>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -80,6 +140,21 @@ const CreateCampaign = () => {
             </select>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Product URL
+            </label>
+            <input
+              type="url"
+              name="productUrl"
+              value={formData.productUrl}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="https://example.com/product"
+              required
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -90,6 +165,7 @@ const CreateCampaign = () => {
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleChange}
+                min={today}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 required
               />
@@ -103,11 +179,18 @@ const CreateCampaign = () => {
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleChange}
+                min={formData.startDate || today}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 required
               />
             </div>
           </div>
+
+          {dateError && (
+            <div className="text-red-500 text-sm mt-1">
+              {dateError}
+            </div>
+          )}
 
           <div className="flex justify-end space-x-4">
             <button
