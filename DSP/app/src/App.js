@@ -7,12 +7,11 @@ import NotFound from './pages/NotFound';
 import ResetPassword from './pages/ResetPassword';
 import Register from './pages/Register';
 import Settings from './pages/Settings';
-import BillingSuccess from './pages/BillingSuccess';
-import BillingCancel from './pages/BillingCancel';
 import Home from './pages/Home';
 import { setupAxiosInterceptors } from './utils/auth';
 import GoogleCallback from './components/GoogleCallback';
 import CampaignDetails from './pages/CampaignDetails';
+import CreateCampaign from './pages/CreateCampaign';
 
 const isAuthenticated = () => {
   return localStorage.getItem('isAuthenticated') === 'true';
@@ -45,10 +44,9 @@ function App() {
           }
         >
           <Route index element={<Home />} />
+          <Route path="campaigns/new" element={<CreateCampaign />} />
           <Route path="campaigns/:id" element={<CampaignDetails />} />
           <Route path="settings" element={<Settings />} />
-          <Route path="billing/success" element={<BillingSuccess />} />
-          <Route path="billing/cancel" element={<BillingCancel />} />
         </Route>
         <Route path="/auth/google/callback" element={<GoogleCallback />} />
         <Route path="*" element={<NotFound />} />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, Users, Target, TrendingUp } from 'lucide-react';
+import { BarChart3, Users, Target, TrendingUp, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
@@ -9,12 +9,18 @@ const Home = () => {
     navigate(`/campaigns/${campaignId}`);
   };
 
+  const handleCreateCampaign = () => {
+    navigate('/campaigns/new');
+  };
+
   return (
     <div className="bg-gray-50 p-6">
       {/* Header Section */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Dashboard Overview</h1>
-        <p className="text-gray-600">Welcome back! Here's your campaign performance at a glance.</p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Dashboard Overview</h1>
+          <p className="text-gray-600">Welcome back! Here's your campaign performance at a glance.</p>
+        </div>
       </div>
 
       {/* Metrics Grid */}
@@ -51,7 +57,16 @@ const Home = () => {
 
       {/* Active Campaigns Section */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Active Campaigns</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">Active Campaigns</h2>
+          <button
+            onClick={handleCreateCampaign}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-150"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Create New Campaign
+          </button>
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
