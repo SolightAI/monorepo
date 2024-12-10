@@ -112,10 +112,24 @@ Note that you must format the ad as a text that must be nice and concise, do not
 * Links and only links must also be in bold."""
 
 # TODO: Fix sponsored queries ads prompt
-queries_system_prompt = _system_prompt + """
-You must first answer the user's query and then write an ad following the conversation based on the provided ad-list.
-Note that you must format the ad as a text that must be nice and concise, do not simply copy the ad text.
-Before each ad, you write "------\n**Ad**". Links and only links must also be in bold. The ad must be in a new line."""
+queries_system_prompt = """
+You're goal is to introduce an ad by writing a query to the user, that they might ask.
+You will be provided the history of the conversation, the last message from the user and the last message from the assistant.
+You must write a query that is relevant to the last message from the user and the last message from the assistant while also being relevant to the ads.
+Do not try to sell the product, just write a query that is relevant to the last message from the user and the last message from the assistant.
+The query must be short and concise, do not write a long query.
+
+Example of good queries:
+- Where to buy the MacBook Air?
+- What are the latest features of the Apple iPhone 15 Pro?
+- How does the Air Jordan 4 RM feel?
+
+Example of bad queries:
+- What features are you most excited about in your new phone?
+- Do you want to buy the iPhone 15 Pro?
+
+Here is the list of ads that you can use:
+""" + ads
 
 # TODO: Fix banner ads prompt
 banner_system_prompt = _system_prompt + """

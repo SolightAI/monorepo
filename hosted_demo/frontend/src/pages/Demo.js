@@ -1,145 +1,184 @@
-import React, {useCallback, useState, useMemo} from 'react';
-import { Chatbot } from '../components/Chatbot';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { ChatInterface } from '../components/CustomChatbot/Chatbot';
-import {useAiChatApi} from '@nlux/react';
+import { motion } from 'framer-motion';
 
-
-const socketUrl = process.env.REACT_APP_DEMO_INFERENCE_WEBSOCKET_URL || 'wss://default.url/ws'; // Fallback URL
-
-
+const socketUrl = process.env.REACT_APP_DEMO_INFERENCE_WEBSOCKET_URL || 'wss://default.url/ws';
 
 const DemoSection = () => {
-
-  const api1 = useAiChatApi();
-  const api2 = useAiChatApi();
-  const api3 = useAiChatApi();
-  const api4 = useAiChatApi();
-
-  const apis = useMemo(() => [
-    api1,
-    api2,
-    api3,
-    api4
-  ], [api1, api2, api3, api4]);
-
-  const [inputValue, setInputValue] = useState('');
   const [adType, setAdType] = useState('native');
 
-  const handleSubmit = useCallback(() => {
-    apis.forEach(api => {
-      api.composer.send(inputValue);
-    });
-    setInputValue('');
-  }, [apis, inputValue]);
+  const [sharedHistory, setSharedHistory] = useState([]);
+  const [sharedNewMessage, setSharedNewMessage] = useState({ content: '' });
 
-  const handleAdTypeChange = (e) => {
-    setAdType(e.target.value);
-  };
+  const sharedHistoryRef = useRef(sharedHistory);
+  const sharedNewMessageRef = useRef(sharedNewMessage);
+
+  useEffect(() => {
+    sharedHistoryRef.current = sharedHistory;
+    sharedNewMessageRef.current = sharedNewMessage;
+  }, [sharedHistory, sharedNewMessage]);
+
+  const AdTypeButton = ({ type, label, icon }) => (
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={() => setAdType(type)}
+      className={`
+        flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all
+        ${adType === type 
+          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30' 
+          : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-400'}
+      `}
+    >
+      {icon}
+      {label}
+    </motion.button>
+  );
 
   return (
-    <section id="samples" className="w-full py-8 md:py-16 lg:py-20 bg-gray-50">
-      <div className="container mx-auto space-y-12 px-4 md:px-6">
-        <div className="flex flex-col items-center justify-center space-y-4 text-center">
-          <div className="space-y-2">
+    <section className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <div className="container mx-auto px-4 py-16 lg:py-24">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-16"
+        >
+          <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text mb-6">
+            Experience the Future of AI Advertising
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Discover how our platform seamlessly integrates intelligent advertising into AI conversations,
+            creating natural and engaging user experiences.
+          </p>
+        </motion.div>
 
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-gray-900">
-              See How It Works
-            </h2>
+        <div className="max-w-6xl mx-auto">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="bg-white rounded-2xl shadow-xl p-8"
+          >
+            <div className="flex flex-wrap justify-center gap-4 mb-8">
+              <AdTypeButton 
+                type="native" 
+                label="Native Ads"
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
+              />
+              <AdTypeButton 
+                type="boxed" 
+                label="Boxed Ads"
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>}
+              />
+              <AdTypeButton 
+                type="queries" 
+                label="Smart Queries"
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+              />
+            </div>
 
-            <p className="text-gray-600 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Watch how our platform seamlessly integrates ads into AI conversations.
-            </p>
-
-            <div className="my-4">
-              <div className="flex space-x-4">
-                <button
-                  onClick={() => setAdType('native')}
-                  className={`p-2 border border-gray-300 rounded-lg ${adType === 'native' ? 'bg-blue-500 text-white' : ''}`}
-                >
-                  Native
-                </button>
-                <button
-                  onClick={() => setAdType('boxed')}
-                  className={`p-2 border border-gray-300 rounded-lg ${adType === 'boxed' ? 'bg-blue-500 text-white' : ''}`}
-                >
-                  Boxed
-                </button>
-                <button
-                  onClick={() => setAdType('queries')}
-                  className={`p-2 border border-gray-300 rounded-lg ${adType === 'queries' ? 'bg-blue-500 text-white' : ''}`}
-                >
-                  Queries
-                </button>
-                <button
-                  onClick={() => setAdType('banners')}
-                  className={`p-2 border border-gray-300 rounded-lg ${adType === 'banners' ? 'bg-blue-500 text-white' : ''}`}
-                >
-                  Banners
-                </button>
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl transform -rotate-1" />
+              <div className="relative bg-white rounded-xl shadow-sm p-4">
+                {adType === 'native' && (
+                  <ChatInterface 
+                    title="Native Advertising" 
+                    socketUrl={`${socketUrl}/native`}
+                    history={sharedHistory}
+                    setHistory={setSharedHistory}
+                    newMessage={sharedNewMessage}
+                    setNewMessage={setSharedNewMessage}
+                    historyRef={sharedHistoryRef}
+                    newMessageRef={sharedNewMessageRef}
+                    showQueries={false}
+                  />
+                )}
+                {adType === 'boxed' && (
+                  <ChatInterface 
+                    title="Boxed Advertising" 
+                    socketUrl={`${socketUrl}/boxed`}
+                    history={sharedHistory}
+                    setHistory={setSharedHistory}
+                    newMessage={sharedNewMessage}
+                    setNewMessage={setSharedNewMessage}
+                    historyRef={sharedHistoryRef}
+                    newMessageRef={sharedNewMessageRef}
+                    showQueries={false}
+                  />
+                )}
+                {adType === 'queries' && (
+                  <ChatInterface 
+                    title="Smart Queries" 
+                    socketUrl={`${socketUrl}/queries`}
+                    history={sharedHistory}
+                    setHistory={setSharedHistory}
+                    newMessage={sharedNewMessage}
+                    setNewMessage={setSharedNewMessage}
+                    historyRef={sharedHistoryRef}
+                    newMessageRef={sharedNewMessageRef}
+                    showQueries={true}
+                  />
+                )}
               </div>
             </div>
-
-            {adType === 'native' && <ChatInterface title="Native Ads" socketUrl={`${socketUrl}/native`} />}
-            {adType === 'boxed' && <ChatInterface title="Boxed Ads" socketUrl={`${socketUrl}/boxed`} />}
-            {adType === 'queries' && <ChatInterface title="Queries Ads" socketUrl={`${socketUrl}/queries`} />}
-            {adType === 'banners' && <ChatInterface title="Banner Ads" socketUrl={`${socketUrl}/banners`} />}
-
-          </div>
+          </motion.div>
         </div>
-
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-          {[1, 2, 3].map((index) => (
-            <div key={index} className="rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
-              <div className="w-full aspect-video bg-gray-200" />
-            </div>
-          ))}
-        </div>
-
       </div>
     </section>
   );
 };
 
-
-export default function VideoPlatform() {
-  const scrollToSection = (sectionId) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
+export default function Demo() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="px-4 lg:px-6 h-14 flex items-center">
-        <img src="https://i.ibb.co/rv8yHK6/laneo-black.png" alt="Laneo" className="h-6 w-6" />
-        <span className="text-lg font-semibold ml-2">Laneo</span>
-        <nav className="ml-auto flex gap-4 sm:gap-6">
-          <a href="#features" className="text-sm font-medium hover:underline underline-offset-4" onClick={(e) => {
-            e.preventDefault();
-            scrollToSection('features');
-          }}>
-            Features
-          </a>
-          <a href="#samples" className="text-sm font-medium hover:underline underline-offset-4" onClick={(e) => {
-            e.preventDefault();
-            scrollToSection('samples');
-          }}>
-            Demo
-          </a>
-        </nav>
+    <div className="flex flex-col min-h-screen bg-white">
+      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-lg bg-white/80 border-b border-gray-200">
+        <div className="container mx-auto px-4">
+          <div className="h-16 flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <img src="https://i.ibb.co/rv8yHK6/laneo-black.png" alt="Laneo" className="h-8 w-8" />
+              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">
+                Laneo
+              </span>
+            </div>
+            <nav className="flex items-center space-x-8">
+              {/* <motion.a
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                href="https://docs.laneo.ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-600 hover:text-blue-600 font-medium"
+              >
+                Documentation
+              </motion.a>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium shadow-lg shadow-blue-500/30"
+              >
+                Get Started
+              </motion.button> */}
+            </nav>
+          </div>
+        </div>
       </header>
 
-      <main className="flex-1">
-
+      <main className="flex-1 pt-16">
         <DemoSection />
-
       </main>
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-gray-500">&copy; 2024 Laneo. All rights reserved.</p>
-        <nav className="sm:ml-auto flex gap-4 sm:gap-6">
-          {/* Footer navigation links can be added here if needed */}
-        </nav>
+
+      <footer className="bg-gray-50 border-t border-gray-200">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-gray-500">© 2024 Laneo. All rights reserved.</p>
+            <div className="flex space-x-6">
+              <a href="#" className="text-gray-500 hover:text-blue-600">Privacy Policy</a>
+              <a href="#" className="text-gray-500 hover:text-blue-600">Terms of Service</a>
+              <a href="#" className="text-gray-500 hover:text-blue-600">Contact</a>
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   );
