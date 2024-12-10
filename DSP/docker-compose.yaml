@@ -46,7 +46,6 @@ services:
       - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
     volumes:
-      - clickhouse_migrations:/docker-entrypoint-initdb.d
       - clickhouse_data:/var/lib/clickhouse
       - type: bind
         source: ./api/database/click_house_migrations
