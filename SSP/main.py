@@ -4,6 +4,8 @@ import uuid
 import httpx
 import uvicorn
 
+from datetime import datetime
+from pydantic import BaseModel
 from enum import Enum
 from fastapi import FastAPI
 from dataclasses import dataclass, asdict
@@ -11,8 +13,10 @@ from typing import Any
 from fastapi.middleware.cors import CORSMiddleware
 
 
-DSP_URL = os.getenv("DSP_URL", "http://localhost:8002/")
+DSP_URL = os.getenv("DSP_URL")
 
+if not DSP_URL:
+    raise Exception("DSP_URL environment variable is not set")
 
 app = FastAPI()
 
@@ -149,15 +153,27 @@ async def forward_ad_request_to_dsp(
     return winner_ad
 
 
+class TrackImpressionRequest(BaseModel):
+    campaign_id: int
+    event_time: datetime
+    event_type: str
+    user_id: str
+    publisher_id: str
+    ip_address: str
+    user_agent: str
+    geo_country: str
+    cost_usd: float
+
+
 @app.post("/ad/track-impression")
 async def track_impression(
-    id: str,
+    track_impression_request: TrackImpressionRequest,
 ):
-    requests.post(DSP_URL + "/ad/track-impression", params={"id": id})
+    requests.post(DSP_URL + "/campaign/track-impression", params=track_impression_request.model_dump())
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8002)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 
 
 
