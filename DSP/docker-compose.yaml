@@ -2,7 +2,7 @@ services:
 
   dsp-api:
     build:
-      context: DSP/api
+      context: ./api
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
@@ -28,7 +28,7 @@ services:
 
   dsp-app:
     build:
-      context: DSP/app
+      context: ./app
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
@@ -46,7 +46,7 @@ services:
       - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
     volumes:
-      - ./DSP/api/database/click_house_migrations:/docker-entrypoint-initdb.d
+      - ./api/database/click_house_migrations:/docker-entrypoint-initdb.d
 
     ulimits:
       nofile:
