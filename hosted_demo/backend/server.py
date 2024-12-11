@@ -3,17 +3,30 @@ import json
 from openai import OpenAI
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 from system_prompt import system_prompts
 
 
 app = FastAPI()
 client = OpenAI()
 
+# Add CORS middleware configuration
+origins = [
+    "http://localhost:3000",
+    "https://publisher.demo.laneo.io",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # FIXME: ça, ça drevrait juste être un wrapper ChatGPT, ça devrait pas intégrer les ads
 # Aussi, pour les ads pas besoin de faire un stream, un REST api devrait suffire
-# TODO: en attendant on peut faire deux call, une pour le chatbot et une pour les ads
-# ça évite que la réponse soit biasé par les ads
 @app.websocket("{type}")
 async def websocket_endpoint(websocket: WebSocket, type: str = "native"):
     try:
