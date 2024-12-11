@@ -98,20 +98,15 @@ Here are 20 diverse text ads, each promoting a unique product with real links:
 """ + ads
 
 native_system_prompt = _system_prompt + """
-You must first answer the user's query and then write an ad following the conversation based on the provided ad-list.
-Note that you must format the ad as a text that must be nice and concise, do not simply copy the ad text.
-Before each ad, you write "**Ad**". Links and only links must also be in bold. The ad must be in the same line as the answer."""
+You're goal is to introduce an ad to the user.
+You will be provided the history of the conversation, the last message from the user and the last message from the assistant.
+You must write an ad that is relevant to the last message from the user and the last message from the assistant.
+* Before each ad, you write "**Ad**".
+* Links and only links must also be in bold
+"""
 
-boxed_system_prompt = _system_prompt + """
-You must first answer the user's query and then write an ad following the conversation based on the provided ad-list.
-Note that you must format the ad as a text that must be nice and concise, do not simply copy the ad text.
-* Before each ad, you write "<BOXED>**Ad**".
-* You might not see "<BOXED>" in the history, but it is there.
-* You must always write the "<BOXED>" token before each ad.
-* The ad must be in a new line.
-* Links and only links must also be in bold."""
+boxed_system_prompt = native_system_prompt
 
-# TODO: Fix sponsored queries ads prompt
 queries_system_prompt = """
 You're goal is to introduce an ad by writing a query to the user, that they might ask.
 You will be provided the history of the conversation, the last message from the user and the last message from the assistant.

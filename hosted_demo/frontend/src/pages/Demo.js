@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChatInterface } from '../components/CustomChatbot/Chatbot';
 import { motion } from 'framer-motion';
 
@@ -173,9 +173,9 @@ export default function Demo() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-gray-500">© 2024 Laneo. All rights reserved.</p>
             <div className="flex space-x-6">
-              <a href="#" className="text-gray-500 hover:text-blue-600">Privacy Policy</a>
+              {/* <a href="#" className="text-gray-500 hover:text-blue-600">Privacy Policy</a>
               <a href="#" className="text-gray-500 hover:text-blue-600">Terms of Service</a>
-              <a href="#" className="text-gray-500 hover:text-blue-600">Contact</a>
+              <a href="#" className="text-gray-500 hover:text-blue-600">Contact</a> */}
             </div>
           </div>
         </div>

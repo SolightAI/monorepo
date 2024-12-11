@@ -40,11 +40,10 @@ async def websocket_endpoint(websocket: WebSocket, type: str = "native"):
                 return
 
             data = await websocket.receive_text()
-            print("data:", data)
             messages = json.loads(data)
-            # messages = [{"role": "system", "content": system_prompts[type]}] + json.loads(data)
 
             try:
+
                 stream = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=messages,
@@ -58,7 +57,7 @@ async def websocket_endpoint(websocket: WebSocket, type: str = "native"):
                         await websocket.send_text(chunk.choices[0].delta.content)
 
                 if type == "boxed":
-                    await websocket.send_text("<BOXED>Some boxed content")
+                    await websocket.send_text("<BOXED>")
                 elif type == "queries":
                     await websocket.send_text("<QUERY>")
 
