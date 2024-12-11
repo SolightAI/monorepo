@@ -99,10 +99,11 @@ Here are 20 diverse text ads, each promoting a unique product with real links:
 
 native_system_prompt = _system_prompt + """
 You're goal is to introduce an ad to the user.
-You will be provided the history of the conversation, the last message from the user and the last message from the assistant.
+You will be provided in your history, the conversation, the last message from the user and the last message from the assistant.
 You must write an ad that is relevant to the last message from the user and the last message from the assistant.
-* Before each ad, you write "**Ad**".
+* Before each ad, you write "\n**Ad**".
 * Links and only links must also be in bold
+* You must format the ad as a text that must be nice and concise, do not simply copy the ad text.
 """
 
 boxed_system_prompt = native_system_prompt

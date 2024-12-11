@@ -13,6 +13,7 @@ client = OpenAI()
 # Update origins to include any additional frontend URLs you need
 origins = [
     "http://localhost:3000",
+    "http://localhost:3001",
     "https://publisher.demo.laneo.io",
     # Add any other allowed origins
 ]
@@ -61,9 +62,12 @@ async def websocket_endpoint(websocket: WebSocket, type: str = "native"):
                 elif type == "queries":
                     await websocket.send_text("<QUERY>")
 
+                messages = [{"role": "system", "content": system_prompts[type]}] + messages + [{"role": "assistant", "content": gpt_response}]
+                for message in messages:
+                    print(message)
                 stream = client.chat.completions.create(
                     model="gpt-4o-mini",
-                    messages=messages + [{"role": "assistant", "content": gpt_response}] + [{"role": "system", "content": system_prompts[type]}],
+                    messages=messages,
                     stream=True,
                 )
 
@@ -86,3 +90,7 @@ async def websocket_endpoint(websocket: WebSocket, type: str = "native"):
                 await websocket.close(code=1011)
             except:
                 pass
+
+    else:
+        await websocket.close(code=1008, reason="CORS error")
+        return

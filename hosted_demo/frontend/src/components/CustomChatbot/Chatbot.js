@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { ArrowUp, Send, Bot } from 'lucide-react'
+import { ArrowUp, Send } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence } from 'framer-motion'
 
-export const ChatInterface = ({ 
-  title, 
+export const ChatInterface = ({
+  title,
   socketUrl,
   history,
   setHistory,
@@ -22,10 +22,10 @@ export const ChatInterface = ({
   const handleQueryClick = (queryContent) => {
     // Set the input to the query content
     setInput(queryContent)
-    
+
     // Remove the query message from history
     setHistory(prevHistory => {
-      const updatedHistory = prevHistory.filter(msg => 
+      const updatedHistory = prevHistory.filter(msg =>
         !(msg.is_query && msg.content === queryContent)
       )
       historyRef.current = updatedHistory
@@ -36,7 +36,7 @@ export const ChatInterface = ({
     if (newMessage.content === queryContent) {
       setNewMessage({ content: '' })
     }
-    
+
     // Send the message
     handleSendMessage(queryContent)
   }
@@ -108,9 +108,9 @@ export const ChatInterface = ({
           }
 
           // For regular messages, just append the new data
-          return { 
-            content: updatedContent, 
-            is_query: prevMessage.is_query ? true : false 
+          return {
+            content: updatedContent,
+            is_query: prevMessage.is_query ? true : false
           }
         })
       }
@@ -275,7 +275,7 @@ export const ChatInterface = ({
       </div>
 
       {/* Chat Input */}
-      <motion.div 
+      <motion.div
         initial={{ y: 100 }}
         animate={{ y: 0 }}
         className="fixed bottom-0 w-full border-t bg-white/80 backdrop-blur-md p-6 z-50"
@@ -289,7 +289,7 @@ export const ChatInterface = ({
             onKeyDown={(e) => { if (e.key === 'Enter') handleSend() }}
             className="flex-1 text-lg p-4 border border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
           />
-          <motion.button 
+          <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleSend}
@@ -302,7 +302,7 @@ export const ChatInterface = ({
       </motion.div>
 
       {/* Scroll to Top Button */}
-      <motion.button 
+      <motion.button
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         className="fixed bottom-28 right-8 h-12 w-12 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg flex items-center justify-center hover:bg-white transition-all"
