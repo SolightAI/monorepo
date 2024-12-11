@@ -13,7 +13,7 @@ services:
 
   demo-chatbot:
     build:
-      context: ./
+      context: ./backend
       dockerfile: Dockerfile
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
