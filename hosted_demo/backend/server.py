@@ -14,7 +14,7 @@ client = OpenAI()
 # Aussi, pour les ads pas besoin de faire un stream, un REST api devrait suffire
 # TODO: en attendant on peut faire deux call, une pour le chatbot et une pour les ads
 # ça évite que la réponse soit biasé par les ads
-@app.websocket("/ws/{type}")
+@app.websocket("{type}")
 async def websocket_endpoint(websocket: WebSocket, type: str = "native"):
     try:
         await websocket.accept()
