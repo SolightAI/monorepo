@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Send } from 'lucide-react';
+import { ArrowRightIcon, Check, Send } from 'lucide-react';
 import { Chatbot } from '../components/Chatbot/Chatbot';
 
 const APP_URL = process.env.REACT_APP_APP_URL;
@@ -17,9 +17,9 @@ const CardContent = ({ children }) => <div>{children}</div>;
 const CardFooter = ({ children }) => <div className="mt-4">{children}</div>;
 
 
-const FeaturesSection = () => {
+const PublishersSection = () => {
   return (
-    <section className="w-full py-8 md:py-16 lg:py-20 bg-gray-100">
+    <section id="publishers" className="w-full py-8 md:py-16 lg:py-20 bg-gray-100">
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">
@@ -57,6 +57,45 @@ const FeaturesSection = () => {
   )
 }
 
+const AdvertisersSection = () => {
+  return (
+    <section id="advertisers" className="w-full py-8 md:py-16 lg:py-20 bg-blue-100">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="flex flex-col items-center justify-center space-y-4 text-center">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Advertise with Us</h2>
+            <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+              Reach your target audience by integrating your ads into AI conversations.
+            </p>
+          </div>
+        </div>
+        <div className="mx-auto grid max-w-5xl items-center gap-8 py-12 md:grid-cols-3">
+          <div className="flex flex-col items-center text-center">
+            <ArrowUpRightIcon className="h-12 w-12 mb-4 text-primary" />
+            <h3 className="text-xl font-bold mb-2">An Engaged Audience</h3>
+            <p className="text-muted-foreground">
+              As users engage with Conversational AI, their attention is at its peak.
+            </p>
+          </div>
+          <div className="flex flex-col items-center text-center">
+            <ChatIcon className="h-12 w-12 mb-4 text-primary" />
+            <h3 className="text-xl font-bold mb-2">Contextual Relevance</h3>
+            <p className="text-muted-foreground">
+              A cookie-less opportunity to reach your audience with rich contextual data.
+            </p>
+          </div>
+          <div className="flex flex-col items-center text-center">
+            <UserIcon className="h-12 w-12 mb-4 text-primary" />
+            <h3 className="text-xl font-bold mb-2">Personalisation at scale</h3>
+            <p className="text-muted-foreground">
+              Tailored ads for each user based on their preferences and their intent.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
 
 function BoltIcon(props) {
   return (
@@ -97,6 +136,8 @@ function CheckIcon(props) {
   )
 }
 
+
+
 function PencilIcon(props) {
   return (
     <svg
@@ -116,6 +157,67 @@ function PencilIcon(props) {
     </svg>
   )
 }
+
+function ArrowUpRightIcon(props) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m5.834.166-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243-1.59-1.59"
+      />
+    </svg>
+  )
+}
+function UserIcon(props) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor" 
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+    </svg>
+  )
+}
+
+function ChatIcon(props) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24" 
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+    </svg>
+  )
+}
+
 
 
 const Pricing = ({ title, price, features, url, buttonText = "Get Started", isEnterprise = false }) => {
@@ -242,7 +344,7 @@ const PricingSection = () => {
 
 const OverlappingImages = () => {
   return (
-    <div className="relative w-full mx-auto">
+    <div className="relative w-full mx-auto max-w-md">
       <img
         src="https://i.ibb.co/zHJGGd5/laneo-phone.png"
         alt="Space exploration scene"
@@ -262,18 +364,16 @@ const PresentationSection = () => {
           <div className="flex flex-col justify-center space-y-4">
             <div className="space-y-2">
               <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                Monetize Your AI Chat with Seamless Ad Integration
+                We are shaping Conversational A.I as a new marketing channel
               </h1>
-              <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                Transform your LLM application into a revenue stream. Our platform intelligently integrates ads into AI conversations while maintaining user experience.
-              </p>
+             
             </div>
             <div className="flex flex-col gap-2 min-[400px]:flex-row">
               <a
                 href={`${APP_URL}/register`}
                 className="inline-flex bg-blue-500 text-white h-10 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
               >
-                Start Monetizing
+                View Demo
               </a>
             </div>
           </div>
@@ -352,11 +452,17 @@ export default function VideoPlatform() {
         <img src="https://i.ibb.co/rv8yHK6/laneo-black.png" alt="Laneo" className="h-6 w-6" />
         <span className="text-lg font-semibold ml-2">Laneo</span>
         <nav className="ml-auto flex gap-4 sm:gap-6">
-          <a href="#features" className="text-sm font-medium hover:underline underline-offset-4" onClick={(e) => {
+          <a href="#publishers" className="text-sm font-medium hover:underline underline-offset-4" onClick={(e) => {
             e.preventDefault();
-            scrollToSection('features');
+            scrollToSection('publishers');
           }}>
-            Features
+            Publishers
+          </a>
+          <a href="#advertisers" className="text-sm font-medium hover:underline underline-offset-4" onClick={(e) => {
+            e.preventDefault();
+            scrollToSection('advertisers');
+          }}>
+            Advertisers
           </a>
           <a href="#samples" className="text-sm font-medium hover:underline underline-offset-4" onClick={(e) => {
             e.preventDefault();
@@ -377,7 +483,9 @@ export default function VideoPlatform() {
 
         <PresentationSection />
 
-        <FeaturesSection />
+        <PublishersSection />
+
+        <AdvertisersSection />
 
         <DemoSection />
 
