@@ -15,6 +15,7 @@ origins = [
     "http://localhost:3000",
     "http://localhost:3001",
     "https://publisher.demo.laneo.io",
+    "https://laneo.io",
     # Add any other allowed origins
 ]
 
