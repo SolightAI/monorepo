@@ -15,7 +15,6 @@ COPY ./ .
 
 # Define build-time arguments
 ARG REACT_APP_APP_URL=https://app.laneo.io
-RUN env | grep REACT > .env
 
 # Build the app for production
 RUN npm run build

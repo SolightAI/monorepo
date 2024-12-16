@@ -1,6 +1,6 @@
-import React from 'react';
-import { ArrowRightIcon, Check, Send } from 'lucide-react';
-import { Chatbot } from '../components/Chatbot/Chatbot';
+import React, { useState, useEffect, useRef } from 'react';
+import { Check } from 'lucide-react';
+import { ChatInterface } from '../components/Chatbot/Chatbot';
 
 const APP_URL = process.env.REACT_APP_APP_URL;
 
@@ -387,50 +387,45 @@ const PresentationSection = () => {
 };
 
 const DemoSection = () => {
+  const [history, setHistory] = useState([]);
+  const [newMessage, setNewMessage] = useState({ content: '' });
+  const historyRef = useRef(history);
+  const newMessageRef = useRef(newMessage);
+
+  useEffect(() => {
+    historyRef.current = history;
+    newMessageRef.current = newMessage;
+  }, [history, newMessage]);
+
   return (
     <section id="samples" className="w-full py-8 md:py-16 lg:py-20 bg-gray-50">
-      <div className="container mx-auto space-y-12 px-4 md:px-6">
-        <div className="flex flex-col items-center justify-center space-y-4 text-center">
+      <div className="">
+        <div className=" flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">
 
             <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-gray-900">
               See How It Works
             </h2>
 
-            <p className="max-w-[900px] text-gray-600 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+            <p className="md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
               Watch how our platform seamlessly integrates ads into AI conversations.
             </p>
 
-            <div className="max-w-3xl mx-auto h-[500px] pt-8">
-              <Chatbot />
+            <div className="max-w-6xl mx-auto">
+              <ChatInterface
+                title="Native Advertising"
+                socketUrl={`${process.env.REACT_APP_DEMO_INFERENCE_WEBSOCKET_URL}/native`}
+                history={history}
+                setHistory={setHistory}
+                newMessage={newMessage}
+                setNewMessage={setNewMessage}
+                historyRef={historyRef}
+                newMessageRef={newMessageRef}
+                showQueries={false}
+              />
             </div>
 
           </div>
-        </div>
-
-        {/* Video demo */}
-        {/* <div className="flex justify-center w-full h-full">
-          <div className="w-full max-w-3xl aspect-video">
-            <iframe
-              width="896"
-              height="440"
-              className="w-full rounded-lg shadow-lg"
-              src="https://www.youtube.com/embed/magINhPM9vk"
-              title="YouTube video player"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-            />
-          </div>
-        </div> */}
-
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-          {[1, 2, 3].map((index) => (
-            <div key={index} className="rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
-              <div className="w-full aspect-video bg-gray-200" />
-            </div>
-          ))}
         </div>
       </div>
     </section>

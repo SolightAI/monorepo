@@ -103,6 +103,7 @@ You will be provided in your history, the conversation, the last message from th
 You must write an ad that is relevant to the last message from the user and the last message from the assistant.
 * Links and only links must be in bold
 * You must format the ad as a text that must be nice and concise, do not simply copy the ad text.
+* You must not always introduce the same ad, nor the same product.
 """
 
 boxed_system_prompt = native_system_prompt
@@ -114,6 +115,7 @@ You must write a query that is relevant to the last message from the user and th
 Do not try to sell the product, just write a query that is relevant to the last message from the user and the last message from the assistant.
 The query must be short and concise, do not write a long query. The query must introduce the ad.
 The query must be writtent as if it was the user asking the question, not as if it's you asking the question.
+Pay attention to not always ask the same question, nor for the same product.
 
 To help you, here are some examples of good queries to write:
 - Where to buy the MacBook Air?

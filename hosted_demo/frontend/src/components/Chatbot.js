@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { ArrowUp, Send } from 'lucide-react'
+import { Send } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -201,105 +201,85 @@ export const ChatInterface = ({
   )
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-gradient-to-b from-white to-blue-50">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex w-full flex-col items-center justify-center space-y-6 p-12"
-      >
-        <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-          {title}
-        </h1>
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          className="flex flex-col items-center space-y-4"
-        >
-          <div className="h-24 w-24 rounded-full flex items-center justify-center">
-            <img src="https://i.ibb.co/rv8yHK6/laneo-black.png" alt="Laneo" />
-          </div>
-          <h2 className="text-3xl font-semibold text-gray-800">Laneo</h2>
-        </motion.div>
-        <p className="text-xl text-center text-gray-600 max-w-2xl">
-          Monetize your chatbot with seamless ad integration
-        </p>
-      </motion.div>
-
+    <div className="flex h-screen flex-col items-center bg-gradient-to-b from-white to-blue-50">
       {/* Messages Container */}
-      <div className="flex flex-col w-full max-w-4xl px-4 mb-32">
-        <AnimatePresence>
-          {history
-            .filter(message => showQueries || !message.is_query)
-            .map((message, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, x: -100 }}
-              className={`rounded-2xl p-6 my-3 shadow-sm backdrop-blur-sm ${
-                message.role === 'user'
-                  ? 'bg-blue-600 text-white ml-auto max-w-[80%]'
-                  : message.is_query
+      <div className="flex flex-col w-full max-w-4xl px-4 h-full py-4">
+        {/* Messages Area - scrollable */}
+        <div className="flex-1 overflow-y-auto mb-4">
+          <AnimatePresence>
+            {history
+              .filter(message => showQueries || !message.is_query)
+              .map((message, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                className={`rounded-2xl p-6 my-3 shadow-sm backdrop-blur-sm ${
+                  message.role === 'user'
+                    ? 'bg-blue-600 text-white ml-auto max-w-[80%]'
+                    : message.is_query
+                      ? 'bg-gradient-to-r from-slate-50/90 to-blue-50/90 border border-blue-100 cursor-pointer hover:from-slate-100/90 hover:to-blue-100/90 transform hover:scale-[1.02] transition-all'
+                      : 'bg-white/90 max-w-[80%]'
+                }`}
+                onClick={() => message.is_query ? handleQueryClick(message.content) : null}
+              >
+                <div className={`prose max-w-none ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                  <ReactMarkdown>
+                    {message.is_query ? `**Sponsored:** ${message.content}` : message.content}
+                  </ReactMarkdown>
+                </div>
+              </motion.div>
+            ))}
+            {newMessage.content && (!newMessage.is_query || showQueries) && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`rounded-2xl p-6 my-3 shadow-sm backdrop-blur-sm ${
+                  newMessage.is_query
                     ? 'bg-gradient-to-r from-slate-50/90 to-blue-50/90 border border-blue-100 cursor-pointer hover:from-slate-100/90 hover:to-blue-100/90 transform hover:scale-[1.02] transition-all'
-                    : 'bg-white/90 max-w-[80%]'
-              }`}
-              onClick={() => message.is_query ? handleQueryClick(message.content) : null}
-            >
-              <div className={`prose max-w-none ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
-                <ReactMarkdown>
-                  {message.is_query ? `**Sponsored:** ${message.content}` : message.content}
-                </ReactMarkdown>
-              </div>
-            </motion.div>
-          ))}
-          {newMessage.content && (!newMessage.is_query || showQueries) && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`rounded-2xl p-6 my-3 shadow-sm backdrop-blur-sm ${
-                newMessage.is_query
-                  ? 'bg-gradient-to-r from-slate-50/90 to-blue-50/90 border border-blue-100 cursor-pointer hover:from-slate-100/90 hover:to-blue-100/90 transform hover:scale-[1.02] transition-all'
-                  : 'bg-white/90'
-              }`}
-              onClick={() => newMessage.is_query ? handleQueryClick(newMessage.content) : null}
-            >
-              <div className={`prose max-w-none ${newMessage.is_query ? '' : 'text-gray-800'}`}>
-                <ReactMarkdown>
-                  {newMessage.is_query ? `**Sponsored:** ${newMessage.content}` : newMessage.content}
-                </ReactMarkdown>
-              </div>
-            </motion.div>
-          )}
-          {isTyping && !newMessage.content && <TypingIndicator />}
-        </AnimatePresence>
-      </div>
-
-      {/* Chat Input */}
-      <motion.div
-        initial={{ y: 100 }}
-        animate={{ y: 0 }}
-        className="fixed bottom-0 w-full border-t bg-white/80 backdrop-blur-md p-6 z-50"
-      >
-        <div className="mx-auto flex max-w-4xl items-center gap-3">
-          <input
-            type="text"
-            placeholder="How can I help you today?"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSend() }}
-            className="flex-1 text-lg p-4 border border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-          />
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleSend}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-xl hover:shadow-lg transition-all"
-          >
-            <Send className="h-6 w-6" />
-            <span className="sr-only">Send message</span>
-          </motion.button>
+                    : 'bg-white/90'
+                }`}
+                onClick={() => newMessage.is_query ? handleQueryClick(newMessage.content) : null}
+              >
+                <div className={`prose max-w-none ${newMessage.is_query ? '' : 'text-gray-800'}`}>
+                  <ReactMarkdown>
+                    {newMessage.is_query ? `**Sponsored:** ${newMessage.content}` : newMessage.content}
+                  </ReactMarkdown>
+                </div>
+              </motion.div>
+            )}
+            {isTyping && !newMessage.content && <TypingIndicator />}
+          </AnimatePresence>
         </div>
-      </motion.div>
+
+        {/* Chat Input */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="w-full bg-white/80 backdrop-blur-md p-4 rounded-xl"
+        >
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              placeholder="How can I help you today?"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSend() }}
+              className="flex-1 text-lg p-4 border border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            />
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleSend}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-xl hover:shadow-lg transition-all"
+            >
+              <Send className="h-6 w-6" />
+              <span className="sr-only">Send message</span>
+            </motion.button>
+          </div>
+        </motion.div>
+      </div>
     </div>
   )
 }
