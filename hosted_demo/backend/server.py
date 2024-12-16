@@ -58,13 +58,13 @@ async def websocket_endpoint(websocket: WebSocket, type: str = "native"):
                         await websocket.send_text(chunk.choices[0].delta.content)
 
                 if type == "boxed":
-                    await websocket.send_text("<BOXED>")
+                    await websocket.send_text("<BOXED>**Sponsored**: ")
                 elif type == "queries":
                     await websocket.send_text("<QUERY>")
+                else:
+                    await websocket.send_text("\n\n**Sponsored**: ")
 
                 messages = [{"role": "system", "content": system_prompts[type]}] + messages + [{"role": "assistant", "content": gpt_response}]
-                for message in messages:
-                    print(message)
                 stream = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=messages,

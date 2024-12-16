@@ -7,16 +7,31 @@ const socketUrl = process.env.REACT_APP_DEMO_INFERENCE_WEBSOCKET_URL || 'wss://d
 const DemoSection = () => {
   const [adType, setAdType] = useState('native');
 
-  const [sharedHistory, setSharedHistory] = useState([]);
-  const [sharedNewMessage, setSharedNewMessage] = useState({ content: '' });
+  const [nativeHistory, setNativeHistory] = useState([]);
+  const [boxedHistory, setBoxedHistory] = useState([]);
+  const [queriesHistory, setQueriesHistory] = useState([]);
+  
+  const [nativeNewMessage, setNativeNewMessage] = useState({ content: '' });
+  const [boxedNewMessage, setBoxedNewMessage] = useState({ content: '' });
+  const [queriesNewMessage, setQueriesNewMessage] = useState({ content: '' });
 
-  const sharedHistoryRef = useRef(sharedHistory);
-  const sharedNewMessageRef = useRef(sharedNewMessage);
+  const nativeHistoryRef = useRef(nativeHistory);
+  const boxedHistoryRef = useRef(boxedHistory);
+  const queriesHistoryRef = useRef(queriesHistory);
+  
+  const nativeNewMessageRef = useRef(nativeNewMessage);
+  const boxedNewMessageRef = useRef(boxedNewMessage);
+  const queriesNewMessageRef = useRef(queriesNewMessage);
 
   useEffect(() => {
-    sharedHistoryRef.current = sharedHistory;
-    sharedNewMessageRef.current = sharedNewMessage;
-  }, [sharedHistory, sharedNewMessage]);
+    nativeHistoryRef.current = nativeHistory;
+    boxedHistoryRef.current = boxedHistory;
+    queriesHistoryRef.current = queriesHistory;
+    
+    nativeNewMessageRef.current = nativeNewMessage;
+    boxedNewMessageRef.current = boxedNewMessage;
+    queriesNewMessageRef.current = queriesNewMessage;
+  }, [nativeHistory, boxedHistory, queriesHistory, nativeNewMessage, boxedNewMessage, queriesNewMessage]);
 
   const AdTypeButton = ({ type, label, icon }) => (
     <motion.button
@@ -85,12 +100,12 @@ const DemoSection = () => {
                   <ChatInterface 
                     title="Native Advertising" 
                     socketUrl={`${socketUrl}/native`}
-                    history={sharedHistory}
-                    setHistory={setSharedHistory}
-                    newMessage={sharedNewMessage}
-                    setNewMessage={setSharedNewMessage}
-                    historyRef={sharedHistoryRef}
-                    newMessageRef={sharedNewMessageRef}
+                    history={nativeHistory}
+                    setHistory={setNativeHistory}
+                    newMessage={nativeNewMessage}
+                    setNewMessage={setNativeNewMessage}
+                    historyRef={nativeHistoryRef}
+                    newMessageRef={nativeNewMessageRef}
                     showQueries={false}
                   />
                 )}
@@ -98,12 +113,12 @@ const DemoSection = () => {
                   <ChatInterface 
                     title="Boxed Advertising" 
                     socketUrl={`${socketUrl}/boxed`}
-                    history={sharedHistory}
-                    setHistory={setSharedHistory}
-                    newMessage={sharedNewMessage}
-                    setNewMessage={setSharedNewMessage}
-                    historyRef={sharedHistoryRef}
-                    newMessageRef={sharedNewMessageRef}
+                    history={boxedHistory}
+                    setHistory={setBoxedHistory}
+                    newMessage={boxedNewMessage}
+                    setNewMessage={setBoxedNewMessage}
+                    historyRef={boxedHistoryRef}
+                    newMessageRef={boxedNewMessageRef}
                     showQueries={false}
                   />
                 )}
@@ -111,12 +126,12 @@ const DemoSection = () => {
                   <ChatInterface 
                     title="Smart Queries" 
                     socketUrl={`${socketUrl}/queries`}
-                    history={sharedHistory}
-                    setHistory={setSharedHistory}
-                    newMessage={sharedNewMessage}
-                    setNewMessage={setSharedNewMessage}
-                    historyRef={sharedHistoryRef}
-                    newMessageRef={sharedNewMessageRef}
+                    history={queriesHistory}
+                    setHistory={setQueriesHistory}
+                    newMessage={queriesNewMessage}
+                    setNewMessage={setQueriesNewMessage}
+                    historyRef={queriesHistoryRef}
+                    newMessageRef={queriesNewMessageRef}
                     showQueries={true}
                   />
                 )}

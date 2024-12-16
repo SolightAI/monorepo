@@ -300,16 +300,6 @@ export const ChatInterface = ({
           </motion.button>
         </div>
       </motion.div>
-
-      {/* Scroll to Top Button */}
-      <motion.button
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        className="fixed bottom-28 right-8 h-12 w-12 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg flex items-center justify-center hover:bg-white transition-all"
-      >
-        <ArrowUp className="h-6 w-6 text-gray-600" />
-        <span className="sr-only">Scroll to top</span>
-      </motion.button>
     </div>
   )
 }
