@@ -4,6 +4,8 @@ FROM node:22-slim
 # Set the working directory in the container
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y curl
+
 # Copy package.json and package-lock.json
 COPY ./package*.json ./
 
