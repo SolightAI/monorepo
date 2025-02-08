@@ -14,8 +14,11 @@ const FeatureShowcase = () => {
 
   const initializeAgents = () => {
     const agents = [];
-    // Create fewer agents for clarity
-    for (let i = 0; i < 30; i++) {
+    // Create an equal number of users and bots
+    const totalAgents = 50;
+    const halfAgents = totalAgents / 2;
+
+    for (let i = 0; i < totalAgents; i++) {
       agents.push({
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
@@ -23,7 +26,7 @@ const FeatureShowcase = () => {
         vy: (Math.random() - 0.5) * 0.2,
         size: 4,
         color: `hsl(${Math.random() * 60 + 200}, 70%, 50%)`,
-        type: Math.random() > 0.5 ? 'user' : 'bot',
+        type: i < halfAgents ? 'user' : 'bot',  // Ensure equal distribution
         state: 'browsing', // browsing, cart, checkout
         target: { x: 0, y: 0 },
       });
@@ -33,222 +36,9 @@ const FeatureShowcase = () => {
 
   const features = [
     {
-      icon: Brain,
-      title: "Behavioral Pattern Recognition",
-      description: "Discover how different user segments naturally interact with your interface and identify emerging behavior patterns.",
-      behavior: (agents, mouse, canvas) => {
-        // Create animated positions for the attractors
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const radius = 100;
-        const speed = 0.001;
-        
-        const attractors = [
-          {
-            x: centerX + Math.cos(time * speed) * radius,
-            y: centerY + Math.sin(time * speed) * radius,
-            strength: 1,
-            label: 'Feature A',
-            radius: 40  // Area of influence
-          },
-          {
-            x: centerX + Math.cos(time * speed + (2 * Math.PI / 3)) * radius,
-            y: centerY + Math.sin(time * speed + (2 * Math.PI / 3)) * radius,
-            strength: 0.7,
-            label: 'Feature B',
-            radius: 35
-          },
-          {
-            x: centerX + Math.cos(time * speed + (4 * Math.PI / 3)) * radius,
-            y: centerY + Math.sin(time * speed + (4 * Math.PI / 3)) * radius,
-            strength: 0.5,
-            label: 'Feature C',
-            radius: 30
-          }
-        ];
-
-        return agents.map(agent => {
-          // Initialize agent's personal offset if not exists
-          if (!agent.offset) {
-            agent.offset = {
-              x: (Math.random() - 0.5) * 30,
-              y: (Math.random() - 0.5) * 30
-            };
-          }
-
-          // Each agent type has different behavioral tendencies
-          const preferredAttractors = agent.type === 'bot' 
-            ? attractors.slice(0, 2)  // AI users prefer first two areas
-            : attractors.slice(1);     // Real users prefer last two areas
-
-          // Calculate combined influence of preferred attractors
-          const influence = preferredAttractors.reduce((acc, attractor) => {
-            const dx = (attractor.x + agent.offset.x) - agent.x;
-            const dy = (attractor.y + agent.offset.y) - agent.y;
-            const dist = Math.hypot(dx, dy);
-            const factor = attractor.strength / (dist + 1);
-            return {
-              x: acc.x + (dx * factor),
-              y: acc.y + (dy * factor)
-            };
-          }, { x: 0, y: 0 });
-
-          // Calculate distance to nearest attractor for engagement state
-          const nearestDist = Math.min(...attractors.map(attractor => 
-            Math.hypot(attractor.x - agent.x, attractor.y - agent.y)
-          ));
-
-          // Update velocity based on behavioral influences
-          return {
-            ...agent,
-            vx: agent.vx * 0.9 + influence.x * 0.2,
-            vy: agent.vy * 0.9 + influence.y * 0.2,
-            state: nearestDist < 50 ? 'engaged' : 'exploring',
-            offset: agent.offset  // Preserve the offset
-          };
-        });
-      },
-      label: "Identifying natural user behavior patterns",
-      renderExtra: (ctx, canvas) => {
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const radius = 100;
-        const speed = 0.001;
-
-        // Draw orbital path
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(100, 200, 255, 0.1)';
-        ctx.stroke();
-
-        // Draw attractors
-        const positions = [0, (2 * Math.PI / 3), (4 * Math.PI / 3)];
-        const labels = ['Primary', 'Secondary', 'Tertiary'];
-        const sizes = [100, 80, 60];
-
-        positions.forEach((angle, i) => {
-          const x = centerX + Math.cos(time * speed + angle) * radius;
-          const y = centerY + Math.sin(time * speed + angle) * radius;
-
-          // Draw influence area
-          ctx.beginPath();
-          ctx.arc(x, y, sizes[i] * 0.4, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(100, 200, 255, 0.1)';
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(100, 200, 255, 0.2)';
-          ctx.stroke();
-
-          // Draw label
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-          ctx.font = '12px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(labels[i], x, y + 40);
-        });
-      }
-    },
-    {
-      icon: Users,
-      title: "User Flow Analysis",
-      description: "Map out complete user journeys and identify critical paths, bottlenecks, and drop-off points in your application.",
-      behavior: (agents, mouse, canvas) => {
-        // Define key interaction points in the user flow
-        const flowStages = [
-          { x: 100, y: 100, name: 'entry', next: ['explore', 'search'], radius: 30 },
-          { x: canvas.width - 100, y: 100, name: 'search', next: ['detail'], radius: 30 },
-          { x: canvas.width/2, y: canvas.height/2, name: 'explore', next: ['detail', 'search'], radius: 40 },
-          { x: canvas.width - 100, y: canvas.height - 100, name: 'detail', next: ['action'], radius: 30 },
-          { x: 100, y: canvas.height - 100, name: 'action', next: ['complete'], radius: 30 },
-          { x: canvas.width/2, y: canvas.height - 50, name: 'complete', next: [], radius: 30 }
-        ];
-
-        return agents.map(agent => {
-          // Initialize agent's personal offset if not exists
-          if (!agent.offset) {
-            agent.offset = {
-              x: (Math.random() - 0.5) * 30,
-              y: (Math.random() - 0.5) * 30
-            };
-          }
-
-          // Initialize or update agent's flow state
-          if (!agent.flowState) {
-            agent.flowState = 'entry';
-            agent.target = flowStages.find(s => s.name === 'entry');
-          }
-
-          const currentStage = flowStages.find(s => s.name === agent.flowState);
-          
-          // Transition to next stage when close enough
-          if (Math.hypot(agent.x - (currentStage.x + agent.offset.x), 
-                        agent.y - (currentStage.y + agent.offset.y)) < currentStage.radius) {
-            if (currentStage.next.length > 0 && Math.random() < 0.03) {
-              const nextOptions = currentStage.next;
-              const nextStageName = nextOptions[Math.floor(Math.random() * nextOptions.length)];
-              agent.target = flowStages.find(s => s.name === nextStageName);
-              agent.flowState = nextStageName;
-              // Generate new offset when changing stages
-              agent.offset = {
-                x: (Math.random() - 0.5) * 30,
-                y: (Math.random() - 0.5) * 30
-              };
-            }
-          }
-
-          const dx = (agent.target.x + agent.offset.x) - agent.x;
-          const dy = (agent.target.y + agent.offset.y) - agent.y;
-          const dist = Math.hypot(dx, dy);
-
-          return {
-            ...agent,
-            vx: agent.vx * 0.95 + (dx / dist) * 0.1,
-            vy: agent.vy * 0.95 + (dy / dist) * 0.1,
-            offset: agent.offset
-          };
-        });
-      },
-      label: "Mapping user flow patterns",
-      renderExtra: (ctx, canvas) => {
-        // Draw flow diagram
-        const stages = [
-          { x: 100, y: 100, label: 'Entry' },
-          { x: canvas.width - 100, y: 100, label: 'Search' },
-          { x: canvas.width/2, y: canvas.height/2, label: 'Explore' },
-          { x: canvas.width - 100, y: canvas.height - 100, label: 'Details' },
-          { x: 100, y: canvas.height - 100, label: 'Action' },
-          { x: canvas.width/2, y: canvas.height - 50, label: 'Complete' }
-        ];
-
-        // Draw connections between stages
-        ctx.beginPath();
-        ctx.moveTo(stages[0].x, stages[0].y);
-        stages.forEach((stage, i) => {
-          if (i > 0) {
-            ctx.lineTo(stage.x, stage.y);
-          }
-        });
-        ctx.strokeStyle = 'rgba(100, 200, 255, 0.2)';
-        ctx.stroke();
-
-        // Draw stages
-        stages.forEach(stage => {
-          ctx.beginPath();
-          ctx.arc(stage.x, stage.y, 30, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(100, 200, 255, 0.1)';
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(100, 200, 255, 0.2)';
-          ctx.stroke();
-
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-          ctx.font = '12px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(stage.label, stage.x, stage.y + 45);
-        });
-      }
-    },
-    {
-      icon: Target,
-      title: "A/B Testing at Scale",
-      description: "Test multiple variations of your UI with thousands of simulated users to predict the best performing designs.",
+      icon: Zap,
+      title: "Rapid Experimentation",
+      description: "Test hundreds of growth hypotheses simultaneously. Get statistically significant results in minutes instead of weeks.",
       behavior: (agents, mouse, canvas) => {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
@@ -265,28 +55,48 @@ const FeatureShowcase = () => {
           y: centerY - yOffset,
           radius: 40
         };
-        
-        return agents.map(agent => {
-          // Initialize agent's personal offset if not exists
-          if (!agent.offset) {
-            agent.offset = {
-              x: (Math.random() - 0.5) * 40,
-              y: (Math.random() - 0.5) * 40
-            };
-          }
 
-          const preferredVariant = agent.type === 'bot' ? variantA : variantB;
-          const dx = (preferredVariant.x + agent.offset.x) - agent.x;
-          const dy = (preferredVariant.y + agent.offset.y) - agent.y;
-          const dist = Math.hypot(dx, dy);
-          
-          return {
-            ...agent,
-            vx: agent.vx * 0.95 + (dx / dist) * 0.1,
-            vy: agent.vy * 0.95 + (dy / dist) * 0.1,
-            offset: agent.offset
-          };
-        });
+        // Ensure equal distribution of users and bots for each variant
+        const userAgents = agents.filter(a => a.type === 'user');
+        const botAgents = agents.filter(a => a.type === 'bot');
+        
+        // Process users and bots separately but with the same logic
+        const processAgents = (agentGroup) => {
+          return agentGroup.map(agent => {
+            // Initialize agent's personal offset if not exists
+            if (!agent.offset) {
+              agent.offset = {
+                x: (Math.random() - 0.5) * 40,
+                y: (Math.random() - 0.5) * 40
+              };
+            }
+
+            // Initialize preferred variant randomly if not set
+            if (!agent.preferredVariant) {
+              // Ensure equal distribution within each type
+              const unassignedToA = agentGroup.filter(a => !a.preferredVariant).length;
+              const assignedToA = agentGroup.filter(a => a.preferredVariant === 'A').length;
+              const halfGroup = Math.floor(agentGroup.length / 2);
+              
+              agent.preferredVariant = assignedToA < halfGroup ? 'A' : 'B';
+            }
+
+            const preferredVariant = agent.preferredVariant === 'A' ? variantA : variantB;
+            const dx = (preferredVariant.x + agent.offset.x) - agent.x;
+            const dy = (preferredVariant.y + agent.offset.y) - agent.y;
+            const dist = Math.hypot(dx, dy);
+            
+            return {
+              ...agent,
+              vx: agent.vx * 0.95 + (dx / dist) * 0.1,
+              vy: agent.vy * 0.95 + (dy / dist) * 0.1,
+              offset: agent.offset,
+              preferredVariant: agent.preferredVariant
+            };
+          });
+        };
+
+        return [...processAgents(userAgents), ...processAgents(botAgents)];
       },
       label: "Comparing UI variations with simulated users",
       renderExtra: (ctx, canvas) => {
@@ -324,69 +134,486 @@ const FeatureShowcase = () => {
       }
     },
     {
-      icon: Zap,
-      title: "Conversion Optimization",
-      description: "Identify and fix conversion bottlenecks by analyzing user behavior patterns.",
+      icon: Users,
+      title: "User Segment Analysis",
+      description: "Understand how different user cohorts interact with your product. Optimize experiences for high-value segments.",
       behavior: (agents, mouse, canvas) => {
-        // Simulate conversion funnel
-        const stages = [
-          { x: 100, y: canvas.height / 2 },
-          { x: canvas.width / 3, y: canvas.height / 2 },
-          { x: (2 * canvas.width) / 3, y: canvas.height / 2 },
-          { x: canvas.width - 100, y: canvas.height / 2 }
-        ];
-
-        return agents.map(agent => {
-          // Progress through funnel stages
-          if (!agent.funnelStage) agent.funnelStage = 0;
-          
-          const currentStage = stages[agent.funnelStage];
-          const dx = currentStage.x - agent.x;
-          const dy = currentStage.y - agent.y;
-          const dist = Math.hypot(dx, dy);
-
-          // Move to next stage with some probability
-          if (dist < 20 && agent.funnelStage < stages.length - 1 && Math.random() < 0.02) {
-            agent.funnelStage++;
+        // Create animated positions for the attractors
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = 100;
+        const speed = 0.001;
+        
+        const attractors = [
+          {
+            x: centerX + Math.cos(time * speed) * radius,
+            y: centerY + Math.sin(time * speed) * radius,
+            strength: 1,
+            label: 'Feature A',
+            radius: 40  // Area of influence
+          },
+          {
+            x: centerX + Math.cos(time * speed + (2 * Math.PI / 3)) * radius,
+            y: centerY + Math.sin(time * speed + (2 * Math.PI / 3)) * radius,
+            strength: 0.7,
+            label: 'Feature B',
+            radius: 35
+          },
+          {
+            x: centerX + Math.cos(time * speed + (4 * Math.PI / 3)) * radius,
+            y: centerY + Math.sin(time * speed + (4 * Math.PI / 3)) * radius,
+            strength: 0.5,
+            label: 'Feature C',
+            radius: 30
           }
-
-          return {
-            ...agent,
-            vx: agent.vx * 0.95 + (dx / dist) * 0.1,
-            vy: agent.vy * 0.95 + (dy / dist) * 0.1
-          };
-        });
-      },
-      label: "Analyzing conversion funnel performance",
-      renderExtra: (ctx, canvas) => {
-        // Draw conversion funnel stages
-        const stages = [
-          { x: 100, label: 'Visit' },
-          { x: canvas.width / 3, label: 'Engage' },
-          { x: (2 * canvas.width) / 3, label: 'Convert' },
-          { x: canvas.width - 100, label: 'Retain' }
         ];
 
-        // Draw connecting lines
+        // Ensure equal distribution of users and bots for each attractor
+        const userAgents = agents.filter(a => a.type === 'user');
+        const botAgents = agents.filter(a => a.type === 'bot');
+        
+        // Process users and bots separately but with the same logic
+        const processAgents = (agentGroup) => {
+          return agentGroup.map(agent => {
+            // Initialize agent's personal offset if not exists
+            if (!agent.offset) {
+              agent.offset = {
+                x: (Math.random() - 0.5) * 30,
+                y: (Math.random() - 0.5) * 30
+              };
+            }
+
+            // Initialize preferred attractors randomly if not set
+            if (!agent.preferredAttractors) {
+              // Randomly choose 2 attractors to prefer
+              const shuffled = [...attractors].sort(() => Math.random() - 0.5);
+              agent.preferredAttractors = shuffled.slice(0, 2);
+            }
+
+            // Calculate combined influence of preferred attractors
+            const influence = agent.preferredAttractors.reduce((acc, attractor) => {
+              const dx = (attractor.x + agent.offset.x) - agent.x;
+              const dy = (attractor.y + agent.offset.y) - agent.y;
+              const dist = Math.hypot(dx, dy);
+              const factor = attractor.strength / (dist + 1);
+              return {
+                x: acc.x + (dx * factor),
+                y: acc.y + (dy * factor)
+              };
+            }, { x: 0, y: 0 });
+
+            // Calculate distance to nearest attractor for engagement state
+            const nearestDist = Math.min(...attractors.map(attractor => 
+              Math.hypot(attractor.x - agent.x, attractor.y - agent.y)
+            ));
+
+            return {
+              ...agent,
+              vx: agent.vx * 0.9 + influence.x * 0.2,
+              vy: agent.vy * 0.9 + influence.y * 0.2,
+              state: nearestDist < 50 ? 'engaged' : 'exploring',
+              offset: agent.offset,
+              preferredAttractors: agent.preferredAttractors
+            };
+          });
+        };
+
+        return [...processAgents(userAgents), ...processAgents(botAgents)];
+      },
+      label: "Identifying natural user behavior patterns",
+      renderExtra: (ctx, canvas) => {
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = 100;
+        const speed = 0.001;
+
+        // Draw orbital path
         ctx.beginPath();
-        ctx.moveTo(stages[0].x, canvas.height / 2);
-        ctx.lineTo(stages[stages.length - 1].x, canvas.height / 2);
-        ctx.strokeStyle = 'rgba(100, 200, 255, 0.2)';
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(100, 200, 255, 0.1)';
         ctx.stroke();
 
-        stages.forEach(stage => {
+        // Draw attractors
+        const positions = [0, (2 * Math.PI / 3), (4 * Math.PI / 3)];
+        const labels = ['Power Users', 'Engaged Users', 'New Users'];
+        const sizes = [100, 80, 60];
+
+        positions.forEach((angle, i) => {
+          const x = centerX + Math.cos(time * speed + angle) * radius;
+          const y = centerY + Math.sin(time * speed + angle) * radius;
+
+          // Draw influence area
           ctx.beginPath();
-          ctx.arc(stage.x, canvas.height / 2, 30, 0, Math.PI * 2);
+          ctx.arc(x, y, sizes[i] * 0.4, 0, Math.PI * 2);
           ctx.fillStyle = 'rgba(100, 200, 255, 0.1)';
           ctx.fill();
           ctx.strokeStyle = 'rgba(100, 200, 255, 0.2)';
           ctx.stroke();
 
+          // Draw label
           ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
           ctx.font = '12px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(stage.label, stage.x, canvas.height / 2 + 45);
+          ctx.fillText(labels[i], x, y + 40);
         });
+      }
+    },
+    {
+      icon: Target,
+      title: "Conversion Optimization",
+      description: "Identify and fix conversion bottlenecks across your entire funnel. Predict which changes will have the biggest impact on revenue.",
+      behavior: (agents, mouse, canvas) => {
+        // Define journey touchpoints
+        const touchpoints = {
+          entry: { x: 80, y: canvas.height / 2 },
+          browse: { x: canvas.width * 0.25, y: canvas.height * 0.3 },
+          search: { x: canvas.width * 0.25, y: canvas.height * 0.7 },
+          product: { x: canvas.width * 0.5, y: canvas.height * 0.4 },
+          cart: { x: canvas.width * 0.75, y: canvas.height * 0.3 },
+          checkout: { x: canvas.width - 80, y: canvas.height * 0.5 }
+        };
+
+        // Define possible paths and their probabilities
+        const paths = {
+          entry: { next: ['browse', 'search'], probs: [0.6, 0.4] },
+          browse: { next: ['product', 'search'], probs: [0.7, 0.3] },
+          search: { next: ['product', 'browse'], probs: [0.8, 0.2] },
+          product: { next: ['cart', 'browse', 'search'], probs: [0.4, 0.3, 0.3] },
+          cart: { next: ['checkout', 'product'], probs: [0.7, 0.3] },
+          checkout: { next: ['entry'], probs: [1] }
+        };
+
+        return agents.map(agent => {
+          // Initialize journey state if not exists
+          if (!agent.journeyState) {
+            agent.journeyState = {
+              current: 'entry',
+              target: touchpoints.entry,
+              progress: 0,
+              speed: 1 + Math.random()
+            };
+          }
+
+          const state = agent.journeyState;
+          
+          // Move towards current target
+          const dx = state.target.x - agent.x;
+          const dy = state.target.y - agent.y;
+          const dist = Math.hypot(dx, dy);
+
+          // Transition to next state when reaching target
+          if (dist < 5) {
+            const path = paths[state.current];
+            if (path) {
+              // Choose next state based on probabilities
+              const rand = Math.random();
+              let cumProb = 0;
+              let nextState = path.next[0];
+              
+              for (let i = 0; i < path.probs.length; i++) {
+                cumProb += path.probs[i];
+                if (rand <= cumProb) {
+                  nextState = path.next[i];
+                  break;
+                }
+              }
+
+              state.current = nextState;
+              state.target = touchpoints[nextState];
+              agent.state = nextState;
+            }
+          }
+
+          // Add settling behavior - stop movement when very close to target
+          if (dist < 2) {
+            agent.vx = 0;
+            agent.vy = 0;
+          } else {
+            agent.vx = (dx / dist) * state.speed;
+            agent.vy = (dy / dist) * state.speed;
+          }
+
+          return {
+            ...agent,
+            journeyState: state
+          };
+        });
+      },
+      label: "Multi-path user journey analysis",
+      renderExtra: (ctx, canvas) => {
+        const touchpoints = {
+          entry: { x: 80, y: canvas.height / 2, label: 'Entry' },
+          browse: { x: canvas.width * 0.25, y: canvas.height * 0.3, label: 'Browse' },
+          search: { x: canvas.width * 0.25, y: canvas.height * 0.7, label: 'Search' },
+          product: { x: canvas.width * 0.5, y: canvas.height * 0.4, label: 'Product' },
+          cart: { x: canvas.width * 0.75, y: canvas.height * 0.3, label: 'Cart' },
+          checkout: { x: canvas.width - 80, y: canvas.height * 0.5, label: 'Checkout' }
+        };
+
+        // Draw connections
+        ctx.strokeStyle = 'rgba(100, 200, 255, 0.1)';
+        ctx.beginPath();
+        // Entry to Browse/Search
+        ctx.moveTo(touchpoints.entry.x, touchpoints.entry.y);
+        ctx.lineTo(touchpoints.browse.x, touchpoints.browse.y);
+        ctx.moveTo(touchpoints.entry.x, touchpoints.entry.y);
+        ctx.lineTo(touchpoints.search.x, touchpoints.search.y);
+        // Browse/Search to Product
+        ctx.moveTo(touchpoints.browse.x, touchpoints.browse.y);
+        ctx.lineTo(touchpoints.product.x, touchpoints.product.y);
+        ctx.moveTo(touchpoints.search.x, touchpoints.search.y);
+        ctx.lineTo(touchpoints.product.x, touchpoints.product.y);
+        // Product to Cart
+        ctx.moveTo(touchpoints.product.x, touchpoints.product.y);
+        ctx.lineTo(touchpoints.cart.x, touchpoints.cart.y);
+        // Cart to Checkout
+        ctx.moveTo(touchpoints.cart.x, touchpoints.cart.y);
+        ctx.lineTo(touchpoints.checkout.x, touchpoints.checkout.y);
+        ctx.stroke();
+
+        // Draw touchpoints
+        Object.values(touchpoints).forEach(point => {
+          // Draw node
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 15, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(100, 200, 255, 0.1)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(100, 200, 255, 0.2)';
+          ctx.stroke();
+
+          // Draw label
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+          ctx.font = '12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(point.label, point.x, point.y + 30);
+        });
+      }
+    },
+    {
+      icon: Brain,
+      title: "Virality & Network Effects",
+      description: "Visualize how value grows exponentially through network effects. See how individual actions create collective impact and viral growth patterns.",
+      behavior: (agents, mouse, canvas) => {
+        // Initialize wave emitters if not exists
+        agents.forEach(agent => {
+          if (!agent.waveState) {
+            agent.waveState = {
+              frequency: 0.5 + Math.random() * 0.5,
+              amplitude: 30 + Math.random() * 20,
+              phase: Math.random() * Math.PI * 2,
+              role: Math.random() < 0.2 ? 'creator' : 
+                    Math.random() < 0.5 ? 'amplifier' : 'connector',
+              connections: [],
+              lastEmission: 0,
+              emissionInterval: 50 + Math.random() * 100,
+              preferredZone: Math.floor(Math.random() * 3) // Assign to one of three zones
+            };
+          }
+        });
+
+        // Define resonance zones
+        const zones = [
+          { x: canvas.width / 2, y: canvas.height / 2, radius: 100 },
+          { x: canvas.width / 2 + 150, y: canvas.height / 2 - 50, radius: 80 },
+          { x: canvas.width / 2 - 120, y: canvas.height / 2 + 70, radius: 70 }
+        ];
+        
+        return agents.map(agent => {
+          const state = agent.waveState;
+          const zone = zones[state.preferredZone];
+          
+          // Calculate wave influence
+          const waveX = Math.cos(time * 0.01 * state.frequency + state.phase) * state.amplitude;
+          const waveY = Math.sin(time * 0.01 * state.frequency + state.phase) * state.amplitude;
+          
+          // Different behavior based on role
+          switch(state.role) {
+            case 'creator':
+              // Creators move in larger, slower patterns within their zone
+              const creatorDx = zone.x - agent.x;
+              const creatorDy = zone.y - agent.y;
+              const creatorDist = Math.hypot(creatorDx, creatorDy);
+              
+              // Add settling behavior for creators
+              if (creatorDist < 2) {
+                agent.vx = 0;
+                agent.vy = 0;
+              } else if (creatorDist > zone.radius) {
+                agent.vx = agent.vx * 0.9 + (creatorDx / creatorDist) * 0.5;
+                agent.vy = agent.vy * 0.9 + (creatorDy / creatorDist) * 0.5;
+              } else {
+                agent.vx = agent.vx * 0.95 + waveX * 0.005;
+                agent.vy = agent.vy * 0.95 + waveY * 0.005;
+              }
+              agent.size = 6;
+              break;
+            case 'amplifier':
+              // Amplifiers are attracted to their zone center
+              const amplifierDx = zone.x + waveX * 0.5 - agent.x;
+              const amplifierDy = zone.y + waveY * 0.5 - agent.y;
+              const amplifierDist = Math.hypot(amplifierDx, amplifierDy);
+              
+              // Add settling behavior for amplifiers
+              if (amplifierDist < 2) {
+                agent.vx = 0;
+                agent.vy = 0;
+              } else {
+                agent.vx = agent.vx * 0.9 + (amplifierDx / amplifierDist) * 0.1;
+                agent.vy = agent.vy * 0.9 + (amplifierDy / amplifierDist) * 0.1;
+              }
+              agent.size = 4;
+              break;
+            case 'connector':
+              // Connectors move between agents in their zone
+              const nearbyAgents = agents.filter(other => 
+                other !== agent && 
+                other.waveState.preferredZone === state.preferredZone &&
+                Math.hypot(other.x - agent.x, other.y - agent.y) < zone.radius * 1.2
+              );
+              
+              if (nearbyAgents.length > 0) {
+                nearbyAgents.forEach(potentialTarget => {
+                  if (!state.connections.includes(potentialTarget)) {
+                    state.connections.push(potentialTarget);
+                    if (state.connections.length > 24) {
+                      state.connections.shift();
+                    }
+                  }
+                });
+
+                // Move towards a random target with settling behavior
+                const target = nearbyAgents[Math.floor(Math.random() * nearbyAgents.length)];
+                const tdx = target.x - agent.x;
+                const tdy = target.y - agent.y;
+                const tdist = Math.hypot(tdx, tdy);
+                
+                if (tdist < 2) {
+                  agent.vx = 0;
+                  agent.vy = 0;
+                } else {
+                  agent.vx = agent.vx * 0.9 + (tdx / tdist) * 0.15;
+                  agent.vy = agent.vy * 0.9 + (tdy / tdist) * 0.15;
+                }
+
+                // Add attraction between connected agents with settling behavior
+                state.connections.forEach(connectedAgent => {
+                  const dx = connectedAgent.x - agent.x;
+                  const dy = connectedAgent.y - agent.y;
+                  const dist = Math.hypot(dx, dy);
+                  if (dist > 2) {
+                    const force = 0.03;
+                    agent.vx += (dx / dist) * force;
+                    agent.vy += (dy / dist) * force;
+                    connectedAgent.vx -= (dx / dist) * force;
+                    connectedAgent.vy -= (dy / dist) * force;
+                  }
+                });
+              } else {
+                // Return to zone center with settling behavior
+                const returnDx = zone.x - agent.x;
+                const returnDy = zone.y - agent.y;
+                const returnDist = Math.hypot(returnDx, returnDy);
+                
+                if (returnDist < 2) {
+                  agent.vx = 0;
+                  agent.vy = 0;
+                } else {
+                  agent.vx = agent.vx * 0.9 + (returnDx / returnDist) * 0.1;
+                  agent.vy = agent.vy * 0.9 + (returnDy / returnDist) * 0.1;
+                }
+              }
+              agent.size = 3;
+              break;
+          }
+
+          // Update connections decay
+          state.connections = state.connections.filter(other => 
+            Math.hypot(other.x - agent.x, other.y - agent.y) < zone.radius
+          );
+
+          return {
+            ...agent,
+            waveState: state
+          };
+        });
+      },
+      label: "Visualizing network effects and viral growth patterns",
+      renderExtra: (ctx, canvas) => {
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+
+        // Define resonance zones with titles
+        const zones = [
+          { 
+            x: centerX, 
+            y: centerY, 
+            radius: 100 + Math.sin(time * 0.002) * 20,
+            title: "Early Adopters Hub"
+          },
+          { 
+            x: centerX + 150, 
+            y: centerY - 50, 
+            radius: 80 + Math.cos(time * 0.003) * 15,
+            title: "Growth Catalysts"
+          },
+          { 
+            x: centerX - 120, 
+            y: centerY + 70, 
+            radius: 70 + Math.sin(time * 0.004) * 10,
+            title: "Network Amplifiers"
+          }
+        ];
+
+        // Draw wave interference patterns
+        ctx.globalAlpha = 0.1;
+        for (let i = 0; i < 360; i += 5) {
+          const angle = (i * Math.PI) / 180;
+          const wave1 = Math.sin(angle * 4 + time * 0.002) * 100;
+          const wave2 = Math.cos(angle * 3 - time * 0.003) * 80;
+          const combinedWave = wave1 + wave2;
+          
+          const x = centerX + Math.cos(angle) * combinedWave;
+          const y = centerY + Math.sin(angle) * combinedWave;
+          
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.lineTo(x, y);
+          ctx.strokeStyle = `hsla(${200 + combinedWave}, 70%, 50%, 0.1)`;
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+
+        // Draw resonance zones with titles
+        zones.forEach(zone => {
+          // Draw zone
+          ctx.beginPath();
+          ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(100, 200, 255, 0.05)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(100, 200, 255, 0.1)';
+          ctx.stroke();
+
+          // Draw zone title
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+          ctx.font = '14px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(zone.title, zone.x, zone.y - zone.radius - 10);
+        });
+
+        // Draw network connections from connectors
+        if (agentsRef.current) {
+          agentsRef.current.forEach(agent => {
+            if (agent.waveState?.role === 'connector' && agent.waveState.connections.length > 0) {
+              agent.waveState.connections.forEach(other => {
+                ctx.beginPath();
+                ctx.moveTo(agent.x, agent.y);
+                ctx.lineTo(other.x, other.y);
+                ctx.strokeStyle = 'rgba(100, 200, 255, 0.05)';  // Made connections more subtle since there are more
+                ctx.stroke();
+              });
+            }
+          });
+        }
       }
     }
   ];

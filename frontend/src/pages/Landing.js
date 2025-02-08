@@ -76,10 +76,10 @@ export default function Landing() {
           <div className="container mx-auto px-4 py-20 relative z-10">
             <div className="max-w-2xl mx-auto text-center">
               <h1 className="md:text-7xl font-bold mb-6 bg-gradient-to-r from-white/90 via-white/70 to-white/40 text-transparent bg-clip-text">
-                Simulate Human Behavior at Scale
+                Test Your Growth Funnel in Minutes, Not Weeks
               </h1>
               <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-2xl mx-auto">
-                Experience the future of customer research with AI-powered behavior simulation. Test, optimize, and validate your digital experiences with unprecedented precision.
+              Run Simulations with Thousands of AI Replicas of Your Users to Rapidly Iterate, Validate Growth Strategies, and Optimize Every Stage of the Customer Journey.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
@@ -93,7 +93,7 @@ export default function Landing() {
                   onClick={() => scrollToSection('features')}
                   className="px-8 py-4 rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm"
                 >
-                  Learn More
+                  Know More
                 </button>
               </div>
             </div>
@@ -143,10 +143,10 @@ export default function Landing() {
             <div className="container mx-auto px-4 relative z-10">
               <div className="max-w-4xl mx-auto text-center">
                 <h2 className="text-3xl md:text-5xl font-bold mb-6">
-                  Ready to Transform Your Digital Experience?
+                  Ready to Accelerate Your Growth?
                 </h2>
                 <p className="text-gray-400 text-lg mb-12">
-                  Join innovative companies already using Laneo to perfect their digital experiences.
+                  Join forward-thinking growth teams using Laneo to validate strategies and optimize conversion funnels in record time.
                 </p>
 
                 <form 
@@ -198,7 +198,7 @@ export default function Landing() {
                     disabled={isSubmitting}
                     className="w-full px-8 py-4 rounded-lg bg-laneo-500 hover:bg-laneo-400 transition-colors text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isSubmitting ? 'Submitting...' : 'Get Started'}
+                    {isSubmitting ? 'Submitting...' : 'Start Your Free Trial'}
                   </button>
                 </form>
               </div>
