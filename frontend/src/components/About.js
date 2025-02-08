@@ -47,21 +47,14 @@ export default function About() {
     }
   ];
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveIndex((current) => (current + 1) % teamHighlights.length);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
-    <section id="about" className="relative overflow-hidden pt-4 h-full min-h-screen pt-16">
+    <section id="about" className="relative overflow-hidden h-full min-h-screen flex items-center">
 
       {/* Background Elements */}
       <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900 to-black opacity-90" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(24,24,27,0.8),rgba(0,0,0,0))]" />
 
-      <div className={`container mx-auto px-4 relative z-10 transition-all duration-1000 transform ${isIntersecting ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+      <div className={`container mx-auto px-4 py-16 relative z-10 transition-all duration-1000 transform ${isIntersecting ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
 
         {/* Achievement Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">

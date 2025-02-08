@@ -558,19 +558,18 @@ const FeatureShowcase = () => {
               ref={canvasRef}
               style={{ width: '100%', height: 'calc(100% - 80px)' }}
             />
-            
+
             {/* Labels inside canvas container */}
             <div className="absolute bottom-0 left-0 right-0 p-4 bg-black/30 backdrop-blur-sm">
               <div className="flex flex-col items-center space-y-2">
-                <p className="text-sm text-white">{features[activeFeature].label}</p>
                 <div className="flex items-center justify-center space-x-8">
                   <div className="flex items-center">
                     <div className="w-3 h-3 rounded-full bg-blue-400 mr-2"></div>
-                    <span className="text-xs text-gray-400">Real Users</span>
+                    <span className="text-sm text-gray-400">Real Users</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-3 h-3 rounded-full bg-white/50 mr-2"></div>
-                    <span className="text-xs text-gray-400">AI Simulations</span>
+                    <span className="text-sm text-gray-400">AI Simulations</span>
                   </div>
                 </div>
               </div>

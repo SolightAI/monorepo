@@ -75,7 +75,7 @@ export default function Landing() {
 
           <div className="container mx-auto px-4 py-20 relative z-10">
             <div className="max-w-2xl mx-auto text-center">
-              <h1 className="md:text-7xl font-bold mb-6 bg-gradient-to-r from-white text-transparent bg-clip-text">
+              <h1 className="md:text-7xl font-bold mb-6 bg-gradient-to-r from-white/90 via-white/70 to-white/40 text-transparent bg-clip-text">
                 Simulate Human Behavior at Scale
               </h1>
               <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-2xl mx-auto">
