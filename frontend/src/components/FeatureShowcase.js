@@ -37,106 +37,104 @@ const FeatureShowcase = () => {
   const features = [
     {
       icon: Zap,
-      title: "Rapid Experimentation",
-      description: "Test hundreds of growth hypotheses simultaneously. Get statistically significant results in minutes instead of weeks.",
+      title: "Fully Automated QA",
+      description: "Test all aspects of your product from a user's perspective and receive notifications when there is an issue.",
       behavior: (agents, mouse, canvas) => {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
-        const separation = 200;
-        const yOffset = Math.sin(time * 0.002) * 20;
 
-        const variantA = { 
-          x: centerX - separation / 2,
-          y: centerY + yOffset,
-          radius: 40
-        };
-        const variantB = { 
-          x: centerX + separation / 2,
-          y: centerY - yOffset,
-          radius: 40
-        };
+        // Simulate automated QA agents testing UI elements
+        return agents.map(agent => {
+          if (!agent.state) {
+            agent.state = 'scanning';
+            agent.stateTime = Math.random() * 1000;
+            agent.errorFound = false;
+          }
 
-        // Ensure equal distribution of users and bots for each variant
-        const userAgents = agents.filter(a => a.type === 'user');
-        const botAgents = agents.filter(a => a.type === 'bot');
-        
-        // Process users and bots separately but with the same logic
-        const processAgents = (agentGroup) => {
-          return agentGroup.map(agent => {
-            // Initialize agent's personal offset if not exists
-            if (!agent.offset) {
-              agent.offset = {
-                x: (Math.random() - 0.5) * 40,
-                y: (Math.random() - 0.5) * 40
-              };
+          // Update state based on time spent in current state
+          agent.stateTime--;
+          if (agent.stateTime <= 0) {
+            if (agent.state === 'scanning') {
+              agent.state = 'clicking';
+              agent.stateTime = 100;
+              // 10% chance to find an error when clicking
+              agent.errorFound = Math.random() < 0.1;
+            } else if (agent.state === 'clicking') {
+              if (agent.errorFound) {
+                agent.state = 'reporting';
+                agent.stateTime = 200;
+              } else {
+                agent.state = 'scanning';
+                agent.stateTime = 300 + Math.random() * 400;
+              }
+            } else if (agent.state === 'reporting') {
+              agent.state = 'scanning';
+              agent.stateTime = 300 + Math.random() * 400;
+              agent.errorFound = false;
             }
+          }
 
-            // Initialize preferred variant randomly if not set
-            if (!agent.preferredVariant) {
-              // Ensure equal distribution within each type
-              const unassignedToA = agentGroup.filter(a => !a.preferredVariant).length;
-              const assignedToA = agentGroup.filter(a => a.preferredVariant === 'A').length;
-              const halfGroup = Math.floor(agentGroup.length / 2);
-              
-              agent.preferredVariant = assignedToA < halfGroup ? 'A' : 'B';
-            }
+          // Set target position based on state
+          let targetX, targetY;
+          if (agent.state === 'scanning') {
+            // Move in a scanning pattern
+            targetX = centerX + Math.cos(time * 0.002 + agent.x) * 200;
+            targetY = centerY + Math.sin(time * 0.003 + agent.y) * 100;
+          } else if (agent.state === 'clicking') {
+            // Simulate clicking on UI elements
+            targetX = mouse.x + (Math.random() - 0.5) * 50;
+            targetY = mouse.y + (Math.random() - 0.5) * 50;
+          } else { // reporting
+            // Move to error reporting zone
+            targetX = centerX;
+            targetY = centerY - 150;
+          }
 
-            const preferredVariant = agent.preferredVariant === 'A' ? variantA : variantB;
-            const dx = (preferredVariant.x + agent.offset.x) - agent.x;
-            const dy = (preferredVariant.y + agent.offset.y) - agent.y;
-            const dist = Math.hypot(dx, dy);
-            
-            return {
-              ...agent,
-              vx: agent.vx * 0.95 + (dx / dist) * 0.1,
-              vy: agent.vy * 0.95 + (dy / dist) * 0.1,
-              offset: agent.offset,
-              preferredVariant: agent.preferredVariant
-            };
-          });
-        };
+          const dx = targetX - agent.x;
+          const dy = targetY - agent.y;
+          const dist = Math.hypot(dx, dy);
 
-        return [...processAgents(userAgents), ...processAgents(botAgents)];
+          return {
+            ...agent,
+            vx: agent.vx * 0.95 + (dx / dist) * 0.15,
+            vy: agent.vy * 0.95 + (dy / dist) * 0.15,
+            state: agent.state,
+            stateTime: agent.stateTime,
+            errorFound: agent.errorFound
+          };
+        });
       },
-      label: "Comparing UI variations with simulated users",
+      label: "Detecting and reporting UI issues in real-time",
       renderExtra: (ctx, canvas) => {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
-        const separation = 200;
-        const yOffset = Math.sin(time * 0.002) * 20;
 
-        // Draw connecting line
+        // Draw scanning area
         ctx.beginPath();
-        ctx.moveTo(centerX - separation / 2, centerY + yOffset);
-        ctx.lineTo(centerX + separation / 2, centerY - yOffset);
-        ctx.strokeStyle = 'rgba(100, 200, 255, 0.1)';
+        ctx.ellipse(centerX, centerY, 200, 100, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(100, 200, 255, 0.2)';
         ctx.stroke();
 
-        // Draw variants
-        [
-          { x: centerX - separation / 2, y: centerY + yOffset, label: 'Variant A' },
-          { x: centerX + separation / 2, y: centerY - yOffset, label: 'Variant B' }
-        ].forEach(variant => {
-          // Draw influence area
-          ctx.beginPath();
-          ctx.arc(variant.x, variant.y, 80, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(100, 200, 255, 0.1)';
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(100, 200, 255, 0.2)';
-          ctx.stroke();
+        // Draw error reporting zone
+        ctx.beginPath();
+        ctx.arc(centerX, centerY - 150, 40, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 50, 50, 0.1)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 50, 50, 0.3)';
+        ctx.stroke();
 
-          // Draw label
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-          ctx.font = '14px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(variant.label, variant.x, variant.y + 100);
-        });
+        // Label the zones
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Scanning Area', centerX, centerY + 120);
+        ctx.fillText('Error Reports', centerX, centerY - 190);
       }
     },
     {
       icon: Users,
-      title: "User Segment Analysis",
-      description: "Understand how different user cohorts interact with your product. Optimize experiences for high-value segments.",
+      title: "User Experience Analysis",
+      description: "Automated scanning of your product from a user's perspective to identify areas of improvement.",
       behavior: (agents, mouse, canvas) => {
         // Create animated positions for the attractors
         const centerX = canvas.width / 2;
@@ -260,8 +258,8 @@ const FeatureShowcase = () => {
     },
     {
       icon: Target,
-      title: "Conversion Optimization",
-      description: "Identify and fix conversion bottlenecks across your entire funnel. Predict which changes will have the biggest impact on revenue.",
+      title: "Ad Impact Testing",
+      description: "Test your ads on specific user segments with AI replicas of your users.",
       behavior: (agents, mouse, canvas) => {
         // Define journey touchpoints
         const touchpoints = {
@@ -391,8 +389,8 @@ const FeatureShowcase = () => {
     },
     {
       icon: Brain,
-      title: "Virality & Network Effects",
-      description: "Visualize how value grows exponentially through network effects. See how individual actions create collective impact and viral growth patterns.",
+      title: "Content Optimization",
+      description: "Optimize your Organic Content to increase engagement and conversions based on AI user replicas.",
       behavior: (agents, mouse, canvas) => {
         // Initialize wave emitters if not exists
         agents.forEach(agent => {
