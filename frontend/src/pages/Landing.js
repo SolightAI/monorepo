@@ -68,7 +68,7 @@ export default function Landing() {
       <header className="fixed top-0 left-0 right-0 bg-black/50 backdrop-blur-sm z-20">
         <div className="container mx-auto px-4 py-2 flex justify-between items-center">
           <div className="text-white font-bold text-lg">Laneo</div>
-          <nav className="flex space-x-8">
+          <nav className="flex space-x-4 md:space-x-8">
             <button
               onClick={() => scrollToSection('features')}
               className="text-white hover:text-laneo-400 transition-colors"
@@ -95,11 +95,11 @@ export default function Landing() {
 
           <div className="container mx-auto px-4 py-20 relative z-10">
             <div className="max-w-2xl mx-auto text-center">
-              <h1 className="md:text-7xl font-bold mb-6 bg-gradient-to-r from-white/90 via-white/70 to-white/40 text-transparent bg-clip-text">
-              Elevate Your Product's Quality
+              <h1 className="text-4xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white/90 via-white/70 to-white/40 text-transparent bg-clip-text">
+                Elevate Your Product's Quality
               </h1>
-              <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-2xl mx-auto">
-              Fully Automated Quality Assurance that goes far beyond just checking for errors. Uncover areas of improvements in your Customer's Experience and improve your product at unprecedented speed.
+              <p className="text-lg md:text-2xl text-gray-400 mb-12 max-w-2xl mx-auto">
+                Fully Automated Quality Assurance that goes far beyond just checking for errors. Uncover areas of improvements in your Customer's Experience and improve your product at unprecedented speed.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
@@ -123,7 +123,7 @@ export default function Landing() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="h-screen snap-start py-4 relative flex items-center">
+        <section id="features" className="min-h-screen snap-start py-16 relative flex items-center">
           {/* Background Elements */}
           <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black" />
           <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-black to-transparent pointer-events-none" />
@@ -131,13 +131,14 @@ export default function Landing() {
           <div className="container mx-auto px-4 relative z-10">
             <FeatureShowcase />
           </div>
-
         </section>
 
         {/* About Section */}
-        <section id="about" className="h-screen snap-start relative">
+        <section id="about" className="min-h-screen snap-start py-16 relative z-10">
           <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-black to-transparent pointer-events-none" />
-          <About />
+          <div className="container mx-auto px-4 relative z-20">
+            <About />
+          </div>
           <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-black to-transparent pointer-events-none" />
         </section>
 
@@ -158,7 +159,7 @@ export default function Landing() {
         </section> */}
 
         {/* Call to Action */}
-        <section id="contact" className="h-screen snap-start relative flex flex-col">
+        <section id="contact" className="min-h-screen snap-start py-16 relative flex flex-col">
           <div className="flex-1 py-20 flex items-center">
             <div className="container mx-auto px-4 relative z-10">
               <div className="max-w-4xl mx-auto text-center">

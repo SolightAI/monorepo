@@ -40,7 +40,7 @@ const FeatureShowcase = () => {
     {
       icon: Brain,
       title: "Content Optimization",
-      description: "Optimize your Organic Content to increase engagement and conversions based on AI user replicas.=",
+      description: "Optimize your Organic Content to increase engagement and conversions based on AI user replicas",
       detailedDescription: [
         "Improve your content strategy and increase engagement and virality",
         "Expose your content to AI replicas of your users and see how they react",

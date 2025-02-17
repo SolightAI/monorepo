@@ -57,14 +57,14 @@ export default function About() {
       <div className={`container mx-auto px-4 py-16 relative z-10 transition-all duration-1000 transform ${isIntersecting ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
 
         {/* Achievement Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-16">
           {achievements.map((achievement, index) => (
             <div 
               key={index}
-              className="relative group"
+              className="relative group flex flex-col justify-between"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-laneo-400/20 to-purple-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-75" />
-              <div className="relative p-8 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-laneo-400/50 transition-all duration-300">
+              <div className="relative p-8 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-laneo-400/50 transition-all duration-300 flex flex-col justify-between h-full">
                 <div className="text-4xl font-bold bg-gradient-to-r from-white to-laneo-400 text-transparent bg-clip-text mb-2">
                   {achievement.metric}
                 </div>
@@ -77,7 +77,7 @@ export default function About() {
         {/* Team Highlights */}
         <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
           {/* Interactive Card */}
-          <div className="relative min-h-[500px]">
+          <div className="relative min-h-[500px] order-2 md:order-1">
             <div className="absolute inset-0 bg-gradient-to-r from-laneo-400/30 to-purple-500/30 rounded-3xl blur-2xl" />
             <div className="relative h-full rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 p-12 overflow-hidden min-h-[500px]">
               {teamHighlights.map((highlight, index) => (
@@ -99,7 +99,7 @@ export default function About() {
           </div>
 
           {/* Text Content */}
-          <div className="space-y-8">
+          <div className="space-y-8 order-1 md:order-2">
             <h3 className="text-3xl md:text-4xl font-bold">
               Building the Future of AI, Today
             </h3>
