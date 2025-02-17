@@ -65,7 +65,27 @@ export default function Landing() {
 
   return (
     <div className="flex flex-col min-h-screen bg-black text-white overflow-hidden">
-      <main className="h-screen overflow-y-auto snap-y snap-mandatory">
+      <header className="fixed top-0 left-0 right-0 bg-black/50 backdrop-blur-sm z-20">
+        <div className="container mx-auto px-4 py-2 flex justify-between items-center">
+          <div className="text-white font-bold text-lg">Laneo</div>
+          <nav className="flex space-x-8">
+            <button
+              onClick={() => scrollToSection('features')}
+              className="text-white hover:text-laneo-400 transition-colors"
+            >
+              Features
+            </button>
+            <button
+              onClick={() => scrollToSection('about')}
+              className="text-white hover:text-laneo-400 transition-colors"
+            >
+              About Us
+            </button>
+          </nav>
+        </div>
+      </header>
+
+      <main className="h-screen overflow-y-auto snap-y snap-mandatory pt-16">
         {/* Hero Section */}
         <section
           id="hero"
