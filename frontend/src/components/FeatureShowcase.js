@@ -30,7 +30,7 @@ const FeatureShowcase = () => {
     {
       icon: Target,
       title: "Ad Impact Testing",
-      description: "Test your ads on specific user segments with AI replicas of your users.",
+      description: "Test your ads on specific user segments with AI replicas of your users",
       detailedDescription: [
         "Extend beyond your website and test your advertising assets",
         "Run simulations of your ads on AI replicas of your users and see how they perform",
@@ -40,7 +40,7 @@ const FeatureShowcase = () => {
     {
       icon: Brain,
       title: "Content Optimization",
-      description: "Optimize your Organic Content to increase engagement and conversions based on AI user replicas.",
+      description: "Optimize your Organic Content to increase engagement and conversions based on AI user replicas.=",
       detailedDescription: [
         "Improve your content strategy and increase engagement and virality",
         "Expose your content to AI replicas of your users and see how they react",
