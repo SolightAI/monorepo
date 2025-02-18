@@ -1,0 +1,3 @@
+git+https://github.com/browser-use/browser-use.git@main
+retry
+pydantic
