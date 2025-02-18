@@ -75,7 +75,12 @@ Additional requirements:
         generate_gif=False,
     )
 
-    history = await agent.run(max_steps=30)
+    try:
+        history = await agent.run(max_steps=30)
+    finally:
+        await context.close()
+        await browser.close()
+
     result = history.final_result() # type: ignore
 
     if result is None:
@@ -84,7 +89,5 @@ Additional requirements:
         print(history.action_results())
         raise Exception("Result is None")
 
-    await context.close()
-    await browser.close()
 
     return result

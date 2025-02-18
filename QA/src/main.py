@@ -85,7 +85,7 @@ The Companies section provides information about various companies, including in
 
 **How to Use:**
 1. Click the **Companies** link in the navigation menu.
-2. View the list of companies (e.g., Cyberdyne Systems, Stark Industries).
+2. View the list of companies
 
 ### Deals
 **Description:**
@@ -238,7 +238,7 @@ This guide ensures a smooth process for adding new customers to CRM Pro while hi
 # getLogger('browser_use.browser.context').disabled = True
 
 
-async def process_section(website_url, website_documentation, section, all_sections):
+async def process_section(website_url, website_documentation, section, all_sections, headless=True):
 
     print(f"# ===== {section.name} ===== #")
 
@@ -247,7 +247,7 @@ async def process_section(website_url, website_documentation, section, all_secti
             website_url=website_url,
             website_documentation=website_documentation,
             section_name=section.name,
-            headless=True,
+            headless=headless,
         )
 
         os.makedirs(f"output/{section.name}", exist_ok=True)
@@ -273,7 +273,7 @@ async def process_section(website_url, website_documentation, section, all_secti
             example_guide,
             section,
             other_sections=[other_section for other_section in all_sections if other_section.name != section.name],
-            headless=True,
+            headless=headless,
         )
 
         with open(f"output/{section.name}/test_plan.txt", "w+") as f:
@@ -296,92 +296,113 @@ async def process_section(website_url, website_documentation, section, all_secti
         raise e
 
 
-async def main():
-
-    website_url = "https://qacrmdemo.netlify.app"
+async def generate_and_save_website_documentation(website_url):
 
     example_website_documentation = await generate_website_documentation(website_url, headless=False)
 
-    # print(example_website_documentation)
+    with open("output/website_documentation.md", "w+") as f:
+        f.write(example_website_documentation)
 
-    # with open("output/website_documentation.md", "w+") as f:
-    #     f.write(example_website_documentation)
 
-    sections_to_test = [
-        TestSection(
-            name="Dashboard",
-            description="Test the central hub for key metrics, including the total customer count, recent customer activity, and the QA.tech link.",
-        ),
-        TestSection(
-            name="Customers",
-            description="Test the management of customer details, including adding new customers and viewing existing ones.",
-        ),
+def get_default_sections():
+    return [
+        # TestSection(
+        #     name="Dashboard",
+        #     description="Test the central hub for key metrics, including the total customer count, recent customer activity, and the QA.tech link.",
+        # ),
+        # TestSection(
+        #     name="Customers",
+        #     description="Test the management of customer details, including adding new customers and viewing existing ones.",
+        # ),
         TestSection(
             name="Companies",
             description="Test the display and management of company information, including industry and founding year.",
         ),
-        TestSection(
-            name="Deals",
-            description="Test the categorization and tracking of deals across various stages, including details like title, company, and value.",
-        ),
-        TestSection(
-            name="UI Component Consistency",
-            description="Test the visual consistency of UI components across the website.",
-        ),
-        TestSection(
-            name="Navigation and Menu Structure",
-            description="Test the functionality of the main navigation menu, ensuring access to all sections and proper navigation flow.",
-        ),
-        TestSection(
-            name="External Links",
-            description="Test the external link to QA.tech, ensuring it opens in a new tab and directs to the correct URL.",
-        ),
+        # TestSection(
+        #     name="Deals",
+        #     description="Test the categorization and tracking of deals across various stages, including details like title, company, and value.",
+        # ),
+        # TestSection(
+        #     name="UI Component Consistency",
+        #     description="Test the visual consistency of UI components across the website.",
+        # ),
+        # TestSection(
+        #     name="Navigation and Menu Structure",
+        #     description="Test the functionality of the main navigation menu, ensuring access to all sections and proper navigation flow.",
+        # ),
+        # TestSection(
+        #     name="External Links",
+        #     description="Test the external link to QA.tech, ensuring it opens in a new tab and directs to the correct URL.",
+        # ),
     ]
-    # FIXME: still procudes "Introduction" as a section
-    # sections_to_test = await get_sections_to_test(website_url, example_website_documentation, headless=True)
+
+
+async def get_and_save_sections_to_test(website_url, example_website_documentation):
+
+    sections_to_test = await get_sections_to_test(website_url, example_website_documentation, headless=False)
+
+    with open("output/sections.txt", "w+") as f:
+        f.write(print_test_sections(sections_to_test))
+
+
+async def generate_and_save_test_plans(website_url, example_website_documentation, sections_to_test, headless=True):
+
+    test_plans = await asyncio.gather(
+        *(process_section(website_url, example_website_documentation, section, sections_to_test, headless=headless)
+          for section in sections_to_test)
+    )
+
+    with open("output/test_plans.json", "w+") as f:
+        json.dump([
+            {"section": _test_plan["section"].model_dump(mode='json'),
+             "test_plan": _test_plan["test_plan"].model_dump(mode='json')}
+            for _test_plan in test_plans
+        ], f)
+
+    return test_plans
+
+
+async def generate_and_save_qa_results(website_url, test_plans, headless=True):
+    for _test_plan in test_plans:
+
+        section = TestSection.model_validate(_test_plan["section"])
+        test_plan = TestPlan.model_validate(_test_plan["test_plan"])
+
+        print(f"# ===== RUNNING TESTS FOR {section.name} ===== #")
+
+        for (category, test_plan) in test_plan.test_cases.items():
+
+            # FIXME: remove after debugging
+            # if category.value != TestCategory.POSITIVE.value:
+            #     continue
+
+            results = await run_qa_tests(
+                url=website_url,
+                qa_tests=test_plan,
+                headless=headless,
+                gif_output_folder=f"output/{section.name}",
+            )
+
+            print(results)
+            json.dump([_result.model_dump(mode='json') for _result in results], open(f"output/{section.name}/results_{category}.json", "w+"))
+
+
+async def main():
+
+    website_url = "https://qacrmdemo.netlify.app"
 
     # os.makedirs("output", exist_ok=True)
-    # with open("output/sections.txt", "w+") as f:
-    #     f.write(print_test_sections(sections_to_test))
+    # await generate_and_save_website_documentation(website_url)
 
-    # Process all sections concurrently
-    # test_plans = await asyncio.gather(
-    #     *(process_section(website_url, example_website_documentation, section, sections_to_test)
-    #       for section in sections_to_test)
-    # )
+    # sections_to_test = get_default_sections()
+    # sections_to_test = await get_and_save_sections_to_test(website_url, example_website_documentation)
 
-    # with open("output/test_plans.json", "w+") as f:
-    #     json.dump([
-    #         {"section": _test_plan["section"].model_dump(mode='json'),
-    #          "test_plan": _test_plan["test_plan"].model_dump(mode='json')}
-    #         for _test_plan in test_plans
-    #     ], f)
+    # test_plans = await generate_and_save_test_plans(website_url, example_website_documentation, sections_to_test, headless=True)
+    test_plans = json.load(open("output/test_plans.json", "r"))
 
-    # test_plans = json.load(open("output/test_plans.json", "r"))
-    # for _test_plan in test_plans:
+    await generate_and_save_qa_results(website_url, test_plans, headless=True)
 
-    #     section = TestSection.model_validate(_test_plan["section"])
-    #     test_plan = TestPlan.model_validate(_test_plan["test_plan"])
-
-    #     print(f"# ===== RUNNING TESTS FOR {section.name} ===== #")
-
-    #     for (category, test_plan) in test_plan.test_cases.items():
-
-    #         # FIXME: remove after debugging
-    #         if category.value != TestCategory.POSITIVE.value:
-    #             continue
-
-    #         results = await run_qa_tests(
-    #             url=website_url,
-    #             qa_tests=test_plan,
-    #             headless=False,
-    #         )
-
-    #         print(results)
-    #         json.dump([_result.model_dump(mode='json') for _result in results], open(f"output/{section.name}/results_{category}.json", "w+"))
-
-
-    # generate_report("output")
+    generate_report("output")
 
 
 if __name__ == "__main__":

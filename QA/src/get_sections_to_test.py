@@ -168,7 +168,11 @@ async def get_sections_to_test(url: str, website_documentation: str, headless: b
         controller=Controller(output_model=SectionsToTest),
     )
 
-    history = await agent.run(max_steps=30)
+    try:
+        history = await agent.run(max_steps=30)
+    finally:
+        await browser.close()
+
     result = history.final_result() # type: ignore
 
     if result is None:
@@ -177,6 +181,5 @@ async def get_sections_to_test(url: str, website_documentation: str, headless: b
         print(history.action_results())
         raise Exception("Result is None")
 
-    await browser.close()
 
     return SectionsToTest.model_validate(json.loads(result)).sections

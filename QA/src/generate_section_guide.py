@@ -89,7 +89,12 @@ In order to help you write the guide and find your section, you can use the foll
         generate_gif=False,
     )
 
-    history = await agent.run(max_steps=20)
+    try:
+        history = await agent.run(max_steps=20)
+    finally:
+        await context.close()
+        await browser.close()
+
     result = history.final_result() # type: ignore
 
     if result is None:
@@ -98,7 +103,5 @@ In order to help you write the guide and find your section, you can use the foll
         print(history.action_results())
         raise Exception("Result is None")
 
-    await context.close()
-    await browser.close()
 
     return result

@@ -114,12 +114,14 @@ async def _launch_qa_test_generation(url: str, task: str, headless: bool = False
 
     # NOTE: arbitrary value to prevent infinite loops
     # Might not be enough for some cases
-    output = await agent.run(max_steps=20)
+    try:
+        output = await agent.run(max_steps=20)
+    finally:
+        await browser.close()
 
     if output is None:
         raise Exception("Result is None")
 
-    await browser.close()
 
     return output
 
