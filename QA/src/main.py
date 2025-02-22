@@ -219,6 +219,7 @@ async def main():
     test_plans = json.load(open("output/test_plans.json", "r"))
     test_plans = await generate_and_save_test_plans(website_url, sections_to_test, headless=HEADLESS, concurrent=CONCURRENT)
 
+    # TODO: save histories and use agent.rerun_history() to rerun tests when needed
     await generate_and_save_qa_results(test_plans, headless=HEADLESS, concurrent=CONCURRENT)
     upload_report_to_notion("output")
     create_jira_issues()

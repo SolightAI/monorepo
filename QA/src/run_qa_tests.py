@@ -5,6 +5,7 @@ import asyncio
 from pydantic import SecretStr
 from langchain_openai import AzureChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig, Controller
+from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from dotenv import load_dotenv
 from pydantic import BaseModel
 # from lmnr import Laminar
@@ -71,9 +72,18 @@ async def _run_qa_test(
             chrome_instance_path=os.getenv("CHROME_INSTANCE_PATH", None)
         )
     )
+    context = BrowserContext(browser=browser, config=BrowserContextConfig(
+        browser_window_size={
+            'width': os.getenv('BROWSER_WINDOW_SIZE_WIDTH', 1920),
+            'height': os.getenv('BROWSER_WINDOW_SIZE_HEIGHT', 1080)
+        },
+        locale=os.getenv('BROWSER_LOCALE', 'en-US'),
+        user_agent=os.getenv('BROWSER_USER_AGENT', None),
+        highlight_elements=True,
+    ))
 
     agent = Agent(
-        browser=browser,
+        browser_context=context,
         task=PROMPT_TEXT.format(
             test_description=test_case.test_description,
             preconditions=test_case.preconditions,
@@ -89,6 +99,7 @@ async def _run_qa_test(
     try:
         history = await agent.run(max_steps=20)
     finally:
+        await context.close()
         await browser.close()
 
     return history
