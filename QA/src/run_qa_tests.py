@@ -31,6 +31,7 @@ class OutputTestResult(BaseModel):
     # test_id: str
     success: bool
     reason: str
+    internal_error: bool = False
 
 
 class TestResult(OutputTestResult):
@@ -39,7 +40,7 @@ class TestResult(OutputTestResult):
 
 
 def test_results_to_markdown(test_results: list[TestResult]) -> str:
-    return "\n".join([f"{result.test_id}: {'✅ Success' if result.success else '❌ Failed'} - {result.reason}" for result in test_results])
+    return "\n".join([f"{result.test_id}: {'✅ Success' if result.success else '❌ Failed' if result.internal_error is False else '❗️ Failed (Internal error)'} - {result.reason}" for result in test_results])
 
 
 PROMPT_TEXT = """\
@@ -59,13 +60,17 @@ Note:
 
 @retry(exceptions=Exception, tries=3, delay=1, backoff=2)
 async def _run_qa_test(
-    url: str,
     test_case: TestCase,
     headless: bool = False,
     gif_output_path: str | None = None,
 ):
 
-    browser = Browser(config=BrowserConfig(headless=headless))
+    browser = Browser(
+        config=BrowserConfig(
+            headless=headless,
+            chrome_instance_path=os.getenv("CHROME_INSTANCE_PATH", None)
+        )
+    )
 
     agent = Agent(
         browser=browser,
@@ -74,10 +79,9 @@ async def _run_qa_test(
             preconditions=test_case.preconditions,
             test_steps=test_case.test_steps,
             expected_results=test_case.expected_results,
-            # dependencies=test_case.dependencies,
         ),
         llm=AGENT_LLM,
-        initial_actions=[{'go_to_url': {'url': url}}],
+        initial_actions=[{'go_to_url': {'url': test_case.target_url}}],
         generate_gif=gif_output_path,
         controller=Controller(output_model=OutputTestResult),
     )
@@ -90,25 +94,30 @@ async def _run_qa_test(
     return history
 
 
-@retry(exceptions=Exception, tries=3, delay=1, backoff=2)
 async def run_qa_tests(
-    url: str,
     qa_tests: list[TestCase],
     headless: bool = False,
     gif_output_folder: str | None = None,
+    concurrent: bool = True,
 ):
 
     if gif_output_folder:
         os.makedirs(os.path.join(gif_output_folder, "gifs"), exist_ok=True)
 
-    coroutines = [_run_qa_test(
-        url=url,
-        test_case=test_case,
-        headless=headless,
-        gif_output_path=os.path.join(gif_output_folder, "gifs", f"{test_case.test_id}.gif") if gif_output_folder else None,
-    ) for test_case in qa_tests]
+    if concurrent:
+        coroutines = [_run_qa_test(
+            test_case=test_case,
+            headless=headless,
+            gif_output_path=os.path.join(gif_output_folder, "gifs", f"{test_case.test_id}.gif") if gif_output_folder else None,
+        ) for test_case in qa_tests]
 
-    histories = await asyncio.gather(*coroutines)
+        histories = await asyncio.gather(*coroutines)
+    else:
+        histories = [await _run_qa_test(
+            test_case=test_case,
+            headless=headless,
+            gif_output_path=os.path.join(gif_output_folder, "gifs", f"{test_case.test_id}.gif") if gif_output_folder else None,
+        ) for test_case in qa_tests]
 
     tests_output: list[OutputTestResult] = [
 
@@ -118,6 +127,7 @@ async def run_qa_tests(
 
         else OutputTestResult(
             success=False,
+            internal_error=True,
             reason="Test failed" if history.has_errors() else "Reach max steps" if history.is_done() is False else "Unknown error"
         )
 
@@ -128,10 +138,11 @@ async def run_qa_tests(
         test_id=test_case.test_id,
         test_description=test_case.test_description,
         success=_result.success,
-        reason=_result.reason
+        reason=_result.reason,
+        internal_error=_result.internal_error
     ) for test_case, _result in zip(qa_tests, tests_output)]
 
     for _result in results:
-        print(f"{_result.test_id}: {'✅ Success' if _result.success else '❌ Failed'} - {_result.reason}")
+        print(f"{_result.test_id}: {'✅ Success' if _result.success else '❌ Failed' if _result.internal_error is False else '❗️ Failed (Internal error)'} - {_result.reason}")
 
     return results

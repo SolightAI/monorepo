@@ -1,3 +1,4 @@
+import os
 import anthropic
 
 from pydantic import BaseModel
@@ -20,9 +21,6 @@ default_sections = [
 
 prompt = """
 You are a QA specialist tasked with identifying the key areas to test for a website based on its documentation. Your goal is to create a comprehensive list of testable sections without writing individual tests.
-
-You should write one section for each section of the website, plus one section for:
-{default_sections}
 
 Here is the documentation for the website:
 
@@ -59,7 +57,6 @@ Present your response in the following format:
 </section>
 
 ...
-
 
 <section>
 <name>[Additional Category (if needed)]</name>
@@ -154,7 +151,12 @@ import json
 @retry(exceptions=Exception, tries=3, delay=1, backoff=2)
 async def get_sections_to_test(url: str, website_documentation: str, headless: bool = False) -> list[TestSection]:
 
-    browser = Browser(config=BrowserConfig(headless=headless))
+    browser = Browser(
+        config=BrowserConfig(
+            headless=headless,
+            chrome_instance_path=os.getenv("CHROME_INSTANCE_PATH", None)
+        )
+    )
 
     agent = Agent(
         task=prompt.format(

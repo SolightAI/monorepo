@@ -31,14 +31,16 @@ AGENT_LLM = AzureChatOpenAI(
 
 @retry(exceptions=Exception, tries=3, delay=1, backoff=2)
 async def generate_website_documentation(website_url: str, headless: bool = False) -> str | None:
-    browser = Browser(config=BrowserConfig(headless=headless))
-    context = await browser.new_context()
 
-    await context.navigate_to(website_url)
-
+    browser = Browser(
+        config=BrowserConfig(
+            headless=headless,
+            chrome_instance_path=os.getenv("CHROME_INSTANCE_PATH", None)
+        )
+    )
 
     task_text = """\
-Act as a technical documentation writer creating a comprehensive user guide. Create a detailed documentation for the provided website.
+You're the Head of Internal Documentation of the company. Create a detailed documentation for the provided website.
 You must explore the whole website and verify every single feature.
 
 Include:
@@ -51,6 +53,8 @@ Do not:
 - Include any placeholders in your output
 - Invent anything that you haven't seen in the UI nor verified.
 - Mention any error in the website.
+- Use any assumptions. Verify every single thing no matter how many steps it takes.
+- Promote the product or anything else.
 
 Format the documentation using:
 - Clear hierarchical structure with numbered steps
@@ -61,7 +65,7 @@ Format the documentation using:
 - Cross-references to related procedures
 
 Additional requirements:
-- Write in a clear, professional and informative tone suitable for both beginners and experienced users.
+- Write in a clear, professional and super informative tone.
 - Before writing the guide, make sure that you have explored all pages and know all the features.
 - Be super detailed and descriptive. Include all the features.
 - Do as many steps and actions as needed to be a hundred percent you've covered everything.
@@ -71,14 +75,14 @@ Additional requirements:
     agent = Agent(
         task=task_text,
         llm=AGENT_LLM,
-        browser_context=context,
+        initial_actions=[{'go_to_url': {'url': website_url}}],
+        browser=browser,
         generate_gif=False,
     )
 
     try:
         history = await agent.run(max_steps=30)
     finally:
-        await context.close()
         await browser.close()
 
     result = history.final_result() # type: ignore

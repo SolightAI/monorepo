@@ -26,14 +26,26 @@ AGENT_LLM = AzureChatOpenAI(
     api_version='2024-10-21',
     azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT', ''),
     api_key=SecretStr(os.getenv('AZURE_OPENAI_KEY', '')),
-    temperature=0.0,
+    temperature=0.00000001,
 )
+
+# from langchain_openai import ChatOpenAI
+# AGENT_LLM = ChatOpenAI(
+#     model="gpt-4o",
+#     temperature=0.0,
+# )
+
+# from langchain_anthropic import ChatAnthropic
+# AGENT_LLM = ChatAnthropic(
+#     model="claude-3-5-sonnet-20241022",
+#     temperature=0.0,
+# )
 
 
 class TestCategory(Enum):
     POSITIVE = "Positive"
     NEGATIVE = "Negative"
-    BOUNDARY = "Boundary"
+    # BOUNDARY = "Boundary"
     INTEGRATION = "Integration"
     # PERFORMANCE = "Performance" # NOTE: for now fuck the performance tests
 
@@ -47,12 +59,12 @@ class Priority(Enum):
 
 
 class GeneratedTestCase(BaseModel):
+    target_url: str # TODO: try
     test_description: str
     preconditions: str
     test_steps: list[str]
     expected_results: str
     priority: Priority
-    # dependencies: list[str]
 
 
 class GeneratedTestPlan(BaseModel):
@@ -84,6 +96,7 @@ def print_test_plan(test_plan: TestPlan) -> str:
 
         for test_case in test_cases:
             output += f"== {test_case.test_id} ==\n"
+            output += f"URL: {test_case.target_url}\n"
             output += f"Category: {test_case.test_category.value}\n"
             output += f"Description: {test_case.test_description}\n"
             output += f"Preconditions: {test_case.preconditions}\n"
@@ -101,7 +114,12 @@ def print_test_plan(test_plan: TestPlan) -> str:
 @retry(exceptions=Exception, tries=3, delay=1, backoff=2)
 async def _launch_qa_test_generation(url: str, task: str, headless: bool = False):
 
-    browser = Browser(config=BrowserConfig(headless=headless))
+    browser = Browser(
+        config=BrowserConfig(
+            headless=headless,
+            chrome_instance_path=os.getenv("CHROME_INSTANCE_PATH", None)
+        )
+    )
 
     agent = Agent(
         task=task,
@@ -115,7 +133,7 @@ async def _launch_qa_test_generation(url: str, task: str, headless: bool = False
     # NOTE: arbitrary value to prevent infinite loops
     # Might not be enough for some cases
     try:
-        output = await agent.run(max_steps=20)
+        output = await agent.run(max_steps=30)
     finally:
         await browser.close()
 
@@ -126,14 +144,19 @@ async def _launch_qa_test_generation(url: str, task: str, headless: bool = False
     return output
 
 
-async def generate_qa_tests(url: str, feature_guide: str, section: TestSection, other_sections: list[TestSection], headless: bool = False):
-
-    # browser = Browser(config=BrowserConfig(headless=headless))
+async def generate_qa_tests(
+    url: str,
+    feature_guide: str,
+    section: TestSection,
+    other_sections: list[TestSection],
+    headless: bool = False,
+    concurrent: bool = True,
+):
 
     test_categories = {
         TestCategory.POSITIVE: "Positive test cases (happy path). Scenarios that verify the system works as expected under normal or ideal conditions. These tests ensure that the software behaves correctly when given valid and expected inputs.",
-        TestCategory.NEGATIVE: "Negative test cases (error handling). Focus on only testing the system when given incorrect inputs or unexpected user actions. Note that external factors should not be considered (e.g no internet connection, no database connection, etc.).",
-        TestCategory.BOUNDARY: "Boundary test cases (edge cases). Focus on testing the edge limits of input fields or conditions. Ensure that the system correctly handles values at the minimum, maximum, just inside, just outside, and exact boundary limits of an acceptable range. Note that external factors should not be considered (e.g no internet connection, no database connection, etc.).",
+        TestCategory.NEGATIVE: "Negative test cases (error handling). Focus on only testing the system when given incorrect inputs or unexpected user actions. External factors should not be considered nor tested (e.g no internet connection, no database connection, etc.).",
+        # TestCategory.BOUNDARY: "Boundary test cases (edge cases). Focus on testing the edge limits of input fields or conditions. Ensure that the system correctly handles values at the minimum, maximum, just inside, just outside, and exact boundary limits of an acceptable range. Note that external factors should not be considered (e.g no internet connection, no database connection, etc.).",
         TestCategory.INTEGRATION: "Integration test cases (cross-feature interactions). Focus on testing the interaction between different modules, components, or systems to ensure they work together as expected. Verify data flow and communication between dependent systems to detect integration issues.",
 
         # NOTE: for now we won't test performance related issues
@@ -145,7 +168,6 @@ You are an experienced QA Test Engineer. Your task is to create a comprehensive 
 
 Section to test: {section_name}
 Description: {section_description}
-(Note that while the description mentions some tests, you should generate as many tests as needed for the provided test category.)
 
 The following sections are already tested and should not be tested again:
 {other_sections}
@@ -154,14 +176,11 @@ Please generate a structured test plan for the following test category: {test_ca
 Make sure to cover all the test cases for the provided test category ({test_category_name}).
 
 For each test case, provide:
-- Unique ID (e.g., TC_ADD_CUST_001)
-- Test case category ({test_categories})
 - Test description
 - Preconditions
 - Test steps (numbered)
 - Expected results
 - Priority level (Critical/High/Medium/Low/Lowest)
-- Any dependencies or special requirements
 
 To help you generate the test cases, here is the feature guide:
 {feature_guide}
@@ -171,26 +190,47 @@ Additional requirements:
 - Don't make any assumption, verify by yourself
 - When verifying data-related features, make sure to verify that the data is actually saved and persisted in the database by reloading the page (specify it in the steps of the test case).
 - Write as many test cases as needed for the provided test category.
+- Before writing the test cases for a feature, make sure to verify that the feature actually exists in the UI.
 """
 
-    coroutines = {
-        test_category: _launch_qa_test_generation(
-            url=url,
-            task=task_text.format(
-                test_categories="/".join([test_category.value for test_category in TestCategory]),
-                test_category_name=test_category.value,
-                test_category_description=test_category_description,
-                feature_guide=feature_guide,
-                section_name=section.name,
-                section_description=section.description,
-                other_sections="\n".join([f"* {other_section.name}: {other_section.description}" for other_section in other_sections]),
-            ),
-            headless=headless,
-        )
-        for (test_category, test_category_description) in test_categories.items()
-    }
+    if concurrent:
 
-    histories = await asyncio.gather(*[_coroutine for _coroutine in coroutines.values()])
+        coroutines = {
+            test_category: _launch_qa_test_generation(
+                url=url,
+                task=task_text.format(
+                    test_categories="/".join([test_category.value for test_category in TestCategory]),
+                    test_category_name=test_category.value,
+                    test_category_description=test_category_description,
+                    feature_guide=feature_guide,
+                    section_name=section.name,
+                    section_description=section.description,
+                    other_sections="\n".join([f"* {other_section.name}: {other_section.description}" for other_section in other_sections]),
+                ),
+                headless=headless,
+            )
+            for (test_category, test_category_description) in test_categories.items()
+        }
+
+        histories = await asyncio.gather(*[_coroutine for _coroutine in coroutines.values()])
+
+    else:
+        histories = [(await _launch_qa_test_generation(
+                url=url,
+                task=task_text.format(
+                    test_categories="/".join([test_category.value for test_category in TestCategory]),
+                    test_category_name=test_category.value,
+                    test_category_description=test_category_description,
+                    feature_guide=feature_guide,
+                    section_name=section.name,
+                    section_description=section.description,
+                    other_sections="\n".join([f"* {other_section.name}: {other_section.description}" for other_section in other_sections]),
+                ),
+                headless=headless,
+            ))
+            for (test_category, test_category_description) in test_categories.items()
+        ]
+
     raw_results = [history.final_result() for history in histories]
 
     output = {}
