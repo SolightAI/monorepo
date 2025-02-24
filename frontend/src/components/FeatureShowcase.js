@@ -205,6 +205,10 @@ const FeatureShowcase = () => {
 
   return (
     <div className="relative w-full max-w-6xl mx-auto">
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold  bg-gradient-to-r from-white/90 via-white/70 to-white/40 text-transparent bg-clip-text">Quality Assurance Beyond Bugs</h1>
+        <p className="text-lg text-gray-500 mt-4">Your Entire Customer Experience is Safe</p>
+      </div>
       <div className="space-y-6" ref={featureListRef}>
         {features.map((feature, index) => (
           <div
