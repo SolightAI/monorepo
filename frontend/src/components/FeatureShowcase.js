@@ -1,16 +1,76 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Brain, Zap, Target, Users } from 'lucide-react';
 
-const FeatureShowcase = ({ feature }) => {
+const FeatureShowcase = () => {
+  const [activeFeature, setActiveFeature] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
   const [animationStep, setAnimationStep] = useState(0);
+  const featureListRef = useRef(null);
+
+  const features = [
+    {
+      icon: Zap,
+      title: "Fully Automated QA",
+      description: "Test all possible scenarios from your user's perspective and identify issues before your users do",
+      detailedDescription: [
+        "Automatically creates tests based on your URL",
+        "Run those tests at the selected frequency",
+        "Detailed report on errors and suggested fixes"
+      ],
+      imageUrl: "path/to/image1.jpg"
+    },
+    {
+      icon: Users,
+      title: "User Experience Analysis",
+      description: "Get recommendations on how to improve your user flows, copywriting and general UX/UI design",
+      detailedDescription: [
+        "Automatically scans your website for improvements",
+        "Find points of frictions and drop offs in your user flows",
+        "Get recommendations on how to improve your user experience"
+      ],
+      imageUrl: "path/to/image2.jpg"
+    },
+    {
+      icon: Target,
+      title: "Ad Impact Testing",
+      description: "Test your ads on specific user segments with AI replicas of your users",
+      detailedDescription: [
+        "Extend beyond your website and test your advertising assets",
+        "Run simulations of your ads on AI replicas of your users and see how they perform",
+        "Stop wasting money and time on traditionalA/B tests"
+      ],
+      imageUrl: "path/to/image3.jpg"
+    },
+    {
+      icon: Brain,
+      title: "Content Optimization",
+      description: "Optimize your Organic Content to increase engagement and conversions based on AI user replicas",
+      detailedDescription: [
+        "Improve your content strategy and increase engagement and virality",
+        "Expose your content to AI replicas of your users and see how they react",
+        "Focus on the content that matters most to your users"
+      ],
+      imageUrl: "path/to/image4.jpg"
+    }
+  ];
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setAnimationStep((prevStep) => (prevStep + 1) % 3);
-    }, 1000);
+    if (!isHovering) {
+      const interval = setInterval(() => {
+        setActiveFeature((prev) => (prev + 1) % features.length);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [isHovering, features.length]);
 
-    return () => clearInterval(interval);
-  }, []);
+  useEffect(() => {
+    if (activeFeature === 0 || activeFeature === 1) {
+      const animationInterval = setInterval(() => {
+        setAnimationStep((prev) => (prev + 1) % 4);
+      }, 1000);
+      return () => clearInterval(animationInterval);
+    }
+  }, [activeFeature]);
 
   const renderFeatureVisual = (feature) => {
     if (feature.title === "Fully Automated QA") {
@@ -144,12 +204,55 @@ const FeatureShowcase = ({ feature }) => {
   };
 
   return (
-    <div className="feature-showcase">
-      <h2 className="text-2xl font-bold mb-4">{feature.title}</h2>
-      {renderFeatureVisual(feature)}
-      <p className="mt-4 text-gray-600">{feature.description}</p>
+    <div className="relative w-full max-w-6xl mx-auto">
+      <div className="space-y-6" ref={featureListRef}>
+        {features.map((feature, index) => (
+          <div
+            key={index}
+            className={`p-8 rounded-xl transition-all duration-300 cursor-pointer flex justify-between items-center
+              ${activeFeature === index ? 'transform scale-105' : ''}`}
+            onMouseEnter={() => {
+              setActiveFeature(index);
+              setIsHovering(true);
+            }}
+            onMouseLeave={() => setIsHovering(false)}
+          >
+            {index % 2 === 0 ? (
+              <>
+                <div className="flex-1 flex flex-col justify-between max-w-md">
+                  <div className="flex items-center mb-4">
+                    <feature.icon className="w-6 h-6 text-blue-500 mr-2" />
+                    <h3 className="text-2xl font-semibold bg-gradient-to-r from-gray-300 to-blue-500 bg-clip-text text-transparent">
+                      {feature.title}
+                    </h3>
+                  </div>
+                  <div className="mb-4">
+                    <p className="text-gray-400 text-lg">{feature.description}</p>
+                  </div>
+                </div>
+                <div className="ml-6">{renderFeatureVisual(feature)}</div>
+              </>
+            ) : (
+              <>
+                <div className="mr-6">{renderFeatureVisual(feature)}</div>
+                <div className="flex-1 flex flex-col justify-between max-w-md">
+                  <div className="flex items-center mb-4">
+                    <feature.icon className="w-6 h-6 text-blue-500 mr-2" />
+                    <h3 className="text-2xl font-semibold bg-gradient-to-r from-gray-300 to-blue-500 bg-clip-text text-transparent">
+                      {feature.title}
+                    </h3>
+                  </div>
+                  <div className="mb-4">
+                    <p className="text-gray-400 text-lg">{feature.description}</p>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
-export default FeatureShowcase; 
+export default FeatureShowcase;

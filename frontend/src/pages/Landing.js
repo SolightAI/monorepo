@@ -160,10 +160,11 @@ export default function Landing() {
 
         {/* Call to Action */}
         <section id="contact" className="min-h-screen snap-start py-16 relative flex flex-col">
+        <AnimatedBackground />
           <div className="flex-1 py-20 flex items-center">
             <div className="container mx-auto px-4 relative z-10">
               <div className="max-w-4xl mx-auto text-center">
-                <h2 className="text-3xl md:text-5xl font-bold mb-6">
+                <h2 className="text-3xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-white/90 via-white/70 to-white/40 text-transparent bg-clip-text">
                   Ready to Automate Your QA?
                 </h2>
                 <p className="text-gray-400 text-lg mb-12">
