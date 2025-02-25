@@ -63,13 +63,13 @@ export default function About() {
     {
       name: "Antoine Levy",
       title: "CEO & Co-Founder",
-      bio: "Antoine led Product teams building and scaling products for Digital Media. He was previously a professional football player. ",
+      bio: "Antoine led Product teams building and scaling products for Digital Media. He was previously a professional soccer player. ",
       image: antoine_founder // Add actual image path when available
     },
     {
       name: "Valentin De Matos",
       title: "CTO & Co-Founder",
-      bio: "Valentin De Matos led AI engineering teams at fast-growing startups as well as the R&D department of his University. He wanted to join the army before finding his passion for Computer Science.",
+      bio: "Valentin led AI engineering teams at fast-growing startups as well as the R&D department of his University. He wanted to join the army before finding his passion for Computer Science.",
       image: val_founder // Add actual image path when available
     }
   ];
