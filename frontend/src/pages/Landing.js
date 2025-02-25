@@ -269,7 +269,7 @@ export default function Landing() {
               <div className="flex flex-col md:flex-row justify-between items-center">
                 <p className="text-gray-400 text-sm">&copy; 2025 Laneo. All rights reserved.</p>
                 <div className="text-gray-400 text-sm">
-                  <p>Contact us: <a href="mailto:contact@laneo.io" className="text-blue-400 hover:text-white transition-colors">contact@laneo.ai</a></p>
+                  <p>Contact us: <a href="mailto:contact@laneo.io" className="text-blue-400 hover:text-white transition-colors">contact@laneo.io</a></p>
                 </div>
               </div>
             </div>
