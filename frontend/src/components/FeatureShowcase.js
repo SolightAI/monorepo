@@ -16,7 +16,7 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
     {
       icon: Zap,
       title: "Full Website Review",
-      description: "Comprehensive analysis of your entire website to identify issues and opportunities for improvement",
+      description: "Comprehensive analysis of your entire website to identify issues and opportunities for improvement. Provide a URL and let Laneo do the rest.",
       detailedDescription: [
         "Automatically scans all pages and user flows",
         "Identifies functional bugs, UI inconsistencies, and performance issues",
@@ -27,7 +27,7 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
     {
       icon: Users,
       title: "User Story Check",
-      description: "Validate that your user stories are implemented correctly and working as expected",
+      description: "Validate that your user stories are implemented correctly and working as expected.",
       detailedDescription: [
         "Tests user stories from the perspective of real users",
         "Verifies acceptance criteria are met across different environments",
@@ -49,7 +49,7 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
     {
       icon: Brain,
       title: "Beyond Bugs",
-      description: "Go beyond traditional QA to improve overall user experience and product quality",
+      description: "Go beyond traditional QA to improve overall user experience and product quality.",
       detailedDescription: [
         "Analyzes user flows for friction points and drop-offs",
         "Provides recommendations for UX/UI improvements",
@@ -60,26 +60,25 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
   ];
 
   useEffect(() => {
-    if (autoScrolling && featureListRef.current) {
+    if (autoScrolling && featureListRef.current && showDots) {
       const scrollToNextFeature = () => {
         const nextFeature = (activeFeature + 1) % features.length;
         setActiveFeature(nextFeature);
         
         const featureElements = featureListRef.current.querySelectorAll('.feature-item');
         if (featureElements[nextFeature]) {
-          featureElements[nextFeature].scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
-          });
-          
-          // If this is the last feature, prevent scrolling beyond it
+          // For the last feature, use a different scroll approach to keep it in view
           if (nextFeature === features.length - 1) {
-            setTimeout(() => {
-              window.scrollTo({
-                top: window.scrollY - 100, // Scroll back up slightly to ensure it stays in view
-                behavior: 'smooth'
-              });
-            }, 100);
+            const lastFeatureTop = featureElements[nextFeature].offsetTop;
+            window.scrollTo({
+              top: lastFeatureTop - (window.innerHeight / 2) + (featureElements[nextFeature].offsetHeight / 2),
+              behavior: 'smooth'
+            });
+          } else {
+            featureElements[nextFeature].scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center' 
+            });
           }
         }
       };
@@ -87,7 +86,7 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
       autoScrollTimerRef.current = setTimeout(scrollToNextFeature, 5000);
       return () => clearTimeout(autoScrollTimerRef.current);
     }
-  }, [activeFeature, features.length, autoScrolling]);
+  }, [activeFeature, features.length, autoScrolling, showDots]);
 
   useEffect(() => {
     if (activeFeature === 0 || activeFeature === 1 || activeFeature === 2) {
@@ -108,10 +107,16 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
         // Get the component's position relative to the viewport
         const componentRect = componentRef.current.getBoundingClientRect();
         
+        // Adjust detection logic for mobile
+        const isMobile = window.innerWidth < 768;
+        
         // Only show dots if we're actually within the feature showcase section
+        // Adjusted thresholds for better mobile experience
         const isInFeatureSection = 
-          componentRect.top < 0 && // Component has started to scroll up
-          componentRect.bottom > window.innerHeight; // Component hasn't completely scrolled out of view
+          componentRect.top < window.innerHeight * (isMobile ? -0.1 : -0.2) && // Component has started to scroll up
+          componentRect.bottom > window.innerHeight * (isMobile ? 0.8 : 1.2) && // Component hasn't completely scrolled out of view
+          window.scrollY > window.innerHeight * (isMobile ? 0.3 : 0.5) && // We've scrolled past the hero section
+          window.scrollY < document.body.scrollHeight - window.innerHeight * (isMobile ? 1.2 : 1.5); // We're not near the contact section
         
         setShowDots(isInFeatureSection);
         
@@ -624,61 +629,51 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
         <p className="text-lg text-gray-500 mt-4">Your Entire Customer Experience is Safe</p>
       </div>
       
-      {/* Features with reduced spacing between them (space-y-20 instead of space-y-32) */}
-      <div className="space-y-20" ref={featureListRef}>
+      {/* Features with reduced spacing between them */}
+      <div className="space-y-12" ref={featureListRef}>
         {features.map((feature, index) => (
           <div
             key={index}
             className={`feature-item p-4 md:p-8 rounded-xl transition-all duration-500 
-              ${activeFeature === index ? 'opacity-100' : 'opacity-50'}
-              ${index === features.length - 1 ? 'mb-[100vh]' : ''}`}
+              ${activeFeature === index ? 'opacity-100' : 'opacity-30'}
+              ${index === features.length - 1 ? 'mb-[50vh] md:mb-[100vh]' : ''}`}
             onMouseEnter={() => handleUserInteraction(index)}
+            onTouchStart={() => handleUserInteraction(index)}
             onMouseLeave={() => {
               setIsHovering(false);
               setAutoScrolling(true);
             }}
           >
-            <div className="sticky top-24 bg-gray-900/80 backdrop-blur-sm rounded-xl p-6">
-              {index % 2 === 0 ? (
-                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                  <div className="flex-1 flex flex-col justify-center max-w-md order-2 md:order-1">
-                    <div className="flex items-center mb-4">
-                      <feature.icon className="w-6 h-6 text-blue-500 mr-2" />
-                      <h3 className="text-xl md:text-2xl font-semibold bg-gradient-to-r from-gray-300 to-blue-500 bg-clip-text text-transparent">
-                        {feature.title}
-                      </h3>
-                    </div>
-                    <div className="mb-4">
-                      <p className="text-gray-400 text-base md:text-lg">{feature.description}</p>
-                    </div>
+            <div className="sticky top-24 bg-gray-900/80 backdrop-blur-sm rounded-xl p-4 md:p-6">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className={`flex-1 flex flex-col justify-center max-w-md order-2 ${index % 2 === 0 ? 'md:order-1' : 'md:order-2'}`}>
+                  <div className="flex items-center mb-4">
+                    <feature.icon className="w-5 h-5 md:w-6 md:h-6 text-blue-500 mr-2" />
+                    <h3 className="text-lg md:text-2xl font-semibold bg-gradient-to-r from-gray-300 to-blue-500 bg-clip-text text-transparent">
+                      {feature.title}
+                    </h3>
                   </div>
-                  <div className="order-1 md:order-2 md:ml-6 flex items-center justify-center">{renderFeatureVisual(feature)}</div>
-                </div>
-              ) : (
-                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                  <div className="order-1 md:mr-6 flex items-center justify-center">{renderFeatureVisual(feature)}</div>
-                  <div className="flex-1 flex flex-col justify-center max-w-md order-2">
-                    <div className="flex items-center mb-4">
-                      <feature.icon className="w-6 h-6 text-blue-500 mr-2" />
-                      <h3 className="text-xl md:text-2xl font-semibold bg-gradient-to-r from-gray-300 to-blue-500 bg-clip-text text-transparent">
-                        {feature.title}
-                      </h3>
-                    </div>
-                    <div className="mb-4">
-                      <p className="text-gray-400 text-base md:text-lg">{feature.description}</p>
-                    </div>
+                  <div className="mb-4">
+                    <p className="text-gray-400 text-sm md:text-lg">{feature.description}</p>
                   </div>
                 </div>
-              )}
+                <div className={`w-full md:w-auto order-1 flex items-center justify-center ${index % 2 === 0 ? 'md:order-2 md:ml-6' : 'md:order-1 md:mr-6'}`}>
+                  {renderFeatureVisual(feature)}
+                </div>
+              </div>
             </div>
           </div>
         ))}
       </div>
       
-      {/* Feature navigation dots with conditional visibility */}
-      <div className={`fixed right-8 top-1/2 transform -translate-y-1/2 flex flex-col space-y-2 transition-opacity duration-300 ${
+      {/* Feature navigation dots with improved mobile positioning */}
+      <div className={`fixed transition-opacity duration-300 ${
         showDots ? 'opacity-100' : 'opacity-0 pointer-events-none'
-      }`}>
+      } ${
+        window.innerWidth < 768 
+          ? 'bottom-4 left-1/2 transform -translate-x-1/2 flex-row space-x-2 z-20' 
+          : 'right-8 top-1/2 transform -translate-y-1/2 flex-col space-y-2'
+      } flex`}>
         {features.map((_, index) => (
           <button
             key={index}
@@ -688,7 +683,16 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
             onClick={() => {
               const featureElements = featureListRef.current.querySelectorAll('.feature-item');
               if (featureElements[index]) {
-                featureElements[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // For the last feature, use a different scroll approach to keep it in view
+                if (index === features.length - 1) {
+                  const lastFeatureTop = featureElements[index].offsetTop;
+                  window.scrollTo({
+                    top: lastFeatureTop - (window.innerHeight / 2) + (featureElements[index].offsetHeight / 2),
+                    behavior: 'smooth'
+                  });
+                } else {
+                  featureElements[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
                 handleUserInteraction(index);
               }
             }}

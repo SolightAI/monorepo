@@ -65,6 +65,9 @@ export default function About() {
 
       <div className={`container mx-auto px-4 py-16 relative z-10 transition-all duration-1000 transform ${isIntersecting ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
 
+        {/* Section Title */}
+        <h2 className="text-5xl font-bold text-center mb-16 bg-gradient-to-r from-white to-laneo-400 text-transparent bg-clip-text">Who is behind Laneo?</h2>
+
         {/* Achievement Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-16">
           {achievements.map((achievement, index) => (

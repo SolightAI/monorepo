@@ -3,7 +3,6 @@ import { ChevronRight } from 'lucide-react';
 // import InteractiveDemo from '../components/InteractiveDemo';
 import AnimatedBackground from '../components/AnimatedBackground';
 import FeatureShowcase from '../components/FeatureShowcase';
-import About from '../components/About';
 import confetti from 'canvas-confetti';
 
 // Note: The animate-fadeInUp, animate-fadeInDown, animate-fadeInLeft, and animate-fadeInRight classes are assumed 
@@ -104,9 +103,11 @@ export default function Landing() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
                   onClick={() => scrollToSection('contact')}
-                  className="px-8 py-4 rounded-full bg-laneo-500 hover:bg-laneo-400 transition-colors text-white font-semibold flex items-center justify-center group"
+                  className="px-8 py-4 rounded-full bg-blue-500 hover:bg-blue-400 transition-colors font-semibold flex items-center justify-center group"
                 >
-                  Get Started
+                  <span>
+                    Get Started
+                  </span>
                   <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
                 </button>
                 <button
@@ -130,6 +131,40 @@ export default function Landing() {
 
           <div className="container mx-auto px-4 relative z-10">
             <FeatureShowcase title="Fully Automated QA" />
+          </div>
+        </section>
+
+        {/* Why We Built This Section */}
+        <section id="mission" className="min-h-screen snap-start py-16 relative flex items-center">
+          <div className="absolute" />
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="max-w-4xl mx-auto text-center">
+              <h2 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-gray-300 to-blue-500 bg-clip-text text-transparent mb-16 py-1">
+                Why We Built Laneo
+              </h2>
+              <div className="text-gray-300 text-lg space-y-6 text-left mb-16">
+                <p>
+                  We created Laneo because we believe quality assurance shouldn't be a bottleneck in product development. After years of watching teams struggle with manual testing and missed bugs, we knew there had to be a better way.
+                </p>
+                <p>
+                  Our mission is to free developers and product teams from the tedium of repetitive testing while dramatically improving product quality. By leveraging AI to simulate thousands of user interactions, we can identify issues that would take weeks to discover manually.
+                </p>
+                <p>
+                  Beyond just finding bugs, we're passionate about improving the entire user experience. That's why Laneo doesn't just tell you what's broken—it helps you understand how to make your product better.
+                </p>
+                <div className="mt-16 flex justify-center">
+                  <a
+                    href="/about"
+                    className="px-6 py-3 rounded-full bg-blue-500 hover:bg-blue-400 transition-colors font-semibold flex items-center justify-center group text-sm mt-16"
+                  >
+                    <span>
+                      Learn More About Us
+                    </span>
+                    <ChevronRight className="ml-4 group-hover:translate-x-1 transition-transform" />
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
