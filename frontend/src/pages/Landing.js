@@ -137,7 +137,11 @@ export default function Landing() {
           <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-black to-transparent pointer-events-none" />
 
           <div className="container mx-auto px-4 relative z-10">
-            <FeatureShowcase title="Fully Automated QA" />
+            <h2 className="text-3xl md:text-5xl font-bold text-center mb-12 bg-gradient-to-r from-gray-300 to-blue-500 bg-clip-text text-transparent sticky top-24">
+            </h2>
+            <div className="overflow-hidden">
+              <FeatureShowcase hideTitle={true} />
+            </div>
           </div>
         </section>
 
@@ -166,7 +170,7 @@ export default function Landing() {
                 <div className="mt-16 flex justify-center">
                   <a
                     href="/about"
-                    className="px-6 py-3 rounded-full bg-blue-500 hover:bg-blue-400 transition-colors font-semibold flex items-center justify-center group text-sm mt-16"
+                    className="px-6 py-3 rounded-full bg-blue-500 hover:bg-blue-400 transition-colors font-semibold flex items-center justify-center group text-sm mt-8"
                   >
                     <span>
                       Learn More About Us
@@ -176,6 +180,12 @@ export default function Landing() {
                 </div>
               </div>
             </div>
+          </div>
+          
+          {/* Scroll indicator pointing to the contact section */}
+          <div className="absolute bottom-8 left-0 right-0 flex flex-col items-center animate-bounce cursor-pointer" onClick={() => scrollToSection('contact')}>
+            <p className="text-gray-400 mb-2">Continue to see how we can help</p>
+            <ChevronRight className="transform rotate-90 text-gray-400" size={24} />
           </div>
         </section>
 
