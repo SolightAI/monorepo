@@ -75,12 +75,12 @@ export default function Landing() {
             >
               Features
             </button>
-            <button
-              onClick={() => scrollToSection('about')}
+            <a
+              href="/about"
               className="text-white hover:text-laneo-400 transition-colors"
             >
               About Us
-            </button>
+            </a>
           </nav>
         </div>
       </header>
@@ -99,7 +99,7 @@ export default function Landing() {
                 Elevate Your Product's Quality
               </h1>
               <p className="text-lg md:text-2xl text-gray-400 mb-12 max-w-2xl mx-auto">
-                Fully Automated Quality Assurance that goes far beyond just checking for errors. Uncover areas of improvements in your Customer's Experience and improve your product at unprecedented speed.
+                Fully automated Quality Assurance that goes far beyond just checking for errors. Uncover areas of improvements in your Customer's Experience and improve your product at unprecedented speed.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
@@ -129,17 +129,8 @@ export default function Landing() {
           <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-black to-transparent pointer-events-none" />
 
           <div className="container mx-auto px-4 relative z-10">
-            <FeatureShowcase />
+            <FeatureShowcase title="Fully Automated QA" />
           </div>
-        </section>
-
-        {/* About Section */}
-        <section id="about" className="min-h-screen snap-start py-16 relative z-10">
-          <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-black to-transparent pointer-events-none" />
-          <div className="container mx-auto px-4 relative z-20">
-            <About />
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-black to-transparent pointer-events-none" />
         </section>
 
         {/* Technology Demo Section */}
