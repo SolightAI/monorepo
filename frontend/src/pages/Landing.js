@@ -105,7 +105,7 @@ export default function Landing() {
                 Elevate Your Product's Quality
               </h1>
               <p className="text-lg md:text-2xl text-gray-400 mb-12 max-w-2xl mx-auto">
-                Fully automated Quality Assurance that goes far beyond just checking for errors. Uncover areas of improvements in your Customer's Experience and improve your product at unprecedented speed.
+                Focus on innovating. Let Laneo’s fully automated Quality Assurance agents proactively monitor, audit, and improve your website and app user journeys. 
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
