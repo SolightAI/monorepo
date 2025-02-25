@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, ExternalLink } from 'lucide-react';
 
 export default function About() {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -15,6 +15,15 @@ export default function About() {
     if (section) observer.observe(section);
 
     return () => observer.disconnect();
+  }, []);
+
+  // Auto-advance carousel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveIndex((prevIndex) => (prevIndex + 1) % teamHighlights.length);
+    }, 3000); // Change every 3 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   const achievements = [
@@ -56,6 +65,9 @@ export default function About() {
 
       <div className={`container mx-auto px-4 py-16 relative z-10 transition-all duration-1000 transform ${isIntersecting ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
 
+        {/* Section Title */}
+        <h2 className="text-5xl font-bold text-center mb-16 bg-gradient-to-r from-white to-laneo-400 text-transparent bg-clip-text">Who is behind Laneo?</h2>
+
         {/* Achievement Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-16">
           {achievements.map((achievement, index) => (
@@ -65,8 +77,15 @@ export default function About() {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-laneo-400/20 to-purple-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-75" />
               <div className="relative p-8 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-laneo-400/50 transition-all duration-300 flex flex-col justify-between h-full">
-                <div className="text-4xl font-bold bg-gradient-to-r from-white to-laneo-400 text-transparent bg-clip-text mb-2">
-                  {achievement.metric}
+                <div className="text-4xl font-bold bg-gradient-to-r from-white to-laneo-400 text-transparent bg-clip-text mb-2 flex items-center">
+                  {achievement.metric === "800+" ? (
+                    <a href="https://github.com/Thytu/Agentarium" target="_blank" rel="noopener noreferrer" className="flex items-center">
+                      {achievement.metric}
+                      <ExternalLink className="ml-2 w-4 h-4" />
+                    </a>
+                  ) : (
+                    achievement.metric
+                  )}
                 </div>
                 <div className="text-gray-400">{achievement.description}</div>
               </div>
@@ -75,11 +94,11 @@ export default function About() {
         </div>
 
         {/* Team Highlights */}
-        <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-1 gap-12 items-center max-w-full mx-auto">
           {/* Interactive Card */}
-          <div className="relative min-h-[500px] order-2 md:order-1">
+          <div className="relative h-[300px] order-2 md:order-1">
             <div className="absolute inset-0 bg-gradient-to-r from-laneo-400/30 to-purple-500/30 rounded-3xl blur-2xl" />
-            <div className="relative h-full rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 p-12 overflow-hidden min-h-[500px]">
+            <div className="relative h-full rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 p-12 overflow-hidden">
               {teamHighlights.map((highlight, index) => (
                 <div
                   key={index}
@@ -96,35 +115,23 @@ export default function About() {
                 </div>
               ))}
             </div>
+            {/* Section Indicators */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+              {teamHighlights.map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-3 h-3 rounded-full ${
+                    activeIndex === index ? 'bg-laneo-400' : 'bg-white/10'
+                  }`}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Text Content */}
           <div className="space-y-8 order-1 md:order-2">
-            <h3 className="text-3xl md:text-4xl font-bold">
-              Building the Future of AI, Today
-            </h3>
-            <p className="text-gray-400 text-lg">
-              We're not just another AI startup - we're a team of proven entrepreneurs and researchers who've already scaled successful AI ventures. Our deep technical expertise is matched by our ability to deliver real-world impact.
-            </p>
             <div className="space-y-4">
-              {teamHighlights.map((highlight, index) => (
-                <button
-                  key={index}
-                  className={`w-full text-left p-4 rounded-xl transition-all duration-300 ${
-                    activeIndex === index 
-                      ? 'bg-white/10 border-l-4 border-laneo-400' 
-                      : 'hover:bg-white/5'
-                  }`}
-                  onClick={() => setActiveIndex(index)}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{highlight.title}</span>
-                    <ChevronRight className={`w-5 h-5 transition-transform ${
-                      activeIndex === index ? 'rotate-90' : ''
-                    }`} />
-                  </div>
-                </button>
-              ))}
+              {/* Removed button elements */}
             </div>
           </div>
         </div>
