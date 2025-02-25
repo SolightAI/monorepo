@@ -113,13 +113,13 @@ export default function About() {
           {/* Team Highlights */}
           <div className="grid md:grid-cols-1 gap-12 items-center max-w-full mx-auto">
             {/* Interactive Card */}
-            <div className="relative h-[300px] order-2 md:order-1">
+            <div className="relative h-[300px] md:h-[350px] order-2 md:order-1">
               <div className="absolute inset-0 bg-gradient-to-r from-laneo-400/30 to-purple-500/30 rounded-3xl blur-2xl" />
-              <div className="relative h-full rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 p-12 overflow-hidden">
+              <div className="relative h-full rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 p-6 md:p-12 overflow-hidden">
                 {teamHighlights.map((highlight, index) => (
                   <div
                     key={index}
-                    className={`absolute inset-0 p-12 transition-all duration-500 transform ${
+                    className={`absolute inset-0 p-6 md:p-12 transition-all duration-500 transform ${
                       index === activeIndex 
                         ? 'translate-x-0 opacity-100' 
                         : index < activeIndex
@@ -127,8 +127,8 @@ export default function About() {
                           : 'translate-x-full opacity-0'
                     }`}
                   >
-                    <h3 className="text-4xl font-bold mb-6 text-white">{highlight.title}</h3>
-                    <p className="text-gray-300 text-xl leading-relaxed max-w-lg">{highlight.description}</p>
+                    <h3 className="text-2xl md:text-4xl font-bold mb-3 md:mb-6 text-white">{highlight.title}</h3>
+                    <p className="text-gray-300 text-base md:text-xl leading-relaxed max-w-lg overflow-y-auto max-h-[180px] md:max-h-none">{highlight.description}</p>
                   </div>
                 ))}
               </div>
