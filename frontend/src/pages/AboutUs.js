@@ -28,6 +28,8 @@ export default function AboutUs() {
             <div id="about" className="min-h-screen">
               <About />
             </div>
+            
+            {/* The Founders section has been moved to the About component */}
           </div>
         </div>
       </main>
@@ -36,6 +38,9 @@ export default function AboutUs() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">&copy; 2025 Laneo. All rights reserved.</p>
+            <div className="text-gray-400 text-sm">
+              <p>Contact us: <a href="mailto:contact@laneo.io" className="text-blue-400 hover:text-white transition-colors">contact@laneo.ai</a></p>
+            </div>
           </div>
         </div>
       </footer>

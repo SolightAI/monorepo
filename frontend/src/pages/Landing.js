@@ -66,7 +66,14 @@ export default function Landing() {
     <div className="flex flex-col min-h-screen bg-black text-white overflow-hidden">
       <header className="fixed top-0 left-0 right-0 bg-black/50 backdrop-blur-sm z-20">
         <div className="container mx-auto px-4 py-2 flex justify-between items-center">
-          <div className="text-white font-bold text-lg">Laneo</div>
+          <div className="flex items-center">
+            <img 
+              src={require('../components/images/laneo_logo.jpg')} 
+              alt="Laneo Logo" 
+              className="h-8 w-auto mr-2 filter invert brightness-100" 
+            />
+            <div className="text-white font-bold text-lg">Laneo</div>
+          </div>
           <nav className="flex space-x-4 md:space-x-8">
             <button
               onClick={() => scrollToSection('features')}
@@ -136,7 +143,8 @@ export default function Landing() {
 
         {/* Why We Built This Section */}
         <section id="mission" className="min-h-screen snap-start py-16 relative flex items-center">
-          <div className="absolute" />
+          
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50" />
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-4xl mx-auto text-center">
               <h2 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-gray-300 to-blue-500 bg-clip-text text-transparent mb-16 py-1">
@@ -144,13 +152,16 @@ export default function Landing() {
               </h2>
               <div className="text-gray-300 text-lg space-y-6 text-left mb-16">
                 <p>
-                  We created Laneo because we believe quality assurance shouldn't be a bottleneck in product development. After years of watching teams struggle with manual testing and missed bugs, we knew there had to be a better way.
+                  Customer Experience is how businesses win. As technical moats shrink and customer expectations rise, companies' success depends more than ever on the experience they offer. Yet today, Quality Assurance is slow, manual, and reactive, forcing PMs and engineers to fire-fight instead of innovate.
                 </p>
                 <p>
-                  Our mission is to free developers and product teams from the tedium of repetitive testing while dramatically improving product quality. By leveraging AI to simulate thousands of user interactions, we can identify issues that would take weeks to discover manually.
+                  We're eliminating the Experience Tax, the hidden cost businesses pay for subpar digital experiences. Laneo's Agentic AI is the ultimate weapon against digital disorder, ensuring websites and apps deliver seamless, optimized experiences that drive satisfaction and exponential growth.
                 </p>
                 <p>
-                  Beyond just finding bugs, we're passionate about improving the entire user experience. That's why Laneo doesn't just tell you what's broken—it helps you understand how to make your product better.
+                  Our founders, Antoine (ex PM) and Valentin (ex Engineer), left their previous roles after seeing firsthand how much time was spent on QA instead of building.
+                </p>
+                <p>
+                  We are building Laneo, so you can focus on what matters; innovation.
                 </p>
                 <div className="mt-16 flex justify-center">
                   <a
@@ -257,9 +268,9 @@ export default function Landing() {
             <div className="container mx-auto px-4">
               <div className="flex flex-col md:flex-row justify-between items-center">
                 <p className="text-gray-400 text-sm">&copy; 2025 Laneo. All rights reserved.</p>
-                {/* <a href="/terms" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Terms of Service
-                </a> */}
+                <div className="text-gray-400 text-sm">
+                  <p>Contact us: <a href="mailto:contact@laneo.io" className="text-blue-400 hover:text-white transition-colors">contact@laneo.ai</a></p>
+                </div>
               </div>
             </div>
           </footer>
