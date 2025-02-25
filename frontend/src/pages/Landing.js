@@ -144,13 +144,16 @@ export default function Landing() {
               </h2>
               <div className="text-gray-300 text-lg space-y-6 text-left mb-16">
                 <p>
-                  We created Laneo because we believe quality assurance shouldn't be a bottleneck in product development. After years of watching teams struggle with manual testing and missed bugs, we knew there had to be a better way.
+                  Customer Experience is how businesses win. As technical moats shrink and customer expectations rise, companies' success depends more than ever on the experience they offer. Yet today, Quality Assurance is slow, manual, and reactive, forcing PMs and engineers to fire-fight instead of innovate.
                 </p>
                 <p>
-                  Our mission is to free developers and product teams from the tedium of repetitive testing while dramatically improving product quality. By leveraging AI to simulate thousands of user interactions, we can identify issues that would take weeks to discover manually.
+                  We're eliminating the Experience Tax, the hidden cost businesses pay for subpar digital experiences. Laneo's Agentic AI is the ultimate weapon against digital disorder, ensuring websites and apps deliver seamless, optimized experiences that drive satisfaction and exponential growth.
                 </p>
                 <p>
-                  Beyond just finding bugs, we're passionate about improving the entire user experience. That's why Laneo doesn't just tell you what's broken—it helps you understand how to make your product better.
+                  Our founders, Antoine (ex PM) and Valentin (ex Engineer), left their previous roles after seeing firsthand how much time was spent on QA instead of building.
+                </p>
+                <p>
+                  We are building Laneo, so you can focus on what matters; innovation.
                 </p>
                 <div className="mt-16 flex justify-center">
                   <a
