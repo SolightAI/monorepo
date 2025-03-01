@@ -60,7 +60,11 @@ const FeatureShowcase = ({ title = "Your Fully Automated QA Agent" }) => {
   ];
 
   useEffect(() => {
-    if (autoScrolling && featureListRef.current && showDots) {
+    // Determine if we're on mobile
+    const isMobile = window.innerWidth < 768;
+    
+    // Always auto-scroll on mobile, regardless of user interaction
+    if ((autoScrolling || isMobile) && featureListRef.current && showDots) {
       const scrollToNextFeature = () => {
         const nextFeature = (activeFeature + 1) % features.length;
         setActiveFeature(nextFeature);
@@ -83,7 +87,7 @@ const FeatureShowcase = ({ title = "Your Fully Automated QA Agent" }) => {
         }
       };
       
-      autoScrollTimerRef.current = setTimeout(scrollToNextFeature, 5000);
+      autoScrollTimerRef.current = setTimeout(scrollToNextFeature, isMobile ? 3000 : 5000);
       return () => clearTimeout(autoScrollTimerRef.current);
     }
   }, [activeFeature, features.length, autoScrolling, showDots]);
@@ -97,7 +101,7 @@ const FeatureShowcase = ({ title = "Your Fully Automated QA Agent" }) => {
     }
   }, [activeFeature]);
 
-  // Modify the scroll event listener to better detect when we're in the feature section
+  // Modify the scroll event listener to better handle mobile
   useEffect(() => {
     const handleScroll = () => {
       if (featureListRef.current && componentRef.current) {
@@ -113,15 +117,15 @@ const FeatureShowcase = ({ title = "Your Fully Automated QA Agent" }) => {
         // Only show dots if we're actually within the feature showcase section
         // Adjusted thresholds for better mobile experience
         const isInFeatureSection = 
-          componentRect.top < window.innerHeight * (isMobile ? -0.1 : -0.2) && // Component has started to scroll up
-          componentRect.bottom > window.innerHeight * (isMobile ? 0.8 : 1.2) && // Component hasn't completely scrolled out of view
-          window.scrollY > window.innerHeight * (isMobile ? 0.3 : 0.5) && // We've scrolled past the hero section
-          window.scrollY < document.body.scrollHeight - window.innerHeight * (isMobile ? 1.2 : 1.5); // We're not near the contact section
+          componentRect.top < window.innerHeight * (isMobile ? 0.1 : -0.2) && // Component has started to scroll up
+          componentRect.bottom > window.innerHeight * (isMobile ? 0.5 : 1.2) && // Component hasn't completely scrolled out of view
+          window.scrollY > window.innerHeight * (isMobile ? 0.2 : 0.5) && // We've scrolled past the hero section
+          window.scrollY < document.body.scrollHeight - window.innerHeight * (isMobile ? 1.0 : 1.5); // We're not near the contact section
         
         setShowDots(isInFeatureSection);
         
-        // Temporarily pause auto-scrolling when user manually scrolls
-        if (isInFeatureSection) {
+        // On mobile, don't pause auto-scrolling when user manually scrolls
+        if (isInFeatureSection && !isMobile) {
           setAutoScrolling(false);
           
           // Calculate which feature should be active based on scroll position
@@ -134,7 +138,7 @@ const FeatureShowcase = ({ title = "Your Fully Automated QA Agent" }) => {
             }
           });
           
-          // Resume auto-scrolling after a period of inactivity
+          // Resume auto-scrolling after a period of inactivity (only on desktop)
           if (autoScrollTimerRef.current) {
             clearTimeout(autoScrollTimerRef.current);
           }
@@ -152,25 +156,43 @@ const FeatureShowcase = ({ title = "Your Fully Automated QA Agent" }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Pause auto-scrolling when user interacts
+  // Modify user interaction handler to consider mobile
   const handleUserInteraction = (index) => {
-    // Clear any existing auto-scroll timer
-    if (autoScrollTimerRef.current) {
-      clearTimeout(autoScrollTimerRef.current);
-    }
+    const isMobile = window.innerWidth < 768;
     
     // Set the active feature
     setActiveFeature(index);
     setIsHovering(true);
-    setAutoScrolling(false);
     
-    // Resume auto-scrolling after a period of inactivity
-    const resumeAutoScroll = setTimeout(() => {
-      setIsHovering(false);
-      setAutoScrolling(true);
-    }, 10000); // Resume after 10 seconds of inactivity
-    
-    return () => clearTimeout(resumeAutoScroll);
+    // Only pause auto-scrolling on desktop
+    if (!isMobile) {
+      setAutoScrolling(false);
+      
+      // Clear any existing auto-scroll timer
+      if (autoScrollTimerRef.current) {
+        clearTimeout(autoScrollTimerRef.current);
+      }
+      
+      // Resume auto-scrolling after a period of inactivity
+      const resumeAutoScroll = setTimeout(() => {
+        setIsHovering(false);
+        setAutoScrolling(true);
+      }, 10000); // Resume after 10 seconds of inactivity
+      
+      return () => clearTimeout(resumeAutoScroll);
+    } else {
+      // On mobile, briefly pause then resume auto-scrolling
+      if (autoScrollTimerRef.current) {
+        clearTimeout(autoScrollTimerRef.current);
+      }
+      
+      const resumeQuickly = setTimeout(() => {
+        setIsHovering(false);
+        setAutoScrolling(true);
+      }, 3000); // Resume after 3 seconds on mobile
+      
+      return () => clearTimeout(resumeQuickly);
+    }
   };
 
   const renderFeatureVisual = (feature) => {
