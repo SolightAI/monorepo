@@ -200,42 +200,43 @@ export default function Landing() {
               A Better Way to QA
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8 md:mt-16">
+              {/* Benefit cards with reduced padding on mobile */}
               {/* Benefit 1 */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10 shadow-2xl transform transition-all duration-300 hover:scale-105 hover:bg-white/10 group">
-                <div className="flex items-center justify-center h-20 w-20 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 mb-8 mx-auto group-hover:from-blue-500/50 group-hover:to-purple-500/50 transition-all duration-300">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-blue-400 group-hover:text-blue-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-5 md:p-8 border border-white/10 shadow-2xl transform transition-all duration-300 hover:scale-105 hover:bg-white/10 group">
+                <div className="flex items-center justify-center h-16 w-16 md:h-20 md:w-20 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 mb-4 md:mb-8 mx-auto group-hover:from-blue-500/50 group-hover:to-purple-500/50 transition-all duration-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 md:h-10 md:w-10 text-blue-400 group-hover:text-blue-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-center mb-4 text-white group-hover:text-blue-300 transition-colors">Minimal Costs</h3>
-                <p className="text-gray-400 text-center leading-relaxed">
+                <h3 className="text-xl md:text-2xl font-bold text-center mb-2 md:mb-4 text-white group-hover:text-blue-300 transition-colors">Minimal Costs</h3>
+                <p className="text-gray-400 text-center text-sm md:text-base leading-relaxed">
                   Pay a fraction of the cost of full-time QA engineers or outsourced agencies, while achieving more comprehensive coverage.
                 </p>
               </div>
               
               {/* Benefit 2 */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10 shadow-2xl transform transition-all duration-300 hover:scale-105 hover:bg-white/10 group">
-                <div className="flex items-center justify-center h-20 w-20 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 mb-8 mx-auto group-hover:from-blue-500/50 group-hover:to-purple-500/50 transition-all duration-300">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-blue-400 group-hover:text-blue-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-5 md:p-8 border border-white/10 shadow-2xl transform transition-all duration-300 hover:scale-105 hover:bg-white/10 group">
+                <div className="flex items-center justify-center h-16 w-16 md:h-20 md:w-20 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 mb-4 md:mb-8 mx-auto group-hover:from-blue-500/50 group-hover:to-purple-500/50 transition-all duration-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 md:h-10 md:w-10 text-blue-400 group-hover:text-blue-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-center mb-4 text-white group-hover:text-blue-300 transition-colors">Delighted Users</h3>
-                <p className="text-gray-400 text-center leading-relaxed">
+                <h3 className="text-xl md:text-2xl font-bold text-center mb-2 md:mb-4 text-white group-hover:text-blue-300 transition-colors">Delighted Users</h3>
+                <p className="text-gray-400 text-center text-sm md:text-base leading-relaxed">
                   Eliminate escaped defects and ensure your users experience a seamless, frustration-free journey through your product.
                 </p>
               </div>
               
               {/* Benefit 3 */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10 shadow-2xl transform transition-all duration-300 hover:scale-105 hover:bg-white/10 group">
-                <div className="flex items-center justify-center h-20 w-20 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 mb-8 mx-auto group-hover:from-blue-500/50 group-hover:to-purple-500/50 transition-all duration-300">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-blue-400 group-hover:text-blue-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-5 md:p-8 border border-white/10 shadow-2xl transform transition-all duration-300 hover:scale-105 hover:bg-white/10 group">
+                <div className="flex items-center justify-center h-16 w-16 md:h-20 md:w-20 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 mb-4 md:mb-8 mx-auto group-hover:from-blue-500/50 group-hover:to-purple-500/50 transition-all duration-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 md:h-10 md:w-10 text-blue-400 group-hover:text-blue-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-center mb-4 text-white group-hover:text-blue-300 transition-colors">Increased Productivity</h3>
-                <p className="text-gray-400 text-center leading-relaxed">
+                <h3 className="text-xl md:text-2xl font-bold text-center mb-2 md:mb-4 text-white group-hover:text-blue-300 transition-colors">Increased Productivity</h3>
+                <p className="text-gray-400 text-center text-sm md:text-base leading-relaxed">
                   Allow Product and Engineering teams to focus on high value activities, accelerating development and increasing employee satisfaction.
                 </p>
               </div>
