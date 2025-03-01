@@ -11,6 +11,23 @@ import confetti from 'canvas-confetti';
 
 export default function Landing() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [demoStep, setDemoStep] = useState(0);
+  const demoSteps = [
+    { message: "Scanning website structure and user flows...", type: "blue" },
+    { message: "Generating comprehensive test cases for checkout, login, and product browsing flows", type: "blue" },
+    { message: "Running 24 automated tests across 3 device types...", type: "blue" },
+    { message: "Results: 22 tests passed, 2 issues detected", type: "green" },
+    { message: "Critical issue: Form validation error on mobile checkout. Generating fix recommendation...", type: "green" }
+  ];
+
+  // Add effect to cycle through demo steps
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setDemoStep((prevStep) => (prevStep + 1) % demoSteps.length);
+    }, 3000); // Change step every 3 seconds
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
@@ -100,29 +117,70 @@ export default function Landing() {
           <AnimatedBackground />
 
           <div className="container mx-auto px-4 py-20 relative z-10">
-            <div className="max-w-2xl mx-auto text-center">
-              <h1 className="text-4xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white/90 via-white/70 to-white/40 text-transparent bg-clip-text">
-                Elevate Your Product's Quality
-              </h1>
-              <p className="text-lg md:text-2xl text-gray-400 mb-12 max-w-2xl mx-auto">
-                Focus on innovating. Let Laneo’s fully automated Quality Assurance agents proactively monitor, audit, and improve your website and app user journeys. 
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button
-                  onClick={() => scrollToSection('contact')}
-                  className="px-8 py-4 rounded-full bg-blue-500 hover:bg-blue-400 transition-colors font-semibold flex items-center justify-center group"
-                >
-                  <span>
-                    Get Started
-                  </span>
-                  <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
-                </button>
-                <button
-                  onClick={() => scrollToSection('features')}
-                  className="px-8 py-4 rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm"
-                >
-                  Know More
-                </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              {/* Left side - existing content */}
+              <div className="text-left">
+                <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white/90 via-white/70 to-white/40 text-transparent bg-clip-text">
+                  Elevate Your Product's Quality
+                </h1>
+                <p className="text-lg md:text-xl text-gray-400 mb-8 max-w-xl">
+                  Focus on innovating. Let Laneo's fully automated Quality Assurance agents proactively monitor, audit, and improve your website and app user journeys. 
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button
+                    onClick={() => scrollToSection('contact')}
+                    className="px-8 py-4 rounded-full bg-blue-500 hover:bg-blue-400 transition-colors font-semibold flex items-center justify-center group"
+                  >
+                    <span>
+                      Get Started
+                    </span>
+                    <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                  <button
+                    onClick={() => scrollToSection('features')}
+                    className="px-8 py-4 rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm"
+                  >
+                    Know More
+                  </button>
+                </div>
+              </div>
+              
+              {/* Right side - interactive demo */}
+              <div className="hidden md:block relative">
+                <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 shadow-xl">
+                  <div className="flex items-center mb-4">
+                    <div className="flex space-x-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                      <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    </div>
+                    <div className="mx-auto text-xs text-gray-400">Laneo QA Agent</div>
+                  </div>
+                  
+                  <div className="space-y-4 min-h-[200px]">
+                    {demoSteps.map((step, index) => (
+                      <div 
+                        key={index} 
+                        className={`flex items-start transition-all duration-500 ${
+                          index <= demoStep ? "opacity-100" : "opacity-0 h-0 overflow-hidden"
+                        }`}
+                      >
+                        <div className={`bg-${step.type}-500/20 rounded-lg p-3 max-w-xs`}>
+                          <p className="text-sm text-white">{step.message}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-4 flex justify-between items-center">
+                    <div className="h-2 w-full bg-gray-700 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-blue-500 rounded-full transition-all duration-1000" 
+                        style={{width: `${(demoStep + 1) * (100 / demoSteps.length)}%`}}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -145,49 +203,7 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Why We Built This Section */}
-        <section id="mission" className="min-h-screen snap-start py-16 relative flex items-center">
-          
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50" />
-          <div className="container mx-auto px-4 relative z-10">
-            <div className="max-w-4xl mx-auto text-center">
-              <h2 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-gray-300 to-blue-500 bg-clip-text text-transparent mb-16 py-1">
-                Why We Built Laneo
-              </h2>
-              <div className="text-gray-300 text-lg space-y-6 text-left mb-16">
-                <p>
-                  Customer Experience is how businesses win. As technical moats shrink and customer expectations rise, companies' success depends more than ever on the experience they offer. Yet today, Quality Assurance is slow, manual, and reactive, forcing PMs and engineers to fire-fight instead of innovate.
-                </p>
-                <p>
-                  We're eliminating the Experience Tax, the hidden cost businesses pay for subpar digital experiences. Laneo's Agentic AI is the ultimate weapon against digital disorder, ensuring websites and apps deliver seamless, optimized experiences that drive satisfaction and exponential growth.
-                </p>
-                <p>
-                  Our founders, Antoine (ex PM) and Valentin (ex Engineer), left their previous roles after seeing firsthand how much time was spent on QA instead of building.
-                </p>
-                <p>
-                  We are building Laneo, so you can focus on what matters; innovation.
-                </p>
-                <div className="mt-16 flex justify-center">
-                  <a
-                    href="/about"
-                    className="px-6 py-3 rounded-full bg-blue-500 hover:bg-blue-400 transition-colors font-semibold flex items-center justify-center group text-sm mt-8"
-                  >
-                    <span>
-                      Learn More About Us
-                    </span>
-                    <ChevronRight className="ml-4 group-hover:translate-x-1 transition-transform" />
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Scroll indicator pointing to the contact section */}
-          <div className="absolute bottom-8 left-0 right-0 flex flex-col items-center animate-bounce cursor-pointer" onClick={() => scrollToSection('contact')}>
-            <p className="text-gray-400 mb-2">Continue to see how we can help</p>
-            <ChevronRight className="transform rotate-90 text-gray-400" size={24} />
-          </div>
-        </section>
+    
 
         {/* Technology Demo Section */}
         {/* <section id="technology" className="py-20 relative">

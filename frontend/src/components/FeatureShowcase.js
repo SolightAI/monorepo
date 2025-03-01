@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Brain, Zap, Target, Users } from 'lucide-react';
 
-const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
+const FeatureShowcase = ({ title = "Your Fully Automated QA Agent" }) => {
   const [activeFeature, setActiveFeature] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [animationStep, setAnimationStep] = useState(0);
@@ -176,8 +176,8 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
   const renderFeatureVisual = (feature) => {
     if (feature.title === "Full Website Review") {
       return (
-        <div className="flex items-center justify-center w-full h-64 md:w-64 md:h-64">
-          <svg viewBox="0 0 240 160" className="w-full h-full max-w-[240px]">
+        <div className="flex items-center justify-center w-full h-full">
+          <svg viewBox="0 0 240 160" className="w-full h-full">
             <defs>
               <linearGradient id="scanGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" style={{ stopColor: '#3b82f6', stopOpacity: 0.8 }} />
@@ -229,10 +229,10 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
           </svg>
         </div>
       );
-    } else if (feature.title === "Fully Automated QA") {
+    } else if (feature.title === "The Fully Automated QA Agent") {
       return (
-        <div className="flex items-center justify-center w-full h-64 md:w-64 md:h-64">
-          <svg viewBox="0 0 24 24" className="w-full h-full max-w-[220px] max-h-[120px]">
+        <div className="flex items-center justify-center w-full h-full">
+          <svg viewBox="0 0 24 24" className="w-full h-full">
             <defs>
               <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" style={{ stopColor: '#8b5cf6', stopOpacity: 1 }} />
@@ -278,8 +278,8 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
       const progressPercent = (checkedCount / criteria.length) * 100;
       
       return (
-        <div className="flex items-center justify-center w-full h-64 md:w-64 md:h-64">
-          <div className="w-full max-w-[240px] bg-gray-800/80 rounded-lg p-3 border border-gray-700 shadow-lg">
+        <div className="flex items-center justify-center w-full h-full">
+          <div className="w-full h-full bg-gray-800/80 rounded-lg p-3 border border-gray-700 shadow-lg flex flex-col">
             {/* User Story Title */}
             <div className="mb-2 pb-1 border-b border-gray-700">
               <div className="text-xs text-blue-400 mb-0.5">USER STORY</div>
@@ -287,7 +287,7 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
             </div>
             
             {/* Acceptance Criteria */}
-            <div className="mb-3">
+            <div className="mb-3 flex-grow">
               <div className="text-xs text-gray-400 mb-1.5">ACCEPTANCE CRITERIA</div>
               <ul className="space-y-1.5">
                 {criteria.map((criterion, index) => (
@@ -354,22 +354,22 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
       // 3: Ticket moves to "In Progress"
       
       return (
-        <div className="flex items-center justify-center w-full h-64 md:w-64 md:h-64">
-          <div className="relative w-full max-w-[240px] h-[200px] flex items-center justify-center">
+        <div className="flex items-center justify-center w-full h-full">
+          <div className="relative w-full h-full flex items-center justify-center">
             {/* Bug/Issue Discovery */}
             <div 
-              className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full transition-all duration-500 ease-in-out ${
+              className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out ${
                 animationStep > 0 ? 'opacity-0 scale-90' : 'opacity-100'
               }`}
             >
-              <div className="bg-gray-800/80 rounded-lg p-3 border border-gray-700 shadow-lg">
+              <div className="bg-gray-800/80 rounded-lg p-3 border border-gray-700 shadow-lg w-full h-full flex flex-col">
                 <div className="flex items-center mb-2">
                   <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center mr-2">
                     <span className="text-white text-xs">!</span>
                   </div>
                   <span className="text-white text-sm font-medium">Bug Detected</span>
                 </div>
-                <div className="text-xs text-gray-400 mb-2">Payment processing fails when user has special characters in name</div>
+                <div className="text-xs text-gray-400 mb-2 flex-grow">Payment processing fails when user has special characters in name</div>
                 <div className="flex items-center text-xs text-red-300">
                   <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-1.5"></span>
                   High Priority
@@ -379,11 +379,11 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
             
             {/* Ticket Creation */}
             <div 
-              className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full transition-all duration-500 ease-in-out ${
+              className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out ${
                 animationStep === 1 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
               }`}
             >
-              <div className="bg-blue-900/30 rounded-lg p-3 border border-blue-800/50 shadow-lg">
+              <div className="bg-blue-900/30 rounded-lg p-3 border border-blue-800/50 shadow-lg w-full h-full flex flex-col">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center">
                     <svg className="w-5 h-5 mr-1.5" viewBox="0 0 24 24" fill="none">
@@ -395,7 +395,7 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
                   <span className="text-xs bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded">Bug</span>
                 </div>
                 <div className="text-xs text-white font-medium mb-2">Payment processing fails with special characters</div>
-                <div className="flex justify-between items-center text-xs mb-2">
+                <div className="flex justify-between items-center text-xs mb-2 flex-grow">
                   <div className="flex items-center text-gray-400">
                     <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
                     High
@@ -408,11 +408,11 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
             
             {/* Ticket Assignment */}
             <div 
-              className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full transition-all duration-500 ease-in-out ${
+              className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out ${
                 animationStep === 2 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
               }`}
             >
-              <div className="bg-blue-900/30 rounded-lg p-3 border border-blue-800/50 shadow-lg">
+              <div className="bg-blue-900/30 rounded-lg p-3 border border-blue-800/50 shadow-lg w-full h-full flex flex-col">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center">
                     <svg className="w-5 h-5 mr-1.5" viewBox="0 0 24 24" fill="none">
@@ -424,7 +424,7 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
                   <span className="text-xs bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded">Bug</span>
                 </div>
                 <div className="text-xs text-white font-medium mb-2">Payment processing fails with special characters</div>
-                <div className="flex justify-between items-center text-xs mb-2">
+                <div className="flex justify-between items-center text-xs mb-2 flex-grow">
                   <div className="flex items-center text-gray-400">
                     <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
                     High
@@ -440,11 +440,11 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
             
             {/* Ticket In Progress */}
             <div 
-              className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full transition-all duration-500 ease-in-out ${
+              className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out ${
                 animationStep >= 3 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
               }`}
             >
-              <div className="bg-blue-900/30 rounded-lg p-3 border border-blue-800/50 shadow-lg">
+              <div className="bg-blue-900/30 rounded-lg p-3 border border-blue-800/50 shadow-lg w-full h-full flex flex-col">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center">
                     <svg className="w-5 h-5 mr-1.5" viewBox="0 0 24 24" fill="none">
@@ -456,7 +456,7 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
                   <span className="text-xs bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded">Bug</span>
                 </div>
                 <div className="text-xs text-white font-medium mb-2">Payment processing fails with special characters</div>
-                <div className="flex justify-between items-center text-xs mb-2">
+                <div className="flex justify-between items-center text-xs mb-2 flex-grow">
                   <div className="flex items-center text-gray-400">
                     <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
                     High
@@ -492,8 +492,8 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
       const afterDropoffs = [100, 85, 70, 55];
       
       return (
-        <div className="flex items-center justify-center w-full h-64 md:w-64 md:h-64">
-          <div className="relative w-full max-w-[240px] h-auto bg-gray-900/50 rounded-lg p-3 border border-gray-800">
+        <div className="flex items-center justify-center w-full h-full">
+          <div className="w-full h-full bg-gray-900/50 rounded-lg p-3 border border-gray-800 flex flex-col">
             {/* Title */}
             <div className="text-xs text-gray-400 mb-3">
               {animationStep < 2 ? "User Flow Analysis" : "Optimized User Flow"}
@@ -513,7 +513,7 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
             </div>
             
             {/* Before Optimization */}
-            <div className={`mb-5 transition-opacity duration-500 ${animationStep >= 3 ? 'opacity-30' : 'opacity-100'}`}>
+            <div className={`mb-5 transition-opacity duration-500 flex-grow ${animationStep >= 3 ? 'opacity-30' : 'opacity-100'}`}>
               <div className="flex items-center mb-1">
                 <div className="w-2 h-2 rounded-full bg-gray-500 mr-1.5"></div>
                 <span className="text-[10px] text-gray-400">Before</span>
@@ -554,7 +554,7 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
             </div>
             
             {/* After Optimization */}
-            <div className={`transition-all duration-1000 ${animationStep >= 3 ? 'opacity-100' : 'opacity-0'}`}>
+            <div className={`transition-all duration-1000 flex-grow ${animationStep >= 3 ? 'opacity-100' : 'opacity-0'}`}>
               <div className="flex items-center mb-1">
                 <div className="w-2 h-2 rounded-full bg-green-500 mr-1.5"></div>
                 <span className="text-[10px] text-green-400">After Optimization</span>
@@ -586,8 +586,8 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
             
             {/* Analysis overlay */}
             {animationStep === 1 && (
-              <div className="absolute bottom-3 left-0 right-0 text-center">
-                <div className="text-[10px] font-medium text-red-400 bg-red-500/10 py-1 px-2 rounded mx-3">
+              <div className="mt-auto text-center">
+                <div className="text-[10px] font-medium text-red-400 bg-red-500/10 py-1 px-2 rounded">
                   Friction points detected
                 </div>
               </div>
@@ -595,8 +595,8 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
             
             {/* Recommendations */}
             {animationStep === 2 && (
-              <div className="absolute bottom-3 left-0 right-0 text-center">
-                <div className="text-[10px] font-medium text-green-400 bg-green-500/10 py-1 px-2 rounded mx-3">
+              <div className="mt-auto text-center">
+                <div className="text-[10px] font-medium text-green-400 bg-green-500/10 py-1 px-2 rounded">
                   Optimization recommendations generated
                 </div>
               </div>
@@ -604,8 +604,8 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
             
             {/* Results */}
             {animationStep >= 3 && (
-              <div className="absolute bottom-3 left-0 right-0 text-center">
-                <div className="text-[10px] font-medium text-green-400 bg-green-500/10 py-1 px-2 rounded mx-3">
+              <div className="mt-auto text-center">
+                <div className="text-[10px] font-medium text-green-400 bg-green-500/10 py-1 px-2 rounded">
                   Conversion improved by 35%
                 </div>
               </div>
@@ -615,75 +615,114 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
       );
     }
     return (
-      <div className="flex items-center justify-center w-full h-64 md:w-64 md:h-64">
-        <img src={feature.imageUrl} alt={feature.title} className="w-full h-full max-w-[240px] object-cover rounded-md" />
+      <div className="flex items-center justify-center w-full h-full">
+        <img src={feature.imageUrl} alt={feature.title} className="w-full h-full object-cover rounded-md" />
       </div>
     );
   };
 
   return (
-    <div className="relative w-full max-w-6xl mx-auto px-4 sm:px-6" ref={componentRef}>
-      {/* Title section - always visible but without the box */}
-      <div className="text-center mb-8 sticky top-0 pt-8 pb-4 z-10">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-white/90 via-white/70 to-white/40 text-transparent bg-clip-text">{title}</h1>
-        <p className="text-lg text-gray-500 mt-4">Your Entire Customer Experience is Safe</p>
+    <section className="relative w-full py-24 bg-gray-950 overflow-hidden" ref={componentRef}>
+      {/* Background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-[30%] -left-[10%] w-[70%] h-[70%] rounded-full bg-blue-900/10 blur-[120px]"></div>
+        <div className="absolute -bottom-[30%] -right-[10%] w-[70%] h-[70%] rounded-full bg-indigo-900/10 blur-[120px]"></div>
+        <div className="absolute top-[20%] right-[5%] w-[40%] h-[40%] rounded-full bg-blue-900/5 blur-[80px]"></div>
       </div>
       
-      {/* Features with reduced spacing between them */}
-      <div className="space-y-12" ref={featureListRef}>
-        {features.map((feature, index) => (
-          <div
-            key={index}
-            className={`feature-item p-4 md:p-8 rounded-xl transition-all duration-500 
-              ${activeFeature === index ? 'opacity-100' : 'opacity-30'}
-              ${index === features.length - 1 ? 'mb-[50vh] md:mb-[100vh]' : ''}`}
-            onMouseEnter={() => handleUserInteraction(index)}
-            onTouchStart={() => handleUserInteraction(index)}
-            onMouseLeave={() => {
-              setIsHovering(false);
-              setAutoScrolling(true);
-            }}
-          >
-            <div className="sticky top-24 bg-gray-900/80 backdrop-blur-sm rounded-xl p-4 md:p-6">
-              <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                <div className={`flex-1 flex flex-col justify-center max-w-md order-2 ${index % 2 === 0 ? 'md:order-1' : 'md:order-2'}`}>
-                  <div className="flex items-center mb-4">
-                    <feature.icon className="w-5 h-5 md:w-6 md:h-6 text-blue-500 mr-2" />
-                    <h3 className="text-lg md:text-2xl font-semibold bg-gradient-to-r from-gray-300 to-blue-500 bg-clip-text text-transparent">
+      {/* Content container */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Title section with fixed text cropping */}
+        <div className="text-center mb-20">
+          <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 via-blue-300 to-white text-transparent bg-clip-text leading-relaxed max-w-3xl mx-auto pb-1">
+            {title}
+          </h2>
+          <p className="text-lg md:text-xl text-gray-400 mt-6 max-w-2xl mx-auto">
+            Your Entire Customer Experience is Safe
+          </p>
+        </div>
+        
+        {/* Features section - full width design */}
+        <div className="space-y-32" ref={featureListRef}>
+          {features.map((feature, index) => (
+            <div
+              key={index}
+              className={`feature-item transition-all duration-500 ${
+                activeFeature === index ? 'opacity-100' : 'opacity-40'
+              } ${index === features.length - 1 ? 'mb-[30vh]' : ''}`}
+              onMouseEnter={() => handleUserInteraction(index)}
+              onTouchStart={() => handleUserInteraction(index)}
+              onMouseLeave={() => {
+                setIsHovering(false);
+                setAutoScrolling(true);
+              }}
+            >
+              <div className="sticky top-24">
+                <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-20">
+                  <div className={`w-full md:w-1/2 order-2 ${index % 2 === 0 ? 'md:order-1' : 'md:order-2'}`}>
+                    <div className="p-1 md:p-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 inline-block mb-6">
+                      <div className="p-2 md:p-3 rounded-full bg-gray-900">
+                        <feature.icon className="w-6 h-6 md:w-7 md:h-7 text-blue-400" />
+                      </div>
+                    </div>
+                    
+                    <h3 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-6">
                       {feature.title}
                     </h3>
+                    
+                    <p className="text-gray-300 text-lg md:text-xl mb-8 leading-relaxed">
+                      {feature.description}
+                    </p>
+                    
+                    <ul className="space-y-4">
+                      {feature.detailedDescription.map((item, i) => (
+                        <li key={i} className="flex items-start">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mr-3 mt-0.5">
+                            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                          </div>
+                          <span className="text-gray-400 text-lg">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <div className="mb-4">
-                    <p className="text-gray-400 text-sm md:text-lg">{feature.description}</p>
+                  
+                  <div className={`w-full md:w-1/2 order-1 ${index % 2 === 0 ? 'md:order-2' : 'md:order-1'}`}>
+                    <div className="relative">
+                      {/* Decorative elements */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-2xl blur-xl opacity-50 transform scale-95"></div>
+                      
+                      {/* Visual container */}
+                      <div className="relative bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-8 shadow-xl h-[300px] md:h-[350px] flex items-center justify-center">
+                        {renderFeatureVisual(feature)}
+                      </div>
+                      
+                      {/* Decorative dots */}
+                      <div className="absolute -top-4 -right-4 w-20 h-20 bg-blue-500/10 rounded-full blur-xl"></div>
+                      <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl"></div>
+                    </div>
                   </div>
-                </div>
-                <div className={`w-full md:w-auto order-1 flex items-center justify-center ${index % 2 === 0 ? 'md:order-2 md:ml-6' : 'md:order-1 md:mr-6'}`}>
-                  {renderFeatureVisual(feature)}
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
       
-      {/* Feature navigation dots with improved mobile positioning */}
+      {/* Improved navigation dots */}
       <div className={`fixed transition-opacity duration-300 ${
         showDots ? 'opacity-100' : 'opacity-0 pointer-events-none'
       } ${
         window.innerWidth < 768 
-          ? 'bottom-4 left-1/2 transform -translate-x-1/2 flex-row space-x-2 z-20' 
-          : 'right-8 top-1/2 transform -translate-y-1/2 flex-col space-y-2'
+          ? 'bottom-8 left-1/2 transform -translate-x-1/2 flex-row space-x-4 z-20' 
+          : 'right-12 top-1/2 transform -translate-y-1/2 flex-col space-y-4'
       } flex`}>
         {features.map((_, index) => (
           <button
             key={index}
-            className={`w-3 h-3 rounded-full transition-all duration-300 ${
-              activeFeature === index ? 'bg-blue-500 scale-125' : 'bg-gray-600'
-            }`}
+            className="group relative"
             onClick={() => {
               const featureElements = featureListRef.current.querySelectorAll('.feature-item');
               if (featureElements[index]) {
-                // For the last feature, use a different scroll approach to keep it in view
                 if (index === features.length - 1) {
                   const lastFeatureTop = featureElements[index].offsetTop;
                   window.scrollTo({
@@ -697,10 +736,25 @@ const FeatureShowcase = ({ title = "Fully Automated QA" }) => {
               }
             }}
             aria-label={`Go to feature ${index + 1}`}
-          />
+          >
+            <span className={`block w-3 h-3 rounded-full transition-all duration-300 ${
+              activeFeature === index 
+                ? 'bg-blue-500 scale-125' 
+                : 'bg-gray-600 group-hover:bg-gray-400'
+            }`}></span>
+            
+            {/* Tooltip on hover */}
+            <span className={`absolute ${
+              window.innerWidth < 768 
+                ? 'bottom-full left-1/2 transform -translate-x-1/2 mb-2' 
+                : 'right-full top-1/2 transform -translate-y-1/2 mr-2'
+            } whitespace-nowrap bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none`}>
+              {features[index].title}
+            </span>
+          </button>
         ))}
       </div>
-    </div>
+    </section>
   );
 };
 
