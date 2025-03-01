@@ -108,11 +108,11 @@ export default function Landing() {
         </div>
       </header>
 
-      <main className="h-screen overflow-y-auto snap-y snap-mandatory pt-16">
+      <main className="h-screen overflow-y-auto snap-y snap-proximity pt-16">
         {/* Hero Section */}
         <section
           id="hero"
-          className="h-screen snap-start flex items-center justify-center overflow-hidden relative"
+          className="min-h-screen snap-start flex items-center justify-center overflow-hidden relative pb-24"
         >
           <AnimatedBackground />
 
@@ -189,7 +189,7 @@ export default function Landing() {
         </section>
 
         {/* Benefits Section */}
-        <section id="benefits" className="min-h-screen snap-start py-16 relative flex items-center">
+        <section id="benefits" className="min-h-screen snap-start py-24 relative flex items-center">
           {/* Background Elements */}
           <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black" />
           <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-black to-transparent pointer-events-none" />
@@ -246,7 +246,7 @@ export default function Landing() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="min-h-screen snap-start py-16 relative flex items-center">
+        <section id="features" className="min-h-screen snap-start py-24 relative flex items-center">
           {/* Background Elements - updated to match other sections */}
           <div className="absolute inset-0 bg-black overflow-hidden">
             <div className="absolute -top-[30%] -left-[10%] w-[70%] h-[70%] rounded-full bg-blue-900/10 blur-[120px]"></div>
@@ -287,7 +287,7 @@ export default function Landing() {
         </section> */}
 
         {/* Call to Action */}
-        <section id="contact" className="min-h-screen snap-start py-16 relative flex flex-col">
+        <section id="contact" className="min-h-screen snap-start py-24 relative flex flex-col">
         <AnimatedBackground />
           <div className="flex-1 py-20 flex items-center">
             <div className="container mx-auto px-4 relative z-10">
