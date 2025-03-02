@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import testData from './data.json';
+import AnimatedBackground from '../components/AnimatedBackground';
+import logo from '../components/images/laneo_logo.jpg'; // Import the logo
 
 const TestResultItem = ({ test }) => {
   const [showCode, setShowCode] = useState(false);
@@ -98,6 +100,18 @@ const TestResults = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  
+  // Add state for floating elements
+  const [floatingElements, setFloatingElements] = useState([
+    { id: 1, type: 'tickbox', position: { top: '15%', left: '15%' }, visible: true },
+    { id: 2, type: 'error', position: { top: '25%', right: '20%' }, visible: true },
+    { id: 3, type: 'tickbox', position: { bottom: '20%', right: '25%' }, visible: true },
+    { id: 4, type: 'error', position: { bottom: '30%', left: '20%' }, visible: true },
+    { id: 5, type: 'tickbox', position: { top: '40%', left: '10%' }, visible: true },
+    { id: 6, type: 'error', position: { bottom: '15%', right: '15%' }, visible: true },
+    { id: 7, type: 'tickbox', position: { top: '10%', right: '30%' }, visible: true },
+    { id: 8, type: 'error', position: { bottom: '40%', left: '30%' }, visible: true },
+  ]);
 
   useEffect(() => {
     // Get data from session storage
@@ -160,15 +174,19 @@ const TestResults = () => {
         return a.status === 'failed' ? -1 : 1;
       });
 
-    setResults(sortedResults);
-    setIsLoading(false);
+    // Add a 15-second loading delay for demo purposes
+    setTimeout(() => {
+      setResults(sortedResults);
+      setIsLoading(false);
+      
+      // Scroll to results after loading
+      const scrollTimer = setTimeout(() => {
+        document.getElementById('results-container').scrollIntoView({ behavior: 'smooth' });
+      }, 500);
+      
+      return () => clearTimeout(scrollTimer);
+    }, 15000); // 15 seconds loading time
     
-    // Simulate loading delay
-    const timer = setTimeout(() => {
-      document.getElementById('results-container').scrollIntoView({ behavior: 'smooth' });
-    }, 500);
-    
-    return () => clearTimeout(timer);
   }, [navigate]);
 
   const getTestTypeLabel = (type) => {
@@ -231,12 +249,49 @@ const TestResults = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
+    <div className="relative min-h-screen bg-gray-900 pb-12">
+      <AnimatedBackground theme="dark" />
+      
+      {/* Floating elements */}
+      {floatingElements.map((element) => (
+        <div
+          key={element.id}
+          className={`absolute z-5 opacity-30 hover:opacity-60 transition-opacity duration-300 ${
+            element.visible ? 'animate-float' : 'hidden'
+          }`}
+          style={{
+            ...element.position,
+            animation: `float ${3 + element.id % 2}s ease-in-out infinite`,
+          }}
+        >
+          {element.type === 'tickbox' ? (
+            <div className="bg-green-500/20 p-3 rounded-lg backdrop-blur-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          ) : (
+            <div className="bg-red-500/20 p-3 rounded-lg backdrop-blur-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+          )}
+        </div>
+      ))}
+
       {/* Header with test parameters - always visible */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="relative z-10 bg-gray-800 shadow-md border-b border-gray-700">
         <div className="max-w-5xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4 sm:mb-0">Laneo</h1>
+            <div className="flex items-center mb-4 sm:mb-0">
+              <img 
+                src={logo} 
+                alt="Laneo Logo" 
+                className="h-8 mr-2 filter brightness-0 invert" 
+              />
+              <h1 className="text-xl font-bold text-white">Laneo</h1>
+            </div>
             <button
               onClick={handleStartOver}
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out"
@@ -246,49 +301,53 @@ const TestResults = () => {
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-4 text-sm">
-            <div className="bg-gray-100 rounded-md p-3">
-              <span className="font-semibold text-gray-700">URL:</span> 
-              <span className="ml-2 text-gray-800">{url}</span>
+            <div className="bg-gray-700 rounded-md p-3">
+              <span className="font-semibold text-gray-300">URL:</span> 
+              <span className="ml-2 text-gray-200">{url}</span>
             </div>
-            <div className="bg-gray-100 rounded-md p-3">
-              <span className="font-semibold text-gray-700">Test Type:</span> 
-              <span className="ml-2 text-gray-800">{getTestTypeLabel(testType)}</span>
+            <div className="bg-gray-700 rounded-md p-3">
+              <span className="font-semibold text-gray-300">Test Type:</span> 
+              <span className="ml-2 text-gray-200">{getTestTypeLabel(testType)}</span>
             </div>
             {typeDetails && (
-              <div className="bg-gray-100 rounded-md p-3">
-                <span className="font-semibold text-gray-700">
+              <div className="bg-gray-700 rounded-md p-3">
+                <span className="font-semibold text-gray-300">
                   {testType === 'user-story' ? 'User Story Details:' : 'Section Details:'}
                 </span> 
-                <div className="mt-1 text-gray-800">{typeDetails}</div>
+                <div className="mt-1 text-gray-200">{typeDetails}</div>
               </div>
             )}
+          </div>
+          
+          <div className="flex justify-end mt-4">
+            <p className="text-sm text-gray-400">Step 3 of 3</p>
           </div>
         </div>
       </header>
 
       {/* Test results section */}
-      <div id="results-container" className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+      <div id="results-container" className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
-            <p className="mt-4 text-gray-600">Analyzing website and generating test results...</p>
+            <p className="mt-4 text-gray-300">Analyzing website and generating test results...</p>
           </div>
         ) : (
           <>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Test Details</h2>
+              <h2 className="text-xl font-semibold text-white">Test Details</h2>
 
               {/* Category filter */}
               {results.length > 0 && (
                 <div className="flex items-center">
-                  <label htmlFor="category-filter" className="mr-2 text-sm font-medium text-gray-700">
+                  <label htmlFor="category-filter" className="mr-2 text-sm font-medium text-gray-300">
                     Filter by category:
                   </label>
                   <select
                     id="category-filter"
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="form-select rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                    className="form-select rounded-md border-gray-600 bg-gray-700 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                   >
                     {categories.map(category => (
                       <option key={category} value={category}>
@@ -301,9 +360,9 @@ const TestResults = () => {
             </div>
 
             {results.length === 0 ? (
-              <div className="bg-white rounded-lg border p-8 text-center">
+              <div className="bg-gray-800 rounded-lg border border-gray-700 p-8 text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Generating test results...</p>
+                <p className="mt-4 text-gray-300">Generating test results...</p>
               </div>
             ) : (
               <div>
@@ -315,6 +374,18 @@ const TestResults = () => {
           </>
         )}
       </div>
+      
+      {/* Add CSS for floating animation */}
+      <style jsx>{`
+        @keyframes float {
+          0% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-10px) rotate(5deg); }
+          100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 };
