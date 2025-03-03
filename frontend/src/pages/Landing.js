@@ -127,15 +127,17 @@ export default function Landing() {
                   Focus on innovating. Let Laneo's fully automated Quality Assurance agents proactively monitor, audit, and improve your website and app user journeys. 
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <button
-                    onClick={() => scrollToSection('contact')}
+                  <a
+                    href="https://calendly.com/antoinelevy"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="px-8 py-4 rounded-full bg-blue-500 hover:bg-blue-400 transition-colors font-semibold flex items-center justify-center group"
                   >
                     <span>
-                      Get Started
+                      Request a Demo
                     </span>
                     <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
-                  </button>
+                  </a>
                   <button
                     onClick={() => scrollToSection('features')}
                     className="px-8 py-4 rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm"
@@ -269,35 +271,17 @@ export default function Landing() {
           <div className="absolute bottom-0 left-0 right-0 h-96 bg-gradient-to-b from-transparent via-black/80 to-black pointer-events-none" />
         </section>
 
-    
-
-        {/* Technology Demo Section */}
-        {/* <section id="technology" className="py-20 relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-laneo-900/20 to-black" />
-          <div className="container mx-auto px-4 relative z-10">
-            <div className="max-w-4xl mx-auto mb-16 text-center">
-              <h2 className="text-3xl md:text-5xl font-bold mb-6">
-                Experience the Power of AI Simulation
-              </h2>
-              <p className="text-gray-400 text-lg mb-12">
-                Watch our AI simulate thousands of user interactions in real-time. Move your cursor to influence user behavior and see how different user segments interact with your interface.
-              </p>
-              <InteractiveDemo />
-            </div>
-          </div>
-        </section> */}
-
         {/* Call to Action */}
         <section id="contact" className="min-h-screen snap-start py-24 relative flex flex-col">
         <AnimatedBackground />
           <div className="flex-1 py-20 flex items-center">
             <div className="container mx-auto px-4 relative z-10">
               <div className="max-w-4xl mx-auto text-center">
-                <h2 className="text-3xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-white/90 via-white/70 to-white/40 text-transparent bg-clip-text">
+                <h2 className="text-3xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-white/90 via-white/70 to-white/40 text-transparent bg-clip-text text-center">
                   Ready to Automate Your QA?
                 </h2>
-                <p className="text-gray-400 text-lg mb-12">
-                  Leave bugs to us and focus on delighting your users. With Laneo, you can automate your QA and improve your product with UX recommendations
+                <p className="text-gray-400 text-lg mb-12 text-center mx-auto max-w-2xl">
+                  Schedule a personal call with our CEO to discuss how Laneo can transform your QA process and help your team focus on what matters most.
                 </p>
 
                 <form 
@@ -336,21 +320,15 @@ export default function Landing() {
                     });
                   }}
                 >
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="Enter your email"
-                    required
-                    disabled={isSubmitting}
-                    className="w-full px-6 py-4 rounded-lg bg-white/10 border border-white/20 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-laneo-400 text-white placeholder-gray-400"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full px-8 py-4 rounded-lg bg-laneo-500 hover:bg-laneo-400 transition-colors text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  <a
+                    href="https://calendly.com/antoinelevy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full px-8 py-4 rounded-lg bg-laneo-500 hover:bg-laneo-400 transition-colors text-white font-semibold flex items-center justify-center"
                   >
-                    {isSubmitting ? 'Submitting...' : 'Start Your Free Trial'}
-                  </button>
+                    <span>Request a Demo</span>
+                    <ChevronRight className="ml-2" />
+                  </a>
                 </form>
               </div>
             </div>
