@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Brain, Zap, Target, Users } from 'lucide-react';
 
-const FeatureShowcase = ({ title = "Your Fully Automated QA Agent" }) => {
+const FeatureShowcase = ({ title = "Your Fully Automated QA Agent", hideTitle = false }) => {
   const [activeFeature, setActiveFeature] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [animationStep, setAnimationStep] = useState(0);
@@ -60,140 +60,39 @@ const FeatureShowcase = ({ title = "Your Fully Automated QA Agent" }) => {
   ];
 
   useEffect(() => {
-    // Determine if we're on mobile
-    const isMobile = window.innerWidth < 768;
-    
-    // Always auto-scroll on mobile, regardless of user interaction
-    if ((autoScrolling || isMobile) && featureListRef.current && showDots) {
+    // Auto-scroll timer
+    if (autoScrolling) {
       const scrollToNextFeature = () => {
-        const nextFeature = (activeFeature + 1) % features.length;
-        setActiveFeature(nextFeature);
-        
-        const featureElements = featureListRef.current.querySelectorAll('.feature-item');
-        if (featureElements[nextFeature]) {
-          // For the last feature, use a different scroll approach to keep it in view
-          if (nextFeature === features.length - 1) {
-            const lastFeatureTop = featureElements[nextFeature].offsetTop;
-            window.scrollTo({
-              top: lastFeatureTop - (window.innerHeight / 2) + (featureElements[nextFeature].offsetHeight / 2),
-              behavior: 'smooth'
-            });
-          } else {
-            featureElements[nextFeature].scrollIntoView({ 
-              behavior: 'smooth', 
-              block: 'center' 
-            });
-          }
-        }
+        setActiveFeature((prev) => (prev + 1) % features.length);
       };
       
-      autoScrollTimerRef.current = setTimeout(scrollToNextFeature, isMobile ? 3000 : 5000);
+      autoScrollTimerRef.current = setTimeout(scrollToNextFeature, 8000);
       return () => clearTimeout(autoScrollTimerRef.current);
     }
-  }, [activeFeature, features.length, autoScrolling, showDots]);
+  }, [activeFeature, features.length, autoScrolling]);
 
   useEffect(() => {
-    if (autoScrolling || window.innerWidth < 768) {
+    if (autoScrolling) {
       const animationInterval = setInterval(() => {
         setAnimationStep((prev) => (prev + 1) % 4);
-      }, 1000); // Change animation step every second, similar to landing demo
+      }, 1000);
       
       return () => clearInterval(animationInterval);
     }
   }, [autoScrolling]);
 
-  // Modify the scroll event listener to better handle mobile
-  useEffect(() => {
-    const handleScroll = () => {
-      if (featureListRef.current && componentRef.current) {
-        const currentScrollY = window.scrollY;
-        setScrollPosition(currentScrollY);
-        
-        // Get the component's position relative to the viewport
-        const componentRect = componentRef.current.getBoundingClientRect();
-        
-        // Adjust detection logic for mobile
-        const isMobile = window.innerWidth < 768;
-        
-        // Only show dots if we're actually within the feature showcase section
-        // Adjusted thresholds for better mobile experience
-        const isInFeatureSection = 
-          componentRect.top < window.innerHeight * (isMobile ? 0.1 : -0.2) && // Component has started to scroll up
-          componentRect.bottom > window.innerHeight * (isMobile ? 0.5 : 1.2) && // Component hasn't completely scrolled out of view
-          window.scrollY > window.innerHeight * (isMobile ? 0.2 : 0.5) && // We've scrolled past the hero section
-          window.scrollY < document.body.scrollHeight - window.innerHeight * (isMobile ? 1.0 : 1.5); // We're not near the contact section
-        
-        setShowDots(isInFeatureSection);
-        
-        // On mobile, don't pause auto-scrolling when user manually scrolls
-        if (isInFeatureSection && !isMobile) {
-          setAutoScrolling(false);
-          
-          // Calculate which feature should be active based on scroll position
-          const featureElements = featureListRef.current.querySelectorAll('.feature-item');
-          featureElements.forEach((element, index) => {
-            const rect = element.getBoundingClientRect();
-            // Make a feature active when it's in the middle of the viewport
-            if (rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2) {
-              setActiveFeature(index);
-            }
-          });
-          
-          // Resume auto-scrolling after a period of inactivity (only on desktop)
-          if (autoScrollTimerRef.current) {
-            clearTimeout(autoScrollTimerRef.current);
-          }
-          
-          autoScrollTimerRef.current = setTimeout(() => {
-            setAutoScrolling(true);
-          }, 10000); // Resume after 10 seconds of inactivity
-        }
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    // Trigger once on mount to set initial state
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Modify user interaction handler to consider mobile
-  const handleUserInteraction = (index) => {
-    const isMobile = window.innerWidth < 768;
-    
-    // Set the active feature
+  const handleFeatureChange = (index) => {
     setActiveFeature(index);
-    setIsHovering(true);
+    setAutoScrolling(false);
     
-    // Only pause auto-scrolling on desktop
-    if (!isMobile) {
-      setAutoScrolling(false);
-      
-      // Clear any existing auto-scroll timer
-      if (autoScrollTimerRef.current) {
-        clearTimeout(autoScrollTimerRef.current);
-      }
-      
-      // Resume auto-scrolling after a period of inactivity
-      const resumeAutoScroll = setTimeout(() => {
-        setIsHovering(false);
-        setAutoScrolling(true);
-      }, 10000); // Resume after 10 seconds of inactivity
-      
-      return () => clearTimeout(resumeAutoScroll);
-    } else {
-      // On mobile, briefly pause then resume auto-scrolling
-      if (autoScrollTimerRef.current) {
-        clearTimeout(autoScrollTimerRef.current);
-      }
-      
-      const resumeQuickly = setTimeout(() => {
-        setIsHovering(false);
-        setAutoScrolling(true);
-      }, 3000); // Resume after 3 seconds on mobile
-      
-      return () => clearTimeout(resumeQuickly);
+    // Resume auto-scrolling after inactivity
+    if (autoScrollTimerRef.current) {
+      clearTimeout(autoScrollTimerRef.current);
     }
+    
+    autoScrollTimerRef.current = setTimeout(() => {
+      setAutoScrolling(true);
+    }, 15000);
   };
 
   const renderFeatureVisual = (feature) => {
@@ -695,137 +594,126 @@ const FeatureShowcase = ({ title = "Your Fully Automated QA Agent" }) => {
   };
 
   return (
-    <section className="relative w-full py-24 bg-gray-950 overflow-hidden" ref={componentRef}>
-      {/* Background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-[30%] -left-[10%] w-[70%] h-[70%] rounded-full bg-blue-900/10 blur-[120px]"></div>
-        <div className="absolute -bottom-[30%] -right-[10%] w-[70%] h-[70%] rounded-full bg-indigo-900/10 blur-[120px]"></div>
-        <div className="absolute top-[20%] right-[5%] w-[40%] h-[40%] rounded-full bg-blue-900/5 blur-[80px]"></div>
-      </div>
+    <section className={`relative w-full ${!hideTitle ? 'py-24 bg-gray-950' : ''} overflow-hidden`} ref={componentRef}>
+      {/* Only show background elements if not hidden */}
+      {!hideTitle && (
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-[30%] -left-[10%] w-[70%] h-[70%] rounded-full bg-blue-900/10 blur-[120px]"></div>
+          <div className="absolute -bottom-[30%] -right-[10%] w-[70%] h-[70%] rounded-full bg-indigo-900/10 blur-[120px]"></div>
+          <div className="absolute top-[20%] right-[5%] w-[40%] h-[40%] rounded-full bg-blue-900/5 blur-[80px]"></div>
+        </div>
+      )}
       
       {/* Content container */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Title section with fixed text cropping */}
-        <div className="text-center mb-20">
-          <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 via-blue-300 to-white text-transparent bg-clip-text leading-relaxed max-w-3xl mx-auto pb-1">
-            {title}
-          </h2>
-          <p className="text-lg md:text-xl text-gray-400 mt-6 max-w-2xl mx-auto">
-            Your Entire Customer Experience is Safe
-          </p>
-        </div>
+        {!hideTitle && (
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 via-blue-300 to-white text-transparent bg-clip-text leading-relaxed max-w-3xl mx-auto pb-1">
+              {title}
+            </h2>
+            <p className="text-lg md:text-xl text-gray-400 mt-6 max-w-2xl mx-auto">
+              Your Entire Customer Experience is Safe
+            </p>
+          </div>
+        )}
         
-        {/* Features section - full width design */}
-        <div className="space-y-32" ref={featureListRef}>
+        {/* Single feature display */}
+        <div className="min-h-[600px] md:min-h-[500px] relative px-8 md:px-16">
           {features.map((feature, index) => (
             <div
               key={index}
-              className={`feature-item transition-all duration-500 ${
-                activeFeature === index ? 'opacity-100' : 'opacity-40'
-              } ${index === features.length - 1 ? 'mb-[30vh]' : ''}`}
-              onMouseEnter={() => handleUserInteraction(index)}
-              onTouchStart={() => handleUserInteraction(index)}
-              onMouseLeave={() => {
-                setIsHovering(false);
-                setAutoScrolling(true);
-              }}
+              className={`transition-all duration-700 ${
+                activeFeature === index 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 absolute inset-0 translate-y-8 pointer-events-none'
+              }`}
             >
-              <div className="sticky top-24">
-                <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-20">
-                  <div className={`w-full md:w-1/2 order-2 ${index % 2 === 0 ? 'md:order-1' : 'md:order-2'}`}>
-                    <div className="p-1 md:p-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 inline-block mb-6">
-                      <div className="p-2 md:p-3 rounded-full bg-gray-900">
-                        <feature.icon className="w-6 h-6 md:w-7 md:h-7 text-blue-400" />
-                      </div>
+              <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-16">
+                {/* Text content - always on left */}
+                <div className="w-full md:w-1/2 order-2 md:order-1">
+                  <div className="p-1 md:p-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 inline-block mb-6">
+                    <div className="p-2 md:p-3 rounded-full bg-gray-900">
+                      <feature.icon className="w-6 h-6 md:w-7 md:h-7 text-blue-400" />
                     </div>
-                    
-                    <h3 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-6">
-                      {feature.title}
-                    </h3>
-                    
-                    <p className="text-gray-300 text-lg md:text-xl mb-8 leading-relaxed">
-                      {feature.description}
-                    </p>
-                    
-                    <ul className="space-y-4">
-                      {feature.detailedDescription.map((item, i) => (
-                        <li key={i} className="flex items-start">
-                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mr-3 mt-0.5">
-                            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                          </div>
-                          <span className="text-gray-400 text-lg">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
                   </div>
                   
-                  <div className={`w-full md:w-1/2 order-1 ${index % 2 === 0 ? 'md:order-2' : 'md:order-1'}`}>
-                    <div className="relative">
-                      {/* Decorative elements */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-2xl blur-xl opacity-50 transform scale-95"></div>
-                      
-                      {/* Visual container */}
-                      <div className="relative bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-8 shadow-xl h-[300px] md:h-[350px] flex items-center justify-center">
-                        {renderFeatureVisual(feature)}
-                      </div>
-                      
-                      {/* Decorative dots */}
-                      <div className="absolute -top-4 -right-4 w-20 h-20 bg-blue-500/10 rounded-full blur-xl"></div>
-                      <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl"></div>
+                  <h3 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-6">
+                    {feature.title}
+                  </h3>
+                  
+                  <p className="text-gray-300 text-lg md:text-xl mb-8 leading-relaxed">
+                    {feature.description}
+                  </p>
+                  
+                  <ul className="space-y-4">
+                    {feature.detailedDescription.map((item, i) => (
+                      <li key={i} className="flex items-start">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mr-3 mt-0.5">
+                          <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                        </div>
+                        <span className="text-gray-400 text-lg">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                
+                {/* Visual content - always on right, hidden on mobile */}
+                <div className="w-full md:w-1/2 order-1 md:order-2 hidden md:block">
+                  <div className="relative">
+                    {/* Decorative elements */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-2xl blur-xl opacity-50 transform scale-95"></div>
+                    
+                    {/* Visual container */}
+                    <div className="relative bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-8 shadow-xl h-[300px] md:h-[350px] flex items-center justify-center">
+                      {renderFeatureVisual(feature)}
                     </div>
+                    
+                    {/* Decorative dots */}
+                    <div className="absolute -top-4 -right-4 w-20 h-20 bg-blue-500/10 rounded-full blur-xl"></div>
+                    <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl"></div>
                   </div>
                 </div>
               </div>
             </div>
           ))}
+          
+          {/* Arrow navigation - only right arrow */}
+          <div className="flex justify-end absolute top-1/2 right-0 transform -translate-y-1/2 px-2 md:px-0">
+            <button 
+              className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-500/80 hover:bg-blue-400/80 flex items-center justify-center text-white transition-colors shadow-lg"
+              onClick={() => handleFeatureChange((activeFeature + 1) % features.length)}
+              aria-label="Next feature"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
         </div>
-      </div>
-      
-      {/* Improved navigation dots */}
-      <div className={`fixed transition-opacity duration-300 ${
-        showDots ? 'opacity-100' : 'opacity-0 pointer-events-none'
-      } ${
-        window.innerWidth < 768 
-          ? 'bottom-8 left-1/2 transform -translate-x-1/2 flex-row space-x-4 z-20' 
-          : 'right-12 top-1/2 transform -translate-y-1/2 flex-col space-y-4'
-      } flex`}>
-        {features.map((_, index) => (
-          <button
-            key={index}
-            className="group relative"
-            onClick={() => {
-              const featureElements = featureListRef.current.querySelectorAll('.feature-item');
-              if (featureElements[index]) {
-                if (index === features.length - 1) {
-                  const lastFeatureTop = featureElements[index].offsetTop;
-                  window.scrollTo({
-                    top: lastFeatureTop - (window.innerHeight / 2) + (featureElements[index].offsetHeight / 2),
-                    behavior: 'smooth'
-                  });
-                } else {
-                  featureElements[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-                handleUserInteraction(index);
-              }
-            }}
-            aria-label={`Go to feature ${index + 1}`}
-          >
-            <span className={`block w-3 h-3 rounded-full transition-all duration-300 ${
-              activeFeature === index 
-                ? 'bg-blue-500 scale-125' 
-                : 'bg-gray-600 group-hover:bg-gray-400'
-            }`}></span>
-            
-            {/* Tooltip on hover */}
-            <span className={`absolute ${
-              window.innerWidth < 768 
-                ? 'bottom-full left-1/2 transform -translate-x-1/2 mb-2' 
-                : 'right-full top-1/2 transform -translate-y-1/2 mr-2'
-            } whitespace-nowrap bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none`}>
-              {features[index].title}
-            </span>
-          </button>
-        ))}
+        
+        {/* Navigation dots - with added padding to prevent cutoff */}
+        <div className="flex justify-center mt-12 space-x-4 pb-8">
+          {features.map((_, index) => (
+            <button
+              key={index}
+              className="group relative"
+              onClick={() => handleFeatureChange(index)}
+              aria-label={`Go to feature ${index + 1}`}
+            >
+              <span className={`block w-3 h-3 rounded-full transition-all duration-300 ${
+                activeFeature === index 
+                  ? 'bg-blue-500 scale-125' 
+                  : 'bg-gray-600 group-hover:bg-gray-400'
+              }`}></span>
+              
+              {/* Tooltip on hover */}
+              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 whitespace-nowrap bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                {features[index].title}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );
