@@ -211,7 +211,7 @@ export default function Landing() {
                 </div>
                 <h3 className="text-xl md:text-2xl font-bold text-center mb-2 md:mb-4 text-white group-hover:text-blue-300 transition-colors">Minimal Costs</h3>
                 <p className="text-gray-400 text-center text-sm md:text-base leading-relaxed">
-                  Pay a fraction of the cost of full-time QA engineers or outsourced agencies, while achieving more comprehensive coverage.
+                  Augment your QA capabilities cost-effectively. Expand your test coverage and enhance your QA teams without increasing your budget or team size.
                 </p>
               </div>
               

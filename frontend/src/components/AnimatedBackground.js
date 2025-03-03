@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-const AnimatedBackground = () => {
+const AnimatedBackground = ({ theme = 'light' }) => {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   
@@ -36,7 +36,7 @@ const AnimatedBackground = () => {
     };
 
     const drawGrid = () => {
-      ctx.strokeStyle = '#4f4f4f2e';
+      ctx.strokeStyle = theme === 'light' ? '#1a1a1a1a' : '#4f4f4f2e';
       ctx.lineWidth = 1;
       
       // Vertical lines
@@ -81,13 +81,21 @@ const AnimatedBackground = () => {
           if (orb.y > canvas.height + orb.size) orb.y = -orb.size;
           if (orb.y < -orb.size) orb.y = canvas.height + orb.size;
           
-          // Create gradient for each orb
+          // Create gradient for each orb - darker blue for light theme
           const gradient = ctx.createRadialGradient(
             orb.x, orb.y, 0,
             orb.x, orb.y, orb.size
           );
-          gradient.addColorStop(0, `rgba(12, 150, 235, ${0.08 + Math.sin(time + i) * 0.03})`);
-          gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          
+          if (theme === 'light') {
+            // Darker blue with higher opacity for light theme
+            gradient.addColorStop(0, `rgba(0, 90, 180, ${0.12 + Math.sin(time + i) * 0.04})`);
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          } else {
+            // Original colors for dark theme
+            gradient.addColorStop(0, `rgba(12, 150, 235, ${0.08 + Math.sin(time + i) * 0.03})`);
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          }
           
           ctx.fillStyle = gradient;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -104,11 +112,19 @@ const AnimatedBackground = () => {
           x, y, 400
         );
         
-        // Adjusted gradient stops for better balance
-        mouseGradient.addColorStop(0, 'rgba(12, 150, 235, 0.4)');    // Reduced from 0.8
-        mouseGradient.addColorStop(0.2, 'rgba(12, 150, 235, 0.2)');  // Adjusted position and opacity
-        mouseGradient.addColorStop(0.6, 'rgba(12, 150, 235, 0.05)'); // Extended fade
-        mouseGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        if (theme === 'light') {
+          // Darker blue with higher contrast for light theme
+          mouseGradient.addColorStop(0, 'rgba(0, 90, 180, 0.5)');
+          mouseGradient.addColorStop(0.2, 'rgba(0, 90, 180, 0.25)');
+          mouseGradient.addColorStop(0.6, 'rgba(0, 90, 180, 0.08)');
+          mouseGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        } else {
+          // Original colors for dark theme
+          mouseGradient.addColorStop(0, 'rgba(12, 150, 235, 0.4)');
+          mouseGradient.addColorStop(0.2, 'rgba(12, 150, 235, 0.2)');
+          mouseGradient.addColorStop(0.6, 'rgba(12, 150, 235, 0.05)');
+          mouseGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        }
         
         ctx.fillStyle = mouseGradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -116,11 +132,20 @@ const AnimatedBackground = () => {
         // Softer inner glow
         const innerGlow = ctx.createRadialGradient(
           x, y, 0,
-          x, y, 80  // Increased size for softer effect
+          x, y, 80
         );
-        innerGlow.addColorStop(0, 'rgba(255, 255, 255, 0.1)');  // Reduced from 0.2
-        innerGlow.addColorStop(0.5, 'rgba(255, 255, 255, 0.05)');  // Added middle stop
-        innerGlow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+        if (theme === 'light') {
+          // Darker inner glow for light theme
+          innerGlow.addColorStop(0, 'rgba(0, 60, 120, 0.15)');
+          innerGlow.addColorStop(0.5, 'rgba(0, 60, 120, 0.08)');
+          innerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        } else {
+          // Original colors for dark theme
+          innerGlow.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+          innerGlow.addColorStop(0.5, 'rgba(255, 255, 255, 0.05)');
+          innerGlow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        }
         
         ctx.fillStyle = innerGlow;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -139,14 +164,14 @@ const AnimatedBackground = () => {
       window.removeEventListener('resize', setCanvasSize);
       cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [theme]);
 
   return (
     <div ref={containerRef} className="absolute inset-0 overflow-hidden">
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full transition-opacity duration-1000"
-        style={{ opacity: 0.9 }}  // Slightly increased overall opacity
+        style={{ opacity: theme === 'light' ? 0.7 : 0.9 }}  // Lower opacity for light theme
       />
     </div>
   );
