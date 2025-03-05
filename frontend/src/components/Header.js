@@ -8,7 +8,7 @@ export default function Header() {
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <a href="/" className="text-white font-bold text-lg flex items-center">
           <img 
-            src="https://landing.s3.fr-par.scw.cloud/laneo_logo.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=SCWB7NFAJGFMCHH3VF0F%2F20250305%2Ffr-par%2Fs3%2Faws4_request&X-Amz-Date=20250305T002257Z&X-Amz-Expires=3597&X-Amz-Signature=8e8ea8d5b6ee05a80416924e3cf8ade8b47a0bcb5b49c4e94dc0fd10fa0acf42&X-Amz-SignedHeaders=host&x-id=GetObject" 
+            src="https://landing.s3.fr-par.scw.cloud/laneo_logo.jpg" 
             alt="Laneo Logo" 
             className="h-9 w-auto mr-2 invert brightness-0" 
           />
