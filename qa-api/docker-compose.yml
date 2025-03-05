@@ -1,0 +1,132 @@
+services:
+  # Redis service for Celery
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "6379:6379"
+    # volumes:
+    #   - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Redis Insight - GUI for Redis
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    ports:
+      - "8002:8001"
+    # volumes:
+    #   - redis-insight-data:/db
+    depends_on:
+      - redis
+
+  # FastAPI web server
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - HEADLESS=True
+      - CONCURRENT=True
+      - OUTPUT_FOLDER=/app/output
+      - DEACTIVATE_LOGGING=True
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_KEY=${AZURE_OPENAI_KEY}
+      - PYTHONPATH=/app/src
+    volumes:
+      - .:/app
+      - ./output:/app/src/output
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: uvicorn server:app --host 0.0.0.0 --port 8001 --reload
+
+  celery-default:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A job_processor worker -Q default -l info -c 50
+    volumes:
+      - .:/app
+      - ./output:/app/src/output
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - PYTHONPATH=/app/src
+      - HEADLESS=True
+      - CONCURRENT=True
+      - OUTPUT_FOLDER=/app/output
+      - DEACTIVATE_LOGGING=True
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_KEY=${AZURE_OPENAI_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  celery-browser-automation:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A job_processor worker -Q browser_automation -l info -c 10
+    volumes:
+      - .:/app
+      - ./output:/app/src/output
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - PYTHONPATH=/app/src
+      - HEADLESS=True
+      - CONCURRENT=True
+      - OUTPUT_FOLDER=/app/output
+      - DEACTIVATE_LOGGING=True
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_KEY=${AZURE_OPENAI_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  celery-test-generation:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A job_processor worker -Q test_generation -l info -c 10
+    volumes:
+      - .:/app
+      - ./output:/app/src/output
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - PYTHONPATH=/app/src
+      - HEADLESS=True
+      - CONCURRENT=True
+      - OUTPUT_FOLDER=/app/output
+      - DEACTIVATE_LOGGING=True
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_KEY=${AZURE_OPENAI_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  flower:
+    image: mher/flower
+    command: celery flower --broker=redis://redis:6379/0 --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH:-admin:admin}
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  redis_data:
+  redis-insight-data:
+  # ./output:
