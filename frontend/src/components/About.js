@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ExternalLink } from 'lucide-react';
 import AnimatedBackground from './AnimatedBackground';
-import antoine_founder from './images/antoine_founder.jpg';
-import val_founder from './images/val_founder.jpg';
 
 export default function About() {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -77,14 +75,14 @@ export default function About() {
       name: "Antoine Levy",
       title: "CEO & Co-Founder",
       bio: "Antoine brings extensive product leadership experience from the digital media industry, where he built and scaled B2B products generating XX millions in revenue. He also played professional soccer.",
-      image: antoine_founder,
+      image: "https://landing.s3.fr-par.scw.cloud/antoine_founder.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=SCWGF8T00PY58CR6A4X1%2F20250305%2Ffr-par%2Fs3%2Faws4_request&X-Amz-Date=20250305T002419Z&X-Amz-Expires=3597&X-Amz-Signature=7709b6cb890e3ba4ab167470683dfab691bdc7bfc259a5e0cf61418d6663d376&X-Amz-SignedHeaders=host&x-id=GetObject",
       linkedin: "https://www.linkedin.com/in/antoine-l%C3%A9vy-653106201"
     },
     {
       name: "Valentin De Matos",
       title: "CTO & Co-Founder",
       bio: "Valentin has led AI engineering teams at fast-growing startups and directed R&D initiatives at his university. Before falling in love with Computer Science, he wanted to join the army.",
-      image: val_founder,
+      image: "https://landing.s3.fr-par.scw.cloud/val_founder.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=SCW7VHK3JJPW25Y5W4G3%2F20250305%2Ffr-par%2Fs3%2Faws4_request&X-Amz-Date=20250305T002520Z&X-Amz-Expires=3598&X-Amz-Signature=5e4aa4ac6224f9c97721fef9339b6c8df636d1b3c7cffb3f03dd40d44aa255c6&X-Amz-SignedHeaders=host&x-id=GetObject",
       linkedin: "https://www.linkedin.com/in/valentin-de-matos/"
     }
   ];

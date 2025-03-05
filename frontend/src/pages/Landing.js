@@ -313,7 +313,7 @@ export default function Landing() {
                     setIsVideoPlaying(false);
                   }}
                 >
-                  <source src={require('../components/videos/demo.mp4')} type="video/mp4" />
+                  <source src="https://landing.s3.fr-par.scw.cloud/Introduction%20to%20Laneo%20QA%20Agents.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=SCWKVKK8B5P07R3KFAVC%2F20250305%2Ffr-par%2Fs3%2Faws4_request&X-Amz-Date=20250305T002653Z&X-Amz-Expires=3598&X-Amz-Signature=45bac7741c3b623a47daad37f5bc96e2941fa3dde6c27bb8e9f5e7e06926e271&X-Amz-SignedHeaders=host&x-id=GetObject" type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
                 
