@@ -29,6 +29,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# Add CORS middleware to allow cross-origin requests from frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "*"],  # Adjust this to your frontend URL in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(product_router)
 app.include_router(epic_router)
 app.include_router(feature_router)

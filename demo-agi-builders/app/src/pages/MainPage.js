@@ -1,14 +1,19 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import axios from "axios"
 import TestResultsTable from "../components/TestResultsTable"
 import MetricsCards from "../components/MetricsCards"
 import FilterControls from "../components/FilterControls"
 import AddTestModal from "../components/AddTestModal"
-import { testData } from "../data/mockData"
 import AiDetectedBugs from "../components/AiDetectedBugs"
-import { aiDetectedBugs as bugsList } from "../data/mockBugsData"
+
+// Base API URL - should be set in environment variable
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000"
 
 function MainPage() {
-  const [tests, setTests] = useState(testData)
+  const [tests, setTests] = useState([])
+  const [bugs, setBugs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState("ai-bugs")
   const [isAddTestModalOpen, setIsAddTestModalOpen] = useState(false)
   const [filters, setFilters] = useState({
@@ -18,6 +23,60 @@ function MainPage() {
     type: "All Types",
   })
 
+  // Fetch tests and bugs from API
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        // Fetch tests
+        const testsResponse = await axios.get(`${API_URL}/tests/`)
+        
+        // Transform the API response to match the format expected by components
+        const transformedTests = testsResponse.data.map(test => ({
+          id: test.id,
+          name: test.name,
+          description: test.description,
+          page: test.url.split('/').pop().replace(/-/g, ' '), // Extract page from URL
+          category: test.category,
+          type: "Feature", // Default type as API doesn't have this field
+          status: test.status === "PASSED" ? "Passed" : 
+                  test.status === "FAILED" ? "Failed" : "Pending",
+          duration: test.started_at && test.ended_at ? 
+                   `${Math.round((new Date(test.ended_at) - new Date(test.started_at))/10)}ms` : "-",
+          timestamp: test.ended_at ? new Date(test.ended_at).toLocaleString() : "-",
+          bugs: test.bugs || [],
+        }))
+        
+        setTests(transformedTests)
+        
+        // Fetch bugs
+        const bugsResponse = await axios.get(`${API_URL}/bugs/`)
+        
+        // Transform the API response to match the format expected by components
+        const transformedBugs = bugsResponse.data.map(bug => ({
+          id: bug.id,
+          title: bug.title,
+          page: bug.test ? bug.test.name.split(' - ')[1] || "Unknown" : "Unknown",
+          category: bug.test ? bug.test.category : "Unknown",
+          severity: bug.severity,
+          description: bug.description,
+          detectedAt: new Date(bug.detected_at).toLocaleString(),
+          status: bug.status || "Open",
+        }))
+        
+        setBugs(transformedBugs)
+      } catch (err) {
+        console.error("Error fetching data:", err)
+        setError("Failed to load data. Please try again later.")
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchData()
+  }, [])
+
   // Calculate metrics
   const totalTests = tests.length
   const passedTests = tests.filter((test) => test.status === "Passed").length
@@ -25,17 +84,40 @@ function MainPage() {
   const bugsCount = tests.reduce((total, test) => total + (test.bugs?.length || 0), 0)
   const passRate = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0
 
-  const addNewTest = (newTest) => {
-    const testWithId = {
-      ...newTest,
-      id: `TEST-${(tests.length + 1).toString().padStart(3, "0")}`,
-      status: "Pending",
-      timestamp: new Date().toLocaleString(),
-      duration: "-",
-      bugs: [],
+  const addNewTest = async (newTest) => {
+    try {
+      // Format the test data for the API
+      const apiTest = {
+        name: newTest.name,
+        description: newTest.description,
+        url: `https://example.com/${newTest.page.toLowerCase().replace(/\s+/g, '-')}`,
+        category: newTest.category.toUpperCase(),
+        user_story_id: "00000000-0000-0000-0000-000000000000", // Default ID, replace with actual user story selection
+      }
+      
+      // Send the test to the API
+      const response = await axios.post(`${API_URL}/tests/`, apiTest)
+      
+      // Transform the API response to match the format expected by components
+      const transformedTest = {
+        id: response.data.id,
+        name: response.data.name,
+        description: response.data.description,
+        page: response.data.url.split('/').pop().replace(/-/g, ' '),
+        category: response.data.category,
+        type: "Feature", // Default type as API doesn't have this field
+        status: "Pending",
+        timestamp: new Date().toLocaleString(),
+        duration: "-",
+        bugs: [],
+      }
+      
+      setTests([...tests, transformedTest])
+      setIsAddTestModalOpen(false)
+    } catch (err) {
+      console.error("Error adding test:", err)
+      alert("Failed to add test. Please try again.")
     }
-    setTests([...tests, testWithId])
-    setIsAddTestModalOpen(false)
   }
 
   const applyFilters = (newFilters) => {
@@ -60,6 +142,22 @@ function MainPage() {
       (filters.type === "All Types" || test.type === filters.type)
     )
   })
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex justify-center items-center">
+        <p className="text-gray-600">Loading data...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex justify-center items-center">
+        <p className="text-red-600">{error}</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -120,7 +218,7 @@ function MainPage() {
           {activeTab === "test-results" ? (
             <TestResultsTable tests={filteredTests} />
           ) : (
-            <AiDetectedBugs bugs={bugsList} />
+            <AiDetectedBugs bugs={bugs} />
           )}
         </div>
       </div>

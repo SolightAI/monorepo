@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from dto.models import Test as TestModel
 from dto.schemas import Test as TestSchema, TestCreate as TestCreateSchema
+from typing import List
 
 
 async def get_test(test_id: str) -> TestSchema:
@@ -10,6 +11,11 @@ async def get_test(test_id: str) -> TestSchema:
         raise HTTPException(status_code=404, detail="Test not found")
 
     return test
+
+
+async def get_all_tests() -> List[TestSchema]:
+    tests = await TestModel.all().prefetch_related("bugs")
+    return tests
 
 
 async def create_test(test: TestCreateSchema) -> TestSchema:

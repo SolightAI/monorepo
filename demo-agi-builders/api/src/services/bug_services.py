@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from dto.models import Bug as BugModel
 from dto.schemas import Bug as BugSchema, BugCreate as BugCreateSchema
+from typing import List
 
 
 async def get_bug(bug_id: str) -> BugSchema:
@@ -10,6 +11,11 @@ async def get_bug(bug_id: str) -> BugSchema:
         raise HTTPException(status_code=404, detail="Bug not found")
 
     return bug
+
+
+async def get_all_bugs() -> List[BugSchema]:
+    bugs = await BugModel.all().prefetch_related("test")
+    return bugs
 
 
 async def create_bug(bug: BugCreateSchema) -> BugSchema:

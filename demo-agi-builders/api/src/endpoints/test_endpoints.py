@@ -1,10 +1,16 @@
 from fastapi import APIRouter
 from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema
-from services.test_services import get_test, create_test
+from services.test_services import get_test, create_test, get_all_tests
 from pydantic import UUID4
+from typing import List
 
 
 router = APIRouter(prefix="/tests", tags=["tests"])
+
+
+@router.get("/")
+async def get_all_tests_endpoint() -> List[TestSchema]:
+    return await get_all_tests()
 
 
 @router.get("/{test_id}")
