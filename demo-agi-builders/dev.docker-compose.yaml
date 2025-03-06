@@ -6,8 +6,6 @@ services:
       dockerfile: Dockerfile
     expose:
       - "3000"
-    volumes:
-      - ./app/src:/app/src
     environment:
         - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000}
 
@@ -15,8 +13,6 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile
-    volumes:
-      - ./api/src:/app/src
     expose:
       - "8000"
     environment:
