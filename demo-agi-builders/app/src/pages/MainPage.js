@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import axios from "axios"
+import { useLocation, useNavigate } from "react-router-dom"
 import TestResultsTable from "../components/TestResultsTable"
 import MetricsCards from "../components/MetricsCards"
 import FilterControls from "../components/FilterControls"
@@ -9,6 +10,30 @@ import AiDetectedBugs from "../components/AiDetectedBugs"
 // Base API URL - should be set in environment variable
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000"
 
+// Check if user is authenticated by looking at localStorage
+const isAuthenticated = () => localStorage.getItem('isAuthenticated') === 'true';
+
+// Loading overlay component with fake status updates
+const LoadingOverlay = ({ currentStep, progress }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+        <div className="flex flex-col items-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <h2 className="text-xl font-semibold mb-2">Processing Test</h2>
+          <p className="text-gray-600 mb-4">{currentStep || "Initializing..."}</p>
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div
+              className="bg-blue-600 h-2.5 rounded-full transition-all duration-1000 ease-in-out"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function MainPage() {
   const [tests, setTests] = useState([])
   const [bugs, setBugs] = useState([])
@@ -16,6 +41,9 @@ function MainPage() {
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState("ai-bugs")
   const [isAddTestModalOpen, setIsAddTestModalOpen] = useState(false)
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false)
+  const [currentLoadingStep, setCurrentLoadingStep] = useState("")
+  const [loadingProgress, setLoadingProgress] = useState(0)
   const [filters, setFilters] = useState({
     page: "All Pages",
     category: "All Categories",
@@ -23,49 +51,67 @@ function MainPage() {
     type: "All Types",
   })
 
+  // Check if user is authenticated
+  const userIsAuthenticated = useMemo(() => isAuthenticated(), []);
+
+  // Get the current location to check the path
+  const location = useLocation()
+  const navigate = useNavigate()
+  const shouldShowData = location.pathname === "/the-predictive-index"
+
   // Fetch tests and bugs from API
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       setError(null)
+      
       try {
-        // Fetch tests
-        const testsResponse = await axios.get(`${API_URL}/tests/`)
-        
-        // Transform the API response to match the format expected by components
-        const transformedTests = testsResponse.data.map(test => ({
-          id: test.id,
-          name: test.name,
-          description: test.description,
-          page: test.url.split('/').pop().replace(/-/g, ' '), // Extract page from URL
-          category: test.category,
-          type: "Feature", // Default type as API doesn't have this field
-          status: test.status === "PASSED" ? "Passed" : 
-                  test.status === "FAILED" ? "Failed" : "Pending",
-          duration: test.started_at && test.ended_at ? 
-                   `${Math.round((new Date(test.ended_at) - new Date(test.started_at))/10)}ms` : "-",
-          timestamp: test.ended_at ? new Date(test.ended_at).toLocaleString() : "-",
-          bugs: test.bugs || [],
-        }))
-        
-        setTests(transformedTests)
-        
-        // Fetch bugs
-        const bugsResponse = await axios.get(`${API_URL}/bugs/`)
-        
-        // Transform the API response to match the format expected by components
-        const transformedBugs = bugsResponse.data.map(bug => ({
-          id: bug.id,
-          title: bug.title,
-          page: bug.test ? bug.test.name.split(' - ')[1] || "Unknown" : "Unknown",
-          category: bug.test ? bug.test.category : "Unknown",
-          severity: bug.severity,
-          description: bug.description,
-          detectedAt: new Date(bug.detected_at).toLocaleString(),
-          status: bug.status || "Open",
-        }))
-        
-        setBugs(transformedBugs)
+        // Only fetch real data if we're on the specified path
+        if (shouldShowData) {
+          // Fetch tests
+          const testsResponse = await axios.get(`${API_URL}/tests/`)
+          
+          // Transform the API response to match the format expected by components
+          const transformedTests = testsResponse.data.map(test => ({
+            id: test.id,
+            name: test.name,
+            description: test.description,
+            page: test.url.split('/').pop().replace(/-/g, ' '), // Extract page from URL
+            category: test.category,
+            type: "Feature", // Default type as API doesn't have this field
+            status: test.status === "PASSED" ? "Passed" : 
+                    test.status === "FAILED" ? "Failed" : "Pending",
+            duration: test.started_at && test.ended_at ? 
+                     `${Math.round((new Date(test.ended_at) - new Date(test.started_at))/10)}ms` : "-",
+            timestamp: test.ended_at ? new Date(test.ended_at).toLocaleString() : "-",
+            bugs: test.bugs || [],
+          }))
+          
+          setTests(transformedTests)
+          
+          // Fetch bugs
+          const bugsResponse = await axios.get(`${API_URL}/bugs/`)
+          
+          // Transform the API response to match the format expected by components
+          const transformedBugs = bugsResponse.data.map(bug => ({
+            id: bug.id,
+            title: bug.title,
+            url: bug.url,
+            page: bug.test ? bug.test.name.split(' - ')[1] || "Unknown" : "Unknown",
+            category: bug.test ? bug.test.category : "Unknown",
+            severity: bug.severity,
+            description: bug.description,
+            detectedAt: new Date(bug.detected_at).toLocaleString(),
+            screenshots: bug.screenshots,
+            status: bug.status || "Open",
+          }))
+          
+          setBugs(transformedBugs)
+        } else {
+          // Set empty data when not on the target path
+          setTests([])
+          setBugs([])
+        }
       } catch (err) {
         console.error("Error fetching data:", err)
         setError("Failed to load data. Please try again later.")
@@ -75,9 +121,9 @@ function MainPage() {
     }
     
     fetchData()
-  }, [])
-
-  // Calculate metrics
+  }, [shouldShowData]) // Re-run the effect if the path changes
+  
+  // Calculate metrics - now based on conditional data
   const totalTests = tests.length
   const passedTests = tests.filter((test) => test.status === "Passed").length
   const failedTests = tests.filter((test) => test.status === "Failed").length
@@ -87,33 +133,81 @@ function MainPage() {
   const addNewTest = async (newTest) => {
     try {
       // Format the test data for the API
-      const apiTest = {
-        name: newTest.name,
-        description: newTest.description,
-        url: `https://example.com/${newTest.page.toLowerCase().replace(/\s+/g, '-')}`,
-        category: newTest.category.toUpperCase(),
-        user_story_id: "00000000-0000-0000-0000-000000000000", // Default ID, replace with actual user story selection
-      }
-      
-      // Send the test to the API
-      const response = await axios.post(`${API_URL}/tests/`, apiTest)
-      
-      // Transform the API response to match the format expected by components
-      const transformedTest = {
-        id: response.data.id,
-        name: response.data.name,
-        description: response.data.description,
-        page: response.data.url.split('/').pop().replace(/-/g, ' '),
-        category: response.data.category,
-        type: "Feature", // Default type as API doesn't have this field
-        status: "Pending",
-        timestamp: new Date().toLocaleString(),
-        duration: "-",
-        bugs: [],
-      }
-      
-      setTests([...tests, transformedTest])
+      // const apiTest = {
+      //   name: newTest.name,
+      //   description: newTest.description,
+      //   url: `https://example.com/${newTest.page.toLowerCase().replace(/\s+/g, '-')}`,
+      //   category: newTest.category.toUpperCase(),
+      //   user_story_id: "00000000-0000-0000-0000-000000000000", // Default ID, replace with actual user story selection
+      // }
+
+      // // Send the test to the API
+      // const response = await axios.post(`${API_URL}/tests/`, apiTest)
+
+      // // Transform the API response to match the format expected by components
+      // const transformedTest = {
+      //   id: response.data.id,
+      //   name: response.data.name,
+      //   description: response.data.description,
+      //   page: response.data.url.split('/').pop().replace(/-/g, ' '),
+      //   category: response.data.category,
+      //   type: "Feature", // Default type as API doesn't have this field
+      //   status: "Pending",
+      //   timestamp: new Date().toLocaleString(),
+      //   duration: "-",
+      //   bugs: [],
+      // }
+
+      // setTests([...tests, transformedTest])
       setIsAddTestModalOpen(false)
+      
+      // Show the loading overlay with fake status updates
+      setShowLoadingOverlay(true)
+      setLoadingProgress(0)
+      
+      // Simulate different loading steps with timeouts
+      const loadingSteps = [
+        "Preparing test environment...",
+        "Validating test configuration...",
+        "Setting up test dependencies...",
+        "Initializing test runner...",
+        "Executing test cases...",
+        "Analyzing test results...",
+        "Processing test data...",
+        "Generating test report...",
+        "Finalizing test integration..."
+      ]
+      
+      let stepIndex = 0;
+      
+      const updateLoadingStep = () => {
+        if (stepIndex < loadingSteps.length) {
+          setCurrentLoadingStep(loadingSteps[stepIndex]);
+          
+          // Calculate progress percentage, but ensure it never reaches 100%
+          // Max progress will be 95% to give the impression that it's still working
+          const maxProgress = 95;
+          const progressPerStep = maxProgress / loadingSteps.length;
+          const newProgress = Math.min(progressPerStep * (stepIndex + 1), maxProgress);
+          setLoadingProgress(newProgress);
+          
+          stepIndex++;
+          // Make transitions between steps MUCH slower (8 seconds per step)
+          setTimeout(updateLoadingStep, 8000);
+        } else {
+          // Reset the step index and progress, then start over to create an infinite loop
+          stepIndex = 0;
+          setLoadingProgress(0);
+          setTimeout(updateLoadingStep, 8000);
+          
+          // In a real application, you would hide the overlay here
+          // setShowLoadingOverlay(false);
+        }
+      };
+      
+      // Start the loading step updates
+      updateLoadingStep();
+      
     } catch (err) {
       console.error("Error adding test:", err)
       alert("Failed to add test. Please try again.")
@@ -143,6 +237,18 @@ function MainPage() {
     )
   })
 
+  // Add this new function to reset the onboarding flow
+  const resetOnboarding = () => {
+    localStorage.removeItem('onboardingCompleted');
+    localStorage.removeItem('userData');
+    window.location.reload();
+  };
+
+  // Navigate to settings page
+  const goToSettings = () => {
+    navigate('/settings');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 flex justify-center items-center">
@@ -159,10 +265,68 @@ function MainPage() {
     )
   }
 
+  // When user is not authenticated, only show AI bugs list with simplified UI
+  if (!userIsAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-gray-900">Laneo</h1>
+
+            <div className="flex space-x-2">
+              <a
+                href="/login"
+                className="text-gray-500  hover:text-gray-700 focus:outline-none"
+              >
+                Sign in
+              </a>
+            </div>
+          </div>
+          <p className="text-gray-600 mb-6">Your AI Agent for QA - We Bug You Less!</p>
+
+          <div className="bg-white rounded-md shadow-sm overflow-hidden">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex">
+                <div className="py-4 px-6 text-sm font-medium border-b-2 border-black text-black">
+                  AI-Detected Bugs
+                </div>
+              </nav>
+            </div>
+
+            <AiDetectedBugs bugs={bugs} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Regular dashboard for authenticated users
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900">E2E Test Results Dashboard</h1>
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900">Laneo</h1>
+          
+          <div className="flex space-x-2">
+            {/* Status button */}
+            <button
+              onClick={resetOnboarding}
+              className="bg-gray-200 text-gray-700 px-3 py-1 text-sm rounded-md hover:bg-gray-300 focus:outline-none"
+              title="Reset onboarding flow for demo purposes"
+            >
+              Status
+            </button>
+
+            {/* Settings button */}
+            <button
+              onClick={goToSettings}
+              className="bg-gray-200 text-gray-700 px-3 py-1 text-sm rounded-md hover:bg-gray-300 focus:outline-none"
+              title="Go to settings page"
+            >
+              Settings
+            </button>
+          </div>
+        </div>
         <p className="text-gray-600 mb-6">Monitor your end-to-end tests and AI-detected bugs</p>
 
         <MetricsCards
@@ -224,6 +388,7 @@ function MainPage() {
       </div>
 
       {isAddTestModalOpen && <AddTestModal onClose={() => setIsAddTestModalOpen(false)} onAddTest={addNewTest} />}
+      {showLoadingOverlay && <LoadingOverlay currentStep={currentLoadingStep} progress={loadingProgress} />}
     </div>
   )
 }

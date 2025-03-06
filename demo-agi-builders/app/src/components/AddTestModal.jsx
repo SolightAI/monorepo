@@ -1,25 +1,120 @@
 import { useState } from "react"
 
 function AddTestModal({ onClose, onAddTest }) {
+  // Mock data for epics, features, and user stories
+  const mockEpics = [
+    { id: "epic-1", name: "User Management" },
+    { id: "epic-2", name: "Payment Processing" },
+    { id: "epic-3", name: "Product Catalog" },
+    { id: "epic-4", name: "Reporting Dashboard" },
+  ]
+
+  const mockFeatures = [
+    { id: "feature-1", name: "User Registration", epic_id: "epic-1" },
+    { id: "feature-2", name: "User Authentication", epic_id: "epic-1" },
+    { id: "feature-3", name: "Credit Card Processing", epic_id: "epic-2" },
+    { id: "feature-4", name: "Invoice Generation", epic_id: "epic-2" },
+    { id: "feature-5", name: "Product Listing", epic_id: "epic-3" },
+    { id: "feature-6", name: "Product Search", epic_id: "epic-3" },
+    { id: "feature-7", name: "Sales Reports", epic_id: "epic-4" },
+    { id: "feature-8", name: "User Activity Dashboard", epic_id: "epic-4" },
+  ]
+
+  const mockUserStories = [
+    { id: "story-1", title: "Register with email and password", feature_id: "feature-1" },
+    { id: "story-2", title: "Login with credentials", feature_id: "feature-2" },
+    { id: "story-3", title: "Reset forgotten password", feature_id: "feature-2" },
+    { id: "story-4", title: "Process Visa payment", feature_id: "feature-3" },
+    { id: "story-5", title: "Process Mastercard payment", feature_id: "feature-3" },
+    { id: "story-6", title: "Generate PDF invoice", feature_id: "feature-4" },
+    { id: "story-7", title: "View product details", feature_id: "feature-5" },
+    { id: "story-8", title: "Search products by name", feature_id: "feature-6" },
+    { id: "story-9", title: "Filter product search results", feature_id: "feature-6" },
+    { id: "story-10", title: "View monthly sales report", feature_id: "feature-7" },
+    { id: "story-11", title: "View user activity heat map", feature_id: "feature-8" },
+  ]
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    page: "",
-    category: "",
-    type: "User Story",
+    url: "",
+    category: "FUNCTIONAL",
+    type: "UserStory",
     steps: "",
+    epic_id: mockEpics[0]?.id || "",
+    feature_id: mockFeatures[0]?.id || "",
+    user_story_id: mockUserStories[0]?.id || "",
   })
 
-  const testTypes = [
-    { id: "User Story", label: "User Story" },
-    { id: "Feature", label: "Feature" },
-    { id: "Specific Part", label: "Specific Part" },
-    { id: "Whole Website", label: "Whole Website" },
+  // Test categories from the backend schema
+  const testCategories = [
+    { id: "SMOKE", label: "Smoke" },
+    { id: "FUNCTIONAL", label: "Functional" },
+    { id: "END_TO_END", label: "End to End" },
+    { id: "UNIT", label: "Unit" },
+    { id: "REGRESSION", label: "Regression" },
+    { id: "INTEGRATION", label: "Integration" },
+    { id: "PERFORMANCE", label: "Performance" },
+    { id: "USABILITY", label: "Usability" },
+    { id: "COMPATIBILITY", label: "Compatibility" },
+    { id: "LOCALIZATION", label: "Localization" },
   ]
 
+  // Test types
+  const testTypes = [
+    { id: "UserStory", label: "User Story" },
+    { id: "Feature", label: "Feature" },
+    { id: "Epic", label: "Epic" },
+  ]
+
+  // Get filtered features based on selected epic
+  const getFilteredFeatures = () => {
+    if (formData.type === "Epic") return []
+    return mockFeatures.filter(
+      feature => formData.type !== "Feature" || feature.epic_id === formData.epic_id
+    )
+  }
+
+  // Get filtered user stories based on selected feature
+  const getFilteredUserStories = () => {
+    if (formData.type !== "UserStory") return []
+    return mockUserStories.filter(story => story.feature_id === formData.feature_id)
+  }
+
+  // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    
+    // Create update object starting with the changed field
+    const updates = { [name]: value }
+    
+    // Add logic for cascading dropdown changes
+    if (name === "type") {
+      // Reset dependent fields when type changes
+      updates.epic_id = mockEpics[0]?.id || ""
+      updates.feature_id = mockFeatures[0]?.id || ""
+      updates.user_story_id = mockUserStories[0]?.id || ""
+    } else if (name === "epic_id") {
+      // When epic changes, update feature to the first one in that epic
+      const filteredFeatures = mockFeatures.filter(feature => feature.epic_id === value)
+      updates.feature_id = filteredFeatures[0]?.id || ""
+      
+      // Also update user story if needed
+      if (formData.type === "UserStory") {
+        const filteredStories = mockUserStories.filter(
+          story => story.feature_id === (filteredFeatures[0]?.id || "")
+        )
+        updates.user_story_id = filteredStories[0]?.id || ""
+      }
+    } else if (name === "feature_id") {
+      // When feature changes, update user story if needed
+      if (formData.type === "UserStory") {
+        const filteredStories = mockUserStories.filter(story => story.feature_id === value)
+        updates.user_story_id = filteredStories[0]?.id || ""
+      }
+    }
+    
+    setFormData(prev => ({ ...prev, ...updates }))
   }
 
   const handleSubmit = (e) => {
@@ -31,10 +126,25 @@ function AddTestModal({ onClose, onAddTest }) {
       .filter((step) => step.trim() !== "")
       .map((step) => step.trim())
 
-    onAddTest({
-      ...formData,
+    // Create the test object based on the selected type
+    let testData = {
+      name: formData.name,
+      description: formData.description,
+      url: formData.url,
+      category: formData.category,
       steps: stepsArray,
-    })
+    }
+
+    // Add the appropriate ID field based on test type
+    if (formData.type === "UserStory") {
+      testData.user_story_id = formData.user_story_id
+    } else if (formData.type === "Feature") {
+      testData.feature_id = formData.feature_id
+    } else if (formData.type === "Epic") {
+      testData.epic_id = formData.epic_id
+    }
+
+    onAddTest(testData)
   }
 
   return (
@@ -83,43 +193,45 @@ function AddTestModal({ onClose, onAddTest }) {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="page" className="block text-sm font-medium text-gray-700 mb-1">
-                  Page *
-                </label>
-                <input
-                  type="text"
-                  id="page"
-                  name="page"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  value={formData.page}
-                  onChange={handleChange}
-                  placeholder="e.g. Homepage, Login, Dashboard"
-                />
-              </div>
+            <div>
+              <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
+                URL *
+              </label>
+              <input
+                type="url"
+                id="url"
+                name="url"
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                value={formData.url}
+                onChange={handleChange}
+                placeholder="https://example.com/page-to-test"
+              />
+            </div>
 
-              <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                  Category *
-                </label>
-                <input
-                  type="text"
-                  id="category"
-                  name="category"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  value={formData.category}
-                  onChange={handleChange}
-                  placeholder="e.g. Authentication, Navigation"
-                />
-              </div>
+            <div>
+              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                Category *
+              </label>
+              <select
+                id="category"
+                name="category"
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                value={formData.category}
+                onChange={handleChange}
+              >
+                {testCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Test Type *</label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 {testTypes.map((type) => (
                   <div key={type.id} className="flex items-center">
                     <input
@@ -139,9 +251,123 @@ function AddTestModal({ onClose, onAddTest }) {
               </div>
             </div>
 
+            {/* Epic Selection (for Feature and UserStory test types) */}
+            {formData.type !== "Epic" && (
+              <div>
+                <label htmlFor="epic_id" className="block text-sm font-medium text-gray-700 mb-1">
+                  Epic *
+                </label>
+                <select
+                  id="epic_id"
+                  name="epic_id"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={formData.epic_id}
+                  onChange={handleChange}
+                >
+                  {mockEpics.map((epic) => (
+                    <option key={epic.id} value={epic.id}>
+                      {epic.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Feature Selection (for UserStory test type or if testing a Feature directly) */}
+            {formData.type === "Feature" && (
+              <div>
+                <label htmlFor="feature_id" className="block text-sm font-medium text-gray-700 mb-1">
+                  Feature *
+                </label>
+                <select
+                  id="feature_id"
+                  name="feature_id"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={formData.feature_id}
+                  onChange={handleChange}
+                >
+                  {getFilteredFeatures().map((feature) => (
+                    <option key={feature.id} value={feature.id}>
+                      {feature.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* User Story Selection (when testing a User Story) */}
+            {formData.type === "UserStory" && (
+              <div>
+                <label htmlFor="feature_id" className="block text-sm font-medium text-gray-700 mb-1">
+                  Feature *
+                </label>
+                <select
+                  id="feature_id"
+                  name="feature_id"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={formData.feature_id}
+                  onChange={handleChange}
+                >
+                  {getFilteredFeatures().map((feature) => (
+                    <option key={feature.id} value={feature.id}>
+                      {feature.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {formData.type === "UserStory" && (
+              <div>
+                <label htmlFor="user_story_id" className="block text-sm font-medium text-gray-700 mb-1">
+                  User Story *
+                </label>
+                <select
+                  id="user_story_id"
+                  name="user_story_id"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={formData.user_story_id}
+                  onChange={handleChange}
+                >
+                  {getFilteredUserStories().map((story) => (
+                    <option key={story.id} value={story.id}>
+                      {story.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Epic Selection (when testing an Epic directly) */}
+            {formData.type === "Epic" && (
+              <div>
+                <label htmlFor="epic_id" className="block text-sm font-medium text-gray-700 mb-1">
+                  Epic *
+                </label>
+                <select
+                  id="epic_id"
+                  name="epic_id"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={formData.epic_id}
+                  onChange={handleChange}
+                >
+                  {mockEpics.map((epic) => (
+                    <option key={epic.id} value={epic.id}>
+                      {epic.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label htmlFor="steps" className="block text-sm font-medium text-gray-700 mb-1">
-                Test Steps (one per line)
+                Test Steps
               </label>
               <textarea
                 id="steps"

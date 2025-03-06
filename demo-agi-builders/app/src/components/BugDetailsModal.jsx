@@ -1,17 +1,47 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
-function BugDetailsModal({ bug, onClose }) {
+function BugDetailsModal({ bug, onClose, isRestricted }) {
+  const [selectedScreenshot, setSelectedScreenshot] = useState(null);
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [ticketCreated, setTicketCreated] = useState(false);
+
   // Add useEffect hook to handle escape key
   useEffect(() => {
     const handleEscape = (event) => {
       if (event.key === 'Escape') {
-        onClose();
+        if (selectedScreenshot !== null) {
+          setSelectedScreenshot(null);
+        } else {
+          onClose();
+        }
       }
     };
 
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
+  }, [onClose, selectedScreenshot]);
+
+  // Function to handle screenshot click
+  const handleScreenshotClick = (screenshot) => {
+    setSelectedScreenshot(screenshot);
+  };
+
+  // Function to close the full-size screenshot view
+  const closeFullScreenshot = () => {
+    setSelectedScreenshot(null);
+  };
+
+  // Function to mock creating a Jira ticket
+  const createJiraTicket = () => {
+    setIsCreatingTicket(true);
+
+    // Simulate API call with timeout
+    setTimeout(() => {
+      setIsCreatingTicket(false);
+      setTicketCreated(true);
+      // In a real app, you would update the bug with the new ticket info from the API response
+    }, 1500);
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -30,6 +60,20 @@ function BugDetailsModal({ bug, onClose }) {
             </span>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{bug.title}</h2>
+              {console.log(bug)}
+              {bug.url && (
+                <a
+                  href={bug.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center mt-1 text-sm font-medium text-blue-600 hover:text-blue-800"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  View bug
+                </a>
+              )}
               <p className="text-sm text-gray-500 mt-1">
                 Bug ID: BUG-{String(bug.id).padStart(3, "0")} • Detected on {bug.detectedAt}
               </p>
@@ -90,7 +134,7 @@ function BugDetailsModal({ bug, onClose }) {
           </div>
 
           {/* Steps to Reproduce */}
-          <div className="mb-6">
+          {/* <div className="mb-6">
             <h3 className="text-sm font-medium text-gray-900 mb-2">Steps to Reproduce</h3>
             <ol className="list-decimal list-inside space-y-1">
               <li className="text-sm text-gray-600">Navigate to the Products page</li>
@@ -98,10 +142,10 @@ function BugDetailsModal({ bug, onClose }) {
               <li className="text-sm text-gray-600">Adjust the minimum and maximum price values</li>
               <li className="text-sm text-gray-600">Observe that the product list does not update</li>
             </ol>
-          </div>
+          </div> */}
 
           {/* AI Analysis */}
-          <div className="mb-6">
+          {/* <div className="mb-6">
             <h3 className="text-sm font-medium text-gray-900 mb-2">AI Analysis</h3>
             <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
               <p className="text-sm text-amber-800">
@@ -110,10 +154,10 @@ function BugDetailsModal({ bug, onClose }) {
                 called 'slider-change' which is not being captured.
               </p>
             </div>
-          </div>
+          </div> */}
 
           {/* Suggested Fix */}
-          <div className="mb-6">
+          {/* <div className="mb-6">
             <h3 className="text-sm font-medium text-gray-900 mb-2">Suggested Fix</h3>
             <div className="bg-green-50 border border-green-200 rounded-md p-4">
               <p className="text-sm text-green-800">
@@ -121,32 +165,106 @@ function BugDetailsModal({ bug, onClose }) {
                 component to dispatch a standard 'change' event.
               </p>
             </div>
-          </div>
+          </div> */}
+
+          {/* Jira Ticket Section */}
+          {!isRestricted && (
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-gray-900 mb-2">Jira Ticket</h3>
+              {true ? (
+                <div className="flex items-center">
+                  <span className="mr-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                  <a 
+                    href={bug.jiraTicket?.url || "https://your-jira-instance.atlassian.net/browse/PROJ-123"}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
+                  >
+                    {bug.jiraTicket?.key || "PROJ-244"}: {bug.jiraTicket?.summary || bug.title}
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              ) : (
+                <button
+                  onClick={createJiraTicket}
+                  disabled={isCreatingTicket}
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCreatingTicket ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Creating ticket...
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Add to Jira
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Screenshots */}
           <div>
             <h3 className="text-sm font-medium text-gray-900 mb-2">Screenshots</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <img
-                  src="/placeholder.svg?height=200&width=300"
-                  alt="Price Filter Slider"
-                  className="w-full h-48 object-cover rounded-md bg-gray-100"
-                />
-                <p className="text-sm text-gray-500 mt-1 text-center">Price Filter Slider</p>
+            {bug.screenshots && bug.screenshots.length > 0 ? (
+              <div className="grid grid-cols-2 gap-4">
+                {bug.screenshots.map((screenshot, index) => (
+                  <div key={index}>
+                    <img
+                      src={screenshot}
+                      alt={`Bug Screenshot ${index + 1}`}
+                      className="w-full h-48 object-cover rounded-md bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => handleScreenshotClick(screenshot)}
+                    />
+                    <p className="text-sm text-gray-500 mt-1 text-center">Screenshot {index + 1}</p>
+                  </div>
+                ))}
               </div>
-              <div>
-                <img
-                  src="/placeholder.svg?height=200&width=300"
-                  alt="Unchanged Product List"
-                  className="w-full h-48 object-cover rounded-md bg-gray-100"
-                />
-                <p className="text-sm text-gray-500 mt-1 text-center">Unchanged Product List</p>
-              </div>
-            </div>
+            ) : (
+              <p className="text-sm text-gray-500">No screenshots available.</p>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Full-size screenshot modal */}
+      {selectedScreenshot && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[60]" onClick={closeFullScreenshot}>
+          <div className="relative max-w-[90vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <button 
+              onClick={closeFullScreenshot}
+              className="absolute top-4 right-4 bg-white bg-opacity-80 rounded-full p-2 text-gray-800 hover:bg-opacity-100 transition-all"
+            >
+              <svg className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+            <img
+              src={selectedScreenshot}
+              alt="Full-size screenshot"
+              className="max-h-[90vh] max-w-[90vw] object-contain"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

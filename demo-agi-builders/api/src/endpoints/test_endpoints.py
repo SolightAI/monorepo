@@ -1,6 +1,6 @@
-from fastapi import APIRouter
-from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema
-from services.test_services import get_test, create_test, get_all_tests
+from fastapi import APIRouter, Body
+from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestStatus
+from services.test_services import get_test, create_test, get_all_tests, update_test_status
 from pydantic import UUID4
 from typing import List
 
@@ -21,3 +21,11 @@ async def get_test_endpoint(test_id: UUID4) -> TestSchema:
 @router.post("/")
 async def create_test_endpoint(test: TestCreateSchema) -> TestSchema:
     return await create_test(test)
+
+
+@router.put("/{test_id}/status")
+async def update_test_status_endpoint(
+    test_id: UUID4, status: TestStatus = Body(..., embed=True)
+) -> TestSchema:
+    await update_test_status(test_id, status)
+    return await get_test(test_id)

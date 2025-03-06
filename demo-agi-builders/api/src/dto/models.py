@@ -1,7 +1,35 @@
 from enum import Enum
 from datetime import datetime
 from tortoise import fields, models
-from .schemas import TestStatus, SeverityLevel, TestCategory, Epic as EpicSchema
+from .schemas import TestStatus, SeverityLevel, TestCategory, Epic as EpicSchema, User as UserSchema, UserPrivate as UserPrivateSchema
+
+
+class User(models.Model):
+    id = fields.IntField(pk=True)
+
+    username = fields.CharField(max_length=255, unique=False)
+    email = fields.CharField(max_length=255, unique=True)
+    created_at = fields.DatetimeField(auto_now_add=True)
+
+    async def to_schema(self, user_id: int | None = None) -> UserSchema:
+
+        if user_id is None or user_id == self.id:
+            schema = UserSchema(
+                id=self.id,
+                username=self.username,
+                email=self.email,
+                created_at=self.created_at,
+            )
+        else:
+            schema = UserPrivateSchema(
+                id=self.id,
+                username=self.username,
+            )
+
+        return schema
+
+    class Meta:
+        table = "users"
 
 
 class Product(models.Model):

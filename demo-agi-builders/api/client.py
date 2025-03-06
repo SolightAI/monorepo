@@ -44,19 +44,36 @@ def create_test(user_story_id: str, name: str, description: str, category: str, 
     return response.json()
 
 
-def create_bug(test_id: str, title: str, description: str, severity: str, url: str, status: str, detected_at: str) -> None:
+def create_bug(test_id: str, title: str, description: str, severity: str, url: str, status: str, detected_at: str, screenshots: list = None) -> None:
+    """Create a bug in the database.
+
+    Args:
+        test_id: ID of the test this bug is associated with
+        title: Bug title
+        description: Bug description
+        severity: Bug severity (Critical, High, Medium, Low)
+        url: URL to the bug
+        status: Bug status (OPEN, FIXED, etc.)
+        detected_at: Timestamp when the bug was detected (ISO format)
+        screenshots: Optional list of screenshot URLs
+    """
+    data = {
+        "title": title,
+        "description": description,
+        "test_id": test_id,
+        "severity": severity,
+        "url": url,
+        "status": status,
+        "detected_at": detected_at,
+    }
+
+    # Add screenshots if provided
+    if screenshots:
+        data["screenshots"] = screenshots
+
     response = requests.post(
         f"{BASE_URL}/bugs/",
-        json={
-            "title": title,
-            "description": description,
-            "test_id": test_id,
-            "severity": severity,
-            "url": url,
-            "status": status,
-            "detected_at": detected_at,
-            # "screenshots": [], # TODO
-        },
+        json=data,
     )
 
     if response.status_code != 200:

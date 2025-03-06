@@ -5,6 +5,24 @@ from datetime import datetime
 from enum import Enum
 
 
+class UserPrivate(BaseModel):
+    id: int
+    username: str
+
+
+class User(UserPrivate):
+    email: str
+    created_at: datetime
+
+    def to_user_private(self) -> UserPrivate:
+        user_dict = self.model_dump(exclude={"email", "created_at"})
+        return UserPrivate(**user_dict)
+
+
+class TokenData(BaseModel):
+    username: str | None = None
+
+
 class TestStatus(str, Enum):
     NOT_STARTED = "NOT_STARTED"
     PENDING = "PENDING"
@@ -132,6 +150,7 @@ class BugBase(BaseModel):
     title: str
     description: str
     severity: SeverityLevel
+    screenshots: list[str]
     url: str
     status: Optional[str]
     detected_at: datetime

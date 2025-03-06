@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AnimatedBackground from '../components/AnimatedBackground';
+// import AnimatedBackground from '../components/AnimatedBackground';
 import logo from '../components/images/laneo_logo.jpg'; // Import the logo
 
 const SectionDetails = () => {
@@ -56,7 +56,7 @@ const SectionDetails = () => {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen p-4 bg-gray-900">
-      <AnimatedBackground theme="dark" />
+      {/* <AnimatedBackground theme="dark" /> */}
       
       {/* Floating elements */}
       {floatingElements.map((element) => (
