@@ -12,6 +12,7 @@ from client import (
     create_epic,
     create_feature,
     create_user_story,
+    create_acceptance_criteria,
     create_test,
     create_bug
 )
@@ -638,22 +639,34 @@ def create_successful_tests(product_id: str):
             description=f"The {page} functionality should work correctly on mobile devices"
         )
         
+        # Create acceptance criteria for visual and functional user stories
+        acceptance_criteria_visual = create_acceptance_criteria(
+            user_story_id=user_story_visual["id"],
+            title=f"The {page} must display properly on all mobile devices",
+            description=f"All visual elements of the {page} must be properly sized, positioned, and readable on mobile devices"
+        )
+        
+        acceptance_criteria_functional = create_acceptance_criteria(
+            user_story_id=user_story_functional["id"],
+            title=f"All {page} features must work correctly on mobile devices",
+            description=f"All interactive elements and functionality of the {page} must work as expected on mobile devices"
+        )
+        
         # Create successful tests
         for test_data in tests:
             # Determine if this is a visual or functional test
             is_functional = test_data["category"] in ["FUNCTIONAL", "INTEGRATION", "END_TO_END"]
             
-            # Select the appropriate user story
-            user_story = user_story_functional if is_functional else user_story_visual
+            # Select the appropriate acceptance criteria
+            acceptance_criteria = acceptance_criteria_functional if is_functional else acceptance_criteria_visual
             
             # Create test (initially with default status)
             test = create_test(
-                user_story_id=user_story["id"],
+                acceptance_criteria_id=acceptance_criteria["id"],
                 name=test_data["name"],
                 description=test_data["description"],
                 category=test_data["category"],
                 status="NOT_STARTED",  # Default status
-                severity="Low",  # For passed tests, severity is low
                 url=f"https://www.predictiveindex.com/test/{test_data['name'].lower().replace(' ', '-')}"
             )
             

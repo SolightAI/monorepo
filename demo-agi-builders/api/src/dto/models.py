@@ -79,10 +79,21 @@ class UserStory(models.Model):
     description = fields.TextField()
 
     feature = fields.ForeignKeyField("models.Feature", related_name="user_stories")
-    tests = fields.ReverseRelation["Test"]
 
     class Meta:
         table = "user_stories"
+
+
+class AcceptanceCriteria(models.Model):
+    id = fields.UUIDField(pk=True)
+    title = fields.CharField(max_length=255)
+    description = fields.TextField()
+
+    user_story = fields.ForeignKeyField("models.UserStory", related_name="acceptance_criteria")
+    tests = fields.ReverseRelation["Test"]
+
+    class Meta:
+        table = "acceptance_criteria"
 
 
 class Test(models.Model):
@@ -95,7 +106,7 @@ class Test(models.Model):
     started_at = fields.DatetimeField(null=True)
     ended_at = fields.DatetimeField(null=True)
 
-    user_story = fields.ForeignKeyField("models.UserStory", related_name="tests")
+    acceptance_criteria = fields.ForeignKeyField("models.AcceptanceCriteria", related_name="tests")
     bugs = fields.ReverseRelation["Bug"]
 
     class Meta:

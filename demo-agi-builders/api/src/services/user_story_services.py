@@ -4,7 +4,7 @@ from dto.schemas import UserStory as UserStorySchema, UserStoryCreate as UserSto
 
 
 async def get_user_story(user_story_id: str) -> UserStorySchema:
-    user_story = await UserStoryModel.get_or_none(id=user_story_id).prefetch_related("tests")
+    user_story = await UserStoryModel.get_or_none(id=user_story_id).prefetch_related("acceptance_criteria")
 
     if not user_story:
         raise HTTPException(status_code=404, detail="User story not found")

@@ -7,8 +7,7 @@ from endpoints.feature_endpoints import router as feature_router
 from endpoints.user_story_endpoints import router as user_story_router
 from endpoints.test_endpoints import router as test_router
 from endpoints.bug_endpoints import router as bug_router
-from uuid import uuid4
-from datetime import datetime
+from endpoints.acceptance_criteria_endpoints import router as acceptance_criteria_router
 from fastapi.middleware.cors import CORSMiddleware
 from tortoise.contrib.fastapi import RegisterTortoise
 from contextlib import asynccontextmanager
@@ -43,6 +42,6 @@ app.include_router(product_router)
 app.include_router(epic_router)
 app.include_router(feature_router)
 app.include_router(user_story_router)
+app.include_router(acceptance_criteria_router)
 app.include_router(test_router)
 app.include_router(bug_router)
-

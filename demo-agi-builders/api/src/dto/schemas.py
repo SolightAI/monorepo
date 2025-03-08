@@ -120,7 +120,25 @@ class UserStoryCreate(UserStoryBase):
 class UserStory(UserStoryBase):
     id: UUID4
     feature_id: UUID4
+    acceptance_criteria: list[AcceptanceCriteriaBase] = []
+
+
+class AcceptanceCriteriaBase(BaseModel):
+    title: str
+    description: str
+
+
+class AcceptanceCriteriaCreate(AcceptanceCriteriaBase):
+    user_story_id: UUID4
+
+
+class AcceptanceCriteria(AcceptanceCriteriaBase):
+    id: UUID4
+    user_story_id: UUID4
     tests: list[TestBase] = []
+
+    class Config:
+        from_attributes = True
 
 
 class TestBase(BaseModel):
@@ -131,7 +149,7 @@ class TestBase(BaseModel):
 
 
 class TestCreate(TestBase):
-    user_story_id: UUID4
+    acceptance_criteria_id: UUID4
 
 
 class Test(TestBase):
@@ -139,7 +157,7 @@ class Test(TestBase):
     status: TestStatus
     started_at: Optional[datetime]
     ended_at: Optional[datetime]
-    user_story_id: UUID4
+    acceptance_criteria_id: UUID4
     bugs: list[BugBase] = []
 
     class Config:

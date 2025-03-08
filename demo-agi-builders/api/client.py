@@ -36,8 +36,33 @@ def create_user_story(feature_id: str, title: str, description: str) -> None:
     return response.json()
 
 
-def create_test(user_story_id: str, name: str, description: str, category: str, status: str, severity: str, url: str) -> None:
-    response = requests.post(f"{BASE_URL}/tests/", json={"name": name, "description": description, "user_story_id": user_story_id, "category": category, "status": status, "severity": severity, "url": url})
+def create_acceptance_criteria(user_story_id: str, title: str, description: str) -> None:
+    """Create acceptance criteria for a user story.
+    
+    Args:
+        user_story_id: ID of the user story this acceptance criteria is associated with
+        title: Acceptance criteria title
+        description: Acceptance criteria description
+    """
+    response = requests.post(f"{BASE_URL}/acceptance_criteria/", json={"title": title, "description": description, "user_story_id": user_story_id})
+
+    if response.status_code != 200:
+        raise RuntimeError(f"Received non-200 status code ({response.status_code}): {response.text}")
+    return response.json()
+
+
+def create_test(acceptance_criteria_id: str, name: str, description: str, category: str, status: str, url: str) -> None:
+    """Create a test for acceptance criteria.
+    
+    Args:
+        acceptance_criteria_id: ID of the acceptance criteria this test is associated with
+        name: Test name
+        description: Test description
+        category: Test category (SMOKE, FUNCTIONAL, END_TO_END, UNIT, etc.)
+        status: Test status (NOT_STARTED, PENDING, PASSED, FAILED, etc.)
+        url: URL to the test
+    """
+    response = requests.post(f"{BASE_URL}/tests/", json={"name": name, "description": description, "acceptance_criteria_id": acceptance_criteria_id, "category": category, "status": status, "url": url})
 
     if response.status_code != 200:
         raise RuntimeError(f"Received non-200 status code ({response.status_code}): {response.text}")
@@ -93,9 +118,12 @@ def main() -> None:
 
     print("Creating user story")
     user_story = create_user_story(feature["id"], "Test User Story", "This is a test user story")
+    
+    print("Creating acceptance criteria")
+    acceptance_criteria = create_acceptance_criteria(user_story["id"], "Test Acceptance Criteria", "This is a test acceptance criteria")
 
     print("Creating test")
-    test = create_test(user_story["id"], "Test Test", "This is a test test", "UNIT", "PENDING", "LOW", "https://example.com")
+    test = create_test(acceptance_criteria["id"], "Test Test", "This is a test test", "UNIT", "PENDING", "https://example.com")
 
     print("Creating bug")
     bug = create_bug(test["id"], "Test Bug", "This is a test bug", "Low", "https://example.com", "OPEN", "2025-01-01")

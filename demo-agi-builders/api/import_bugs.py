@@ -18,6 +18,7 @@ from client import (
     create_epic,
     create_feature,
     create_user_story,
+    create_acceptance_criteria,
     create_test,
     create_bug
 )
@@ -265,25 +266,36 @@ def create_project_structure() -> Dict:
             title=f"As a user, I want to use {page} functionality on mobile",
             description=f"The {page} functionality should work correctly on mobile devices"
         )
-
-        # Create tests for each user story
-        test_visual = create_test(
+        
+        # Create acceptance criteria for each user story
+        acceptance_criteria_visual = create_acceptance_criteria(
             user_story_id=user_story_visual["id"],
+            title=f"The {page} must display properly on all mobile devices",
+            description=f"All visual elements of the {page} must be properly sized, positioned, and readable on mobile devices"
+        )
+
+        acceptance_criteria_functional = create_acceptance_criteria(
+            user_story_id=user_story_functional["id"],
+            title=f"All {page} features must work correctly on mobile devices",
+            description=f"All interactive elements and functionality of the {page} must work as expected on mobile devices"
+        )
+
+        # Create tests for each acceptance criteria
+        test_visual = create_test(
+            acceptance_criteria_id=acceptance_criteria_visual["id"],
             name=f"Mobile UI Test - {page}",
             description=f"Test the visual appearance of {page} on mobile devices",
             category="USABILITY",
             status="FAILED",
-            severity="Medium",
             url=f"https://www.predictiveindex.com/test/{page.lower().replace(' ', '-')}"
         )
 
         test_functional = create_test(
-            user_story_id=user_story_functional["id"],
+            acceptance_criteria_id=acceptance_criteria_functional["id"],
             name=f"Mobile Functionality Test - {page}",
             description=f"Test the functionality of {page} on mobile devices",
             category="FUNCTIONAL",
             status="FAILED",
-            severity="Medium",
             url=f"https://www.predictiveindex.com/test/{page.lower().replace(' ', '-')}"
         )
 
@@ -291,11 +303,13 @@ def create_project_structure() -> Dict:
             "visual": {
                 "feature": feature_visual,
                 "user_story": user_story_visual,
+                "acceptance_criteria": acceptance_criteria_visual,
                 "test": test_visual
             },
             "functional": {
                 "feature": feature_functional,
                 "user_story": user_story_functional,
+                "acceptance_criteria": acceptance_criteria_functional,
                 "test": test_functional
             }
         }
