@@ -59,18 +59,38 @@ function MainPage() {
   const navigate = useNavigate()
   const shouldShowData = location.pathname === "/the-predictive-index"
 
+  // Check for redirect messages (like when redirected from admin routes)
+  const [notificationMessage, setNotificationMessage] = useState("");
+
+  useEffect(() => {
+    // Check if there's a message in the location state (from redirect)
+    if (location.state && location.state.message) {
+      setNotificationMessage(location.state.message);
+
+      // Clear the location state to prevent showing the message again on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+
+      // Hide the notification after 5 seconds
+      const timer = setTimeout(() => {
+        setNotificationMessage("");
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [location, navigate]);
+
   // Fetch tests and bugs from API
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       setError(null)
-      
+
       try {
         // Only fetch real data if we're on the specified path
         if (shouldShowData) {
           // Fetch tests
           const testsResponse = await axios.get(`${API_URL}/tests/`)
-          
+
           // Transform the API response to match the format expected by components
           const transformedTests = testsResponse.data.map(test => ({
             id: test.id,
@@ -79,19 +99,19 @@ function MainPage() {
             page: test.url.split('/').pop().replace(/-/g, ' '), // Extract page from URL
             category: test.category,
             type: "Feature", // Default type as API doesn't have this field
-            status: test.status === "PASSED" ? "Passed" : 
+            status: test.status === "PASSED" ? "Passed" :
                     test.status === "FAILED" ? "Failed" : "Pending",
-            duration: test.started_at && test.ended_at ? 
+            duration: test.started_at && test.ended_at ?
                      `${Math.round((new Date(test.ended_at) - new Date(test.started_at))/10)}ms` : "-",
             timestamp: test.ended_at ? new Date(test.ended_at).toLocaleString() : "-",
             bugs: test.bugs || [],
           }))
-          
+
           setTests(transformedTests)
-          
+
           // Fetch bugs
           const bugsResponse = await axios.get(`${API_URL}/bugs/`)
-          
+
           // Transform the API response to match the format expected by components
           const transformedBugs = bugsResponse.data.map(bug => ({
             id: bug.id,
@@ -105,7 +125,7 @@ function MainPage() {
             screenshots: bug.screenshots,
             status: bug.status || "Open",
           }))
-          
+
           setBugs(transformedBugs)
         } else {
           // Set empty data when not on the target path
@@ -119,10 +139,10 @@ function MainPage() {
         setLoading(false)
       }
     }
-    
+
     fetchData()
   }, [shouldShowData]) // Re-run the effect if the path changes
-  
+
   // Calculate metrics - now based on conditional data
   const totalTests = tests.length
   const passedTests = tests.filter((test) => test.status === "Passed").length
@@ -160,11 +180,11 @@ function MainPage() {
 
       // setTests([...tests, transformedTest])
       setIsAddTestModalOpen(false)
-      
+
       // Show the loading overlay with fake status updates
       setShowLoadingOverlay(true)
       setLoadingProgress(0)
-      
+
       // Simulate different loading steps with timeouts
       const loadingSteps = [
         "Preparing test environment...",
@@ -177,20 +197,20 @@ function MainPage() {
         "Generating test report...",
         "Finalizing test integration..."
       ]
-      
+
       let stepIndex = 0;
-      
+
       const updateLoadingStep = () => {
         if (stepIndex < loadingSteps.length) {
           setCurrentLoadingStep(loadingSteps[stepIndex]);
-          
+
           // Calculate progress percentage, but ensure it never reaches 100%
           // Max progress will be 95% to give the impression that it's still working
           const maxProgress = 95;
           const progressPerStep = maxProgress / loadingSteps.length;
           const newProgress = Math.min(progressPerStep * (stepIndex + 1), maxProgress);
           setLoadingProgress(newProgress);
-          
+
           stepIndex++;
           // Make transitions between steps MUCH slower (8 seconds per step)
           setTimeout(updateLoadingStep, 8000);
@@ -199,15 +219,15 @@ function MainPage() {
           stepIndex = 0;
           setLoadingProgress(0);
           setTimeout(updateLoadingStep, 8000);
-          
+
           // In a real application, you would hide the overlay here
           // setShowLoadingOverlay(false);
         }
       };
-      
+
       // Start the loading step updates
       updateLoadingStep();
-      
+
     } catch (err) {
       console.error("Error adding test:", err)
       alert("Failed to add test. Please try again.")
@@ -253,7 +273,7 @@ function MainPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 flex justify-center items-center">
-        <p className="text-red-600">{error}</p>
+        <p className="text-red-500">{error}</p>
       </div>
     )
   }
@@ -296,6 +316,17 @@ function MainPage() {
   // Regular dashboard for authenticated users
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      {notificationMessage && (
+        <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 rounded shadow">
+          <div className="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>{notificationMessage}</span>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Laneo</h1>

@@ -24,10 +24,10 @@ export const login = async (username, password) => {
   }
 };
 
-export const register = async (username, email, password) => {
+export const register = async (username, email, password, invitation_code) => {
   try {
     const response = await axios.post(`${API_URL}/auth/register`,
-      { username, email, password },
+      { username, email, password, invitation_code },
       { withCredentials: true }
     );
     localStorage.setItem('isAuthenticated', 'true');
@@ -37,10 +37,52 @@ export const register = async (username, email, password) => {
   }
 };
 
+export const validateInvitationCode = async (code, email) => {
+  try {
+    const url = `${API_URL}/invitations/validate/${code}` + (email ? `?email=${email}` : '');
+    const response = await axios.get(url);
+    return { valid: true, data: response.data };
+  } catch (error) {
+    return { valid: false, error: error.response?.data?.detail || 'Invalid code' };
+  }
+};
+
+export const isAdmin = async () => {
+  const cachedAdminStatus = localStorage.getItem('isAdmin');
+
+  // Return cached result if available and not expired (cache for 1 minute)
+  if (cachedAdminStatus) {
+    const { isAdmin, timestamp } = JSON.parse(cachedAdminStatus);
+    const cacheAge = Date.now() - timestamp;
+    if (cacheAge < 60000) { // 1 minute in milliseconds
+      return isAdmin;
+    }
+  }
+
+  try {
+    const response = await axios.get(`${API_URL}/auth/is-admin`, { 
+      withCredentials: true,
+      timeout: 5000 // 5 second timeout
+    });
+    console.log("RESPONSE: ", response.data)
+    // Cache the result with a timestamp
+    localStorage.setItem('isAdmin', JSON.stringify({
+      isAdmin: response.data,
+      timestamp: Date.now()
+    }));
+
+    return response.data;
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+};
+
 export const logout = async () => {
   try {
     await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
     localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('isAdmin'); // Clear admin status on logout
   } catch (error) {
     console.error('Logout failed:', error);
   }

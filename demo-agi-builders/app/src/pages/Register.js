@@ -1,26 +1,73 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { register } from '../utils/auth';
-import { HelpCircle, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { register, validateInvitationCode } from '../utils/auth';
+import { HelpCircle, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 
 
 export default function Register() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [invitationCode, setInvitationCode] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [invitationValid, setInvitationValid] = useState(null);
+  const [validatingCode, setValidatingCode] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Extract invitation code from URL if present
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const code = params.get('code');
+    if (code) {
+      setInvitationCode(code);
+    }
+  }, [location]);
+
+  // Function to validate code (will be used during form submission)
+  const validateCode = async (code) => {
+    if (!code) {
+      return { valid: false, error: 'Invitation code is required' };
+    }
+
+    try {
+      return await validateInvitationCode(code, email || undefined);
+    } catch (error) {
+      return { valid: false, error: 'Error validating invitation code' };
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
+    if (!invitationCode) {
+      setError('Invitation code is required');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate invitation code at submission time
+    setValidatingCode(true);
+    const validationResult = await validateCode(invitationCode);
+    setValidatingCode(false);
+
+    if (!validationResult.valid) {
+      setInvitationValid(false);
+      setError(validationResult.error || 'Invalid invitation code');
+      setIsLoading(false);
+      return;
+    }
+
+    setInvitationValid(true);
+
     try {
-      await register(username, email, password);
+      await register(username, email, password, invitationCode);
       navigate('/');
+      return;
     } catch (error) {
       if (error.response) {
         if (error.response.status === 422) {
@@ -92,6 +139,40 @@ export default function Register() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
+            </div>
+            <div className="relative">
+              <label htmlFor="invitationCode" className="sr-only">
+                Invitation Code
+              </label>
+              <div className="flex items-center">
+                <input
+                  id="invitationCode"
+                  name="invitationCode"
+                  type="text"
+                  required
+                  className={`appearance-none relative block w-full px-3 py-2 border ${
+                    invitationValid === true ? 'border-green-500' :
+                    invitationValid === false ? 'border-red-500' :
+                    'border-gray-300'
+                  } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
+                  placeholder="Invitation Code"
+                  value={invitationCode}
+                  onChange={(e) => setInvitationCode(e.target.value)}
+                />
+                <span className="ml-2">
+                  {validatingCode ? (
+                    <span className="text-gray-400 animate-spin">⟳</span>
+                  ) : invitationValid === true ? (
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                  ) : invitationValid === false ? (
+                    <XCircle className="h-5 w-5 text-red-500" />
+                  ) : null}
+                </span>
+              </div>
+              {console.log('invitationValid', invitationValid)}
+              {invitationValid === false && (
+                <p className="text-red-500 text-xs mt-1">Invalid invitation code</p>
+              )}
             </div>
             <div className="relative">
               <label htmlFor="password" className="sr-only">

@@ -2,6 +2,8 @@ import os
 import jwt
 import logging
 import requests
+import uuid
+from typing import Optional
 
 from dto.models import User as UserModel
 from passlib.context import CryptContext
@@ -10,6 +12,8 @@ from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException, status, Response
 from itsdangerous import URLSafeTimedSerializer
 from services.user_services import get_user
+from services.invitation_services import validate_invitation, mark_invitation_used
+from dto.schemas import UserRegister, InvitationCreate
 
 
 ALGORITHM = "HS256"
@@ -40,6 +44,13 @@ class HTTPInvalidTokenError(HTTPException):
             detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+def _should_be_admin(email: str):
+    print("ADMIN EMAIL: ", os.getenv("ADMIN_EMAIL", "@laneo.io"))
+    print("EMAIL: ", email)
+    print("ENDING WITH: ", email.endswith(os.getenv("ADMIN_EMAIL", "@laneo.io")))
+    return email.endswith(os.getenv("ADMIN_EMAIL", "@laneo.io"))
 
 
 def get_hash(password):
@@ -83,8 +94,18 @@ async def get_current_user(token: str) -> UserModel:
     return user
 
 
-def get_google_userinfo(google_access_token: str):
+async def check_is_admin(user: UserModel) -> bool:
+    """Check if a user is an admin, raise exception if not."""
+    print("USER IS ADMIN: ", user.is_admin)
+    if not user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You need admin privileges for this action"
+        )
+    return True
 
+
+def get_google_userinfo(google_access_token: str):
     response = requests.get(
         "https://www.googleapis.com/oauth2/v1/userinfo",
         headers={"Authorization": f"Bearer {google_access_token}"},
@@ -98,7 +119,7 @@ def get_google_userinfo(google_access_token: str):
     return response.json()
 
 
-async def auth_google_callback(code: str, response: Response):
+async def auth_google_callback(code: str, response: Response, invitation_code: Optional[str] = None):
     token_url = "https://accounts.google.com/o/oauth2/token"
 
     data = {
@@ -122,10 +143,35 @@ async def auth_google_callback(code: str, response: Response):
 
     if user is None:
 
+        if _should_be_admin(user_info["email"]):
+            from services.invitation_services import create_invitation # avoid circular import
+            invitation_code = await create_invitation(
+                invitation=InvitationCreate(
+                    email=user_info["email"],
+                    expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
+                ),
+                created_by_id=None,
+            ).code
+
+        # For new users, we need a valid invitation code
+        if not invitation_code:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invitation code required for registration"
+            )
+
+        # Validate the invitation code
+        invitation = await validate_invitation(invitation_code, user_info["email"])
+
+        # Create the user
         user = await UserModel.create(
             username=user_info["name"],
             email=user_info["email"],
+            is_admin=_should_be_admin(user_info["email"]),
         )
+
+        # Mark the invitation as used
+        await mark_invitation_used(invitation, user.id)
 
     # Create JWT access token
     jwt_token = create_access_token(data={
@@ -133,12 +179,12 @@ async def auth_google_callback(code: str, response: Response):
     })
 
     print("REDIRECTING TO: ", f"{os.getenv('APP_URL')}/auth/google/callback?token={jwt_token}")
-    response = RedirectResponse(
+    redirect_response = RedirectResponse(
         url=f"{os.getenv('APP_URL')}/auth/google/callback?token={jwt_token}"
     )
-    set_auth_cookie(response, jwt_token)
+    set_auth_cookie(redirect_response, jwt_token)
 
-    return response
+    return redirect_response
 
 
 async def refresh_google_token(refresh_token):

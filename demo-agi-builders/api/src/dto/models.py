@@ -1,5 +1,5 @@
-from enum import Enum
-from datetime import datetime
+import os
+
 from tortoise import fields, models
 from .schemas import TestStatus, SeverityLevel, TestCategory, Epic as EpicSchema, User as UserSchema, UserPrivate as UserPrivateSchema
 
@@ -10,26 +10,31 @@ class User(models.Model):
     username = fields.CharField(max_length=255, unique=False)
     email = fields.CharField(max_length=255, unique=True)
     created_at = fields.DatetimeField(auto_now_add=True)
+    is_admin = fields.BooleanField(default=False)
 
-    async def to_schema(self, user_id: int | None = None) -> UserSchema:
-
-        if user_id is None or user_id == self.id:
-            schema = UserSchema(
-                id=self.id,
-                username=self.username,
-                email=self.email,
-                created_at=self.created_at,
-            )
-        else:
-            schema = UserPrivateSchema(
-                id=self.id,
-                username=self.username,
-            )
-
-        return schema
+    # Relations
+    created_invitations = fields.ReverseRelation["Invitation"]
+    used_invitation = fields.ReverseRelation["Invitation"]
 
     class Meta:
         table = "users"
+
+
+class Invitation(models.Model):
+    id = fields.UUIDField(pk=True)
+    code = fields.CharField(max_length=36, unique=True)
+    email = fields.CharField(max_length=255, null=True)
+    created_at = fields.DatetimeField(auto_now_add=True)
+    expires_at = fields.DatetimeField(null=True)
+    used = fields.BooleanField(default=False)
+    used_at = fields.DatetimeField(null=True)
+
+    # Relations
+    created_by = fields.ForeignKeyField('models.User', related_name='created_invitations', null=True)
+    used_by = fields.ForeignKeyField('models.User', related_name='used_invitation', null=True)
+
+    class Meta:
+        table = "invitations"
 
 
 class Product(models.Model):

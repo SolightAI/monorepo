@@ -11,9 +11,17 @@ router = APIRouter(prefix="/auth")
 
 
 @router.get("/login/google")
-async def login_google():
+async def login_google(invitation_code: str = None):
+    state = ""
+    if invitation_code:
+        import json
+        import base64
+        # Encode the invitation code in a state parameter
+        state_data = {"invitation_code": invitation_code}
+        state = f"&state={base64.urlsafe_b64encode(json.dumps(state_data).encode()).decode()}"
+    
     return {
-        "url": f"https://accounts.google.com/o/oauth2/auth?response_type=code&client_id={os.getenv('GOOGLE_CLIENT_ID')}&redirect_uri={os.getenv('GOOGLE_REDIRECT_URI')}&scope=openid%20profile%20email&access_type=offline"
+        "url": f"https://accounts.google.com/o/oauth2/auth?response_type=code&client_id={os.getenv('GOOGLE_CLIENT_ID')}&redirect_uri={os.getenv('GOOGLE_REDIRECT_URI')}&scope=openid%20profile%20email&access_type=offline{state}"
     }
 
 
@@ -27,8 +35,19 @@ async def refresh_google_token(params: RefreshTokenRequest):
 
 
 @router.get("/google/callback")
-async def auth_google(code: str, response: Response):
-    return await auth_services.auth_google_callback(code=code, response=response)
+async def auth_google(code: str, state: str = None, response: Response = None):
+    invitation_code = None
+    if state:
+        try:
+            import json
+            import base64
+            state_data = json.loads(base64.urlsafe_b64decode(state).decode())
+            invitation_code = state_data.get("invitation_code")
+        except Exception:
+            # If state parsing fails, continue without invitation code
+            pass
+
+    return await auth_services.auth_google_callback(code=code, response=response, invitation_code=invitation_code)
 
 
 @router.post("/confirm/new")
@@ -44,3 +63,8 @@ async def confirm(token: str, current_user: User = Depends(get_current_user)):
 @router.post("/logout")
 async def logout(response: Response):
     return await auth_services.logout(response)
+
+
+@router.get("/is-admin")
+async def is_admin(current_user: User = Depends(get_current_user)):
+    return await auth_services.check_is_admin(current_user)

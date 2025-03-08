@@ -13,10 +13,39 @@ class UserPrivate(BaseModel):
 class User(UserPrivate):
     email: str
     created_at: datetime
+    is_admin: bool = False
 
     def to_user_private(self) -> UserPrivate:
-        user_dict = self.model_dump(exclude={"email", "created_at"})
+        user_dict = self.model_dump(exclude={"email", "created_at", "is_admin"})
         return UserPrivate(**user_dict)
+
+
+class InvitationBase(BaseModel):
+    email: Optional[str] = None
+    expires_at: Optional[datetime] = None
+
+
+class InvitationCreate(InvitationBase):
+    pass
+
+
+class Invitation(InvitationBase):
+    id: UUID4
+    code: str
+    created_at: datetime
+    created_by_id: Optional[int] = None
+    used: bool
+    used_at: Optional[datetime] = None
+    used_by_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+
+class UserRegister(BaseModel):
+    username: str
+    email: str
+    invitation_code: str
 
 
 class TokenData(BaseModel):

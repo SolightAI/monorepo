@@ -261,11 +261,26 @@ const Notifications = () => {
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('profile');
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate(-1); // Navigate back to the previous page
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4">
-      <h1 className="text-3xl font-bold mb-6">Settings</h1>
-      
+      <div className="flex items-center mb-6">
+        <button
+          onClick={handleBack}
+          className="mr-4 text-gray-600 hover:text-gray-900 focus:outline-none"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+        </button>
+        <h1 className="text-3xl font-bold">Settings</h1>
+      </div>
+
       <div className="flex border-b border-gray-200 mb-6">
         <button
           className={`py-2 px-4 font-medium ${activeTab === 'profile' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}

@@ -8,6 +8,7 @@ from endpoints.user_story_endpoints import router as user_story_router
 from endpoints.test_endpoints import router as test_router
 from endpoints.bug_endpoints import router as bug_router
 from endpoints.acceptance_criteria_endpoints import router as acceptance_criteria_router
+from endpoints.invitation_endpoints import router as invitation_router
 from fastapi.middleware.cors import CORSMiddleware
 from tortoise.contrib.fastapi import RegisterTortoise
 from contextlib import asynccontextmanager
@@ -45,3 +46,4 @@ app.include_router(user_story_router)
 app.include_router(acceptance_criteria_router)
 app.include_router(test_router)
 app.include_router(bug_router)
+app.include_router(invitation_router)
