@@ -145,13 +145,13 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
 
         if _should_be_admin(user_info["email"]):
             from services.invitation_services import create_invitation # avoid circular import
-            invitation_code = await create_invitation(
+            invitation_code = (await create_invitation(
                 invitation=InvitationCreate(
                     email=user_info["email"],
                     expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
                 ),
                 created_by_id=None,
-            ).code
+            )).code
 
         # For new users, we need a valid invitation code
         if not invitation_code:
