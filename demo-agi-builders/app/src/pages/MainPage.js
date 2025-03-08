@@ -237,13 +237,6 @@ function MainPage() {
     )
   })
 
-  // Add this new function to reset the onboarding flow
-  const resetOnboarding = () => {
-    localStorage.removeItem('onboardingCompleted');
-    localStorage.removeItem('userData');
-    window.location.reload();
-  };
-
   // Navigate to settings page
   const goToSettings = () => {
     navigate('/settings');
@@ -306,17 +299,8 @@ function MainPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Laneo</h1>
-          
-          <div className="flex space-x-2">
-            {/* Status button */}
-            <button
-              onClick={resetOnboarding}
-              className="bg-gray-200 text-gray-700 px-3 py-1 text-sm rounded-md hover:bg-gray-300 focus:outline-none"
-              title="Reset onboarding flow for demo purposes"
-            >
-              Status
-            </button>
 
+          <div className="flex space-x-2">
             {/* Settings button */}
             <button
               onClick={goToSettings}
