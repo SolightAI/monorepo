@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 function BugDetailsModal({ bug, onClose, isRestricted }) {
   const [selectedScreenshot, setSelectedScreenshot] = useState(null);
@@ -130,7 +131,7 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
           {/* Description */}
           <div className="mb-6">
             <h3 className="text-sm font-medium text-gray-900 mb-2">Description</h3>
-            <p className="text-sm text-gray-600">{bug.description}</p>
+            <ReactMarkdown>{bug.description}</ReactMarkdown>
           </div>
 
           {/* Steps to Reproduce */}

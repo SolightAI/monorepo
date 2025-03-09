@@ -104,11 +104,11 @@ function AiDetectedBugs({ bugs }) {
           </div>
         </div>
       )}
-      
+
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">AI-Detected Bugs</h2>
-        <div className="flex gap-2">
-          <select 
+        {userIsAuthenticated && <div className="flex gap-2">
+          <select
             className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
@@ -119,7 +119,7 @@ function AiDetectedBugs({ bugs }) {
             <option>Sort by Status</option>
             <option>Sort by Category</option>
           </select>
-        </div>
+        </div>}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
