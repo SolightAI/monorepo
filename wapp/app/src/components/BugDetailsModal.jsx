@@ -142,7 +142,13 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
           {/* Description */}
           <div className="mb-6">
             <h3 className="text-sm font-medium text-gray-900 mb-2">Description</h3>
-            <ReactMarkdown>{bug.description}</ReactMarkdown>
+            <ReactMarkdown
+              components={{
+                p: ({ node, ...props }) => <p className="text-sm text-gray-600" {...props} />
+              }}
+            >
+              {bug.description}
+            </ReactMarkdown>
           </div>
 
           {/* Steps to Reproduce */}

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react"
+import ReactMarkdown from 'react-markdown'
 import BugDetailsModal from "./BugDetailsModal"
 import ContactFormModal from "./ContactFormModal"
 
@@ -183,14 +184,24 @@ function AiDetectedBugs({ bugs }) {
               </div>
 
               {!isRestricted ? (
-                <p className="text-sm text-gray-600 mb-3">{bug.description}</p>
+                <ReactMarkdown
+                  components={{
+                    p: ({ node, ...props }) => <p className="text-sm text-gray-600 mb-3" {...props} />
+                  }}
+                >
+                  {bug.description}
+                </ReactMarkdown>
               ) : (
                 <div className="relative">
-                  <p className="text-sm text-gray-400 mb-3 blur-sm select-none">
+                  <ReactMarkdown
+                    components={{
+                      p: ({ node, ...props }) => <p className="text-sm text-gray-400 mb-3 blur-sm select-none" {...props} />
+                    }}
+                  >
                     {bug.description.length > 100
                       ? bug.description.substring(0, 100) + "..."
                       : bug.description}
-                  </p>
+                  </ReactMarkdown>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-md flex items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
