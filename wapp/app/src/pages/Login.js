@@ -41,7 +41,7 @@ export default function Login() {
   // Extract code from URL query parameters and check for messages from redirects
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const codeFromUrl = params.get('code');
+    const codeFromUrl = params.get('invitation_code');
     if (codeFromUrl) {
       setInvitationCode(codeFromUrl);
       fetchGoogleAuthUrl(codeFromUrl);
@@ -172,7 +172,7 @@ export default function Login() {
                 </button>
               </div>
 
-              <div className={`mt-4 ${highlightInvitationCode ? 'animate-pulse' : ''}`}>
+              {(highlightInvitationCode || invitationCode) && <div className={`mt-4 pt-2 ${highlightInvitationCode ? 'animate-pulse' : ''}`}>
                 <label htmlFor="invitationCode" className="block text-sm font-medium text-gray-700">
                   Invitation Code {highlightInvitationCode && <span className="text-red-500">*</span>}
                 </label>
@@ -197,7 +197,7 @@ export default function Login() {
                     An invitation code is required for new user registration.
                   </p>
                 )}
-              </div>
+              </div>}
             </div>
 
             {error && (

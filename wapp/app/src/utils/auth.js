@@ -60,11 +60,10 @@ export const isAdmin = async () => {
   }
 
   try {
-    const response = await axios.get(`${API_URL}/auth/is-admin`, { 
+    const response = await axios.get(`${API_URL}/auth/is-admin`, {
       withCredentials: true,
       timeout: 5000 // 5 second timeout
     });
-    console.log("RESPONSE: ", response.data)
     // Cache the result with a timestamp
     localStorage.setItem('isAdmin', JSON.stringify({
       isAdmin: response.data,

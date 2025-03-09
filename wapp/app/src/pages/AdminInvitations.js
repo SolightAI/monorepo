@@ -118,7 +118,7 @@ export default function AdminInvitations() {
 
   // Generate invitation link
   const generateInvitationLink = (code) => {
-    return `${window.location.origin}/register?invitation_code=${code}`;
+    return `${window.location.origin}/login?invitation_code=${code}`;
   };
 
   // Send invitation email

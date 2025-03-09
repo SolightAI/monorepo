@@ -20,7 +20,7 @@ export default function Register() {
   // Extract invitation code from URL if present
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const code = params.get('code');
+    const code = params.get('invitation_code');
     if (code) {
       setInvitationCode(code);
     }
