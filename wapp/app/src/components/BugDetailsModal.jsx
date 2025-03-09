@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import ContactFormModal from './ContactFormModal';
 
 function BugDetailsModal({ bug, onClose, isRestricted }) {
   const [selectedScreenshot, setSelectedScreenshot] = useState(null);
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [ticketCreated, setTicketCreated] = useState(false);
+  const [showContactForm, setShowContactForm] = useState(false);
 
   // Add useEffect hook to handle escape key
   useEffect(() => {
@@ -44,6 +46,16 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
     }, 1500);
   };
 
+  // Function to handle opening the contact form
+  const handleUpgradeClick = () => {
+    setShowContactForm(true);
+  };
+
+  // Function to handle closing the contact form
+  const handleContactFormClose = () => {
+    setShowContactForm(false);
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg w-[800px] max-h-[90vh] overflow-y-auto">
@@ -61,7 +73,6 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
             </span>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{bug.title}</h2>
-              {console.log(bug)}
               {bug.url && (
                 <a
                   href={bug.url}
@@ -169,54 +180,75 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
           </div> */}
 
           {/* Jira Ticket Section */}
-          {!isRestricted && (
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-900 mb-2">Jira Ticket</h3>
-              {true ? (
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-gray-900 mb-2">Issue Tracking</h3>
+            {isRestricted ? (
+              <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
                 <div className="flex items-center">
                   <span className="mr-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                     </svg>
                   </span>
-                  <a 
-                    href={bug.jiraTicket?.url || "https://your-jira-instance.atlassian.net/browse/PROJ-123"}
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
-                  >
-                    {bug.jiraTicket?.key || "PROJ-244"}: {bug.jiraTicket?.summary || bug.title}
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
+                  <p className="text-sm text-gray-700">
+                    Upgrade to connect bugs directly to <span className="font-medium">Jira</span>, <span className="font-medium">Notion</span>, or <span className="font-medium">Linear</span> for streamlined issue tracking.
+                  </p>
                 </div>
-              ) : (
-                <button
-                  onClick={createJiraTicket}
-                  disabled={isCreatingTicket}
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                <button 
+                  onClick={handleUpgradeClick}
+                  className="mt-3 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
-                  {isCreatingTicket ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Creating ticket...
-                    </>
-                  ) : (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      Add to Jira
-                    </>
-                  )}
+                  Upgrade Now
                 </button>
-              )}
-            </div>
-          )}
+              </div>
+            ) : (
+              <div>
+                {true ? (
+                  <div className="flex items-center">
+                    <span className="mr-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </span>
+                    <a
+                      href={bug.jiraTicket?.url || "https://your-jira-instance.atlassian.net/browse/PROJ-123"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
+                    >
+                      {bug.jiraTicket?.key || "PROJ-244"}: {bug.jiraTicket?.summary || bug.title}
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </div>
+                ) : (
+                  <button
+                    onClick={createJiraTicket}
+                    disabled={isCreatingTicket}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isCreatingTicket ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Creating ticket...
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add to Jira
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Screenshots */}
           <div>
@@ -265,6 +297,15 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
             />
           </div>
         </div>
+      )}
+
+      {/* Contact Form Modal */}
+      {showContactForm && (
+        <ContactFormModal 
+          onClose={handleContactFormClose}
+          prefilledSubject="Upgrade Request: Issue Tracking Integration"
+          prefilledMessage="I'm interested in integrating issue tracking with my bug reports."
+        />
       )}
     </div>
   )

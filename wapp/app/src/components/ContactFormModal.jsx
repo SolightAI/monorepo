@@ -138,7 +138,7 @@ function ContactFormModal({ onClose }) {
               </p>
 
               <div className="mb-6">
-                <div className="flex items-center mb-4">
+                {/* <div className="flex items-center mb-4">
                   <div className="text-center bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center mr-2">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
@@ -148,10 +148,10 @@ function ContactFormModal({ onClose }) {
                   <p className="text-sm font-medium text-gray-600">
                     You've discovered premium content!
                   </p>
-                </div>
+                </div> */}
                 
                 <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  Why top development teams choose Laneo Premium:
+                  Why top development teams choose Laneo:
                 </h3>
                 
                 <div className="mb-5 space-y-3">
@@ -177,7 +177,7 @@ function ContactFormModal({ onClose }) {
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
                     </div>
-                    <p className="ml-2 text-gray-700"><span className="font-semibold">Automated fix suggestions</span> to save hundreds of developer hours</p>
+                    <p className="ml-2 text-gray-700"><span className="font-semibold">Automated fix suggestions</span> saving hundreds of developer hours</p>
                   </div>
                   <div className="flex items-start">
                     <div className="flex-shrink-0 h-5 w-5 mt-0.5 text-indigo-600">
