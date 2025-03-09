@@ -10,7 +10,7 @@ import NotFound from './pages/NotFound';
 import Layout from './components/Layout';
 import Settings from './pages/Settings';
 import AdminInvitations from './pages/AdminInvitations';
-import { isAdmin } from './utils/auth';
+import { isAdmin, setupAxiosInterceptors } from './utils/auth';
 
 const isAuthenticated = () => {
   return localStorage.getItem('isAuthenticated') === 'true';
@@ -71,6 +71,9 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
+    // Set up axios interceptors for handling auth errors
+    setupAxiosInterceptors();
+
     // Check if the user has completed onboarding before
     const hasCompletedOnboarding = localStorage.getItem('onboardingCompleted');
     if (!hasCompletedOnboarding) {

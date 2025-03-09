@@ -93,10 +93,30 @@ export const setupAxiosInterceptors = () => {
   axios.interceptors.response.use(
     (response) => response,
     async (error) => {
-      if (error.response && error.response.status === 401 && error.config && !error.config.__isRetryRequest) {
-        localStorage.removeItem('isAuthenticated');
-        window.location.href = '/login';
+      if (error.response) {
+        // If the error is an authentication error, redirect to login
+        if (error.response.status === 401 && error.config && !error.config.__isRetryRequest) {
+          localStorage.removeItem('isAuthenticated');
+          window.location.href = '/login';
+        }
+        
+        // Handle invitation code errors
+        if (error.response.status === 400 && 
+            error.response.data && 
+            error.response.data.detail && 
+            error.response.data.detail.includes('Invitation code required')) {
+          
+          // If the error occurred during a Google auth flow
+          if (error.config.url.includes('/auth/google')) {
+            // We'll let the GoogleCallback component handle this
+            return Promise.reject(error);
+          }
+          
+          // For other API calls, redirect to login with error message
+          window.location.href = '/login?error=invitation_required&error_description=Invitation code required for registration';
+        }
       }
+      
       return Promise.reject(error);
     }
   );

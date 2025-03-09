@@ -134,7 +134,10 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
 
     if token_response.status_code != 200:
         logging.warning(f"Received non-200 status code on google callback: {token_response.status_code=} {token_response.text=}")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect Google credentials")
+        redirect_response = RedirectResponse(
+            url=f"{os.getenv('APP_URL')}/auth/google/callback?error=auth_failed&error_description=Google authentication failed"
+        )
+        return redirect_response
 
     google_access_token = token_response.json().get("access_token")
     user_info = get_google_userinfo(google_access_token=google_access_token)
@@ -155,13 +158,20 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
 
         # For new users, we need a valid invitation code
         if not invitation_code:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invitation code required for registration"
+            # Instead of throwing an exception, redirect to the frontend with error params
+            redirect_response = RedirectResponse(
+                url=f"{os.getenv('APP_URL')}/auth/google/callback?error=invitation_required&error_description=Invitation code required for registration"
             )
+            return redirect_response
 
         # Validate the invitation code
-        invitation = await validate_invitation(invitation_code, user_info["email"])
+        try:
+            invitation = await validate_invitation(invitation_code, user_info["email"])
+        except Exception as e:
+            redirect_response = RedirectResponse(
+                url=f"{os.getenv('APP_URL')}/auth/google/callback?error=invitation_invalid&error_description={str(e)}"
+            )
+            return redirect_response
 
         # Create the user
         user = await UserModel.create(

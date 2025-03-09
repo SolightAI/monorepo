@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { login } from '../utils/auth';
-import { HelpCircle, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL;
@@ -17,6 +17,8 @@ export default function Login() {
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState('');
   const [googleAuthUrl, setGoogleAuthUrl] = useState('');
   const [invitationCode, setInvitationCode] = useState('');
+  const [highlightInvitationCode, setHighlightInvitationCode] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -36,19 +38,37 @@ export default function Login() {
     }
   }, [invitationCode]);
 
-  // Extract code from URL query parameters
+  // Extract code from URL query parameters and check for messages from redirects
   useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
-    const codeFromUrl = queryParams.get('invitation_code');
-
+    const params = new URLSearchParams(window.location.search);
+    const codeFromUrl = params.get('code');
     if (codeFromUrl) {
       setInvitationCode(codeFromUrl);
-      // Immediately fetch Google auth URL with this invitation code
       fetchGoogleAuthUrl(codeFromUrl);
     } else {
       fetchGoogleAuthUrl();
     }
-  }, [location, fetchGoogleAuthUrl]);
+
+    // Check for error messages in location state (from GoogleCallback)
+    if (location.state && location.state.message) {
+      setNotificationMessage(location.state.message);
+
+      // If the error is related to invitation code, highlight that field
+      if (location.state.requiresInvitationCode) {
+        setHighlightInvitationCode(true);
+      }
+
+      // Clear the location state to prevent showing the message again on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+
+      // Hide the notification after 5 seconds
+      const timer = setTimeout(() => {
+        setNotificationMessage('');
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [fetchGoogleAuthUrl, location, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -80,6 +100,25 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
+      {notificationMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 max-w-md w-full bg-amber-100 border border-amber-200 text-amber-800 px-4 py-3 rounded-md shadow-md flex items-center justify-between z-50">
+          <div className="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <p>{notificationMessage}</p>
+          </div>
+          <button
+            onClick={() => setNotificationMessage('')}
+            className="text-amber-800 hover:text-amber-900"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
         <div>
           <h1 className="text-5xl font-bold text-center text-gray-900">Laneo</h1>
@@ -133,34 +172,32 @@ export default function Login() {
                 </button>
               </div>
 
-              {invitationCode && <div className="mt-3">
-                <label htmlFor="invitationCode" className="sr-only">
-                  Invitation Code (optional)
+              <div className={`mt-4 ${highlightInvitationCode ? 'animate-pulse' : ''}`}>
+                <label htmlFor="invitationCode" className="block text-sm font-medium text-gray-700">
+                  Invitation Code {highlightInvitationCode && <span className="text-red-500">*</span>}
                 </label>
                 <input
                   id="invitationCode"
                   name="invitationCode"
                   type="text"
-                  className={`appearance-none rounded relative block w-full px-3 py-2 border ${
-                    location.search.includes('invitation_code=')
-                      ? 'border-green-300 bg-green-50'
-                      : 'border-gray-300'
-                  } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
-                  placeholder="Invitation Code (optional)"
                   value={invitationCode}
                   onChange={(e) => {
-                    const newCode = e.target.value;
-                    setInvitationCode(newCode);
-                    // Update Google auth URL when invitation code changes
-                    fetchGoogleAuthUrl(newCode);
+                    setInvitationCode(e.target.value);
+                    setHighlightInvitationCode(false);
                   }}
+                  className={`mt-1 block w-full px-3 py-2 border ${
+                    highlightInvitationCode
+                      ? 'border-red-500 ring-1 ring-red-500'
+                      : 'border-gray-300'
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                  placeholder="Enter invitation code if you have one"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  {location.search.includes('invitation_code=')
-                    ? 'Invitation code detected from URL.'
-                    : 'Required for new users. Also applies to Google Sign In.'}
-                </p>
-              </div>}
+                {highlightInvitationCode && (
+                  <p className="mt-1 text-sm text-red-600">
+                    An invitation code is required for new user registration.
+                  </p>
+                )}
+              </div>
             </div>
 
             {error && (
