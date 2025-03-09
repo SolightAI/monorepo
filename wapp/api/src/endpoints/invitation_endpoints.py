@@ -11,7 +11,7 @@ from services.invitation_services import (
 )
 from services.auth_services import check_is_admin
 from dependencies import get_current_user
-from dto.schemas import User
+from dto.models import User
 
 
 router = APIRouter(prefix="/invitations", tags=["invitations"])

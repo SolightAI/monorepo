@@ -69,7 +69,7 @@ async def get_invitation_by_code(code: str) -> Invitation:
     return invitation
 
 
-async def get_all_invitations() -> List[Invitation]:
+async def get_all_invitations() -> List[InvitationModel]:
     """Get all invitations."""
     return await InvitationModel.all().prefetch_related('created_by', 'used_by')
 
