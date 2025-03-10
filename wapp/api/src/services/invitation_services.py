@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Optional, List
 from fastapi import HTTPException, status
 from dto.models import Invitation as InvitationModel
-from dto.schemas import Invitation, InvitationCreate
+from dto.schemas import InvitationCreate
 from uuid import uuid4
 
 
@@ -20,7 +20,7 @@ def generate_unique_code(length: int = 10) -> str:
 async def create_invitation(
     invitation: InvitationCreate,
     created_by_id: Optional[int] = None,
-) -> Invitation:
+) -> InvitationModel:
     """Create a new invitation."""
 
     # Generate a unique code
@@ -45,7 +45,7 @@ async def create_invitation(
     return await get_invitation(invitation_obj.id)
 
 
-async def get_invitation(invitation_id: uuid.UUID) -> Invitation:
+async def get_invitation(invitation_id: uuid.UUID) -> InvitationModel:
     """Get an invitation by ID."""
     invitation = await InvitationModel.get_or_none(id=invitation_id)
     if not invitation:
@@ -57,7 +57,7 @@ async def get_invitation(invitation_id: uuid.UUID) -> Invitation:
     return invitation
 
 
-async def get_invitation_by_code(code: str) -> Invitation:
+async def get_invitation_by_code(code: str) -> InvitationModel:
     """Get an invitation by code."""
     invitation = await InvitationModel.get_or_none(code=code)
     if not invitation:
