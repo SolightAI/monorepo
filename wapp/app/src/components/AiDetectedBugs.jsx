@@ -152,16 +152,16 @@ function AiDetectedBugs({ bugs }) {
                     {!isRestricted ? (
                       <>
                         <h3 className="font-medium text-gray-900">{bug.title}</h3>
-                        <p className="text-sm text-gray-600 mt-1">
+                        {/* <p className="text-sm text-gray-600 mt-1">
                           {bug.page} • {bug.category}
-                        </p>
+                        </p> */}
                       </>
                     ) : (
                       <>
                         <h3 className="font-medium text-gray-400 blur-sm select-none">Bug #{index + 1}</h3>
-                        <p className="text-sm text-gray-400 blur-sm select-none mt-1">
+                        {/* <p className="text-sm text-gray-400 blur-sm select-none mt-1">
                           {bug.page} • {bug.category}
-                        </p>
+                        </p> */}
                       </>
                     )}
                   </div>
