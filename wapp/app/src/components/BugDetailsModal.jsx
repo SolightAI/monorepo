@@ -73,21 +73,8 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
             </span>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{bug.title}</h2>
-              {bug.url && (
-                <a
-                  href={bug.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center mt-1 text-sm font-medium text-blue-600 hover:text-blue-800"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                  View bug
-                </a>
-              )}
               <p className="text-sm text-gray-500 mt-1">
-                Bug ID: BUG-{String(bug.id).padStart(3, "0")} • Detected on {bug.detectedAt}
+                BUG-{String(bug.id).padStart(3, "0")} • Detected on {bug.detectedAt}
               </p>
             </div>
           </div>
@@ -105,14 +92,14 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
         <div className="px-6 pb-6">
           {/* Info Grid */}
           <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
+            {/* <div>
               <h3 className="text-sm font-medium text-gray-500">Page</h3>
               <p className="mt-1 text-sm text-gray-900">{bug.page}</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-500">Category</h3>
               <p className="mt-1 text-sm text-gray-900">{bug.category}</p>
-            </div>
+            </div> */}
             <div>
               <h3 className="text-sm font-medium text-gray-500">Severity</h3>
               <span
@@ -131,12 +118,28 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
                 {bug.severity}
               </span>
             </div>
-            <div>
+            {bug.url && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Page</h3>
+                <a
+                  href={bug.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center mt-1 text-sm font-medium text-blue-600 hover:text-blue-800"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  View bug
+                </a>
+              </div>
+            )}
+            {/* <div>
               <h3 className="text-sm font-medium text-gray-500">Status</h3>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1">
                 In Progress
               </span>
-            </div>
+            </div> */}
           </div>
 
           {/* Description */}
