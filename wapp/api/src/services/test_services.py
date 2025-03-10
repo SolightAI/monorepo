@@ -2,9 +2,10 @@ from fastapi import HTTPException
 from dto.models import Test as TestModel
 from dto.schemas import TestCreate as TestCreateSchema, TestStatus
 from typing import List
+from uuid import UUID
 
 
-async def get_test(test_id: str) -> TestModel:
+async def get_test(test_id: UUID) -> TestModel:
     test = await TestModel.get_or_none(id=test_id).prefetch_related("bugs")
 
     if not test:
