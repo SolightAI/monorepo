@@ -120,6 +120,6 @@ async def mark_invitation_used(invitation: InvitationModel, user_id: int) -> Inv
     return invitation
 
 
-async def delete_invitation(invitation_id: uuid.UUID) -> None:
+async def delete_invitation(invitation_id: uuid.UUID | str) -> None:
     """Delete an invitation."""
     await InvitationModel.filter(id=invitation_id).delete()
