@@ -107,7 +107,8 @@ function App() {
           <Route path="/" element={<ProtectedRoute><MainPage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/admin/invitations" element={<AdminRoute><AdminInvitations /></AdminRoute>} />
-          <Route path="/the-predictive-index" element={<MainPage />} />
+          {/* Dynamic route for product paths */}
+          <Route path="/:productPath" element={<MainPage />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

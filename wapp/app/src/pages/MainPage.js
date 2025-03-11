@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from "react"
 import axios from "axios"
-import { useLocation, useNavigate } from "react-router-dom"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
 import TestResultsTable from "../components/TestResultsTable"
 import MetricsCards from "../components/MetricsCards"
 import FilterControls from "../components/FilterControls"
 import AddTestModal from "../components/AddTestModal"
 import AiDetectedBugs from "../components/AiDetectedBugs"
+import NotFound from "../pages/NotFound"
 
 // Base API URL - should be set in environment variable
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000"
@@ -50,15 +51,20 @@ function MainPage() {
     status: "All Statuses",
     type: "All Types",
   })
+  const [productInfo, setProductInfo] = useState(null)
+  const [productNotFound, setProductNotFound] = useState(false)
 
   // Check if user is authenticated
   const userIsAuthenticated = useMemo(() => isAuthenticated(), []);
 
-  // Get the current location to check the path
+  // Get the current location and params
   const location = useLocation()
   const navigate = useNavigate()
-  const shouldShowData = location.pathname === "/the-predictive-index"
+  const { productPath } = useParams()
 
+  // Determine if we should show product-specific data
+  const shouldShowData = productPath !== undefined
+  
   // Check for redirect messages (like when redirected from admin routes)
   const [notificationMessage, setNotificationMessage] = useState("");
 
@@ -84,12 +90,32 @@ function MainPage() {
     const fetchData = async () => {
       setLoading(true)
       setError(null)
+      setProductNotFound(false)
 
       try {
-        // Only fetch real data if we're on the specified path
+        // Only fetch data if a product path is specified
         if (shouldShowData) {
-          // Fetch tests
-          const testsResponse = await axios.get(`${API_URL}/tests/`)
+          // Try to get product information first
+          try {
+            const productResponse = await axios.get(`${API_URL}/products/by-path/${productPath}`)
+            if (productResponse.data) {
+              setProductInfo(productResponse.data)
+            } else {
+              // No product found for this path
+              setProductNotFound(true)
+              setLoading(false)
+              return
+            }
+          } catch (err) {
+            console.warn("Could not fetch product info:", err)
+            setProductNotFound(true)
+            setLoading(false)
+            return
+          }
+          
+          // Only continue to fetch tests and bugs if we found a product
+          // Fetch tests for the current product path
+          const testsResponse = await axios.get(`${API_URL}/tests/by-product-path/${productPath}`)
 
           // Transform the API response to match the format expected by components
           const transformedTests = testsResponse.data.map(test => ({
@@ -109,8 +135,8 @@ function MainPage() {
 
           setTests(transformedTests)
 
-          // Fetch bugs
-          const bugsResponse = await axios.get(`${API_URL}/bugs/`)
+          // Fetch bugs for the current product path
+          const bugsResponse = await axios.get(`${API_URL}/bugs/by-product-path/${productPath}`)
 
           // Transform the API response to match the format expected by components
           const transformedBugs = bugsResponse.data.map(bug => ({
@@ -128,7 +154,7 @@ function MainPage() {
 
           setBugs(transformedBugs)
         } else {
-          // Set empty data when not on the target path
+          // When no product path is specified, show empty data or a welcome page
           setTests([])
           setBugs([])
         }
@@ -141,7 +167,7 @@ function MainPage() {
     }
 
     fetchData()
-  }, [shouldShowData]) // Re-run the effect if the path changes
+  }, [productPath, shouldShowData])
 
   // Calculate metrics - now based on conditional data
   const totalTests = tests.length
@@ -262,6 +288,11 @@ function MainPage() {
     navigate('/settings');
   };
 
+  // Render the NotFound component directly when product is not found
+  if (productPath && productNotFound && !loading) {
+    return <NotFound />
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 flex justify-center items-center">
@@ -315,95 +346,127 @@ function MainPage() {
 
   // Regular dashboard for authenticated users
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="container mx-auto px-4 py-8">
       {notificationMessage && (
-        <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 rounded shadow">
-          <div className="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <span>{notificationMessage}</span>
-          </div>
+        <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
+          <p>{notificationMessage}</p>
         </div>
       )}
+      
+      {showLoadingOverlay && (
+        <LoadingOverlay currentStep={currentLoadingStep} progress={loadingProgress} />
+      )}
+      
+      {!productPath && (
+        <div className="text-center py-10">
+          <h2 className="text-2xl font-bold mb-4">Welcome to the Bug Tracker</h2>
+          <p className="mb-6">Please select a product path to view bugs and tests.</p>
+        </div>
+      )}
+      
+      {productPath && productInfo && (
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold mb-2">{productInfo.name}</h1>
+          <p className="text-gray-600">{productInfo.description}</p>
+        </div>
+      )}
+      
+      {/* Only show components when product path is available and product is found */}
+      {productPath && productInfo && (
+        <>
+          <div className="max-w-7xl mx-auto">
+            <div className="flex justify-between items-center">
+              <h1 className="text-2xl font-bold text-gray-900">Laneo</h1>
 
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Laneo</h1>
+              <div className="flex space-x-2">
+                {/* Settings button */}
+                <button 
+                  onClick={goToSettings}
+                  className="bg-gray-200 text-gray-700 px-3 py-1 text-sm rounded-md hover:bg-gray-300 focus:outline-none"
+                  title="Go to settings page"
+                >
+                  Settings
+                </button>
+              </div>
+            </div>
+            <p className="text-gray-600 mb-6">Monitor your end-to-end tests and AI-detected bugs</p>
+          </div>
 
-          <div className="flex space-x-2">
-            {/* Settings button */}
+          <MetricsCards
+            totalTests={totalTests}
+            passedTests={passedTests}
+            failedTests={failedTests}
+            aiDetectedBugs={bugsCount}
+            passRate={passRate}
+          />
+
+          <div className="flex justify-between items-center mt-6 mb-4">
+            <FilterControls filters={filters} onApplyFilters={applyFilters} onResetFilters={resetFilters} />
+
             <button
-              onClick={goToSettings}
-              className="bg-gray-200 text-gray-700 px-3 py-1 text-sm rounded-md hover:bg-gray-300 focus:outline-none"
-              title="Go to settings page"
+              onClick={() => setIsAddTestModalOpen(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center"
             >
-              Settings
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Add New Test
             </button>
           </div>
-        </div>
-        <p className="text-gray-600 mb-6">Monitor your end-to-end tests and AI-detected bugs</p>
 
-        <MetricsCards
-          totalTests={totalTests}
-          passedTests={passedTests}
-          failedTests={failedTests}
-          aiDetectedBugs={bugsCount}
-          passRate={passRate}
-        />
+          <div className="bg-white rounded-md shadow-sm overflow-hidden">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex">
+                <button
+                  className={`py-4 px-6 text-sm font-medium ${
+                    activeTab === "ai-bugs" ? "border-b-2 border-black text-black" : "text-gray-500 hover:text-gray-700"
+                  }`}
+                  onClick={() => setActiveTab("ai-bugs")}
+                >
+                  AI-Detected Bugs
+                </button>
+                <button
+                  className={`py-4 px-6 text-sm font-medium ${
+                    activeTab === "tests"
+                      ? "border-b-2 border-black text-black"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                  onClick={() => setActiveTab("tests")}
+                >
+                  Test Results
+                </button>
+              </nav>
+            </div>
 
-        <div className="flex justify-between items-center mt-6 mb-4">
-          <FilterControls filters={filters} onApplyFilters={applyFilters} onResetFilters={resetFilters} />
+            {error && (
+              <div className="p-4 mb-4 bg-red-100 text-red-700 rounded">
+                {error}
+              </div>
+            )}
 
-          <button
-            onClick={() => setIsAddTestModalOpen(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Add New Test
-          </button>
-        </div>
-
-        <div className="bg-white rounded-md shadow-sm overflow-hidden">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex">
-              <button
-                className={`py-4 px-6 text-sm font-medium ${
-                  activeTab === "ai-bugs" ? "border-b-2 border-black text-black" : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => setActiveTab("ai-bugs")}
-              >
-                AI-Detected Bugs
-              </button>
-              <button
-                className={`py-4 px-6 text-sm font-medium ${
-                  activeTab === "test-results"
-                    ? "border-b-2 border-black text-black"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => setActiveTab("test-results")}
-              >
-                Test Results
-              </button>
-            </nav>
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+              </div>
+            ) : (
+              <>
+                {activeTab === "ai-bugs" && (
+                  <AiDetectedBugs bugs={bugs} />
+                )}
+                {activeTab === "tests" && (
+                  <TestResultsTable tests={tests} />
+                )}
+              </>
+            )}
           </div>
-
-          {activeTab === "test-results" ? (
-            <TestResultsTable tests={filteredTests} />
-          ) : (
-            <AiDetectedBugs bugs={bugs} />
-          )}
-        </div>
-      </div>
+        </>
+      )}
 
       {isAddTestModalOpen && <AddTestModal onClose={() => setIsAddTestModalOpen(false)} onAddTest={addNewTest} />}
-      {showLoadingOverlay && <LoadingOverlay currentStep={currentLoadingStep} progress={loadingProgress} />}
     </div>
   )
 }
