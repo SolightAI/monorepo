@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Body
 from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestStatus
-from services.test_services import get_test, create_test, get_all_tests, update_test_status
+from services.test_services import get_test, create_test, get_all_tests, update_test_status, get_tests_by_product_path
 from pydantic import UUID4
 from typing import List
 
@@ -11,6 +11,20 @@ router = APIRouter(prefix="/tests", tags=["tests"])
 @router.get("/")
 async def get_all_tests_endpoint() -> List[TestSchema]:
     return await get_all_tests()
+
+
+@router.get("/by-product-path/{url_path}")
+async def get_tests_by_product_path_endpoint(url_path: str) -> List[TestSchema]:
+    """
+    Get all tests related to a product that matches the given URL path.
+    
+    Args:
+        url_path: The URL path segment to match against product URLs
+        
+    Returns:
+        A list of tests for the matched product, or an empty list if no product matches
+    """
+    return await get_tests_by_product_path(url_path)
 
 
 @router.get("/{test_id}")

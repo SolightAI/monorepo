@@ -1,10 +1,27 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from dto.schemas import ProductCreate as ProductCreateSchema, Product as ProductSchema
-from services.product_services import get_product, create_product
+from services.product_services import get_product, create_product, get_product_by_url_path, get_products_list
 from pydantic import UUID4
+from typing import List, Optional
 
 
 router = APIRouter(prefix="/products", tags=["products"])
+
+
+@router.get("/")
+async def get_all_products_endpoint() -> List[ProductSchema]:
+    """Get all products"""
+    return await get_products_list()
+
+
+@router.get("/by-path/{url_path}")
+async def get_product_by_path_endpoint(url_path: str) -> Optional[ProductSchema]:
+    """
+    Get a product by matching the URL path with the product URL.
+    If no product is found, returns null.
+    """
+    product = await get_product_by_url_path(url_path)
+    return product
 
 
 @router.get("/{product_id}")
