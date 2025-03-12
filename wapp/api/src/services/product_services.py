@@ -4,6 +4,10 @@ from dto.models import Product as ProductModel
 from pydantic import UUID4
 from typing import Optional, List
 from urllib.parse import urlparse
+from logging import getLogger
+
+
+logger = getLogger(__name__)
 
 
 async def get_product(product_id: UUID4) -> ProductModel:
@@ -37,6 +41,7 @@ async def get_product_by_url_path(url_path: str) -> Optional[ProductModel]:
     for product in products:
         # Check if the url_path is in the product domain
         if cleaned_path == urlparse(product.url).netloc.split(".")[-2]: # https://www.dev.domaine.com/ -> domaine
+            logger.info(f"Comparing {cleaned_path} with {urlparse(product.url).netloc.split('.')[-2]}")
             return await ProductModel.get(id=product.id).prefetch_related("epics")
 
     return None
