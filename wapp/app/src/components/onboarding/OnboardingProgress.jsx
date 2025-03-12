@@ -7,12 +7,12 @@ const OnboardingProgress = ({ currentStep, totalSteps }) => {
       <div className="flex-grow flex">
         {steps.map((step) => (
           <div key={step} className="flex-grow flex items-center">
-            <div 
+            <div
               className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                step < currentStep 
-                  ? 'bg-blue-600 text-white' 
-                  : step === currentStep 
-                    ? 'bg-blue-100 text-blue-600 border-2 border-blue-600' 
+                step < currentStep
+                  ? 'bg-blue-600 text-white'
+                  : step === currentStep
+                    ? 'bg-blue-100 text-blue-600 border-2 border-blue-600'
                     : 'bg-gray-200 text-gray-600'
               }`}
             >
@@ -25,7 +25,7 @@ const OnboardingProgress = ({ currentStep, totalSteps }) => {
               )}
             </div>
             {step < steps.length - 1 && (
-              <div 
+              <div
                 className={`flex-grow h-0.5 mx-2 ${
                   step < currentStep ? 'bg-blue-600' : 'bg-gray-200'
                 }`}
@@ -41,4 +41,4 @@ const OnboardingProgress = ({ currentStep, totalSteps }) => {
   );
 };
 
-export default OnboardingProgress; 
+export default OnboardingProgress;

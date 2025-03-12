@@ -1,7 +1,7 @@
 const FinalStep = ({ onComplete, prevStep, userData }) => {
   // Get user's name or use a default value
   const userName = userData.name ? userData.name.split(' ')[0] : 'there';
-  
+
   // Get a list of interest labels based on IDs
   const getInterestLabels = () => {
     const interestMap = {
@@ -14,10 +14,10 @@ const FinalStep = ({ onComplete, prevStep, userData }) => {
       "automation": "Test Automation",
       "ci-cd": "CI/CD Integration"
     };
-    
+
     return userData.interests.map(id => interestMap[id] || id);
   };
-  
+
   const interestLabels = getInterestLabels();
 
   return (
@@ -27,12 +27,12 @@ const FinalStep = ({ onComplete, prevStep, userData }) => {
           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
         </svg>
       </div>
-      
+
       <h2 className="text-3xl font-bold text-gray-900 mb-3">You're all set, {userName}!</h2>
       <p className="text-gray-600 mb-8 max-w-xl mx-auto">
         Your QA Agent Dashboard is ready to help you streamline your testing process.
       </p>
-      
+
       {(userData.role || userData.teamSize || interestLabels.length > 0) && (
         <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 mb-8 max-w-md mx-auto text-left">
           <h3 className="text-lg font-medium text-blue-900 mb-4">Your Profile Summary</h3>
@@ -73,8 +73,8 @@ const FinalStep = ({ onComplete, prevStep, userData }) => {
                 <p className="text-sm font-medium text-gray-700">Areas of Interest</p>
                 <div className="flex flex-wrap mt-1">
                   {interestLabels.map((interest, index) => (
-                    <span 
-                      key={index} 
+                    <span
+                      key={index}
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2 mb-2"
                     >
                       {interest}
@@ -105,4 +105,4 @@ const FinalStep = ({ onComplete, prevStep, userData }) => {
   );
 };
 
-export default FinalStep; 
+export default FinalStep;

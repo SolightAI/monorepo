@@ -46,7 +46,7 @@ const OnboardingFlow = ({ onComplete }) => {
   const skipOnboarding = () => {
     onComplete();
   };
-  
+
   // Complete the onboarding from the loading state
   const completeOnboarding = () => {
     onComplete(userData);
@@ -75,27 +75,27 @@ const OnboardingFlow = ({ onComplete }) => {
     // Otherwise, show the appropriate step
     switch (currentStep) {
       case 0:
-        return <WelcomeStep 
-                 nextStep={nextStep} 
-                 skipOnboarding={skipOnboarding} 
+        return <WelcomeStep
+                 nextStep={nextStep}
+                 skipOnboarding={skipOnboarding}
                />;
     //   case 1:
-        // return <FeatureStep 
-        //          nextStep={nextStep} 
-        //          prevStep={prevStep} 
+        // return <FeatureStep
+        //          nextStep={nextStep}
+        //          prevStep={prevStep}
         //          userData={userData}
         //        />;
       case 1:
-        return <PersonalizationStep 
-                 nextStep={nextStep} 
-                 prevStep={prevStep} 
-                 userData={userData} 
+        return <PersonalizationStep
+                 nextStep={nextStep}
+                 prevStep={prevStep}
+                 userData={userData}
                  updateUserData={updateUserData}
                />;
       case 2:
-        return <FinalStep 
-                 onComplete={nextStep} 
-                 prevStep={prevStep} 
+        return <FinalStep
+                 onComplete={nextStep}
+                 prevStep={prevStep}
                  userData={userData}
                />;
       default:
@@ -117,4 +117,4 @@ const OnboardingFlow = ({ onComplete }) => {
   );
 };
 
-export default OnboardingFlow; 
+export default OnboardingFlow;

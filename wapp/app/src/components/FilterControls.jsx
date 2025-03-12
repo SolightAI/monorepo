@@ -126,4 +126,3 @@ function FilterControls({ filters, onApplyFilters, onResetFilters }) {
 }
 
 export default FilterControls
-

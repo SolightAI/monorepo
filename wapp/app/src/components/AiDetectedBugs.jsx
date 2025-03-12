@@ -48,29 +48,29 @@ function AiDetectedBugs({ bugs }) {
 
     let visibleCount = 0;
     let criticalCount = 0;
-    
+
     return sortedBugs.map(bug => {
       const isCritical = bug.severity === "Critical";
-      
+
       // First critical bug is visible
       if (isCritical && criticalCount === 0) {
         criticalCount++;
         visibleCount++;
         return false; // Not restricted
       }
-      
+
       // All other critical bugs are restricted
       if (isCritical) {
         criticalCount++;
         return true; // Restricted
       }
-      
+
       // Show non-critical bugs until we have 3 total visible
       if (visibleCount < 3) {
         visibleCount++;
         return false; // Not restricted
       }
-      
+
       // All remaining bugs are restricted
       return true; // Restricted
     });
@@ -250,7 +250,7 @@ function AiDetectedBugs({ bugs }) {
                   Detected on XX/XX/XXXX
                 </div>
               )}
-              
+
               {isRestricted && (
                 <div className="absolute bottom-2 right-2">
                   <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2 py-1 rounded-full">
@@ -273,4 +273,3 @@ function AiDetectedBugs({ bugs }) {
 }
 
 export default AiDetectedBugs
-

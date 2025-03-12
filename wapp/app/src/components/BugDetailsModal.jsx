@@ -203,7 +203,7 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
                     Upgrade to connect bugs directly to <span className="font-medium">Jira</span>, <span className="font-medium">Notion</span>, or <span className="font-medium">Linear</span> for streamlined issue tracking.
                   </p>
                 </div>
-                <button 
+                <button
                   onClick={handleUpgradeClick}
                   className="mt-3 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
@@ -287,7 +287,7 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
       {selectedScreenshot && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[60]" onClick={closeFullScreenshot}>
           <div className="relative max-w-[90vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-            <button 
+            <button
               onClick={closeFullScreenshot}
               className="absolute top-4 right-4 bg-white bg-opacity-80 rounded-full p-2 text-gray-800 hover:bg-opacity-100 transition-all"
             >
@@ -310,7 +310,7 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
 
       {/* Contact Form Modal */}
       {showContactForm && (
-        <ContactFormModal 
+        <ContactFormModal
           onClose={handleContactFormClose}
           prefilledSubject="Upgrade Request: Issue Tracking Integration"
           prefilledMessage="I'm interested in integrating issue tracking with my bug reports."

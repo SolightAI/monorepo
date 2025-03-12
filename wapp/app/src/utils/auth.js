@@ -10,7 +10,7 @@ export const login = async (username, password) => {
 
     const response = await axios.post(`${API_URL}/auth/login`,
       formData,
-      { 
+      {
         withCredentials: true,
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
@@ -98,24 +98,24 @@ export const setupAxiosInterceptors = () => {
           localStorage.removeItem('isAuthenticated');
           window.location.href = '/login';
         }
-        
+
         // Handle invitation code errors
-        if (error.response.status === 400 && 
-            error.response.data && 
-            error.response.data.detail && 
+        if (error.response.status === 400 &&
+            error.response.data &&
+            error.response.data.detail &&
             error.response.data.detail.includes('Invitation code required')) {
-          
+
           // If the error occurred during a Google auth flow
           if (error.config.url.includes('/auth/google')) {
             // We'll let the GoogleCallback component handle this
             return Promise.reject(error);
           }
-          
+
           // For other API calls, redirect to login with error message
           window.location.href = '/login?error=invitation_required&error_description=Invitation code required for registration';
         }
       }
-      
+
       return Promise.reject(error);
     }
   );

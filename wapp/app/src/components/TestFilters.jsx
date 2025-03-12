@@ -16,7 +16,7 @@ function TestFilters({ filters, pages, categories, onFilterChange, sortBy, sortO
               onChange={(e) => onFilterChange({ search: e.target.value })}
             />
           </div>
-  
+
           {/* Page Filter */}
           <div>
             <label htmlFor="page-filter" className="block text-sm font-medium text-gray-700 mb-1">
@@ -35,7 +35,7 @@ function TestFilters({ filters, pages, categories, onFilterChange, sortBy, sortO
               ))}
             </select>
           </div>
-  
+
           {/* Category Filter */}
           <div>
             <label htmlFor="category-filter" className="block text-sm font-medium text-gray-700 mb-1">
@@ -54,7 +54,7 @@ function TestFilters({ filters, pages, categories, onFilterChange, sortBy, sortO
               ))}
             </select>
           </div>
-  
+
           {/* Status Filter */}
           <div>
             <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">
@@ -73,7 +73,7 @@ function TestFilters({ filters, pages, categories, onFilterChange, sortBy, sortO
             </select>
           </div>
         </div>
-  
+
         {/* Sort Controls */}
         <div className="mt-4 flex items-center">
           <span className="text-sm font-medium text-gray-700 mr-2">Sort by:</span>
@@ -101,7 +101,5 @@ function TestFilters({ filters, pages, categories, onFilterChange, sortBy, sortO
       </div>
     )
   }
-  
+
   export default TestFilters
-  
-  

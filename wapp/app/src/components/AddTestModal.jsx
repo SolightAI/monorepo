@@ -84,10 +84,10 @@ function AddTestModal({ onClose, onAddTest }) {
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target
-    
+
     // Create update object starting with the changed field
     const updates = { [name]: value }
-    
+
     // Add logic for cascading dropdown changes
     if (name === "type") {
       // Reset dependent fields when type changes
@@ -98,7 +98,7 @@ function AddTestModal({ onClose, onAddTest }) {
       // When epic changes, update feature to the first one in that epic
       const filteredFeatures = mockFeatures.filter(feature => feature.epic_id === value)
       updates.feature_id = filteredFeatures[0]?.id || ""
-      
+
       // Also update user story if needed
       if (formData.type === "UserStory") {
         const filteredStories = mockUserStories.filter(
@@ -113,7 +113,7 @@ function AddTestModal({ onClose, onAddTest }) {
         updates.user_story_id = filteredStories[0]?.id || ""
       }
     }
-    
+
     setFormData(prev => ({ ...prev, ...updates }))
   }
 
@@ -399,4 +399,3 @@ function AddTestModal({ onClose, onAddTest }) {
 }
 
 export default AddTestModal
-

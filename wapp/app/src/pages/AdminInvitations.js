@@ -328,7 +328,7 @@ export default function AdminInvitations() {
                           <span className={`mr-2 ${invitation.used ? 'line-through text-gray-400' : ''}`}>
                             {invitation.code}
                           </span>
-                          <button 
+                          <button
                             onClick={() => copyToClipboard(invitation.code, index)}
                             className="text-gray-400 hover:text-gray-600"
                             title="Copy code"

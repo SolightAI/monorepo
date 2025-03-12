@@ -194,7 +194,7 @@ const Notifications = () => {
             <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ease-in-out ${notifications.email ? 'transform translate-x-6' : ''}`} />
           </div>
         </div>
-        
+
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-medium text-gray-800">Push Notifications</h3>
@@ -212,7 +212,7 @@ const Notifications = () => {
             <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ease-in-out ${notifications.push ? 'transform translate-x-6' : ''}`} />
           </div>
         </div>
-        
+
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-medium text-gray-800">Marketing Emails</h3>
@@ -230,7 +230,7 @@ const Notifications = () => {
             <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ease-in-out ${notifications.marketing ? 'transform translate-x-6' : ''}`} />
           </div>
         </div>
-        
+
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-medium text-gray-800">Product Updates</h3>

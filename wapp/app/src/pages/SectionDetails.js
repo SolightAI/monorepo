@@ -8,7 +8,7 @@ const SectionDetails = () => {
   const [error, setError] = useState('');
   const [savedUrl, setSavedUrl] = useState('');
   const navigate = useNavigate();
-  
+
   // Add state for floating elements
   const [floatingElements, setFloatingElements] = useState([
     { id: 1, type: 'tickbox', position: { top: '15%', left: '15%' }, visible: true },
@@ -25,15 +25,15 @@ const SectionDetails = () => {
     // Get the URL and test type from session storage
     const url = sessionStorage.getItem('testUrl');
     const testType = sessionStorage.getItem('testType');
-    
+
     if (!url || testType !== 'specific-section') {
       // Redirect back if required data is missing or incorrect
       navigate('/select-type');
       return;
     }
-    
+
     setSavedUrl(url);
-    
+
     // Check if there's existing section details
     const savedDetails = sessionStorage.getItem('typeDetails');
     if (savedDetails) {
@@ -43,7 +43,7 @@ const SectionDetails = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!sectionDetails.trim()) {
       setError('Please specify which section to test');
       return;
@@ -57,7 +57,7 @@ const SectionDetails = () => {
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen p-4 bg-gray-900">
       {/* <AnimatedBackground theme="dark" /> */}
-      
+
       {/* Floating elements */}
       {floatingElements.map((element) => (
         <div
@@ -85,7 +85,7 @@ const SectionDetails = () => {
           )}
         </div>
       ))}
-      
+
       <div className="relative z-10 w-full max-w-md bg-gray-800 rounded-lg shadow-lg p-8">
         <button
           type="button"
@@ -93,14 +93,14 @@ const SectionDetails = () => {
           className="absolute top-4 left-4 text-gray-400 hover:text-gray-200 transition-colors"
           aria-label="Back"
         >
-          ← 
+          ←
         </button>
-        
+
         <div className="flex items-center justify-center mb-6">
-          <img 
-            src={logo} 
-            alt="Laneo Logo" 
-            className="h-8 mr-2 filter brightness-0 invert" 
+          <img
+            src={logo}
+            alt="Laneo Logo"
+            className="h-8 mr-2 filter brightness-0 invert"
           />
           <h1 className="text-xl font-bold text-white">Laneo</h1>
         </div>
@@ -145,7 +145,7 @@ const SectionDetails = () => {
           </div>
         </form>
       </div>
-      
+
       {/* Add CSS for floating animation */}
       <style jsx>{`
         @keyframes float {
@@ -161,4 +161,4 @@ const SectionDetails = () => {
   );
 };
 
-export default SectionDetails; 
+export default SectionDetails;

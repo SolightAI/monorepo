@@ -41,7 +41,7 @@ function TestDetailsModal({ test, onClose }) {
         )
       }
     }
-  
+
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -53,7 +53,7 @@ function TestDetailsModal({ test, onClose }) {
               </svg>
             </button>
           </div>
-  
+
           <div className="px-6 py-4">
             <div className="flex justify-between items-start mb-6">
               <div>
@@ -62,7 +62,7 @@ function TestDetailsModal({ test, onClose }) {
               </div>
               {renderStatusBadge(test.status)}
             </div>
-  
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
                 <h4 className="text-sm font-medium text-gray-500 mb-1">Test Type</h4>
@@ -85,14 +85,14 @@ function TestDetailsModal({ test, onClose }) {
                 <p className="text-sm text-gray-900">{test.timestamp}</p>
               </div>
             </div>
-  
+
             {test.description && (
               <div className="mb-6">
                 <h4 className="text-sm font-medium text-gray-500 mb-1">Description</h4>
                 <p className="text-sm text-gray-900">{test.description}</p>
               </div>
             )}
-  
+
             {test.steps && test.steps.length > 0 && (
               <div className="mb-6">
                 <h4 className="text-sm font-medium text-gray-500 mb-2">Test Steps</h4>
@@ -141,7 +141,7 @@ function TestDetailsModal({ test, onClose }) {
               </div>
             )}
           </div>
-  
+
           <div className="border-t border-gray-200 px-6 py-4 flex justify-end">
             <button onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md mr-2">
               Close
@@ -152,7 +152,5 @@ function TestDetailsModal({ test, onClose }) {
       </div>
     )
   }
-  
+
   export default TestDetailsModal
-  
-  

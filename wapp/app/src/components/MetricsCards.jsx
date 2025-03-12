@@ -26,7 +26,7 @@ function MetricsCards({ totalTests, passedTests, failedTests, aiDetectedBugs, pa
               </div>
             </div>
           </div>
-  
+
           <div className="bg-white p-4 rounded-md border border-gray-200">
             <div className="flex justify-between">
               <div>
@@ -51,7 +51,7 @@ function MetricsCards({ totalTests, passedTests, failedTests, aiDetectedBugs, pa
               </div>
             </div>
           </div>
-  
+
           <div className="bg-white p-4 rounded-md border border-gray-200">
             <div className="flex justify-between">
               <div>
@@ -76,7 +76,7 @@ function MetricsCards({ totalTests, passedTests, failedTests, aiDetectedBugs, pa
               </div>
             </div>
           </div>
-  
+
           <div className="bg-white p-4 rounded-md border border-gray-200">
             <div className="flex justify-between">
               <div>
@@ -102,7 +102,7 @@ function MetricsCards({ totalTests, passedTests, failedTests, aiDetectedBugs, pa
             </div>
           </div>
         </div>
-  
+
         <div className="bg-green-50 p-4 rounded-md border border-green-100">
           <div className="flex justify-between items-center">
             <div>
@@ -139,6 +139,5 @@ function MetricsCards({ totalTests, passedTests, failedTests, aiDetectedBugs, pa
       </div>
     )
   }
-  
+
   export default MetricsCards
-  

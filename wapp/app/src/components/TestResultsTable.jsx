@@ -327,4 +327,3 @@ function TestResultsTable({ tests }) {
 }
 
 export default TestResultsTable
-

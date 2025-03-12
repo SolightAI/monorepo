@@ -6,13 +6,13 @@ const WelcomeStep = ({ nextStep, skipOnboarding }) => {
           <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
         </svg>
       </div>
-      
+
       <h2 className="text-3xl font-bold text-gray-900 mb-3">Welcome to QA Agent Dashboard</h2>
       <p className="text-gray-600 mb-8 max-w-xl mx-auto">
         Your intelligent testing assistant that helps you catch bugs before they reach production.
         Let's set up your personalized dashboard in just a few steps.
       </p>
-      
+
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row md:space-x-4 justify-center">
           <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4 md:mb-0 md:w-1/3">
@@ -24,7 +24,7 @@ const WelcomeStep = ({ nextStep, skipOnboarding }) => {
             <h3 className="font-medium text-gray-900">Automated Testing</h3>
             <p className="text-sm text-gray-500">Run tests automatically and monitor results in real-time</p>
           </div>
-          
+
           <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4 md:mb-0 md:w-1/3">
             <div className="text-amber-600 mb-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -34,7 +34,7 @@ const WelcomeStep = ({ nextStep, skipOnboarding }) => {
             <h3 className="font-medium text-gray-900">AI Bug Detection</h3>
             <p className="text-sm text-gray-500">Intelligently identify potential bugs and issues</p>
           </div>
-          
+
           <div className="bg-white p-4 rounded-lg border border-gray-200 md:w-1/3">
             <div className="text-green-600 mb-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -65,4 +65,4 @@ const WelcomeStep = ({ nextStep, skipOnboarding }) => {
   );
 };
 
-export default WelcomeStep; 
+export default WelcomeStep;

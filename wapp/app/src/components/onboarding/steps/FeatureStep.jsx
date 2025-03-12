@@ -72,8 +72,8 @@ const FeatureStep = ({ nextStep, prevStep }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
         {features.map((feature, index) => (
-          <div 
-            key={index} 
+          <div
+            key={index}
             className="bg-white p-6 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all"
           >
             <div className={`text-${feature.color}-500 mb-4`}>
@@ -103,4 +103,4 @@ const FeatureStep = ({ nextStep, prevStep }) => {
   );
 };
 
-export default FeatureStep; 
+export default FeatureStep;

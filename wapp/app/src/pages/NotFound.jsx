@@ -20,8 +20,8 @@ const NotFound = () => {
 
         <Link
           to="/"
-          className="inline-flex items-center justify-center px-5 py-3 text-sm 
-                     font-medium text-gray-700 hover:text-gray-900 
+          className="inline-flex items-center justify-center px-5 py-3 text-sm
+                     font-medium text-gray-700 hover:text-gray-900
                      transition-colors duration-200"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />

@@ -64,7 +64,7 @@ function MainPage() {
 
   // Determine if we should show product-specific data
   const shouldShowData = productPath !== undefined
-  
+
   // Check for redirect messages (like when redirected from admin routes)
   const [notificationMessage, setNotificationMessage] = useState("");
 
@@ -112,7 +112,7 @@ function MainPage() {
             setLoading(false)
             return
           }
-          
+
           // Only continue to fetch tests and bugs if we found a product
           // Fetch tests for the current product path
           const testsResponse = await axios.get(`${API_URL}/tests/by-product-path/${productPath}`)
@@ -352,25 +352,25 @@ function MainPage() {
           <p>{notificationMessage}</p>
         </div>
       )}
-      
+
       {showLoadingOverlay && (
         <LoadingOverlay currentStep={currentLoadingStep} progress={loadingProgress} />
       )}
-      
+
       {!productPath && (
         <div className="text-center py-10">
           <h2 className="text-2xl font-bold mb-4">Welcome to the Bug Tracker</h2>
           <p className="mb-6">Please select a product path to view bugs and tests.</p>
         </div>
       )}
-      
+
       {productPath && productInfo && (
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">{productInfo.name}</h1>
           <p className="text-gray-600">{productInfo.description}</p>
         </div>
       )}
-      
+
       {/* Only show components when product path is available and product is found */}
       {productPath && productInfo && (
         <>
@@ -380,7 +380,7 @@ function MainPage() {
 
               <div className="flex space-x-2">
                 {/* Settings button */}
-                <button 
+                <button
                   onClick={goToSettings}
                   className="bg-gray-200 text-gray-700 px-3 py-1 text-sm rounded-md hover:bg-gray-300 focus:outline-none"
                   title="Go to settings page"
@@ -472,4 +472,3 @@ function MainPage() {
 }
 
 export default MainPage
-

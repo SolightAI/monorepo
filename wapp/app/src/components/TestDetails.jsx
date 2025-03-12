@@ -11,7 +11,7 @@ function TestDetails({ test, onClose }) {
           return "bg-gray-100 text-gray-800"
       }
     }
-  
+
     const formatDate = (dateString) => {
       const date = new Date(dateString)
       return date.toLocaleDateString("en-US", {
@@ -23,7 +23,7 @@ function TestDetails({ test, onClose }) {
         minute: "2-digit",
       })
     }
-  
+
     return (
       <div>
         <div className="flex justify-between items-start mb-6">
@@ -40,7 +40,7 @@ function TestDetails({ test, onClose }) {
             </svg>
           </button>
         </div>
-  
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-gray-50 p-3 rounded-lg">
             <p className="text-sm text-gray-500 mb-1">Status</p>
@@ -69,12 +69,12 @@ function TestDetails({ test, onClose }) {
             <p className="font-medium">{test.lastRun ? formatDate(test.lastRun) : "Not run yet"}</p>
           </div>
         </div>
-  
+
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-2">Description</h3>
           <p className="text-gray-700 whitespace-pre-line">{test.description}</p>
         </div>
-  
+
         {test.steps && test.steps.length > 0 && (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Test Steps</h3>
@@ -87,7 +87,7 @@ function TestDetails({ test, onClose }) {
             </ol>
           </div>
         )}
-  
+
         {test.results && (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Test Results</h3>
@@ -96,7 +96,7 @@ function TestDetails({ test, onClose }) {
             </div>
           </div>
         )}
-  
+
         {test.bugs && test.bugs.length > 0 && (
           <div>
             <h3 className="text-lg font-semibold mb-2">Bugs Found ({test.bugs.length})</h3>
@@ -123,7 +123,7 @@ function TestDetails({ test, onClose }) {
             </div>
           </div>
         )}
-  
+
         <div className="mt-8 flex justify-end space-x-3">
           <button className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg" onClick={onClose}>
             Close
@@ -133,7 +133,5 @@ function TestDetails({ test, onClose }) {
       </div>
     )
   }
-  
+
   export default TestDetails
-  
-  

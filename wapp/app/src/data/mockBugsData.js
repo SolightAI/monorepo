@@ -79,5 +79,3 @@ export const aiDetectedBugs = [
       detectedAt: "3/4/2025, 11:59:03 AM",
     },
   ]
-  
-  

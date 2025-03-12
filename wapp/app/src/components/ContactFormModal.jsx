@@ -27,10 +27,10 @@ function ContactFormModal({ onClose }) {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = "Name is required";
     if (!formData.email.trim()) newErrors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) 
+    else if (!/\S+@\S+\.\S+/.test(formData.email))
       newErrors.email = "Email is invalid";
     if (!formData.company.trim()) newErrors.company = "Company name is required";
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -38,7 +38,7 @@ function ContactFormModal({ onClose }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // Clear error when user types
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: "" }));
@@ -48,15 +48,15 @@ function ContactFormModal({ onClose }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Form submission attempted");
-    
+
     if (!validateForm()) {
       console.log("Form validation failed", errors);
       return;
     }
-    
+
     console.log("Form validation passed, submitting to Google Form");
     setIsSubmitting(true);
-    
+
     // Google Form submission
     const googleFormURL = "https://docs.google.com/forms/d/e/1FAIpQLSfgZXWTgs021p9aZkyT5y71ydFOqf6cv2-VuUXvUxeR8fk0Ng/formResponse";
 
@@ -66,7 +66,7 @@ function ContactFormModal({ onClose }) {
     formBody.append("entry.173597029", formData.company);
 
     console.log("Submitting form data:", formData);
-    
+
     fetch(googleFormURL, {
       method: "POST",
       mode: "no-cors",
@@ -96,8 +96,8 @@ function ContactFormModal({ onClose }) {
             <h2 className="text-2xl font-bold text-gray-900">
               {submitted ? "You're In!" : "Unlock Laneo's Full Potential"}
             </h2>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="text-gray-400 hover:text-gray-500"
               aria-label="Close"
             >
@@ -149,11 +149,11 @@ function ContactFormModal({ onClose }) {
                     You've discovered premium content!
                   </p>
                 </div> */}
-                
+
                 <h3 className="text-lg font-bold text-gray-900 mb-2">
                   Why top development teams choose Laneo:
                 </h3>
-                
+
                 <div className="mb-5 space-y-3">
                   <div className="flex items-start">
                     <div className="flex-shrink-0 h-5 w-5 mt-0.5 text-indigo-600">
@@ -285,4 +285,4 @@ function ContactFormModal({ onClose }) {
   );
 }
 
-export default ContactFormModal; 
+export default ContactFormModal;

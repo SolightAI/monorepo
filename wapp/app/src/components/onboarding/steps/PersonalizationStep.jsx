@@ -54,7 +54,7 @@ const PersonalizationStep = ({ nextStep, prevStep, userData, updateUserData }) =
     const updatedInterests = formData.interests.includes(interestId)
       ? formData.interests.filter(id => id !== interestId)
       : [...formData.interests, interestId];
-    
+
     setFormData({ ...formData, interests: updatedInterests });
   };
 
@@ -69,7 +69,7 @@ const PersonalizationStep = ({ nextStep, prevStep, userData, updateUserData }) =
     if (!formData.teamSize) {
       newErrors.teamSize = "Please select your team size";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -150,14 +150,14 @@ const PersonalizationStep = ({ nextStep, prevStep, userData, updateUserData }) =
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Areas of Interest</label>
           <p className="text-xs text-gray-500 mb-3">Select all that apply to your testing needs</p>
-          
+
           <div className="grid grid-cols-2 gap-3">
             {interestOptions.map((interest) => (
-              <div 
+              <div
                 key={interest.id}
                 onClick={() => handleInterestToggle(interest.id)}
                 className={`p-3 rounded-md border ${
-                  !interest.available 
+                  !interest.available
                     ? 'bg-gray-100 border-gray-200 cursor-not-allowed opacity-75'
                     : formData.interests.includes(interest.id)
                       ? 'bg-blue-50 border-blue-300 text-blue-700 cursor-pointer'
@@ -211,4 +211,4 @@ const PersonalizationStep = ({ nextStep, prevStep, userData, updateUserData }) =
   );
 };
 
-export default PersonalizationStep; 
+export default PersonalizationStep;

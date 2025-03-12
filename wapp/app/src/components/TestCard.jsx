@@ -11,7 +11,7 @@ function TestCard({ test, onClick }) {
           return "bg-gray-100 text-gray-800"
       }
     }
-  
+
     const formatDate = (dateString) => {
       const date = new Date(dateString)
       return date.toLocaleDateString("en-US", {
@@ -20,7 +20,7 @@ function TestCard({ test, onClick }) {
         year: "numeric",
       })
     }
-  
+
     return (
       <div className="bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer" onClick={onClick}>
         <div className="p-4">
@@ -30,9 +30,9 @@ function TestCard({ test, onClick }) {
               {test.status.charAt(0).toUpperCase() + test.status.slice(1)}
             </span>
           </div>
-  
+
           <p className="text-gray-600 text-sm mb-3 line-clamp-2">{test.description}</p>
-  
+
           <div className="flex items-center text-sm text-gray-500 mb-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -50,13 +50,13 @@ function TestCard({ test, onClick }) {
             </svg>
             {formatDate(test.createdAt)}
           </div>
-  
+
           <div className="flex flex-wrap gap-2 mb-3">
             <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">{test.page}</span>
             <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">{test.category}</span>
             <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">{test.type}</span>
           </div>
-  
+
           {test.bugs.length > 0 && (
             <div className="flex items-center text-sm font-medium text-red-600">
               <svg
@@ -80,7 +80,5 @@ function TestCard({ test, onClick }) {
       </div>
     )
   }
-  
+
   export default TestCard
-  
-  
