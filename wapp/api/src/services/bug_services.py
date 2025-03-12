@@ -57,22 +57,22 @@ async def create_bug(bug: BugCreateSchema) -> BugModel:
 async def delete_bug(bug_id: str | UUID) -> bool:
     """
     Delete a bug.
-    
+
     Args:
         bug_id: UUID of the bug to delete
-        
+
     Returns:
         True if the bug was deleted, False otherwise
-        
+
     Raises:
         HTTPException: If the bug was not found
     """
     bug = await BugModel.get_or_none(id=bug_id)
-    
+
     if not bug:
         raise HTTPException(status_code=404, detail="Bug not found")
-    
+
     # Delete the bug
     await bug.delete()
-    
+
     return True

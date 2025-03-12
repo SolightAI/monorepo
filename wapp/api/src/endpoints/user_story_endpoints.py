@@ -22,4 +22,3 @@ async def delete_user_story_endpoint(user_story_id: UUID4) -> dict:
     """Delete a user story and all its related acceptance criteria, tests, etc."""
     deleted = await delete_user_story(user_story_id)
     return {"success": deleted, "message": "User story and all related items deleted successfully"}
-

@@ -10,7 +10,6 @@ from dto.schemas import InvitationCreate
 from uuid import uuid4
 
 
-
 def generate_unique_code(length: int = 10) -> str:
     """Generate a random alphanumeric code of specified length."""
     chars = string.ascii_uppercase + string.ascii_lowercase + string.digits

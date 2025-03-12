@@ -1,8 +1,5 @@
 import os
 
-from typeguard import install_import_hook
-install_import_hook('services') # (not 'endpoints') FastAPI auto-cast models to schemas results in typeguard errors
-
 from fastapi import FastAPI
 from endpoints.product_endpoints import router as product_router
 from endpoints.epic_endpoints import router as epic_router

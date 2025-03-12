@@ -17,10 +17,10 @@ async def get_all_tests_endpoint() -> List[TestSchema]:
 async def get_tests_by_product_path_endpoint(url_path: str) -> List[TestSchema]:
     """
     Get all tests related to a product that matches the given URL path.
-    
+
     Args:
         url_path: The URL path segment to match against product URLs
-        
+
     Returns:
         A list of tests for the matched product, or an empty list if no product matches
     """

@@ -2,7 +2,6 @@ import os
 import jwt
 import logging
 import requests
-import uuid
 from typing import Optional
 
 from dto.models import User as UserModel
@@ -13,16 +12,16 @@ from fastapi import HTTPException, status, Response
 from itsdangerous import URLSafeTimedSerializer
 from services.user_services import get_user
 from services.invitation_services import validate_invitation, mark_invitation_used
-from dto.schemas import UserRegister, InvitationCreate
+from dto.schemas import InvitationCreate
 
 
 ALGORITHM = "HS256"
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY") # generated with `openssl rand -hex 23
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")  # generated with `openssl rand -hex 23
 EMAIL_SALT = "email-confirmation-salt"
 PASSWORD_RESET_SALT = "password-reset-salt"
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-VALIDATION_TOKEN_MAX_AGE = 60 * 60 * 24 * 7 # 7 days
+VALIDATION_TOKEN_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
 
 
 serializer = URLSafeTimedSerializer(JWT_SECRET_KEY)
@@ -36,6 +35,7 @@ class CredentialsException(HTTPException):
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
 
 class HTTPInvalidTokenError(HTTPException):
     def __init__(self):
@@ -147,7 +147,7 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
     if user is None:
 
         if _should_be_admin(user_info["email"]):
-            from services.invitation_services import create_invitation # avoid circular import
+            from services.invitation_services import create_invitation  # avoid circular import
             invitation_code = (await create_invitation(
                 invitation=InvitationCreate(
                     email=user_info["email"],

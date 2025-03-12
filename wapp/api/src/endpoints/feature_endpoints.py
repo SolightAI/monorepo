@@ -22,4 +22,3 @@ async def delete_feature_endpoint(feature_id: UUID4) -> dict:
     """Delete a feature and all its related user stories, acceptance criteria, etc."""
     deleted = await delete_feature(feature_id)
     return {"success": deleted, "message": "Feature and all related items deleted successfully"}
-

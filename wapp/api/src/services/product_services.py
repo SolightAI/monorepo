@@ -23,10 +23,10 @@ async def get_product(product_id: UUID4) -> ProductModel:
 async def get_product_by_url_path(url_path: str) -> Optional[ProductModel]:
     """
     Get product by matching a URL path segment against the product's URL.
-    
+
     Args:
         url_path: The URL path segment to match (e.g., 'the-predictive-index')
-        
+
     Returns:
         The matching product or None if no match is found
     """
@@ -40,7 +40,7 @@ async def get_product_by_url_path(url_path: str) -> Optional[ProductModel]:
     # Find a product where url_path is part of the product URL
     for product in products:
         # Check if the url_path is in the product domain
-        if cleaned_path == urlparse(product.url).netloc.split(".")[-2]: # https://www.dev.domaine.com/ -> domaine
+        if cleaned_path == urlparse(product.url).netloc.split(".")[-2]:  # https://www.dev.domaine.com/ -> domaine
             logger.error(f"Comparing {cleaned_path} with {urlparse(product.url).netloc.split('.')[-2]}")
             return await ProductModel.get(id=product.id).prefetch_related("epics")
 
@@ -50,7 +50,7 @@ async def get_product_by_url_path(url_path: str) -> Optional[ProductModel]:
 async def get_products_list() -> List[ProductModel]:
     """
     Get a list of all products.
-    
+
     Returns:
         List of all products
     """
@@ -66,27 +66,27 @@ async def create_product(product: ProductCreateSchema) -> ProductModel:
 async def delete_product(product_id: UUID4) -> bool:
     """
     Delete a product and all its related epics.
-    
+
     Args:
         product_id: UUID of the product to delete
-        
+
     Returns:
         True if the product was deleted, False otherwise
-        
+
     Raises:
         HTTPException: If the product was not found
     """
     product = await ProductModel.get_or_none(id=product_id).prefetch_related("epics")
-    
+
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    
+
     # Delete all epics related to this product
     from services.epic_services import delete_epic
     for epic in product.epics:
         await delete_epic(epic.id)
-    
+
     # Delete the product
     await product.delete()
-    
+
     return True

@@ -17,10 +17,10 @@ async def get_all_bugs_endpoint() -> List[BugSchema]:
 async def get_bugs_by_product_path_endpoint(url_path: str) -> List[BugSchema]:
     """
     Get all bugs related to a product that matches the given URL path.
-    
+
     Args:
         url_path: The URL path segment to match against product URLs
-        
+
     Returns:
         A list of bugs for the matched product, or an empty list if no product matches
     """
