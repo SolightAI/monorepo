@@ -52,3 +52,27 @@ async def create_bug(bug: BugCreateSchema) -> BugModel:
     bug_model = await BugModel.create(**bug.model_dump())
 
     return await get_bug(bug_model.id)  # NOTE: a bit dirty, but it works (prevents issue with ManyToManyField)
+
+
+async def delete_bug(bug_id: str | UUID) -> bool:
+    """
+    Delete a bug.
+    
+    Args:
+        bug_id: UUID of the bug to delete
+        
+    Returns:
+        True if the bug was deleted, False otherwise
+        
+    Raises:
+        HTTPException: If the bug was not found
+    """
+    bug = await BugModel.get_or_none(id=bug_id)
+    
+    if not bug:
+        raise HTTPException(status_code=404, detail="Bug not found")
+    
+    # Delete the bug
+    await bug.delete()
+    
+    return True

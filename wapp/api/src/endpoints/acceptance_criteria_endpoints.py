@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from dto.schemas import AcceptanceCriteriaCreate as AcceptanceCriteriaCreateSchema, AcceptanceCriteria as AcceptanceCriteriaSchema
-from services.acceptance_criteria_services import get_acceptance_criteria, create_acceptance_criteria, get_all_acceptance_criteria
+from services.acceptance_criteria_services import get_acceptance_criteria, create_acceptance_criteria, get_all_acceptance_criteria, delete_acceptance_criteria
 from pydantic import UUID4
 from typing import List
 
@@ -21,3 +21,10 @@ async def get_acceptance_criteria_endpoint(acceptance_criteria_id: UUID4) -> Acc
 @router.post("/")
 async def create_acceptance_criteria_endpoint(acceptance_criteria: AcceptanceCriteriaCreateSchema) -> AcceptanceCriteriaSchema:
     return await create_acceptance_criteria(acceptance_criteria)
+
+
+@router.delete("/{acceptance_criteria_id}")
+async def delete_acceptance_criteria_endpoint(acceptance_criteria_id: UUID4) -> dict:
+    """Delete an acceptance criteria and all its related tests, bugs, etc."""
+    deleted = await delete_acceptance_criteria(acceptance_criteria_id)
+    return {"success": deleted, "message": "Acceptance criteria and all related items deleted successfully"}

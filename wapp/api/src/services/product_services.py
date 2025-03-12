@@ -54,10 +54,39 @@ async def get_products_list() -> List[ProductModel]:
     Returns:
         List of all products
     """
-    return await ProductModel.all()
+    return await ProductModel.all().prefetch_related("epics")
 
 
 async def create_product(product: ProductCreateSchema) -> ProductModel:
     product_model = await ProductModel.create(**product.model_dump())
 
     return await get_product(product_model.id)  # NOTE: a bit dirty, but it works (prevents issue with ManyToManyField)
+
+
+async def delete_product(product_id: UUID4) -> bool:
+    """
+    Delete a product and all its related epics.
+    
+    Args:
+        product_id: UUID of the product to delete
+        
+    Returns:
+        True if the product was deleted, False otherwise
+        
+    Raises:
+        HTTPException: If the product was not found
+    """
+    product = await ProductModel.get_or_none(id=product_id).prefetch_related("epics")
+    
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Delete all epics related to this product
+    from services.epic_services import delete_epic
+    for epic in product.epics:
+        await delete_epic(epic.id)
+    
+    # Delete the product
+    await product.delete()
+    
+    return True

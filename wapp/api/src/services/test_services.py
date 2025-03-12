@@ -1,7 +1,7 @@
 from fastapi import HTTPException
-from dto.models import Test as TestModel, Product as ProductModel
+from dto.models import Test as TestModel
 from dto.schemas import TestCreate as TestCreateSchema, TestStatus
-from typing import List, Optional
+from typing import List
 from uuid import UUID
 from services.product_services import get_product_by_url_path
 
@@ -78,3 +78,32 @@ async def update_test_status(test_id: str | UUID, status: TestStatus) -> TestMod
     test.status = status
     await test.save()
     return test
+
+
+async def delete_test(test_id: str | UUID) -> bool:
+    """
+    Delete a test and all its related bugs.
+    
+    Args:
+        test_id: UUID of the test to delete
+        
+    Returns:
+        True if the test was deleted, False otherwise
+        
+    Raises:
+        HTTPException: If the test was not found
+    """
+    test = await TestModel.get_or_none(id=test_id).prefetch_related("bugs")
+    
+    if not test:
+        raise HTTPException(status_code=404, detail="Test not found")
+    
+    # Delete all bugs related to this test
+    from services.bug_services import delete_bug
+    for bug in test.bugs:
+        await delete_bug(bug.id)
+    
+    # Delete the test
+    await test.delete()
+    
+    return True

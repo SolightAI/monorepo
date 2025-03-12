@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Body
 from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestStatus
-from services.test_services import get_test, create_test, get_all_tests, update_test_status, get_tests_by_product_path
+from services.test_services import get_test, create_test, get_all_tests, update_test_status, get_tests_by_product_path, delete_test
 from pydantic import UUID4
 from typing import List
 
@@ -43,3 +43,10 @@ async def update_test_status_endpoint(
 ) -> TestSchema:
     await update_test_status(test_id, status)
     return await get_test(test_id)
+
+
+@router.delete("/{test_id}")
+async def delete_test_endpoint(test_id: UUID4) -> dict:
+    """Delete a test and all its related bugs."""
+    deleted = await delete_test(test_id)
+    return {"success": deleted, "message": "Test and all related bugs deleted successfully"}
