@@ -41,7 +41,7 @@ async def get_product_by_url_path(url_path: str) -> Optional[ProductModel]:
     for product in products:
         # Check if the url_path is in the product domain
         if cleaned_path == urlparse(product.url).netloc.split(".")[-2]: # https://www.dev.domaine.com/ -> domaine
-            logger.info(f"Comparing {cleaned_path} with {urlparse(product.url).netloc.split('.')[-2]}")
+            logger.error(f"Comparing {cleaned_path} with {urlparse(product.url).netloc.split('.')[-2]}")
             return await ProductModel.get(id=product.id).prefetch_related("epics")
 
     return None
