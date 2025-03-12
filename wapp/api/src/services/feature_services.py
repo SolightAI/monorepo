@@ -4,7 +4,7 @@ from dto.schemas import FeatureCreate as FeatureCreateSchema
 from uuid import UUID
 
 
-async def get_feature(feature_id: str) -> FeatureModel:
+async def get_feature(feature_id: str | UUID) -> FeatureModel:
     feature = await FeatureModel.get_or_none(id=feature_id).prefetch_related("user_stories")
 
     if not feature:
