@@ -14,7 +14,7 @@ const Home = () => {
   const [error, setError] = useState(null);
   const [epics, setEpics] = useState([]);
   const [showEpicModal, setShowEpicModal] = useState(false);
-  
+
   const navigate = useNavigate();
 
   // Fetch epics for the selected product
@@ -30,13 +30,13 @@ const Home = () => {
   const fetchEpics = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // Get the product with its epics
       const productResponse = await axios.get(`${API_URL}/products/${selectedProduct.id}`, {
         withCredentials: true
       });
-      
+
       if (productResponse.data.epics && productResponse.data.epics.length > 0) {
         setEpics(productResponse.data.epics);
       } else {
@@ -53,7 +53,7 @@ const Home = () => {
   const handleEpicCreationComplete = async (createdEpics) => {
     // Hide the epic creation modal
     setShowEpicModal(false);
-    
+
     // Refresh epics to show the updated data
     await fetchEpics();
   };
@@ -89,7 +89,7 @@ const Home = () => {
                   <p className="text-gray-600 mt-2">{selectedProduct.description}</p>
                 )}
               </div>
-              <button 
+              <button
                 onClick={handleManageEpics}
                 className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
               >
@@ -117,7 +117,7 @@ const Home = () => {
                 {epics.length === 0 ? (
                   <div className="text-center py-20 bg-white rounded-lg shadow">
                     <p className="text-gray-500 mb-4">No epics found for this product</p>
-                    <button 
+                    <button
                       onClick={handleManageEpics}
                       className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
                     >
@@ -127,8 +127,8 @@ const Home = () => {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {epics.map(epic => (
-                      <div 
-                        key={epic.id} 
+                      <div
+                        key={epic.id}
                         className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
                         onClick={() => navigate(`/epics/${epic.id}`)}
                       >
@@ -138,7 +138,7 @@ const Home = () => {
                             <h3 className="text-xl font-semibold text-gray-800 truncate">{epic.name}</h3>
                           </div>
                           <p className="text-gray-700">{epic.description}</p>
-                          
+
                           <div className="mt-4 pt-3 border-t border-gray-100">
                             <button
                               onClick={(e) => {
@@ -180,4 +180,4 @@ const Home = () => {
   );
 };
 
-export default Home; 
+export default Home;

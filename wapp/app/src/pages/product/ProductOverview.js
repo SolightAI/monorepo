@@ -368,17 +368,17 @@ function ProductOverview() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">{productInfo.name}</h1>
           <p className="text-gray-600">{productInfo.description}</p>
-          
+
           {/* Documentation Links Section */}
           {productInfo.links_to_documentation && productInfo.links_to_documentation.length > 0 && (
             <div className="mt-4">
               <h3 className="text-lg font-semibold mb-2">Documentation</h3>
               <div className="flex flex-wrap gap-2">
                 {productInfo.links_to_documentation.map((link, index) => (
-                  <a 
+                  <a
                     key={index}
                     href={link.url || link}
-                    target="_blank" 
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm hover:bg-blue-100 transition-colors"
                   >

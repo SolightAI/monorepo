@@ -50,48 +50,48 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
   useEffect(() => {
     const fetchContextInfo = async () => {
       if (!criteriaId) return;
-      
+
       try {
         setLoading(true);
-        
+
         // First, get the acceptance criteria to find its user story
         const criteriaResponse = await axios.get(`${API_URL}/acceptance-criteria/${criteriaId}`, {
           withCredentials: true
         });
-        
+
         const userStoryId = criteriaResponse.data.user_story_id;
         if (!userStoryId) {
           throw new Error("Could not determine the user story for this acceptance criteria");
         }
-        
+
         // Get user story details
         const userStoryResponse = await axios.get(`${API_URL}/user-stories/${userStoryId}`, {
           withCredentials: true
         });
         setUserStory(userStoryResponse.data);
-        
+
         const featureId = userStoryResponse.data.feature_id;
         if (!featureId) {
           throw new Error("Could not determine the feature for this user story");
         }
-        
+
         // Get feature details
         const featureResponse = await axios.get(`${API_URL}/features/${featureId}`, {
           withCredentials: true
         });
         setFeature(featureResponse.data);
-        
+
         const epicId = featureResponse.data.epic_id;
         if (!epicId) {
           throw new Error("Could not determine the epic for this feature");
         }
-        
+
         // Get epic details
         const epicResponse = await axios.get(`${API_URL}/epics/${epicId}`, {
           withCredentials: true
         });
         setEpic(epicResponse.data);
-        
+
         // Set the form data with the context info
         setFormData(prev => ({
           ...prev,
@@ -99,7 +99,7 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
           feature_id: featureId,
           epic_id: epicId
         }));
-        
+
       } catch (err) {
         console.error("Error fetching context info:", err);
         setError(err.message || "Failed to load context data");
@@ -107,20 +107,20 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
         setLoading(false);
       }
     };
-    
+
     fetchContextInfo();
   }, [criteriaId]);
 
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // Update the form data based on the field that changed
     if (name === "type") {
       // When the test type changes, update the form data accordingly
       setFormData(prev => {
         const updates = { [name]: value };
-        
+
         if (value === "Epic" && epic) {
           updates.epic_id = epic.id;
           updates.feature_id = "";
@@ -134,7 +134,7 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
           updates.feature_id = feature?.id || "";
           updates.user_story_id = userStory.id;
         }
-        
+
         return { ...prev, ...updates };
       });
     } else {
@@ -173,7 +173,7 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
     } else if (formData.type === "Epic") {
       testData.epic_id = formData.epic_id;
     }
-    
+
     // Add the acceptance criteria ID since we're in the acceptance criteria context
     testData.acceptance_criteria_id = criteriaId;
 
@@ -307,16 +307,16 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
             </div>
 
             <div className="border-t border-gray-200 px-6 py-4 flex justify-end">
-              <button 
-                type="button" 
-                onClick={onClose} 
+              <button
+                type="button"
+                onClick={onClose}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md mr-2"
                 disabled={loading}
               >
                 Cancel
               </button>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="px-4 py-2 bg-black text-white rounded-md"
                 disabled={loading}
               >

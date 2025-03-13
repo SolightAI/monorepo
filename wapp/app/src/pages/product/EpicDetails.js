@@ -14,10 +14,10 @@ const EpicDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [epic, setEpic] = useState(null);
-  
+
   // State for Add Feature Modal
   const [isAddFeatureModalOpen, setIsAddFeatureModalOpen] = useState(false);
-  
+
   const navigate = useNavigate();
 
   // Fetch epic details
@@ -28,13 +28,13 @@ const EpicDetails = () => {
   const fetchEpicDetails = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // Get the epic details (which includes features)
       const epicResponse = await axios.get(`${API_URL}/epics/${epicId}`, {
         withCredentials: true
       });
-      
+
       setEpic(epicResponse.data);
     } catch (err) {
       console.error('Error fetching epic details:', err);
@@ -116,7 +116,7 @@ const EpicDetails = () => {
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">Features</h2>
-                <button 
+                <button
                   className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
                   onClick={() => setIsAddFeatureModalOpen(true)}
                 >
@@ -128,7 +128,7 @@ const EpicDetails = () => {
               {!epic?.features || epic.features.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
                   <p className="text-gray-500 mb-4">No features found for this epic</p>
-                  <button 
+                  <button
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
                     onClick={() => setIsAddFeatureModalOpen(true)}
                   >
@@ -153,8 +153,8 @@ const EpicDetails = () => {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {epic.features.map((feature) => (
-                        <tr 
-                          key={feature.id} 
+                        <tr
+                          key={feature.id}
                           className="hover:bg-gray-50 cursor-pointer"
                           onClick={() => navigate(`/features/${feature.id}`)}
                         >
@@ -204,4 +204,4 @@ const EpicDetails = () => {
   );
 };
 
-export default EpicDetails; 
+export default EpicDetails;

@@ -14,6 +14,7 @@ RUN npm install
 COPY ./src /app/src
 COPY ./public /app/public
 COPY ./tailwind.config.js /app/tailwind.config.js
+COPY ./jsconfig.json /app/jsconfig.json
 
 # Build the app for production
 # RUN npm run build

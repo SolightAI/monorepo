@@ -11,7 +11,7 @@ const AddUserStoryModal = ({ onClose, featureId, featureName, onUserStoryAdded }
     description: '',
     status: 'NOT_STARTED'
   });
-  
+
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,15 +35,15 @@ const AddUserStoryModal = ({ onClose, featureId, featureName, onUserStoryAdded }
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     // Validate form
     if (!formData.title.trim()) {
       setError('User story title is required');
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // Create the user story via API
       const response = await axios.post(
@@ -56,21 +56,21 @@ const AddUserStoryModal = ({ onClose, featureId, featureName, onUserStoryAdded }
         },
         { withCredentials: true }
       );
-      
+
       // Notify parent component
       if (onUserStoryAdded) {
         onUserStoryAdded(response.data);
       }
-      
+
       // Close the modal
       onClose();
     } catch (err) {
-      const errorMessage = err.response?.data?.detail 
-        ? (typeof err.response.data.detail === 'string' 
-           ? err.response.data.detail 
+      const errorMessage = err.response?.data?.detail
+        ? (typeof err.response.data.detail === 'string'
+           ? err.response.data.detail
            : JSON.stringify(err.response.data.detail))
         : 'Failed to create user story. Please try again.';
-      
+
       setError(errorMessage);
       console.error('Error creating user story:', err);
     } finally {
@@ -86,25 +86,25 @@ const AddUserStoryModal = ({ onClose, featureId, featureName, onUserStoryAdded }
             <h2 className="text-2xl font-bold">
               Add User Story to "{featureName}"
             </h2>
-            <button 
+            <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               <X size={24} />
             </button>
           </div>
-          
+
           <p className="text-gray-600 mb-6">
             User stories describe functionality from the end-user's perspective.
           </p>
-          
+
           {error && (
             <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start">
               <AlertCircle size={20} className="mr-2 flex-shrink-0 mt-1" />
               <p>{error}</p>
             </div>
           )}
-          
+
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
@@ -121,7 +121,7 @@ const AddUserStoryModal = ({ onClose, featureId, featureName, onUserStoryAdded }
                 required
               />
             </div>
-            
+
             <div className="mb-4">
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
                 Description
@@ -135,7 +135,7 @@ const AddUserStoryModal = ({ onClose, featureId, featureName, onUserStoryAdded }
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               ></textarea>
             </div>
-            
+
             <div className="mb-6">
               <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
                 Status
@@ -154,7 +154,7 @@ const AddUserStoryModal = ({ onClose, featureId, featureName, onUserStoryAdded }
                 ))}
               </select>
             </div>
-            
+
             <div className="flex justify-end space-x-3">
               <button
                 type="button"
@@ -179,4 +179,4 @@ const AddUserStoryModal = ({ onClose, featureId, featureName, onUserStoryAdded }
   );
 };
 
-export default AddUserStoryModal; 
+export default AddUserStoryModal;

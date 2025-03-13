@@ -26,20 +26,20 @@ const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCr
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     // Validate form
     if (!formData.title.trim()) {
       setError('Acceptance criteria title is required');
       return;
     }
-    
+
     if (!formData.description.trim()) {
       setError('Acceptance criteria description is required');
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // Create the acceptance criteria via API
       const response = await axios.post(
@@ -51,21 +51,21 @@ const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCr
         },
         { withCredentials: true }
       );
-      
+
       // Notify parent component
       if (onCriteriaAdded) {
         onCriteriaAdded(response.data);
       }
-      
+
       // Close the modal
       onClose();
     } catch (err) {
-      const errorMessage = err.response?.data?.detail 
-        ? (typeof err.response.data.detail === 'string' 
-           ? err.response.data.detail 
+      const errorMessage = err.response?.data?.detail
+        ? (typeof err.response.data.detail === 'string'
+           ? err.response.data.detail
            : JSON.stringify(err.response.data.detail))
         : 'Failed to create acceptance criteria. Please try again.';
-      
+
       setError(errorMessage);
       console.error('Error creating acceptance criteria:', err);
     } finally {
@@ -81,28 +81,28 @@ const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCr
             <h2 className="text-2xl font-bold">
               Add Acceptance Criteria
             </h2>
-            <button 
+            <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               <X size={24} />
             </button>
           </div>
-          
+
           <p className="text-gray-600 mb-2">
             For user story:
           </p>
           <p className="font-medium text-gray-800 mb-6">
             {userStoryTitle}
           </p>
-          
+
           {error && (
             <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start">
               <AlertCircle size={20} className="mr-2 flex-shrink-0 mt-1" />
               <p>{error}</p>
             </div>
           )}
-          
+
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
@@ -122,7 +122,7 @@ const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCr
                 Example: "Email Confirmation"
               </p>
             </div>
-            
+
             <div className="mb-6">
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
                 Description *
@@ -141,7 +141,7 @@ const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCr
                 Good example: "User receives an email confirmation after successful registration"
               </p>
             </div>
-            
+
             <div className="flex justify-end space-x-3">
               <button
                 type="button"
@@ -166,4 +166,4 @@ const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCr
   );
 };
 
-export default AddAcceptanceCriteriaModal; 
+export default AddAcceptanceCriteriaModal;

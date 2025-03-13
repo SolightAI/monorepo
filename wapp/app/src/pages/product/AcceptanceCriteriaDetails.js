@@ -12,10 +12,10 @@ const AcceptanceCriteriaDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [criteria, setCriteria] = useState(null);
-  
+
   // State for Add Test Modal
   const [isAddTestModalOpen, setIsAddTestModalOpen] = useState(false);
-  
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,12 +25,12 @@ const AcceptanceCriteriaDetails = () => {
   const fetchCriteriaDetails = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await axios.get(`${API_URL}/acceptance-criteria/${criteriaId}`, {
         withCredentials: true
       });
-      
+
       setCriteria(response.data);
     } catch (err) {
       console.error('Error fetching acceptance criteria details:', err);
@@ -43,7 +43,7 @@ const AcceptanceCriteriaDetails = () => {
   // Handle test added
   const handleTestAdded = async (newTest) => {
     console.log("Test added:", newTest);
-    
+
     try {
       // Make API call to save the test
       const response = await axios.post(
@@ -51,9 +51,9 @@ const AcceptanceCriteriaDetails = () => {
         newTest,
         { withCredentials: true }
       );
-      
+
       console.log("Test saved to API:", response.data);
-      
+
       // Update the criteria state with the response data from the API
       setCriteria(prevCriteria => ({
         ...prevCriteria,
@@ -162,7 +162,7 @@ const AcceptanceCriteriaDetails = () => {
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">Tests</h2>
-                <button 
+                <button
                   className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
                   onClick={() => setIsAddTestModalOpen(true)}
                 >
@@ -174,7 +174,7 @@ const AcceptanceCriteriaDetails = () => {
               {!criteria?.tests || criteria.tests.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
                   <p className="text-gray-500 mb-4">No tests found for this acceptance criteria</p>
-                  <button 
+                  <button
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
                     onClick={() => setIsAddTestModalOpen(true)}
                   >
@@ -215,7 +215,7 @@ const AcceptanceCriteriaDetails = () => {
                       {test.url && (
                         <div className="mb-4">
                           <span className="text-gray-500">Endpoint:</span>
-                          <a 
+                          <a
                             href={test.url}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -257,7 +257,7 @@ const AcceptanceCriteriaDetails = () => {
                               <span className="text-gray-500">Bugs:</span>
                               <div className="mt-1">
                                 {test.bugs.map((bug, bugIndex) => (
-                                  <div 
+                                  <div
                                     key={bugIndex}
                                     className="inline-flex items-center px-2 py-1 mr-2 mb-2 rounded bg-red-50 text-red-700 text-xs"
                                   >
@@ -304,4 +304,4 @@ const AcceptanceCriteriaDetails = () => {
   );
 };
 
-export default AcceptanceCriteriaDetails; 
+export default AcceptanceCriteriaDetails;

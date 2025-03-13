@@ -12,10 +12,10 @@ const FeatureDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [feature, setFeature] = useState(null);
-  
+
   // State for Add User Story Modal
   const [isAddUserStoryModalOpen, setIsAddUserStoryModalOpen] = useState(false);
-  
+
   const navigate = useNavigate();
 
   // Fetch feature details
@@ -26,13 +26,13 @@ const FeatureDetails = () => {
   const fetchFeatureDetails = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // Get the feature details (which includes user stories)
       const featureResponse = await axios.get(`${API_URL}/features/${featureId}`, {
         withCredentials: true
       });
-      
+
       setFeature(featureResponse.data);
     } catch (err) {
       console.error('Error fetching feature details:', err);
@@ -114,7 +114,7 @@ const FeatureDetails = () => {
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">User Stories</h2>
-                <button 
+                <button
                   className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
                   onClick={() => setIsAddUserStoryModalOpen(true)}
                 >
@@ -126,7 +126,7 @@ const FeatureDetails = () => {
               {!feature?.user_stories || feature.user_stories.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
                   <p className="text-gray-500 mb-4">No user stories found for this feature</p>
-                  <button 
+                  <button
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
                     onClick={() => setIsAddUserStoryModalOpen(true)}
                   >
@@ -210,4 +210,4 @@ const FeatureDetails = () => {
   );
 };
 
-export default FeatureDetails; 
+export default FeatureDetails;

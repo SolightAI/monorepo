@@ -1,70 +1,84 @@
-# Getting Started with Create React App
+# Test Manager Application
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This is a web application for managing test products, tracking bugs, and organizing the testing workflow. The application follows a hierarchical structure of Products -> Epics -> Features -> User Stories -> Acceptance Criteria -> Tests.
 
-## Available Scripts
+## Architecture
 
-In the project directory, you can run:
+The application is structured as follows:
 
-### `npm start`
+### Frontend (React)
+- **Pages**
+  - `Products.js` - Main landing page that lists all products and allows adding new ones
+  - `ProductOverview.js` - Detailed view of a product with tests and bugs
+  - `Login.js` / `Register.js` - Authentication pages
+  - `Settings.js` - User settings
+  - `AdminInvitations.js` - Admin only page for invitation management
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Components**
+  - `Layout.js` - The main layout wrapper with navigation
+  - `EpicCreationModal.jsx` - Modal for adding epics to a product with AI assistance
+  - Various UI components for specific features (TestDetailsModal, BugDetailsModal, etc.)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- **Utils**
+  - `auth.js` - Authentication utilities and API calls
 
-### `npm test`
+### Backend (FastAPI)
+- **Models**
+  - Product - Top level entity representing a product
+  - Epic - A collection of features within a product
+  - Feature - Specific functionality in the product
+  - UserStory - Description of a user need
+  - AcceptanceCriteria - Specific conditions for a user story
+  - Test - Actual tests associated with acceptance criteria
+  - Bug - Issues detected during testing
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- **Services**
+  - ProductServices - CRUD operations for products
+  - EpicServices - CRUD operations for epics
+  - FeatureServices - CRUD operations for features
+  - TestServices - Test management and fetching
 
-### `npm run build`
+## Data Flow
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. User creates a Product
+2. After creating a product, the user can add Epics:
+   - Manually add epics one by one
+   - Use AI to automatically generate epics based on product documentation
+3. Epics contain Features
+4. Features are broken down into User Stories
+5. User Stories have Acceptance Criteria
+6. Tests are associated with Acceptance Criteria
+7. Bugs are linked to Tests
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## AI Features
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+The application includes AI-powered features to improve the user experience:
 
-### `npm run eject`
+1. **Epic Generation** - When a product is created with detailed documentation, the user can click "Auto-generate Epics with AI" to have the system automatically suggest epics based on the product description.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Authentication
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+The application uses token-based authentication with:
+- Username/password login
+- Google OAuth integration
+- Session management with cookies
+- Admin role permissions
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Getting Started
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+1. Install dependencies: `npm install`
+2. Start the development server: `npm start`
+3. The application will be available at http://localhost:3000
 
-## Learn More
+## Environment Variables
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- `REACT_APP_API_URL` - Backend API URL (defaults to http://localhost:8000)
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Deployment
 
-### Code Splitting
+The application can be deployed using the provided Dockerfile:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```bash
+docker build -t test-manager .
+docker run -p 3000:80 test-manager
+```

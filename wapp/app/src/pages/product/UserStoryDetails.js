@@ -12,10 +12,10 @@ const UserStoryDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [story, setStory] = useState(null);
-  
+
   // State for Add Acceptance Criteria Modal
   const [isAddCriteriaModalOpen, setIsAddCriteriaModalOpen] = useState(false);
-  
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,12 +25,12 @@ const UserStoryDetails = () => {
   const fetchStoryDetails = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await axios.get(`${API_URL}/user-stories/${storyId}`, {
         withCredentials: true
       });
-      
+
       setStory(response.data);
     } catch (err) {
       console.error('Error fetching user story details:', err);
@@ -102,7 +102,7 @@ const UserStoryDetails = () => {
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">Acceptance Criteria</h2>
-                <button 
+                <button
                   className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
                   onClick={() => setIsAddCriteriaModalOpen(true)}
                 >
@@ -114,7 +114,7 @@ const UserStoryDetails = () => {
               {!story?.acceptance_criteria || story.acceptance_criteria.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
                   <p className="text-gray-500 mb-4">No acceptance criteria found for this user story</p>
-                  <button 
+                  <button
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
                     onClick={() => setIsAddCriteriaModalOpen(true)}
                   >
@@ -163,4 +163,4 @@ const UserStoryDetails = () => {
   );
 };
 
-export default UserStoryDetails; 
+export default UserStoryDetails;

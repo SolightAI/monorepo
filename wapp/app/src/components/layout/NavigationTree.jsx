@@ -78,7 +78,7 @@ const NavigationTree = () => {
             });
           }
         }
-        
+
         // Case 2: We're at the acceptance criteria level or we have criteriaId from test
         if (params.criteriaId || criteriaId) {
           const currentCriteriaId = params.criteriaId || criteriaId;
@@ -98,7 +98,7 @@ const NavigationTree = () => {
             });
           }
         }
-        
+
         // Case 3: We're at the user story level or we have storyId from criteria
         if (params.storyId || storyId) {
           const currentStoryId = params.storyId || storyId;
@@ -107,7 +107,7 @@ const NavigationTree = () => {
               withCredentials: true
             });
             featureId = storyResponse.data.feature_id;
-            
+
             // Add to breadcrumbs
             newBreadcrumbs.push({
               name: storyResponse.data.name,
@@ -123,7 +123,7 @@ const NavigationTree = () => {
             });
           }
         }
-        
+
         // Case 4: We're at the feature level or we have featureId from story
         if (params.featureId || featureId) {
           const currentFeatureId = params.featureId || featureId;
@@ -132,7 +132,7 @@ const NavigationTree = () => {
               withCredentials: true
             });
             epicId = featureResponse.data.epic_id;
-            
+
             // Add to breadcrumbs
             newBreadcrumbs.push({
               name: featureResponse.data.name,
@@ -148,7 +148,7 @@ const NavigationTree = () => {
             });
           }
         }
-        
+
         // Case 5: We're at the epic level or we have epicId from feature
         if (params.epicId || epicId) {
           const currentEpicId = params.epicId || epicId;
@@ -156,7 +156,7 @@ const NavigationTree = () => {
             const epicResponse = await axios.get(`${API_URL}/epics/${currentEpicId}`, {
               withCredentials: true
             });
-            
+
             // Add to breadcrumbs
             newBreadcrumbs.push({
               name: epicResponse.data.name,
@@ -172,7 +172,7 @@ const NavigationTree = () => {
             });
           }
         }
-        
+
         // Now add the acceptance criteria if we have it
         if (criteriaData) {
           // Add fallbacks for acceptance criteria name
@@ -192,7 +192,7 @@ const NavigationTree = () => {
             });
           }
         }
-        
+
         // Finally add the test if we have it
         if (testData) {
           // Use a fallback in case name property is missing or undefined
@@ -213,40 +213,40 @@ const NavigationTree = () => {
             });
           }
         }
-        
+
         // Sort breadcrumbs in the correct hierarchical order
         const orderedBreadcrumbs = [];
-        
+
         // First add product
         const productCrumb = newBreadcrumbs.find(crumb => crumb.type === 'product');
         if (productCrumb) orderedBreadcrumbs.push(productCrumb);
-        
+
         // Then add epic
         const epicCrumb = newBreadcrumbs.find(crumb => crumb.type === 'epic' || (crumb.type === 'error' && crumb.path.includes('/epics/')));
         if (epicCrumb) orderedBreadcrumbs.push(epicCrumb);
-        
+
         // Then add feature
         const featureCrumb = newBreadcrumbs.find(crumb => crumb.type === 'feature' || (crumb.type === 'error' && crumb.path.includes('/features/')));
         if (featureCrumb) orderedBreadcrumbs.push(featureCrumb);
-        
+
         // Then add user story
         const storyCrumb = newBreadcrumbs.find(crumb => crumb.type === 'story' || (crumb.type === 'error' && crumb.path.includes('/user-stories/')));
         if (storyCrumb) orderedBreadcrumbs.push(storyCrumb);
-        
+
         // Then add acceptance criteria
         const criteriaCrumb = newBreadcrumbs.find(crumb => crumb.type === 'criteria' || (crumb.type === 'error' && crumb.path.includes('/acceptance-criteria/')));
         if (criteriaCrumb) {
           console.log('Adding criteria to ordered breadcrumbs:', criteriaCrumb); // Debug the criteria breadcrumb being added
           orderedBreadcrumbs.push(criteriaCrumb);
         }
-        
+
         // Finally add test
         const testCrumb = newBreadcrumbs.find(crumb => crumb.type === 'test' || (crumb.type === 'error' && crumb.path.includes('/tests/')));
         if (testCrumb) {
           console.log('Adding test to ordered breadcrumbs:', testCrumb); // Debug the test breadcrumb being added
           orderedBreadcrumbs.push(testCrumb);
         }
-        
+
         console.log('Final breadcrumbs:', orderedBreadcrumbs); // Debug final breadcrumbs
         setBreadcrumbs(orderedBreadcrumbs);
       } catch (error) {
@@ -256,14 +256,14 @@ const NavigationTree = () => {
         setLoading(false);
       }
     };
-    
+
     fetchBreadcrumbData();
   }, [location.pathname, selectedProduct, params]);
-  
+
   if (loading || breadcrumbs.length <= 1) {
     return null; // Don't show when loading or only product is present
   }
-  
+
   return (
     <nav aria-label="breadcrumb" className="py-3 px-6 bg-white border-b border-gray-200 shadow-sm">
       {error ? (
@@ -285,7 +285,7 @@ const NavigationTree = () => {
                 {index === breadcrumbs.length - 1 ? (
                   <span className="truncate max-w-xs">{crumb.name}</span>
                 ) : (
-                  <Link 
+                  <Link
                     to={crumb.path}
                     className={`hover:text-blue-600 transition-colors truncate max-w-xs ${crumb.type === 'error' ? 'text-red-500 hover:text-red-600' : ''}`}
                     title={crumb.name}
@@ -302,4 +302,4 @@ const NavigationTree = () => {
   );
 };
 
-export default NavigationTree; 
+export default NavigationTree;

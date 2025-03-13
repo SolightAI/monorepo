@@ -11,7 +11,7 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
     description: '',
     urls: ['']
   });
-  
+
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -28,7 +28,7 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
   const handleUrlChange = (index, value) => {
     const updatedUrls = [...formData.urls];
     updatedUrls[index] = value;
-    
+
     setFormData({
       ...formData,
       urls: updatedUrls
@@ -56,18 +56,18 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     // Validate form
     if (!formData.name.trim()) {
       setError('Feature name is required');
       return;
     }
-    
+
     // Filter out empty URLs
     const filteredUrls = formData.urls.filter(url => url.trim() !== '');
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // Create the feature via API
       const response = await axios.post(
@@ -80,21 +80,21 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
         },
         { withCredentials: true }
       );
-      
+
       // Notify parent component
       if (onFeatureAdded) {
         onFeatureAdded(response.data);
       }
-      
+
       // Close the modal
       onClose();
     } catch (err) {
-      const errorMessage = err.response?.data?.detail 
-        ? (typeof err.response.data.detail === 'string' 
-           ? err.response.data.detail 
+      const errorMessage = err.response?.data?.detail
+        ? (typeof err.response.data.detail === 'string'
+           ? err.response.data.detail
            : JSON.stringify(err.response.data.detail))
         : 'Failed to create feature. Please try again.';
-      
+
       setError(errorMessage);
       console.error('Error creating feature:', err);
     } finally {
@@ -110,25 +110,25 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
             <h2 className="text-2xl font-bold">
               Add Feature to "{epicName}"
             </h2>
-            <button 
+            <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               <X size={24} />
             </button>
           </div>
-          
+
           <p className="text-gray-600 mb-6">
             Features are specific functionalities of your product that fulfill a part of an epic.
           </p>
-          
+
           {error && (
             <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start">
               <AlertCircle size={20} className="mr-2 flex-shrink-0 mt-1" />
               <p>{error}</p>
             </div>
           )}
-          
+
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -144,7 +144,7 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
                 required
               />
             </div>
-            
+
             <div className="mb-4">
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
                 Description
@@ -158,12 +158,12 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               ></textarea>
             </div>
-            
+
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Related URLs
               </label>
-              
+
               {formData.urls.map((url, index) => (
                 <div key={index} className="flex items-center space-x-2 mb-2">
                   <input
@@ -182,7 +182,7 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
                   </button>
                 </div>
               ))}
-              
+
               <button
                 type="button"
                 onClick={handleAddUrl}
@@ -191,7 +191,7 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
                 + Add URL
               </button>
             </div>
-            
+
             <div className="flex justify-end space-x-3">
               <button
                 type="button"
@@ -216,4 +216,4 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
   );
 };
 
-export default AddFeatureModal; 
+export default AddFeatureModal;

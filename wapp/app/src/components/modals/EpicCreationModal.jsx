@@ -4,11 +4,11 @@ import { X, AlertCircle, Plus, Trash, Sparkles, Loader } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
-const EpicCreationModal = ({ 
-  productId, 
-  productName, 
-  onClose, 
-  onComplete, 
+const EpicCreationModal = ({
+  productId,
+  productName,
+  onClose,
+  onComplete,
   productLinks,
   existingEpics = [],
   isEditing = false,
@@ -43,12 +43,12 @@ const EpicCreationModal = ({
 
   const removeEpicField = (index) => {
     const epicToRemove = epics[index];
-    
+
     // If this is an existing epic (has an ID), confirm deletion
     if (epicToRemove.id) {
       if (window.confirm(`Are you sure you want to delete the epic "${epicToRemove.name}"? This action cannot be undone.`)) {
         setEpicIdsToDelete(prev => [...prev, epicToRemove.id]);
-        
+
         if (epics.length === 1) {
           // If it's the last epic, replace with an empty form
           setEpics([{ name: '', description: '' }]);
@@ -77,13 +77,13 @@ const EpicCreationModal = ({
 
   const validateEpics = () => {
     // At least one epic must have a name if we're not just deleting epics
-    return epics.some(epic => epic.name.trim() !== '') || 
+    return epics.some(epic => epic.name.trim() !== '') ||
            (isEditing && epicIdsToDelete.length > 0 && epics.length === 0);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateEpics()) {
       setError('Please add at least one epic with a name.');
       return;
@@ -98,7 +98,7 @@ const EpicCreationModal = ({
 
     try {
       const createdOrUpdatedEpics = [];
-      
+
       // Handle epic deletions first (if in edit mode)
       if (isEditing && epicIdsToDelete.length > 0) {
         for (const epicId of epicIdsToDelete) {
@@ -108,7 +108,7 @@ const EpicCreationModal = ({
           );
         }
       }
-      
+
       // Create or update epics
       for (const epic of validEpics) {
         const epicData = {
@@ -116,32 +116,32 @@ const EpicCreationModal = ({
           description: epic.description.trim(),
           product_id: productId
         };
-        
+
         let response;
-        
+
         if (epic.id) {
           // Update existing epic
           response = await axios.put(
-            `${API_URL}/epics/${epic.id}`, 
+            `${API_URL}/epics/${epic.id}`,
             epicData,
             { withCredentials: true }
           );
         } else {
           // Create new epic
           response = await axios.post(
-            `${API_URL}/epics/`, 
+            `${API_URL}/epics/`,
             epicData,
             { withCredentials: true }
           );
         }
-        
+
         createdOrUpdatedEpics.push(response.data);
       }
-      
+
       if (isEditing) {
         setSuccessMessage('Epics updated successfully!');
         setTimeout(() => setSuccessMessage(''), 3000);
-        
+
         // Clear the deletion list since they've been processed
         setEpicIdsToDelete([]);
       } else {
@@ -150,12 +150,12 @@ const EpicCreationModal = ({
       }
     } catch (err) {
       // Fix: Ensure the error is properly converted to a string
-      const errorMessage = err.response?.data?.detail 
-        ? (typeof err.response.data.detail === 'string' 
-           ? err.response.data.detail 
+      const errorMessage = err.response?.data?.detail
+        ? (typeof err.response.data.detail === 'string'
+           ? err.response.data.detail
            : JSON.stringify(err.response.data.detail))
         : 'Failed to create epics. Please try again.';
-      
+
       setError(errorMessage);
       console.error('Error creating/updating epics:', err);
     } finally {
@@ -169,7 +169,7 @@ const EpicCreationModal = ({
 
   const handleAutoGenerate = async () => {
     const hasLinks = productLinks && productLinks.length > 0;
-    
+
     if (!hasLinks) {
       setError('Documentation links are required for AI generation. Please add documentation links to the product and try again.');
       return;
@@ -199,12 +199,12 @@ const EpicCreationModal = ({
       setEpics(generatedEpics.length > 0 ? generatedEpics : [{ name: '', description: '' }]);
     } catch (err) {
       // Fix: Ensure the error is properly converted to a string
-      const errorMessage = err.response?.data?.detail 
-        ? (typeof err.response.data.detail === 'string' 
-           ? err.response.data.detail 
+      const errorMessage = err.response?.data?.detail
+        ? (typeof err.response.data.detail === 'string'
+           ? err.response.data.detail
            : JSON.stringify(err.response.data.detail))
         : 'Failed to generate epics. Please try again or create them manually.';
-      
+
       setError(errorMessage);
       console.error('Error generating epics:', err);
     } finally {
@@ -222,28 +222,28 @@ const EpicCreationModal = ({
             <h2 className="text-2xl font-bold">
               {isEditing ? `Manage Epics for "${productName}"` : `Add Epics to "${productName}"`}
             </h2>
-            <button 
+            <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               <X size={24} />
             </button>
           </div>
-          
+
           <p className="text-gray-600 mb-6">
             Epics are large bodies of work that can be broken down into smaller features and tasks.
-            {isEditing 
-              ? ' Edit, add, or remove epics for your product.' 
+            {isEditing
+              ? ' Edit, add, or remove epics for your product.'
               : ' Add one or more epics for your product.'}
           </p>
-          
+
           {error && (
             <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start">
               <AlertCircle size={20} className="mr-2 flex-shrink-0 mt-1" />
               <p>{typeof error === 'string' ? error : JSON.stringify(error)}</p>
             </div>
           )}
-          
+
           {successMessage && (
             <div className="mb-6 p-4 bg-green-100 border border-green-200 text-green-700 rounded-lg">
               {successMessage}
@@ -264,13 +264,13 @@ const EpicCreationModal = ({
                   onClick={handleAutoGenerate}
                   disabled={isGenerating || !hasDocumentation}
                   className={`flex items-center px-4 py-2 rounded-md ${
-                    hasDocumentation 
-                      ? 'bg-purple-600 text-white hover:bg-purple-700' 
+                    hasDocumentation
+                      ? 'bg-purple-600 text-white hover:bg-purple-700'
                       : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                   }`}
                   title={
-                    hasDocumentation 
-                      ? 'Generate epics using AI based on your product documentation links' 
+                    hasDocumentation
+                      ? 'Generate epics using AI based on your product documentation links'
                       : 'Documentation links are required for AI generation'
                   }
                 >
@@ -292,7 +292,7 @@ const EpicCreationModal = ({
                   Documentation links are required for AI generation. Please add documentation links to the product and try again.
                 </div>
               )}
-              
+
               <form onSubmit={handleSubmit}>
                 {epics.map((epic, index) => (
                   <div key={epic.id || index} className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
@@ -309,7 +309,7 @@ const EpicCreationModal = ({
                         <Trash size={16} />
                       </button>
                     </div>
-                    
+
                     <div className="mb-3">
                       <label htmlFor={`epic-name-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
                         Epic Name
@@ -323,7 +323,7 @@ const EpicCreationModal = ({
                         placeholder="E.g., User Authentication, Payment Processing"
                       />
                     </div>
-                    
+
                     <div>
                       <label htmlFor={`epic-description-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
                         Description
@@ -339,7 +339,7 @@ const EpicCreationModal = ({
                     </div>
                   </div>
                 ))}
-                
+
                 <button
                   type="button"
                   onClick={addEpicField}
@@ -348,7 +348,7 @@ const EpicCreationModal = ({
                   <Plus size={16} className="mr-1" />
                   Add Another Epic
                 </button>
-                
+
                 <div className="flex justify-end space-x-3">
                   {!isEditing && (
                     <button
@@ -373,8 +373,8 @@ const EpicCreationModal = ({
                       isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'
                     }`}
                   >
-                    {isSubmitting 
-                      ? (isEditing ? 'Updating Epics...' : 'Creating Epics...') 
+                    {isSubmitting
+                      ? (isEditing ? 'Updating Epics...' : 'Creating Epics...')
                       : (isEditing ? 'Save Changes' : 'Create Epics')}
                   </button>
                 </div>
@@ -387,4 +387,4 @@ const EpicCreationModal = ({
   );
 };
 
-export default EpicCreationModal; 
+export default EpicCreationModal;

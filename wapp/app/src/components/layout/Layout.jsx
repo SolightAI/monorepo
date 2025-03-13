@@ -8,16 +8,16 @@ import NavigationTree from './NavigationTree';
 const Layout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const handleLogout = async () => {
     await logout();
     // The logout function already redirects to login
   };
-  
+
   const isActive = (path) => {
     return location.pathname === path;
   };
-  
+
   return (
     <div className="flex min-h-screen">
       {/* Sidebar Navigation */}
@@ -31,12 +31,12 @@ const Layout = () => {
               <Home size={24} className="text-gray-700" onClick={() => navigate('/')} />
             </div>
           </div>
-          
+
           <nav className="flex-1 pt-4">
             <ul>
               <li>
-                <Link 
-                  to="/" 
+                <Link
+                  to="/"
                   className={`flex items-center px-4 py-3 ${isActive('/') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-100'}`}
                 >
                   <Home size={20} className="flex-shrink-0" />
@@ -44,8 +44,8 @@ const Layout = () => {
                 </Link>
               </li>
               <li>
-                <Link 
-                  to="/settings" 
+                <Link
+                  to="/settings"
                   className={`flex items-center px-4 py-3 ${isActive('/settings') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-100'}`}
                 >
                   <SettingsIcon size={20} className="flex-shrink-0" />
@@ -54,9 +54,9 @@ const Layout = () => {
               </li>
             </ul>
           </nav>
-          
+
           <div className="p-4 border-t border-gray-200">
-            <button 
+            <button
               onClick={handleLogout}
               className="flex items-center text-gray-700 hover:text-red-600 w-full"
             >
@@ -66,7 +66,7 @@ const Layout = () => {
           </div>
         </div>
       </aside>
-      
+
       {/* Main Content */}
       <main className="ml-16 md:ml-64 w-full">
         {/* Navigation Tree (Breadcrumbs) */}

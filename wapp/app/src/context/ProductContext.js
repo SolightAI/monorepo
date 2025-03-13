@@ -22,14 +22,14 @@ export const ProductProvider = ({ children }) => {
   const fetchProducts = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await axios.get(`${API_URL}/products/`, {
         withCredentials: true
       });
-      
+
       setProducts(response.data);
-      
+
       // Set selected product from local storage or default to first product
       const storedProductId = localStorage.getItem('selectedProductId');
       if (storedProductId && response.data.length > 0) {
@@ -66,12 +66,12 @@ export const ProductProvider = ({ children }) => {
   };
 
   return (
-    <ProductContext.Provider 
-      value={{ 
-        products, 
-        selectedProduct, 
-        selectProduct, 
-        loading, 
+    <ProductContext.Provider
+      value={{
+        products,
+        selectedProduct,
+        selectProduct,
+        loading,
         error,
         refreshProducts
       }}
@@ -81,4 +81,4 @@ export const ProductProvider = ({ children }) => {
   );
 };
 
-export default ProductContext; 
+export default ProductContext;
