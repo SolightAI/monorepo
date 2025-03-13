@@ -36,9 +36,6 @@ export default function Header() {
           <a href="/" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
             Home
           </a>
-          <a href="/domains" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
-            Domains
-          </a>
           <a href="/#features" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
             Features
           </a>
@@ -69,9 +66,6 @@ export default function Header() {
           <nav className="flex flex-col space-y-4 px-4">
             <a href="/" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
               Home
-            </a>
-            <a href="/domains" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
-              Domains
             </a>
             <a href="/#features" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
               Features
