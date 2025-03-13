@@ -10,6 +10,11 @@ import NotFound from './pages/common/NotFound';
 import Layout from './components/layout/Layout';
 import Settings from './pages/user/Settings';
 import AdminInvitations from './pages/admin/AdminInvitations';
+import OrganizationCreate from './pages/organization/OrganizationCreate';
+import OrganizationDashboard from './pages/organization/OrganizationDashboard';
+import OrganizationMembers from './pages/organization/OrganizationMembers';
+import JoinOrganization from './pages/organization/JoinOrganization';
+import Dashboard from './pages/Dashboard';
 import { isAdmin, setupAxiosInterceptors } from './utils/auth';
 import Home from './pages/common/Home';
 import EpicDetails from './pages/product/EpicDetails';
@@ -17,6 +22,8 @@ import FeatureDetails from './pages/product/FeatureDetails';
 import UserStoryDetails from './pages/product/UserStoryDetails';
 import AcceptanceCriteriaDetails from './pages/product/AcceptanceCriteriaDetails';
 import { ProductProvider } from './context/ProductContext';
+import { OrganizationProvider } from './context/OrganizationContext';
+import { DashboardProvider } from './context/DashboardContext';
 
 const isAuthenticated = () => {
   return localStorage.getItem('isAuthenticated') === 'true';
@@ -103,42 +110,73 @@ function App() {
 
   return (
     <BrowserRouter>
-      <ProductProvider>
-        <div className="min-h-screen bg-gray-50">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/reset-password/:token" element={<ResetPassword />} />
-            <Route path="/auth/google/callback" element={<GoogleCallback />} />
+      <OrganizationProvider>
+        <ProductProvider>
+          <div className="min-h-screen bg-gray-50">
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/reset-password/:token" element={<ResetPassword />} />
+              <Route path="/auth/google/callback" element={<GoogleCallback />} />
+              <Route path="/join-organization/:code" element={<JoinOrganization />} />
 
-            {/* Protected routes with Layout */}
-            <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              {/* Home page showing epics of selected product */}
-              <Route path="/" element={<Home />} />
-              {/* Epic details page */}
-              <Route path="/epics/:epicId" element={<EpicDetails />} />
-              {/* Feature details page */}
-              <Route path="/features/:featureId" element={<FeatureDetails />} />
-              {/* User Story details page */}
-              <Route path="/user-stories/:storyId" element={<UserStoryDetails />} />
-              {/* Acceptance Criteria details page */}
-              <Route path="/acceptance-criteria/:criteriaId" element={<AcceptanceCriteriaDetails />} />
-              {/* Other protected routes */}
-              <Route path="/settings" element={<Settings />} />
-            </Route>
+              {/* Organization Setup Route */}
+              <Route path="/organizations/create" element={
+                <ProtectedRoute>
+                  <OrganizationCreate />
+                </ProtectedRoute>
+              } />
+              <Route path="/organization/create" element={
+                <ProtectedRoute>
+                  <OrganizationCreate />
+                </ProtectedRoute>
+              } />
 
-            {/* Admin routes with Layout */}
-            <Route element={<AdminRoute><Layout /></AdminRoute>}>
-              <Route path="/admin/invitations" element={<AdminInvitations />} />
-            </Route>
+              {/* Protected routes with Layout */}
+              <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                {/* Home page showing epics of selected product */}
+                <Route path="/" element={<Home />} />
 
-            {/* Dynamic route for product paths */}
-            <Route path="/:productPath" element={<ProductOverview />} />
+                {/* Dashboard Routes */}
+                <Route path="/dashboard" element={
+                  <DashboardProvider>
+                    <Dashboard />
+                  </DashboardProvider>
+                } />
+                <Route path="/dashboard/product/:productId" element={
+                  <DashboardProvider>
+                    <Dashboard />
+                  </DashboardProvider>
+                } />
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </div>
-      </ProductProvider>
+                {/* Epic details page */}
+                <Route path="/epics/:epicId" element={<EpicDetails />} />
+                {/* Feature details page */}
+                <Route path="/features/:featureId" element={<FeatureDetails />} />
+                {/* User Story details page */}
+                <Route path="/user-stories/:storyId" element={<UserStoryDetails />} />
+                {/* Acceptance Criteria details page */}
+                <Route path="/acceptance-criteria/:criteriaId" element={<AcceptanceCriteriaDetails />} />
+                {/* Organization routes */}
+                <Route path="/organizations/dashboard" element={<OrganizationDashboard />} />
+                <Route path="/organizations/members" element={<OrganizationMembers />} />
+                {/* Other protected routes */}
+                <Route path="/settings" element={<Settings />} />
+              </Route>
+
+              {/* Admin routes with Layout */}
+              <Route element={<AdminRoute><Layout /></AdminRoute>}>
+                <Route path="/admin/invitations" element={<AdminInvitations />} />
+              </Route>
+
+              {/* Dynamic route for product paths */}
+              <Route path="/:productPath" element={<ProductOverview />} />
+
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
+        </ProductProvider>
+      </OrganizationProvider>
     </BrowserRouter>
   );
 }

@@ -183,6 +183,20 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
         # Mark the invitation as used
         await mark_invitation_used(invitation, user.id)
 
+        # If the invitation has an organization, add the user to it
+        if invitation.organization_id and invitation.role:
+            from services.organization_services import add_member_to_organization
+            from dto.schemas import OrganizationMemberCreate
+
+            await add_member_to_organization(
+                organization_id=invitation.organization_id,
+                data=OrganizationMemberCreate(
+                    user_id=user.id,
+                    role=invitation.role,
+                    invited_by_id=invitation.created_by_id
+                )
+            )
+
     # Create JWT access token
     jwt_token = create_access_token(data={
         "sub": user.email,

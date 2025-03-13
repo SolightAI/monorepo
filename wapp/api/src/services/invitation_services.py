@@ -20,8 +20,19 @@ async def create_invitation(
     invitation: InvitationCreate,
     created_by_id: Optional[int] = None,
 ) -> InvitationModel:
-    """Create a new invitation."""
+    """
+    Create a new invitation.
 
+    Args:
+        invitation: The invitation data
+        created_by_id: The ID of the user creating the invitation
+
+    Returns:
+        The created invitation
+
+    Raises:
+        HTTPException: If the invitation code already exists
+    """
     # Generate a unique code
     code = str(uuid4())
 
@@ -39,6 +50,8 @@ async def create_invitation(
         email=invitation.email,
         expires_at=invitation.expires_at,
         created_by_id=created_by_id,
+        organization_id=invitation.organization_id,
+        role=invitation.role,
     )
 
     return await get_invitation(invitation_obj.id)
@@ -68,9 +81,22 @@ async def get_invitation_by_code(code: str) -> InvitationModel:
     return invitation
 
 
-async def get_all_invitations() -> List[InvitationModel]:
-    """Get all invitations."""
-    return await InvitationModel.all().prefetch_related('created_by', 'used_by')
+async def get_all_invitations(organization_id: Optional[uuid.UUID] = None) -> List[InvitationModel]:
+    """
+    Get all invitations, optionally filtered by organization.
+
+    Args:
+        organization_id: Optional organization ID to filter by
+
+    Returns:
+        List of invitations
+    """
+    query = InvitationModel.all()
+
+    if organization_id:
+        query = query.filter(organization_id=organization_id)
+
+    return await query
 
 
 async def validate_invitation(code: str, email: Optional[str] = None) -> InvitationModel:
@@ -109,8 +135,23 @@ async def validate_invitation(code: str, email: Optional[str] = None) -> Invitat
     return invitation
 
 
-async def mark_invitation_used(invitation: InvitationModel, user_id: int) -> InvitationModel:
+async def mark_invitation_used(code: str, user_id: int) -> InvitationModel:
     """Mark an invitation as used by a specific user."""
+    # First, find the invitation by code
+    invitation = await InvitationModel.get_or_none(code=code)
+
+    if not invitation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invitation not found"
+        )
+
+    if invitation.used:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invitation has already been used"
+        )
+
     invitation.used = True
     invitation.used_at = datetime.now(timezone.utc)
     invitation.used_by_id = user_id

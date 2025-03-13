@@ -2,13 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Plus, Sparkles, Edit, Trash, X, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProduct } from '@/context/ProductContext';
+import { useOrganization } from '@/context/OrganizationContext';
 import axios from 'axios';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
-const ProductSelector = () => {
+const ProductSelector = ({ isMobile = false }) => {
   const { products, selectedProduct, selectProduct, loading, error, refreshProducts } = useProduct();
+  const { selectedOrganization } = useOrganization();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -20,7 +22,8 @@ const ProductSelector = () => {
     url: '',
     description: '',
     documentation: '',
-    links_to_documentation: []
+    links_to_documentation: [],
+    organization_id: null
   });
   const [formError, setFormError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -40,6 +43,13 @@ const ProductSelector = () => {
     };
   }, []);
 
+  // Update products when organization changes
+  useEffect(() => {
+    if (selectedOrganization) {
+      refreshProducts(selectedOrganization.id);
+    }
+  }, [selectedOrganization?.id, refreshProducts]);
+
   // Handle product selection
   const handleSelectProduct = (product) => {
     selectProduct(product);
@@ -54,7 +64,8 @@ const ProductSelector = () => {
       url: '',
       description: '',
       documentation: '',
-      links_to_documentation: []
+      links_to_documentation: [],
+      organization_id: selectedOrganization?.id || null
     });
     setFormError('');
     setIsEditing(false);
@@ -79,7 +90,8 @@ const ProductSelector = () => {
       url: product.url || '',
       description: product.description || '',
       documentation: product.documentation || '',
-      links_to_documentation: product.links_to_documentation || []
+      links_to_documentation: product.links_to_documentation || [],
+      organization_id: selectedOrganization?.id || product.organization_id || null
     });
 
     setIsModalOpen(true);

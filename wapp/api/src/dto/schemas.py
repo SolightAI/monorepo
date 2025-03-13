@@ -1,8 +1,22 @@
 from __future__ import annotations
 from pydantic import BaseModel, UUID4
-from typing import Optional
+from typing import Optional, List, Dict
 from datetime import datetime
 from enum import Enum
+
+
+class OrganizationType(str, Enum):
+    ENTERPRISE = "enterprise"
+    STARTUP = "startup"
+    INDIVIDUAL = "individual"
+    EDUCATION = "education"
+
+
+class OrganizationRole(str, Enum):
+    OWNER = "owner"
+    ADMIN = "admin"
+    MEMBER = "member"
+    GUEST = "guest"
 
 
 class UserPrivate(BaseModel):
@@ -20,9 +34,70 @@ class User(UserPrivate):
         return UserPrivate(**user_dict)
 
 
+class OrganizationBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    logo_url: Optional[str] = None
+    type: OrganizationType
+
+
+class OrganizationCreate(OrganizationBase):
+    pass
+
+
+class OrganizationUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    logo_url: Optional[str] = None
+    type: Optional[OrganizationType] = None
+    settings: Optional[dict] = None
+
+
+class Organization(OrganizationBase):
+    id: UUID4
+    created_at: datetime
+    updated_at: datetime
+    settings: dict = {}
+
+    class Config:
+        from_attributes = True
+
+
+class OrganizationWithMembers(Organization):
+    members: List["OrganizationMember"] = []
+
+
+class OrganizationMemberBase(BaseModel):
+    user_id: int
+    organization_id: UUID4
+    role: OrganizationRole
+    invited_by_id: Optional[int] = None
+
+
+class OrganizationMemberCreate(BaseModel):
+    user_id: int
+    role: OrganizationRole
+    invited_by_id: Optional[int] = None
+
+
+class OrganizationMemberUpdate(BaseModel):
+    role: Optional[OrganizationRole] = None
+
+
+class OrganizationMember(OrganizationMemberBase):
+    id: UUID4
+    joined_at: datetime
+    user: Optional[UserPrivate] = None
+
+    class Config:
+        from_attributes = True
+
+
 class InvitationBase(BaseModel):
     email: Optional[str] = None
     expires_at: Optional[datetime] = None
+    organization_id: Optional[UUID4] = None
+    role: Optional[OrganizationRole] = None
 
 
 class InvitationCreate(InvitationBase):
@@ -92,10 +167,20 @@ class ProductBase(BaseModel):
     description: str
     documentation: str
     links_to_documentation: list[LinkDocument] = []
+    organization_id: Optional[UUID4] = None
 
 
 class ProductCreate(ProductBase):
     pass
+
+
+class ProductUpdate(BaseModel):
+    url: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    documentation: Optional[str] = None
+    links_to_documentation: Optional[list[LinkDocument]] = None
+    organization_id: Optional[UUID4] = None
 
 
 class Product(ProductBase):
@@ -247,3 +332,40 @@ class Bug(BugBase):
 
     class Config:
         from_attributes = True
+
+
+# Dashboard Schema Models
+class MetricsSummary(BaseModel):
+    """Summary metrics for the dashboard."""
+    tests_total: int
+    tests_by_status: Dict[str, int]
+    bugs_total: int
+    bugs_by_severity: Dict[str, int]
+    test_pass_rate: float
+
+
+class TrendDataPoint(BaseModel):
+    """Data point for trend charts."""
+    date: datetime
+    count: int
+    category: str
+
+
+class FeatureHealth(BaseModel):
+    """Health metrics for a feature."""
+    feature_id: UUID4
+    feature_name: str
+    test_coverage: float  # percentage
+    bug_count: int
+    test_pass_rate: float  # percentage
+
+
+class OrganizationHealth(BaseModel):
+    """Health metrics for an organization."""
+    avg_test_coverage: float  # percentage
+    avg_bug_resolution_time: float  # in hours
+    overall_health_score: float  # calculated score based on metrics
+    total_products: int
+    total_features: int
+    total_tests: int
+    total_bugs: int

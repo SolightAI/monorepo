@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 // Base API URL
@@ -14,17 +14,18 @@ export const ProductProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch products on component mount
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
+  // Memoize fetchProducts to avoid unnecessary re-renders
+  const fetchProducts = useCallback(async (organizationId = null) => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await axios.get(`${API_URL}/products/`, {
+      // Construct the URL with organization filter if provided
+      const url = organizationId
+        ? `${API_URL}/products/?organization_id=${organizationId}`
+        : `${API_URL}/products/`;
+
+      const response = await axios.get(url, {
         withCredentials: true
       });
 
@@ -45,6 +46,10 @@ export const ProductProvider = ({ children }) => {
         // Default to first product if none stored
         setSelectedProduct(response.data[0]);
         localStorage.setItem('selectedProductId', response.data[0].id);
+      } else {
+        // If no products after filtering by organization, clear selected product
+        setSelectedProduct(null);
+        localStorage.removeItem('selectedProductId');
       }
     } catch (err) {
       setError('Failed to fetch products');
@@ -52,18 +57,23 @@ export const ProductProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Fetch products on component mount
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   // Function to select a product
-  const selectProduct = (product) => {
+  const selectProduct = useCallback((product) => {
     setSelectedProduct(product);
     localStorage.setItem('selectedProductId', product.id);
-  };
+  }, []);
 
-  // Force refresh of products data
-  const refreshProducts = () => {
-    fetchProducts();
-  };
+  // Force refresh of products data - memoized to maintain stable reference
+  const refreshProducts = useCallback((organizationId = null) => {
+    fetchProducts(organizationId);
+  }, [fetchProducts]);
 
   return (
     <ProductContext.Provider

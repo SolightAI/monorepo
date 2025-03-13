@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
-from dto.schemas import Invitation, InvitationCreate
+from uuid import UUID
+from dto.schemas import Invitation, InvitationCreate, OrganizationRole
 from services.invitation_services import (
     create_invitation,
     get_invitation_by_code,
@@ -9,6 +10,7 @@ from services.invitation_services import (
     mark_invitation_used,
     delete_invitation
 )
+from services import organization_services
 from services.auth_services import check_is_admin
 from dependencies import get_current_user
 from dto.models import User
@@ -19,11 +21,30 @@ router = APIRouter(prefix="/invitations", tags=["invitations"])
 
 @router.get("/")
 async def get_invitations_endpoint(
+    organization_id: Optional[UUID] = Query(None, description="Filter invitations by organization ID"),
     current_user: User = Depends(get_current_user)
 ) -> List[Invitation]:
-    """Get all invitations. Requires admin privileges."""
-    await check_is_admin(current_user)
-    return await get_all_invitations()
+    """
+    Get all invitations.
+
+    If organization_id is provided, only invitations for that organization will be returned.
+    The user must be an admin or an owner/admin of the organization.
+    """
+    if organization_id:
+        # Check if user is a member of the organization with appropriate permissions
+        member = await organization_services.get_organization_member(
+            organization_id, current_user.id
+        )
+        if not member or member.role not in ["owner", "admin"]:
+            raise HTTPException(
+                status_code=403,
+                detail="You do not have permission to view invitations for this organization"
+            )
+        return await get_all_invitations(organization_id=organization_id)
+    else:
+        # For global invitations, require admin privileges
+        await check_is_admin(current_user)
+        return await get_all_invitations()
 
 
 @router.post("/")
@@ -31,9 +52,29 @@ async def create_invitation_endpoint(
     invitation: InvitationCreate,
     current_user: User = Depends(get_current_user)
 ) -> Invitation:
-    """Create a new invitation. Requires admin privileges."""
+    """
+    Create a new invitation.
 
-    await check_is_admin(current_user)
+    If organization_id is provided, the user must be an owner or admin of the organization.
+    Otherwise, the user must be a global admin.
+    """
+    if invitation.organization_id:
+        # Check if user is a member of the organization with appropriate permissions
+        member = await organization_services.get_organization_member(
+            invitation.organization_id, current_user.id
+        )
+        if not member or member.role not in ["owner", "admin"]:
+            raise HTTPException(
+                status_code=403,
+                detail="You do not have permission to create invitations for this organization"
+            )
+
+        # Set a default role if not provided
+        if not invitation.role:
+            invitation.role = OrganizationRole.MEMBER
+    else:
+        # For global invitations, require admin privileges
+        await check_is_admin(current_user)
 
     return await create_invitation(
         invitation=invitation,
@@ -55,9 +96,8 @@ async def mark_invitation_used_endpoint(
     code: str,
     current_user: User = Depends(get_current_user)
 ) -> Invitation:
-    """Mark an invitation as used. Requires authentication."""
-    invitation = await get_invitation_by_code(code)
-    return await mark_invitation_used(invitation, current_user.id)
+    """Mark an invitation as used by the current user."""
+    return await mark_invitation_used(code, current_user.id)
 
 
 @router.delete("/{code}")
@@ -65,6 +105,26 @@ async def delete_invitation_endpoint(
     code: str,
     current_user: User = Depends(get_current_user)
 ) -> None:
-    """Delete an invitation. Requires admin privileges."""
-    await check_is_admin(current_user)
-    return await delete_invitation(code)
+    """
+    Delete an invitation.
+
+    If the invitation belongs to an organization, the user must be an owner or admin of the organization.
+    Otherwise, the user must be a global admin.
+    """
+    invitation = await get_invitation_by_code(code)
+
+    if invitation.organization_id:
+        # Check if user is a member of the organization with appropriate permissions
+        member = await organization_services.get_organization_member(
+            invitation.organization_id, current_user.id
+        )
+        if not member or member.role not in ["owner", "admin"]:
+            raise HTTPException(
+                status_code=403,
+                detail="You do not have permission to delete invitations for this organization"
+            )
+    else:
+        # For global invitations, require admin privileges
+        await check_is_admin(current_user)
+
+    await delete_invitation(code)

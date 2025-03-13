@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Loader, AlertCircle, Plus, Sparkles } from 'lucide-react';
+import { Loader, AlertCircle, Plus, Sparkles, Building } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
+import { useOrganization } from '@/context/OrganizationContext';
 import EpicCreationModal from '@/components/modals/EpicCreationModal';
 
 // Base API URL
@@ -10,6 +11,7 @@ const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 const Home = () => {
   const { selectedProduct, loading: productLoading } = useProduct();
+  const { selectedOrganization, loading: organizationLoading } = useOrganization();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [epics, setEpics] = useState([]);
@@ -17,17 +19,8 @@ const Home = () => {
 
   const navigate = useNavigate();
 
-  // Fetch epics for the selected product
-  useEffect(() => {
-    if (selectedProduct) {
-      fetchEpics();
-    } else if (!productLoading) {
-      // If product loading is complete but no product is selected
-      setLoading(false);
-    }
-  }, [selectedProduct, productLoading]);
-
-  const fetchEpics = async () => {
+  // Memoize the fetchEpics function to prevent unnecessary re-renders
+  const fetchEpics = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -48,7 +41,17 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedProduct?.id]);
+
+  // Fetch epics for the selected product
+  useEffect(() => {
+    if (selectedProduct) {
+      fetchEpics();
+    } else if (!productLoading) {
+      // If product loading is complete but no product is selected
+      setLoading(false);
+    }
+  }, [selectedProduct, productLoading, fetchEpics]);
 
   const handleEpicCreationComplete = async (createdEpics) => {
     // Hide the epic creation modal
@@ -62,6 +65,41 @@ const Home = () => {
     setShowEpicModal(true);
   };
 
+  // If we're loading organizations, show a loading indicator
+  if (organizationLoading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <Loader size={40} className="text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // If no organization is selected, show a message
+  if (!selectedOrganization) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-20 bg-white rounded-lg shadow">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">No Organization Selected</h2>
+            <p className="text-gray-500 mb-6">You need to create or join an organization to start using the application.</p>
+            <div className="flex flex-col items-center">
+              <div className="mb-4">
+                <Building size={24} className="text-gray-700" />
+              </div>
+              <button
+                onClick={() => navigate('/organization/create')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150 mb-4"
+              >
+                Create Organization
+              </button>
+              <p className="text-sm text-gray-600">Once created, you'll be able to add products and manage your projects.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -72,12 +110,12 @@ const Home = () => {
         ) : !selectedProduct ? (
           <div className="text-center py-20 bg-white rounded-lg shadow">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">No Product Selected</h2>
-            <p className="text-gray-500 mb-6">Please use the product selector in the sidebar to choose a product or create a new one.</p>
+            <p className="text-gray-500 mb-6">Please use the product selector in the navigation bar to choose a product or create a new one.</p>
             <div className="flex flex-col items-center">
               <div className="mb-4">
                 <Sparkles size={24} className="text-purple-500" />
               </div>
-              <p className="text-sm text-gray-600">The product selector is located in the sidebar on the left side of the screen.</p>
+              <p className="text-sm text-gray-600">The product selector is located in the top navigation bar.</p>
             </div>
           </div>
         ) : (

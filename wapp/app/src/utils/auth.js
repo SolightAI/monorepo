@@ -89,14 +89,33 @@ export const logout = async () => {
 };
 
 export const setupAxiosInterceptors = () => {
+  // Keep track of redirect in progress to avoid loops
+  let isRedirecting = false;
+
   axios.interceptors.response.use(
     (response) => response,
     async (error) => {
-      if (error.response) {
+      if (error.response && !isRedirecting) {
         // If the error is an authentication error, redirect to login
         if (error.response.status === 401 && error.config && !error.config.__isRetryRequest) {
+          // Avoid redirect loops
+          const currentPath = window.location.pathname;
+          if (currentPath.includes('/login') ||
+              currentPath.includes('/register') ||
+              currentPath.includes('/auth/google/callback')) {
+            // Don't redirect again if already on auth page
+            return Promise.reject(error);
+          }
+
+          isRedirecting = true;
+          console.log('Authentication error detected, redirecting to login');
           localStorage.removeItem('isAuthenticated');
-          window.location.href = '/login';
+
+          // Use setTimeout to allow current execution to complete
+          setTimeout(() => {
+            window.location.href = '/login';
+            isRedirecting = false;
+          }, 100);
         }
 
         // Handle invitation code errors
@@ -112,7 +131,13 @@ export const setupAxiosInterceptors = () => {
           }
 
           // For other API calls, redirect to login with error message
-          window.location.href = '/login?error=invitation_required&error_description=Invitation code required for registration';
+          if (!isRedirecting) {
+            isRedirecting = true;
+            setTimeout(() => {
+              window.location.href = '/login?error=invitation_required&error_description=Invitation code required for registration';
+              isRedirecting = false;
+            }, 100);
+          }
         }
       }
 

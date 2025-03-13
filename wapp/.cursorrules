@@ -1,9 +1,10 @@
 General:
-* Do not write any placeholder nor mock code unless explicitly asked
+* Do NEVER write any placeholder nor mock code unless explicitly asked
 * If you're not sure about the query, ask the user for clarification
 * Always maintain a README.md file in the root of the project with the architecture of the project
 * When asked for your opinion, be critical, the user don't need approval, just the best solution
 * Avoid leaving any trailing spaces in the code
+* Do not run applications (docker compose up, python main.py, npm run dev) unless explicitly asked
 
 In Python:
 * Always type-hint variables and for all function signatures

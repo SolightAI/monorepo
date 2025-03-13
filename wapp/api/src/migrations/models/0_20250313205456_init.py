@@ -3,13 +3,25 @@ from tortoise import BaseDBAsyncClient
 
 async def upgrade(db: BaseDBAsyncClient) -> str:
     return """
-        CREATE TABLE IF NOT EXISTS "products" (
+        CREATE TABLE IF NOT EXISTS "organizations" (
+    "id" UUID NOT NULL PRIMARY KEY,
+    "name" VARCHAR(255) NOT NULL UNIQUE,
+    "description" TEXT,
+    "logo_url" VARCHAR(255),
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "type" VARCHAR(10) NOT NULL,
+    "settings" JSONB NOT NULL
+);
+COMMENT ON COLUMN "organizations"."type" IS 'ENTERPRISE: enterprise\nSTARTUP: startup\nINDIVIDUAL: individual\nEDUCATION: education';
+CREATE TABLE IF NOT EXISTS "products" (
     "id" UUID NOT NULL PRIMARY KEY,
     "url" VARCHAR(255) NOT NULL,
     "name" VARCHAR(255) NOT NULL,
     "description" TEXT NOT NULL,
     "documentation" TEXT NOT NULL,
-    "links_to_documentation" JSONB NOT NULL
+    "links_to_documentation" JSONB NOT NULL,
+    "organization_id" UUID REFERENCES "organizations" ("id") ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS "epics" (
     "id" UUID NOT NULL PRIMARY KEY,
@@ -39,9 +51,22 @@ CREATE TABLE IF NOT EXISTS "invitations" (
     "expires_at" TIMESTAMPTZ,
     "used" BOOL NOT NULL DEFAULT False,
     "used_at" TIMESTAMPTZ,
+    "role" VARCHAR(6),
     "created_by_id" INT REFERENCES "users" ("id") ON DELETE CASCADE,
+    "organization_id" UUID REFERENCES "organizations" ("id") ON DELETE CASCADE,
     "used_by_id" INT REFERENCES "users" ("id") ON DELETE CASCADE
 );
+COMMENT ON COLUMN "invitations"."role" IS 'OWNER: owner\nADMIN: admin\nMEMBER: member\nGUEST: guest';
+CREATE TABLE IF NOT EXISTS "organization_members" (
+    "id" UUID NOT NULL PRIMARY KEY,
+    "joined_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "role" VARCHAR(6) NOT NULL,
+    "invited_by_id" INT REFERENCES "users" ("id") ON DELETE CASCADE,
+    "organization_id" UUID NOT NULL REFERENCES "organizations" ("id") ON DELETE CASCADE,
+    "user_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
+    CONSTRAINT "uid_organizatio_user_id_a28e0b" UNIQUE ("user_id", "organization_id")
+);
+COMMENT ON COLUMN "organization_members"."role" IS 'OWNER: owner\nADMIN: admin\nMEMBER: member\nGUEST: guest';
 CREATE TABLE IF NOT EXISTS "user_stories" (
     "id" UUID NOT NULL PRIMARY KEY,
     "title" VARCHAR(255) NOT NULL,

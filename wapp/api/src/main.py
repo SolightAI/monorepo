@@ -9,6 +9,8 @@ from endpoints.test_endpoints import router as test_router
 from endpoints.bug_endpoints import router as bug_router
 from endpoints.acceptance_criteria_endpoints import router as acceptance_criteria_router
 from endpoints.invitation_endpoints import router as invitation_router
+from endpoints.organization_endpoints import router as organization_router
+from endpoints.dashboard_endpoints import router as dashboard_router
 from fastapi.middleware.cors import CORSMiddleware
 from tortoise.contrib.fastapi import RegisterTortoise
 from contextlib import asynccontextmanager
@@ -39,6 +41,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(organization_router)
 app.include_router(product_router)
 app.include_router(epic_router)
 app.include_router(feature_router)
@@ -47,3 +50,4 @@ app.include_router(acceptance_criteria_router)
 app.include_router(test_router)
 app.include_router(bug_router)
 app.include_router(invitation_router)
+app.include_router(dashboard_router)

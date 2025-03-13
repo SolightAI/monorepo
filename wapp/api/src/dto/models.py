@@ -1,5 +1,5 @@
 from tortoise import fields, models
-from .schemas import TestStatus, SeverityLevel, TestCategory
+from .schemas import TestStatus, SeverityLevel, TestCategory, OrganizationRole, OrganizationType
 
 
 class User(models.Model):
@@ -13,9 +13,44 @@ class User(models.Model):
     # Relations
     created_invitations = fields.ReverseRelation["Invitation"]
     used_invitation = fields.ReverseRelation["Invitation"]
+    organizations = fields.ReverseRelation["OrganizationMember"]
 
     class Meta:
         table = "users"
+
+
+class Organization(models.Model):
+    id = fields.UUIDField(pk=True)
+    name = fields.CharField(max_length=255, unique=True)
+    description = fields.TextField(null=True)
+    logo_url = fields.CharField(max_length=255, null=True)
+    created_at = fields.DatetimeField(auto_now_add=True)
+    updated_at = fields.DatetimeField(auto_now=True)
+    type = fields.CharEnumField(OrganizationType)
+    settings = fields.JSONField(default={})
+
+    # Relations
+    members = fields.ReverseRelation["OrganizationMember"]
+    products = fields.ReverseRelation["Product"]
+    invitations = fields.ReverseRelation["Invitation"]
+
+    class Meta:
+        table = "organizations"
+
+
+class OrganizationMember(models.Model):
+    id = fields.UUIDField(pk=True)
+    joined_at = fields.DatetimeField(auto_now_add=True)
+    role = fields.CharEnumField(OrganizationRole)
+
+    # Relations
+    user = fields.ForeignKeyField('models.User', related_name='organizations')
+    organization = fields.ForeignKeyField('models.Organization', related_name='members')
+    invited_by = fields.ForeignKeyField('models.User', related_name='invited_members', null=True)
+
+    class Meta:
+        table = "organization_members"
+        unique_together = (("user", "organization"),)
 
 
 class Invitation(models.Model):
@@ -26,10 +61,12 @@ class Invitation(models.Model):
     expires_at = fields.DatetimeField(null=True)
     used = fields.BooleanField(default=False)
     used_at = fields.DatetimeField(null=True)
+    role = fields.CharEnumField(OrganizationRole, null=True)
 
     # Relations
     created_by = fields.ForeignKeyField('models.User', related_name='created_invitations', null=True)
     used_by = fields.ForeignKeyField('models.User', related_name='used_invitation', null=True)
+    organization = fields.ForeignKeyField('models.Organization', related_name='invitations', null=True)
 
     class Meta:
         table = "invitations"
@@ -43,6 +80,8 @@ class Product(models.Model):
     documentation = fields.TextField()  # what we ingest from the project (e.g. Jira, Linear, etc.)
     links_to_documentation = fields.JSONField(default=[])  # links to external documentation
 
+    # Relations
+    organization = fields.ForeignKeyField('models.Organization', related_name='products', null=True)
     epics = fields.ReverseRelation["Epic"]
 
     class Meta:
