@@ -13,6 +13,10 @@ function AiDetectedBugs({ bugs }) {
   // Content is restricted for non-authenticated users
   const contentIsRestricted = !userIsAuthenticated;
 
+  // Constants for content restriction
+  const MAX_VISIBLE_BUGS = 3;
+  const MAX_VISIBLE_CRITICAL_BUGS = 1;
+
   const getSortedBugs = () => {
     const sortedBugs = [...bugs]
 
@@ -49,8 +53,8 @@ function AiDetectedBugs({ bugs }) {
     return sortedBugs.map(bug => {
       const isCritical = bug.severity === "Critical";
 
-      // First critical bug is visible
-      if (isCritical && criticalCount === 0) {
+      // First N critical bugs are visible
+      if (isCritical && criticalCount < MAX_VISIBLE_CRITICAL_BUGS) {
         criticalCount++;
         visibleCount++;
         return false; // Not restricted
@@ -62,8 +66,8 @@ function AiDetectedBugs({ bugs }) {
         return true; // Restricted
       }
 
-      // Show non-critical bugs until we have 3 total visible
-      if (visibleCount < 3) {
+      // Show non-critical bugs until we reach MAX_VISIBLE_BUGS total visible
+      if (visibleCount < MAX_VISIBLE_BUGS) {
         visibleCount++;
         return false; // Not restricted
       }
