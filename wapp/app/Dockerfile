@@ -15,6 +15,7 @@ COPY ./src /app/src
 COPY ./public /app/public
 COPY ./tailwind.config.js /app/tailwind.config.js
 COPY ./jsconfig.json /app/jsconfig.json
+COPY ./craco.config.js /app/craco.config.js
 
 # Build the app for production
 # RUN npm run build
