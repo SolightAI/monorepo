@@ -7,16 +7,16 @@ export default function Header() {
     <header className="fixed top-0 left-0 right-0 bg-black/50 backdrop-blur-sm z-20">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <a href="/" className="text-white font-bold text-lg flex items-center">
-          <img 
-            src="https://landing.s3.fr-par.scw.cloud/laneo_logo.jpg" 
-            alt="Laneo Logo" 
-            className="h-9 w-auto mr-2 invert brightness-0" 
+          <img
+            src="https://landing.s3.fr-par.scw.cloud/laneo_logo.jpg"
+            alt="Laneo Logo"
+            className="h-9 w-auto mr-2 invert brightness-0"
           />
           Laneo
         </a>
-        
+
         {/* Mobile menu button */}
-        <button 
+        <button
           className="md:hidden text-white"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
@@ -35,6 +35,9 @@ export default function Header() {
         <nav className="hidden md:flex space-x-8 md:space-x-12 mx-auto">
           <a href="/" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
             Home
+          </a>
+          <a href="/domains" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
+            Domains
           </a>
           <a href="/#features" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
             Features
@@ -66,6 +69,9 @@ export default function Header() {
           <nav className="flex flex-col space-y-4 px-4">
             <a href="/" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
               Home
+            </a>
+            <a href="/domains" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
+              Domains
             </a>
             <a href="/#features" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
               Features

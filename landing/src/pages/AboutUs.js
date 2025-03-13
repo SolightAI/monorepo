@@ -11,13 +11,13 @@ export default function AboutUs() {
       <main className="flex-1">
         <div className="relative min-h-screen">
           <AnimatedBackground />
-          
+
           {/* This div ensures the About component has a proper container */}
           <div className="relative z-10">
             <div id="about" className="min-h-screen">
               <About />
             </div>
-            
+
             {/* The Founders section has been moved to the About component */}
           </div>
         </div>

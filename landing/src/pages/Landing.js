@@ -6,7 +6,7 @@ import FeatureShowcase from '../components/FeatureShowcase';
 import Header from '../components/Header';
 import confetti from 'canvas-confetti';
 
-// Note: The animate-fadeInUp, animate-fadeInDown, animate-fadeInLeft, and animate-fadeInRight classes are assumed 
+// Note: The animate-fadeInUp, animate-fadeInDown, animate-fadeInLeft, and animate-fadeInRight classes are assumed
 // to be defined in your CSS or via a library. They add entrance animations with delays.
 // You can replace or remove these classes if you're using a different animation approach.
 
@@ -27,7 +27,7 @@ export default function Landing() {
     const interval = setInterval(() => {
       setDemoStep((prevStep) => (prevStep + 1) % demoSteps.length);
     }, 3000); // Change step every 3 seconds
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -101,7 +101,7 @@ export default function Landing() {
                   Elevate Your Product's Quality
                 </h1>
                 <p className="text-lg md:text-xl text-gray-400 mb-8 max-w-xl">
-                  Focus on innovating. Let Laneo's fully automated Quality Assurance agents proactively monitor, audit, and improve your website and app user journeys. 
+                  Focus on innovating. Let Laneo's fully automated Quality Assurance agents proactively monitor, audit, and improve your website and app user journeys.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <a
@@ -123,7 +123,7 @@ export default function Landing() {
                   </button>
                 </div>
               </div>
-              
+
               {/* Right side - interactive demo */}
               <div className="hidden md:block relative">
                 <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 shadow-xl">
@@ -135,11 +135,11 @@ export default function Landing() {
                     </div>
                     <div className="mx-auto text-xs text-gray-400">Laneo QA Agent</div>
                   </div>
-                  
+
                   <div className="space-y-4 min-h-[200px]">
                     {demoSteps.map((step, index) => (
-                      <div 
-                        key={index} 
+                      <div
+                        key={index}
                         className={`flex items-start transition-all duration-500 ${
                           index <= demoStep ? "opacity-100" : "opacity-0 h-0 overflow-hidden"
                         }`}
@@ -150,11 +150,11 @@ export default function Landing() {
                       </div>
                     ))}
                   </div>
-                  
+
                   <div className="mt-4 flex justify-between items-center">
                     <div className="h-2 w-full bg-gray-700 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-blue-500 rounded-full transition-all duration-1000" 
+                      <div
+                        className="h-full bg-blue-500 rounded-full transition-all duration-1000"
                         style={{width: `${(demoStep + 1) * (100 / demoSteps.length)}%`}}
                       ></div>
                     </div>
@@ -178,7 +178,7 @@ export default function Landing() {
             <h2 className="text-4xl md:text-6xl font-bold text-center mb-12 bg-gradient-to-r from-white/90 via-white/70 to-white/40 text-transparent bg-clip-text">
               A Better Way to QA
             </h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8 md:mt-16">
               {/* Benefit cards with reduced padding on mobile */}
               {/* Benefit 1 */}
@@ -193,7 +193,7 @@ export default function Landing() {
                   Augment your QA capabilities cost-effectively. Expand your test coverage and enhance your QA teams without increasing your budget or team size.
                 </p>
               </div>
-              
+
               {/* Benefit 2 */}
               <div className="bg-black/70 md:bg-white/5 backdrop-blur-sm rounded-xl p-5 md:p-8 border border-white/10 shadow-2xl transform transition-all duration-300 hover:scale-105 hover:bg-white/10 group">
                 <div className="flex items-center justify-center h-16 w-16 md:h-20 md:w-20 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 mb-4 md:mb-8 mx-auto group-hover:from-blue-500/50 group-hover:to-purple-500/50 transition-all duration-300">
@@ -206,7 +206,7 @@ export default function Landing() {
                   Eliminate escaped defects and ensure your users experience a seamless, frustration-free journey through your product.
                 </p>
               </div>
-              
+
               {/* Benefit 3 */}
               <div className="bg-black/70 md:bg-white/5 backdrop-blur-sm rounded-xl p-5 md:p-8 border border-white/10 shadow-2xl transform transition-all duration-300 hover:scale-105 hover:bg-white/10 group">
                 <div className="flex items-center justify-center h-16 w-16 md:h-20 md:w-20 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 mb-4 md:mb-8 mx-auto group-hover:from-blue-500/50 group-hover:to-purple-500/50 transition-all duration-300">
@@ -221,7 +221,7 @@ export default function Landing() {
               </div>
             </div>
           </div>
-          
+
           <div className="absolute bottom-0 left-0 right-0 h-96 bg-gradient-to-b from-transparent via-black/80 to-black pointer-events-none" />
         </section>
 
@@ -244,7 +244,7 @@ export default function Landing() {
               <FeatureShowcase hideTitle={true} />
             </div>
           </div>
-          
+
           {/* Add bottom gradient for transition */}
           <div className="absolute bottom-0 left-0 right-0 h-96 bg-gradient-to-b from-transparent via-black/80 to-black pointer-events-none" />
         </section>
@@ -293,11 +293,11 @@ export default function Landing() {
                   </li>
                 </ul>
               </div>
-              
+
               {/* Right side - Video */}
               <div className="relative rounded-xl overflow-hidden shadow-2xl border border-white/10">
-                <video 
-                  className="w-full h-auto" 
+                <video
+                  className="w-full h-auto"
                   autoPlay={isVideoPlaying}
                   loop
                   muted={!isVideoPlaying}
@@ -316,9 +316,9 @@ export default function Landing() {
                   <source src="https://landing.s3.fr-par.scw.cloud/Introduction%20to%20Laneo%20QA%20Agents.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
-                
+
                 {!isVideoPlaying && (
-                  <div 
+                  <div
                     className="absolute inset-0 bg-black/50 flex items-center justify-center cursor-pointer"
                     onClick={() => setIsVideoPlaying(true)}
                   >
@@ -330,12 +330,12 @@ export default function Landing() {
                     <span className="absolute bottom-4 text-white font-medium">Click to play with sound</span>
                   </div>
                 )}
-                
+
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
               </div>
             </div>
           </div>
-          
+
           <div className="absolute bottom-0 left-0 right-0 h-96 bg-gradient-to-b from-transparent via-black/80 to-black pointer-events-none" />
         </section>
 
@@ -352,7 +352,7 @@ export default function Landing() {
                   Schedule a personal call with our CEO to discuss how Laneo can transform your QA process and help your team focus on what matters most.
                 </p>
 
-                <form 
+                <form
                   className="max-w-md mx-auto space-y-6"
                   action="https://docs.google.com/forms/d/e/1FAIpQLScq0g8iWlWzel10HwjhZeCWnGbl1VrzsHAnW8hj2h0mylQtew/formResponse"
                   method="post"
@@ -397,7 +397,7 @@ export default function Landing() {
                     <span>Request a Demo</span>
                     <ChevronRight className="ml-2" />
                   </a>
-                  
+
                   <a
                     href="/about"
                     className="w-full mt-3 px-6 py-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm text-white text-sm flex items-center justify-center"

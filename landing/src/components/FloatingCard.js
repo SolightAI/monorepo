@@ -8,10 +8,10 @@ const FloatingCard = ({ title, description, icon: Icon, className = '' }) => {
     const rect = card.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    
+
     const rotateX = (y - centerY) / 20;
     const rotateY = -(x - centerX) / 20;
 
@@ -24,7 +24,7 @@ const FloatingCard = ({ title, description, icon: Icon, className = '' }) => {
 
   return (
     <div
-      className={`relative p-6 rounded-xl backdrop-blur-lg bg-white/10 border border-white/20 
+      className={`relative p-6 rounded-xl backdrop-blur-lg bg-white/10 border border-white/20
         transition-all duration-200 ease-out cursor-pointer group ${className}`}
       style={{
         transform: `perspective(1000px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
@@ -34,7 +34,7 @@ const FloatingCard = ({ title, description, icon: Icon, className = '' }) => {
       onMouseLeave={handleMouseLeave}
     >
       <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-laneo-400/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-      
+
       <div className="relative z-10">
         {Icon && (
           <div className="mb-4 text-laneo-400">
@@ -44,7 +44,7 @@ const FloatingCard = ({ title, description, icon: Icon, className = '' }) => {
         <h3 className="text-xl font-semibold mb-2 text-white">{title}</h3>
         <p className="text-gray-300">{description}</p>
       </div>
-      
+
       <div
         className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
         style={{
@@ -55,4 +55,4 @@ const FloatingCard = ({ title, description, icon: Icon, className = '' }) => {
   );
 };
 
-export default FloatingCard; 
+export default FloatingCard;

@@ -1,6 +1,6 @@
 /**
  * ControlPanel.js
- * 
+ *
  * A component that provides controls for adjusting the simulation parameters.
  * Features:
  * - Simulation mode selection (Standard, Focused, Chaos)
@@ -286,4 +286,4 @@ const ControlPanel = ({
   );
 };
 
-export default ControlPanel; 
+export default ControlPanel;

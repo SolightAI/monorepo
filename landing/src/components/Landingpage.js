@@ -26,8 +26,8 @@ const LaneoLanding = () => {
               World's First AdTech Leveraging LLM Outputs
             </h1>
             <p className="text-xl text-gray-600 mb-8">
-              As Artificial Intelligence revolutionizes the way consumers interact with information, 
-              we're enabling advertisers to reach consumers on LLM applications with highly relevant, 
+              As Artificial Intelligence revolutionizes the way consumers interact with information,
+              we're enabling advertisers to reach consumers on LLM applications with highly relevant,
               non-obtrusive media opportunities.
             </p>
             <button className="px-8 py-3 bg-blue-600 text-white rounded-full text-lg hover:bg-blue-700 transition-colors flex items-center">

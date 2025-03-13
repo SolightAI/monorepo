@@ -28,22 +28,22 @@ export default function About() {
   }, []);
 
   const achievements = [
-    { 
-      metric: "800+", 
+    {
+      metric: "800+",
       description: "GitHub Stars",
       link: "https://github.com/Thytu/Agentarium"
     },
-    { 
-      metric: "$XXXK", 
-      description: "Pre-Seed Funding" 
+    {
+      metric: "$XXXK",
+      description: "Pre-Seed Funding"
     },
-    { 
-      metric: "5+", 
-      description: "Research Partnerships" 
+    {
+      metric: "5+",
+      description: "Research Partnerships"
     },
-    { 
-      metric: "10+", 
-      description: "Years in AI Research" 
+    {
+      metric: "10+",
+      description: "Years in AI Research"
     },
   ];
 
@@ -101,7 +101,7 @@ export default function About() {
         {/* Achievement Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-16">
           {achievements.map((achievement, index) => (
-            <div 
+            <div
               key={index}
               className="relative group"
             >
@@ -127,10 +127,10 @@ export default function About() {
         <div className="mb-16">
           <div className="relative overflow-hidden rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80 pointer-events-none" />
-            
+
             <div className="relative z-10 p-8">
               <h2 className="text-3xl font-bold text-center mb-12 bg-gradient-to-r from-white to-laneo-400 text-transparent bg-clip-text">Meet Our Founders</h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
                 {founders.map((founder, index) => (
                   <div key={index} className="relative group">
@@ -143,9 +143,9 @@ export default function About() {
                       <p className="text-laneo-400 text-center mb-4">{founder.title}</p>
                       <p className="text-gray-300 text-center mb-4">{founder.bio}</p>
                       {founder.linkedin && (
-                        <a 
-                          href={founder.linkedin} 
-                          target="_blank" 
+                        <a
+                          href={founder.linkedin}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="mt-auto mx-auto flex items-center text-laneo-400 hover:text-white transition-colors duration-300"
                         >
@@ -187,4 +187,4 @@ export default function About() {
       </div>
     </section>
   );
-} 
+}

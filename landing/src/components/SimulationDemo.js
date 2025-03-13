@@ -40,7 +40,7 @@ const SimulationDemo = () => {
         this.speedX = (Math.random() - 0.5) * this.baseSpeed;
         this.speedY = (Math.random() - 0.5) * this.baseSpeed;
         this.type = type || Math.random() > 0.7 ? 'power' : 'regular';
-        this.color = this.type === 'power' 
+        this.color = this.type === 'power'
           ? 'hsla(210, 100%, 60%, 0.8)'
           : 'hsla(190, 70%, 50%, 0.6)';
         this.interactions = [];
@@ -119,23 +119,23 @@ const SimulationDemo = () => {
     const animate = () => {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
+
       particles.forEach(particle => {
         particle.update();
         particle.draw();
-        
+
         if (particle.isUnderMouse()) {
           setHoveredParticle(particle);
         }
       });
-      
+
       animationFrameId = requestAnimationFrame(animate);
     };
 
     if (isSimulating) {
       init();
       animate();
-      
+
       const interval = setInterval(() => {
         setUserCount(prev => {
           const newCount = prev + Math.floor(Math.random() * 10);
@@ -185,7 +185,7 @@ const SimulationDemo = () => {
           ref={canvasRef}
           className="w-full h-full cursor-crosshair"
         />
-        
+
         {/* Hover tooltip */}
         {hoveredParticle && (
           <div className="absolute pointer-events-none bg-white/10 backdrop-blur-md px-3 py-2 rounded-lg
@@ -214,4 +214,4 @@ const SimulationDemo = () => {
   );
 };
 
-export default SimulationDemo; 
+export default SimulationDemo;

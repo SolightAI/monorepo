@@ -1,35 +1,35 @@
 /**
  * InteractiveDemo.js
- * 
+ *
  * This component provides an interactive demonstration of Laneo's AI-powered user behavior simulation platform.
  * It simulates a simplified e-commerce website where users can observe and influence AI-driven customer behaviors
  * in real-time.
- * 
+ *
  * Key Features:
  * 1. Simulated E-commerce Interface:
  *    - Product grid layout
  *    - Navigation menu
  *    - Shopping cart
  *    - Checkout flow
- * 
+ *
  * 2. User Behavior Visualization:
  *    - Real-time user paths shown as smooth curves
  *    - Heatmap overlay of interaction points
  *    - User avatars with different personas (casual browsers, determined buyers, etc.)
  *    - Interaction states (browsing, comparing, checkout, etc.)
- * 
+ *
  * 3. Interactive Elements:
  *    - Drag-and-drop UI modifications
  *    - A/B testing toggle
  *    - Conversion optimization suggestions
  *    - User behavior control panel
- * 
+ *
  * 4. Real-time Analytics:
  *    - Conversion funnel
  *    - Engagement metrics
  *    - Behavior patterns
  *    - Revenue impact
- * 
+ *
  * Implementation Details:
  * - Uses Canvas API for high-performance rendering
  * - Implements particle system for user simulation
@@ -87,7 +87,7 @@ const InteractiveDemo = () => {
   // Canvas and container refs for DOM manipulation
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
-  
+
   // Real-time metrics state
   const [metrics, setMetrics] = useState({
     activeUsers: 0,      // Current number of users
@@ -95,11 +95,11 @@ const InteractiveDemo = () => {
     avgTimeOnSite: 0,    // Average session duration
     cartValue: 0         // Total value in carts
   });
-  
+
   // Feature toggles and UI state
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [abTestActive, setAbTestActive] = useState(false);
-  
+
   // Persistent refs for simulation data
   const agentsRef = useRef([]);           // Simulated users
   const heatmapDataRef = useRef(new Map()); // Interaction density data
@@ -107,7 +107,7 @@ const InteractiveDemo = () => {
 
   // Add mouse interaction state
   const [selectedProduct, setSelectedProduct] = useState(null);
-  
+
   // Add mouse interaction state
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [interactionMode, setInteractionMode] = useState('default'); // 'default', 'attract', 'repel'
@@ -153,14 +153,14 @@ const InteractiveDemo = () => {
       // Configure canvas for high DPI displays
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
-      
+
       // Set physical pixels
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
-      
+
       // Scale all drawing operations
       ctx.scale(dpr, dpr);
-      
+
       // Clear canvas completely each frame
       ctx.fillStyle = 'rgba(0, 0, 0, 1)';
       ctx.fillRect(0, 0, rect.width, rect.height);
@@ -191,7 +191,7 @@ const InteractiveDemo = () => {
       const gridHeight = rect.height / (rows + 1);
       const boxWidth = gridWidth * 0.8;
       const boxHeight = gridHeight * 0.8;
-      
+
       PRODUCTS.forEach((product, index) => {
         const col = index % columns;
         const row = Math.floor(index / columns);
@@ -228,7 +228,7 @@ const InteractiveDemo = () => {
       heatmapDataRef.current.forEach((value, key) => {
         const [x, y] = key.split(',').map(Number);
         const alpha = Math.min(value / 100, 0.5);
-        
+
         ctx.fillStyle = `rgba(255, 100, 100, ${alpha})`;
         ctx.beginPath();
         ctx.arc(x, y, 20, 0, Math.PI * 2);
@@ -244,13 +244,13 @@ const InteractiveDemo = () => {
     const updateAgents = (rect) => {
       agentsRef.current.forEach(agent => {
         const persona = PERSONAS[agent.persona];
-        
+
         // Handle mouse interaction
         if (interactionMode !== 'default') {
           const dx = mousePosition.x - agent.x;
           const dy = mousePosition.y - agent.y;
           const dist = Math.hypot(dx, dy);
-          
+
           if (dist < 100) { // Interaction radius
             const force = (interactionMode === 'attract' ? 1 : -1) * (1 - dist / 100);
             agent.vx += (dx / dist) * force;
@@ -282,7 +282,7 @@ const InteractiveDemo = () => {
           const dx = agent.target.x - agent.x;
           const dy = agent.target.y - agent.y;
           const dist = Math.hypot(dx, dy);
-          
+
           if (dist < 5) {
             agent.target = null;
           } else {
@@ -290,7 +290,7 @@ const InteractiveDemo = () => {
             const speed = persona.speed * 1.5;
             const targetVx = (dx / dist) * speed;
             const targetVy = (dy / dist) * speed;
-            
+
             // Smooth velocity transitions
             agent.vx += (targetVx - agent.vx) * 0.1;
             agent.vy += (targetVy - agent.vy) * 0.1;
@@ -304,7 +304,7 @@ const InteractiveDemo = () => {
             const row = Math.floor(productIndex / 3);
             const gridWidth = rect.width / 4;
             const gridHeight = rect.height / 3;
-            
+
             agent.target = {
               x: (col + 1) * gridWidth + (Math.random() - 0.5) * gridWidth * 0.5,
               y: (row + 1) * gridHeight + (Math.random() - 0.5) * gridHeight * 0.5
@@ -315,17 +315,17 @@ const InteractiveDemo = () => {
         // Apply velocity with damping
         agent.vx *= 0.95;
         agent.vy *= 0.95;
-        
+
         // Update position with improved boundary checking
         const nextX = agent.x + agent.vx;
         const nextY = agent.y + agent.vy;
-        
+
         if (nextX > 10 && nextX < rect.width - 10) {
           agent.x = nextX;
         } else {
           agent.vx *= -0.5; // Bounce off walls
         }
-        
+
         if (nextY > 10 && nextY < rect.height - 10) {
           agent.y = nextY;
         } else {
@@ -338,7 +338,7 @@ const InteractiveDemo = () => {
           agent.path.push({ x: agent.x, y: agent.y });
           if (agent.path.length > 20) agent.path.shift(); // Shorter paths
         }
-        
+
         agent.timeOnSite += 1;
       });
     };
@@ -350,7 +350,7 @@ const InteractiveDemo = () => {
     const drawAgents = (ctx) => {
       agentsRef.current.forEach(agent => {
         const persona = PERSONAS[agent.persona];
-        
+
         // Draw agent with subtle glow effect
         const gradient = ctx.createRadialGradient(
           agent.x, agent.y, 0,
@@ -358,7 +358,7 @@ const InteractiveDemo = () => {
         );
         gradient.addColorStop(0, persona.color.replace('0.8', '0.8'));
         gradient.addColorStop(1, persona.color.replace('0.8', '0'));
-        
+
         ctx.beginPath();
         ctx.arc(agent.x, agent.y, 8, 0, Math.PI * 2);
         ctx.fillStyle = gradient;
@@ -368,7 +368,7 @@ const InteractiveDemo = () => {
         if (agent.state !== INTERACTION_STATES.BROWSING) {
           ctx.beginPath();
           ctx.arc(agent.x, agent.y, 10, 0, Math.PI * 2);
-          ctx.strokeStyle = agent.state === INTERACTION_STATES.CART ? 
+          ctx.strokeStyle = agent.state === INTERACTION_STATES.CART ?
             'rgba(255, 255, 0, 0.4)' : 'rgba(0, 255, 0, 0.4)';
           ctx.lineWidth = 2;
           ctx.stroke();
@@ -386,7 +386,7 @@ const InteractiveDemo = () => {
 
         ctx.beginPath();
         ctx.moveTo(agent.path[0].x, agent.path[0].y);
-        
+
         // Use quadratic curves for smoother paths
         for (let i = 1; i < agent.path.length - 1; i++) {
           const p0 = agent.path[i];
@@ -435,7 +435,7 @@ const InteractiveDemo = () => {
       const dpr = window.devicePixelRatio || 1;
       const x = (e.clientX - rect.left) * dpr;
       const y = (e.clientY - rect.top) * dpr;
-      
+
       // Check if clicked on a product
       PRODUCTS.forEach((product, index) => {
         const col = index % 3;
@@ -444,7 +444,7 @@ const InteractiveDemo = () => {
         const gridHeight = rect.height / 3;
         const productX = (col + 1) * gridWidth;
         const productY = (row + 1) * gridHeight;
-        
+
         if (Math.hypot(x - productX, y - productY) < 50) {
           setSelectedProduct(product);
           // Attract agents to this product
@@ -480,7 +480,7 @@ const InteractiveDemo = () => {
         ref={canvasRef}
         className="w-full h-full cursor-pointer"
       />
-      
+
       {/* Interaction Controls */}
       <div className="absolute top-4 right-4 flex space-x-2">
         <button
@@ -512,7 +512,7 @@ const InteractiveDemo = () => {
           </button>
         </div>
       )}
-      
+
       {/* Control Panel */}
       <div className="absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm p-4">
         <div className="flex justify-between items-center">
@@ -535,7 +535,7 @@ const InteractiveDemo = () => {
               <span>A/B Test</span>
             </button>
           </div>
-          
+
           {/* Metrics display */}
           <div className="flex space-x-6">
             <div className="flex items-center space-x-2">
