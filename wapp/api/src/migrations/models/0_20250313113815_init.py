@@ -8,7 +8,8 @@ async def upgrade(db: BaseDBAsyncClient) -> str:
     "url" VARCHAR(255) NOT NULL,
     "name" VARCHAR(255) NOT NULL,
     "description" TEXT NOT NULL,
-    "documentation" TEXT NOT NULL
+    "documentation" TEXT NOT NULL,
+    "links_to_documentation" JSONB NOT NULL
 );
 CREATE TABLE IF NOT EXISTS "epics" (
     "id" UUID NOT NULL PRIMARY KEY,
