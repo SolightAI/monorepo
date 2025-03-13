@@ -1,7 +1,8 @@
 from fastapi import HTTPException
 from dto.models import AcceptanceCriteria as AcceptanceCriteriaModel
-from dto.schemas import AcceptanceCriteria as AcceptanceCriteriaSchema, AcceptanceCriteriaCreate as AcceptanceCriteriaCreateSchema
+from dto.schemas import AcceptanceCriteria as AcceptanceCriteriaSchema, AcceptanceCriteriaCreate as AcceptanceCriteriaCreateSchema, AcceptanceCriteriaUpdate as AcceptanceCriteriaUpdateSchema
 from uuid import UUID
+from pydantic import UUID4
 
 
 async def get_all_acceptance_criteria() -> list[AcceptanceCriteriaSchema]:
@@ -50,3 +51,34 @@ async def delete_acceptance_criteria(acceptance_criteria_id: str | UUID) -> bool
     await acceptance_criteria.delete()
 
     return True
+
+
+async def update_acceptance_criteria(acceptance_criteria_id: UUID4, acceptance_criteria_update: AcceptanceCriteriaUpdateSchema) -> AcceptanceCriteriaModel:
+    """
+    Update acceptance criteria with the provided data.
+
+    Args:
+        acceptance_criteria_id: UUID of the acceptance criteria to update
+        acceptance_criteria_update: Data to update the acceptance criteria with
+
+    Returns:
+        The updated acceptance criteria
+
+    Raises:
+        HTTPException: If the acceptance criteria was not found
+    """
+    acceptance_criteria = await AcceptanceCriteriaModel.get_or_none(id=acceptance_criteria_id)
+
+    if not acceptance_criteria:
+        raise HTTPException(status_code=404, detail="Acceptance criteria not found")
+
+    # Update only provided fields
+    update_data = acceptance_criteria_update.model_dump(exclude_unset=True, exclude_none=True)
+
+    if update_data:
+        for key, value in update_data.items():
+            setattr(acceptance_criteria, key, value)
+
+        await acceptance_criteria.save()
+
+    return await get_acceptance_criteria(acceptance_criteria_id)  # Return the full acceptance criteria with related entities

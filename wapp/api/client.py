@@ -115,7 +115,7 @@ def create_bug(test_id: str, title: str, description: str, severity: str, url: s
 
 def update_epic(epic_id: str, name: str | None = None, description: str | None = None) -> dict:
     """Update an epic with the provided data.
-    
+
     Args:
         epic_id: ID of the epic to update
         name: New name for the epic (optional)
@@ -127,7 +127,7 @@ def update_epic(epic_id: str, name: str | None = None, description: str | None =
         update_data["name"] = name
     if description is not None:
         update_data["description"] = description
-        
+
     response = requests.put(f"{BASE_URL}/epics/{epic_id}", json=update_data)
 
     if response.status_code != 200:
@@ -137,7 +137,7 @@ def update_epic(epic_id: str, name: str | None = None, description: str | None =
 
 def update_feature(feature_id: str, name: str | None = None, description: str | None = None, urls: list[str] | None = None) -> dict:
     """Update a feature with the provided data.
-    
+
     Args:
         feature_id: ID of the feature to update
         name: New name for the feature (optional)
@@ -152,7 +152,7 @@ def update_feature(feature_id: str, name: str | None = None, description: str | 
         update_data["description"] = description
     if urls is not None:
         update_data["urls"] = urls
-        
+
     response = requests.put(f"{BASE_URL}/features/{feature_id}", json=update_data)
 
     if response.status_code != 200:
@@ -162,7 +162,7 @@ def update_feature(feature_id: str, name: str | None = None, description: str | 
 
 def update_user_story(user_story_id: str, title: str | None = None, description: str | None = None) -> dict:
     """Update a user story with the provided data.
-    
+
     Args:
         user_story_id: ID of the user story to update
         title: New title for the user story (optional)
@@ -174,7 +174,7 @@ def update_user_story(user_story_id: str, title: str | None = None, description:
         update_data["title"] = title
     if description is not None:
         update_data["description"] = description
-        
+
     response = requests.put(f"{BASE_URL}/user-stories/{user_story_id}", json=update_data)
 
     if response.status_code != 200:
@@ -184,7 +184,7 @@ def update_user_story(user_story_id: str, title: str | None = None, description:
 
 def update_acceptance_criteria(acceptance_criteria_id: str, title: str | None = None, description: str | None = None) -> dict:
     """Update acceptance criteria with the provided data.
-    
+
     Args:
         acceptance_criteria_id: ID of the acceptance criteria to update
         title: New title for the acceptance criteria (optional)
@@ -196,7 +196,7 @@ def update_acceptance_criteria(acceptance_criteria_id: str, title: str | None = 
         update_data["title"] = title
     if description is not None:
         update_data["description"] = description
-        
+
     response = requests.put(f"{BASE_URL}/acceptance-criteria/{acceptance_criteria_id}", json=update_data)
 
     if response.status_code != 200:
@@ -206,7 +206,7 @@ def update_acceptance_criteria(acceptance_criteria_id: str, title: str | None = 
 
 def update_test(test_id: str, name: str | None = None, description: str | None = None, url: str | None = None, category: str | None = None, status: str | None = None) -> dict:
     """Update a test with the provided data.
-    
+
     Args:
         test_id: ID of the test to update
         name: New name for the test (optional)
@@ -227,7 +227,7 @@ def update_test(test_id: str, name: str | None = None, description: str | None =
         update_data["category"] = category
     if status is not None:
         update_data["status"] = status
-        
+
     response = requests.put(f"{BASE_URL}/tests/{test_id}", json=update_data)
 
     if response.status_code != 200:
@@ -270,19 +270,19 @@ def main() -> None:
     print("Updating epic")
     updated_epic = update_epic(epic["id"], name="Updated Epic Name", description="Updated epic description")
     print(f"Epic updated: {updated_epic['name']}")
-    
+
     print("Updating feature")
     updated_feature = update_feature(feature["id"], name="Updated Feature Name", description="Updated feature description")
     print(f"Feature updated: {updated_feature['name']}")
-    
+
     print("Updating user story")
     updated_user_story = update_user_story(user_story["id"], title="Updated User Story Title", description="Updated user story description")
     print(f"User story updated: {updated_user_story['title']}")
-    
+
     print("Updating acceptance criteria")
     updated_acceptance_criteria = update_acceptance_criteria(acceptance_criteria["id"], title="Updated Acceptance Criteria Title", description="Updated acceptance criteria description")
     print(f"Acceptance criteria updated: {updated_acceptance_criteria['title']}")
-    
+
     print("Updating test")
     updated_test = update_test(test["id"], name="Updated Test Name", description="Updated test description", status="PASSED")
     print(f"Test updated: {updated_test['name']} (Status: {updated_test['status']})")

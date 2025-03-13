@@ -1,9 +1,5 @@
-import os
-import re
 from datetime import datetime, timedelta
 import random
-from typing import Dict, List, Tuple
-import uuid
 import requests
 
 # Import functions from client.py
@@ -14,33 +10,34 @@ from client import (
     create_user_story,
     create_acceptance_criteria,
     create_test,
-    create_bug
 )
 
 # Base URL for API calls
 BASE_URL = "http://localhost:8000"
 
-def update_test_status(test_id: str, status: str, started_at: str = None, ended_at: str = None) -> Dict:
+
+def update_test_status(test_id: str, status: str, started_at: str | None = None, ended_at: str | None = None) -> dict:
     """Update the status of a test using the PUT /{test_id}/status endpoint"""
     data = {
         "status": status
     }
-    
+
     # Add timestamps if provided
     if started_at:
         data["started_at"] = started_at
     if ended_at:
         data["ended_at"] = ended_at
-        
+
     response = requests.put(f"{BASE_URL}/tests/{test_id}/status", json=data)
-    
+
     if response.status_code != 200:
         raise RuntimeError(f"Failed to update test status: {response.status_code} - {response.text}")
-    
+
     print(f"Updated test status to {status}")
     return response.json()
 
-def get_existing_product():
+
+def get_existing_product() -> dict:
     """Get the existing PI Mobile Interface product or create it if it doesn't exist"""
     # For demo purposes, we'll just create a new product
     product = create_product(
@@ -51,22 +48,10 @@ def get_existing_product():
     )
     return product
 
-def create_successful_tests(product_id: str):
+
+def create_successful_tests(product_id: str) -> list[dict]:
     """Create successful tests that relate to the bugs in the report"""
-    # Pages that were tested
-    pages = [
-        "Talent Strategy",
-        "Talent Optimization Certification",
-        "Education",
-        "Plans",
-        "HR Leaders",
-        "Science Page",
-        "Software Page",
-        "Consultants Page",
-        "PI for Managers Page",
-        "Software Managing Page"
-    ]
-    
+
     # Successful test scenarios for each page
     successful_tests = {
         "Talent Strategy": [
@@ -590,7 +575,7 @@ def create_successful_tests(product_id: str):
             }
         ]
     }
-    
+
     print("Creating epics for successful tests...")
     # Create epics for successful tests
     visual_epic = create_epic(
@@ -598,19 +583,19 @@ def create_successful_tests(product_id: str):
         name="Mobile Visual Verification",
         description="Visual verification tests for the mobile interface that passed successfully"
     )
-    
+
     functional_epic = create_epic(
         product_id=product_id,
         name="Mobile Functionality Verification",
         description="Functionality verification tests for the mobile interface that passed successfully"
     )
-    
+
     created_tests = []
-    
+
     # For each page, create features, user stories and tests
     for page, tests in successful_tests.items():
         print(f"Creating successful tests for {page}...")
-        
+
         # Create visual and functional features
         feature_visual = create_feature(
             epic_id=visual_epic["id"],
@@ -618,48 +603,48 @@ def create_successful_tests(product_id: str):
             description=f"Visual aspects of the {page} that were verified to work correctly",
             url=f"https://www.predictiveindex.com/{page.lower().replace(' ', '-')}"
         )
-        
+
         feature_functional = create_feature(
             epic_id=functional_epic["id"],
             name=f"{page} - Functional Verification",
             description=f"Functional aspects of the {page} that were verified to work correctly",
             url=f"https://www.predictiveindex.com/{page.lower().replace(' ', '-')}"
         )
-        
+
         # Create user stories
         user_story_visual = create_user_story(
             feature_id=feature_visual["id"],
             title=f"As a user, I want the {page} to display correctly on mobile",
             description=f"The {page} should have proper visual formatting on mobile devices"
         )
-        
+
         user_story_functional = create_user_story(
             feature_id=feature_functional["id"],
             title=f"As a user, I want to use {page} features on mobile",
             description=f"The {page} functionality should work correctly on mobile devices"
         )
-        
+
         # Create acceptance criteria for visual and functional user stories
         acceptance_criteria_visual = create_acceptance_criteria(
             user_story_id=user_story_visual["id"],
             title=f"The {page} must display properly on all mobile devices",
             description=f"All visual elements of the {page} must be properly sized, positioned, and readable on mobile devices"
         )
-        
+
         acceptance_criteria_functional = create_acceptance_criteria(
             user_story_id=user_story_functional["id"],
             title=f"All {page} features must work correctly on mobile devices",
             description=f"All interactive elements and functionality of the {page} must work as expected on mobile devices"
         )
-        
+
         # Create successful tests
         for test_data in tests:
             # Determine if this is a visual or functional test
             is_functional = test_data["category"] in ["FUNCTIONAL", "INTEGRATION", "END_TO_END"]
-            
+
             # Select the appropriate acceptance criteria
             acceptance_criteria = acceptance_criteria_functional if is_functional else acceptance_criteria_visual
-            
+
             # Create test (initially with default status)
             test = create_test(
                 acceptance_criteria_id=acceptance_criteria["id"],
@@ -669,11 +654,11 @@ def create_successful_tests(product_id: str):
                 status="NOT_STARTED",  # Default status
                 url=f"https://www.predictiveindex.com/test/{test_data['name'].lower().replace(' ', '-')}"
             )
-            
+
             # Set start and end times for completed tests
             # Set start time to a random time in the past (1-5 days ago)
             start_time = datetime.now() - timedelta(days=random.randint(1, 5))
-            
+
             # Set end time to a random time between start_time and now (1-8 hours later)
             # Ensure at least 1 hour difference to simulate real test duration
             max_hours = int((datetime.now() - start_time).total_seconds() / 3600) - 1
@@ -683,7 +668,7 @@ def create_successful_tests(product_id: str):
             else:
                 hours_later = random.randint(1, min(max_hours, 8))  # Cap at 8 hours max
                 end_time = start_time + timedelta(hours=hours_later)
-            
+
             # Update the test status to PASSED
             updated_test = update_test_status(
                 test_id=test["id"],
@@ -691,33 +676,34 @@ def create_successful_tests(product_id: str):
                 started_at=start_time.isoformat(),
                 ended_at=end_time.isoformat()
             )
-            
+
             created_tests.append(updated_test)
             print(f"Created successful test: {test_data['name']} for {page} with status PASSED")
-    
+
     print(f"Created {len(created_tests)} successful tests")
     return created_tests
 
-def update_bug_test_statuses():
+
+def update_bug_test_statuses() -> None:
     """Update tests associated with bugs to have FAILED status"""
     print("Updating status of tests with bugs to FAILED...")
-    
+
     # Get all bugs
     response = requests.get(f"{BASE_URL}/bugs/")
     if response.status_code != 200:
         print(f"Failed to get bugs: {response.status_code}")
         return
-    
+
     bugs = response.json()
     updated_tests = set()  # Keep track of tests we've already updated
-    
+
     for bug in bugs:
         test_id = bug.get("test_id")
         if test_id and test_id not in updated_tests:
             try:
                 # Set start time to a random time in the past (1-10 days ago)
                 start_time = datetime.now() - timedelta(days=random.randint(1, 10))
-                
+
                 # Set end time to a random time between start_time and now
                 # Ensure at least 1 hour difference to simulate real test duration
                 max_hours = int((datetime.now() - start_time).total_seconds() / 3600) - 1
@@ -727,7 +713,7 @@ def update_bug_test_statuses():
                 else:
                     hours_later = random.randint(1, min(max_hours, 8))  # Cap at 8 hours max
                     end_time = start_time + timedelta(hours=hours_later)
-                
+
                 # Update the test status to FAILED
                 update_test_status(
                     test_id=test_id,
@@ -735,28 +721,30 @@ def update_bug_test_statuses():
                     started_at=start_time.isoformat(),
                     ended_at=end_time.isoformat()
                 )
-                
+
                 updated_tests.add(test_id)
                 print(f"Updated test {test_id} status to FAILED")
             except Exception as e:
                 print(f"Error updating test {test_id}: {str(e)}")
-    
+
     print(f"Updated {len(updated_tests)} tests to FAILED status")
 
-def main():
+
+def main() -> None:
     """Main function to create successful tests"""
     # Get or create the product
     print("Getting product...")
     product = get_existing_product()
-    
+
     # Create successful tests
     print("Creating successful tests...")
-    successful_tests = create_successful_tests(product["id"])
-    
+    create_successful_tests(product["id"])
+
     # Update the status of tests associated with bugs
     update_bug_test_statuses()
-    
+
     print("Done!")
 
+
 if __name__ == "__main__":
-    main() 
+    main()

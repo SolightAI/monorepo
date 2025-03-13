@@ -5,11 +5,9 @@ import random
 import requests
 import boto3
 from botocore.exceptions import NoCredentialsError
-import uuid
 import hashlib
-from typing import Dict, List, Tuple
+from typing import Dict, List
 import mimetypes
-import io
 from PIL import Image
 
 # Import functions from client.py
@@ -34,10 +32,6 @@ PRIORITY_TO_SEVERITY = {
 # Base URL for API calls
 BASE_URL = "http://localhost:8000"
 
-# S3 configuration
-# S3_BUCKET = "pi-mobile-bug-screenshots"
-# S3_REGION = "us-east-1"
-# S3_BASE_URL = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com"
 
 if "AWS_ENDPOINT_URL" not in os.environ:
     raise RuntimeError("AWS_ENDPOINT_URL not set, using mock S3 URLs")
@@ -47,7 +41,7 @@ if "AWS_ACCESS_KEY" not in os.environ or "AWS_SECRET_KEY" not in os.environ:
 
 # Flag to determine if we should use S3 or local mock
 
-def get_s3_client():
+def get_s3_client() -> boto3.client:
     """Get S3 client with appropriate credentials"""
 
     return boto3.client(
@@ -57,60 +51,36 @@ def get_s3_client():
         aws_secret_access_key=os.environ["AWS_SECRET_KEY"]
     )
 
-    # If using local mock, return None
-    
-    # # Check for AWS credentials in environment variables
-    # aws_access_key = os.environ.get("AWS_ACCESS_KEY_ID")
-    # aws_secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY")
-    
-    # if aws_access_key and aws_secret_key:
-    #     # Use provided credentials
-    #     return boto3.client(
-    #         's3',
-    #         aws_access_key_id=aws_access_key,
-    #         aws_secret_access_key=aws_secret_key,
-    #         region_name=S3_REGION
-    #     )
-    # else:
-    #     # Try to use credentials from AWS configuration
-    #     try:
-    #         return boto3.client('s3', region_name=S3_REGION)
-    #     except Exception as e:
-    #         print(f"Error creating S3 client: {str(e)}")
-    #         return None
 
 def parse_bug_report(file_path: str) -> List[Dict]:
     """Parse the bug report file and extract bug information"""
     with open(file_path, 'r') as file:
         content = file.read()
-    
+
     # Common pattern for all bugs: header with priority emoji, title, and description
     # This will capture both the "Visual Testing" and "User Flow Testing" sections
     bug_pattern = r'###\s*([🔴🟠🟡🟢])\s*(.*?)\n\n(?:\*\*Description:\*\*\n\n)?(.*?)(?=\n\n- \*\*Screenshot|\n\n###|\n\n##|\Z)'
     bugs = re.findall(bug_pattern, content, re.DOTALL)
-    
+
     parsed_bugs = []
-    
+
     # Determine the section a bug belongs to (User Flow Testing or Visual Testing)
     user_flow_section_match = re.search(r'## User Flow Testing(.*?)(?:## Visual Testing|\Z)', content, re.DOTALL)
-    visual_section_match = re.search(r'## Visual Testing(.*?)(?:\Z)', content, re.DOTALL)
-    
     user_flow_content = user_flow_section_match.group(1) if user_flow_section_match else ""
-    visual_content = visual_section_match.group(1) if visual_section_match else ""
-    
+
     # Process all bugs
     for severity_emoji, title, description in bugs:
         # Clean up the text
         title = title.strip()
         description = description.strip()
-        
+
         # Determine if this is a functional or visual bug based on its location in the report
         bug_text = f"### {severity_emoji} {title}\n\n{description}"
         bug_type = "functional" if bug_text in user_flow_content else "visual"
-        
+
         # Set appropriate test category based on bug type
         test_category = "FUNCTIONAL" if bug_type == "functional" else "USABILITY"
-        
+
         # Extract URL from the bug section
         url = None
         bug_section = re.search(rf'###\s*{re.escape(severity_emoji)}\s*{re.escape(title)}.*?(?=###|\Z)', content, re.DOTALL)
@@ -123,7 +93,7 @@ def parse_bug_report(file_path: str) -> List[Dict]:
             else:
                 # Try a simpler pattern as fallback
                 raise RuntimeError(f"No URL found for bug: {title}")
-        
+
         parsed_bugs.append({
             "severity": PRIORITY_TO_SEVERITY.get(severity_emoji, "Low"),
             "title": title,
@@ -136,10 +106,11 @@ def parse_bug_report(file_path: str) -> List[Dict]:
             "screenshots": extract_screenshots(bug_text, content)
         })
         print("screenshots:", extract_screenshots(bug_text, content))
-    
+
     print(f"Parsed {len(parsed_bugs)} bugs: {len([b for b in parsed_bugs if b['type'] == 'functional'])} functional and {len([b for b in parsed_bugs if b['type'] == 'visual'])} visual")
-    
+
     return parsed_bugs
+
 
 def extract_screenshots(bug_text: str, content: str) -> List[str]:
     """Extract screenshot URLs for a bug"""
@@ -147,40 +118,40 @@ def extract_screenshots(bug_text: str, content: str) -> List[str]:
     title_match = re.search(r'###\s*([🔴🟠🟡🟢])\s*(.*?)(?:\n|$)', bug_text)
     if not title_match:
         return []
-    
+
     emoji, title = title_match.groups()
-    
+
     # Find the bug in the content
     bug_pattern = rf'###\s*{re.escape(emoji)}\s*{re.escape(title.strip())}'
     bug_match = re.search(bug_pattern, content)
-    
+
     if not bug_match:
         return []
-    
+
     bug_start = bug_match.start()
-    
+
     # Find the screenshot section
     screenshot_start = content.find("- **Screenshot", bug_start)
     if screenshot_start == -1:
         return []
-    
+
     # Find the end of this bug's section (next bug or main section)
     next_section_match = re.search(r'(?:\n##|\n###)', content[screenshot_start:])
     screenshot_end = len(content) if not next_section_match else screenshot_start + next_section_match.start()
-    
+
     # Extract the screenshot section
     screenshot_section = content[screenshot_start:screenshot_end]
-    
+
     # Find all image paths
     image_urls = []
-    
+
     # Match Markdown image syntax: ![alt text](image path)
     image_matches = re.findall(r'!\[.*?\]\((.*?)\)', screenshot_section)
     for img_path in image_matches:
         # Clean URL encoding if present
         img_path = img_path.replace('%20', ' ')
         image_urls.append(img_path)
-    
+
     # Also check for nested images or multiple images in bullet points
     nested_images = []
     # Look for sections like "- 0\n![0.png]..." or numbered sections
@@ -188,15 +159,16 @@ def extract_screenshots(bug_text: str, content: str) -> List[str]:
     for match in section_matches:
         img_path = match.group(1).replace('%20', ' ')
         nested_images.append(img_path)
-    
+
     # Add any nested images that weren't caught by the first pattern
     for img in nested_images:
         if img not in image_urls:
             image_urls.append(img)
-    
+
     print(f"Debug - Found {len(image_urls)} screenshots for '{title}': {image_urls}")
-    
+
     return image_urls
+
 
 def create_project_structure() -> Dict:
     """Create the necessary project structure (product, epic, features, user stories, tests)"""
@@ -266,7 +238,7 @@ def create_project_structure() -> Dict:
             title=f"As a user, I want to use {page} functionality on mobile",
             description=f"The {page} functionality should work correctly on mobile devices"
         )
-        
+
         # Create acceptance criteria for each user story
         acceptance_criteria_visual = create_acceptance_criteria(
             user_story_id=user_story_visual["id"],
@@ -323,6 +295,7 @@ def create_project_structure() -> Dict:
         "features": features
     }
 
+
 def map_bug_to_page(bug_title: str, bug_description: str, bug_type: str) -> str:
     """Map a bug title and description to a page name based on context clues"""
     # Check for specific bugs from the user flow testing section in sequential order
@@ -376,7 +349,8 @@ def map_bug_to_page(bug_title: str, bug_description: str, bug_type: str) -> str:
     print(f"Warning: Could not determine page for bug: '{bug_title}', defaulting to Software Page")
     return "Software Page"
 
-def update_test_status(test_id: str, status: str, started_at: str = None, ended_at: str = None) -> Dict:
+
+def update_test_status(test_id: str, status: str, started_at: str | None = None, ended_at: str | None = None) -> dict:
     """Update the status of a test using the PUT /{test_id}/status endpoint"""
     data = {
         "status": status
@@ -396,7 +370,8 @@ def update_test_status(test_id: str, status: str, started_at: str = None, ended_
     print(f"Updated test {test_id} status to {status}")
     return response.json()
 
-def upload_to_s3(local_file_path: str, s3_file_name: str = None) -> str:
+
+def upload_to_s3(local_file_path: str, s3_file_name: str | None = None) -> str:
     """
     Upload a file to S3 bucket and return the URL.
     If s3_file_name is not provided, use the local file name.
@@ -432,7 +407,7 @@ def upload_to_s3(local_file_path: str, s3_file_name: str = None) -> str:
             print(f"File already exists in S3 with name: {s3_file_name}")
             # Return the URL without uploading again
             return f"https://{os.environ['AWS_BUCKET_NAME']}.s3.fr-par.scw.cloud/{os.environ['AWS_BUCKET_NAME']}/{s3_file_name}"
-        except:
+        except:  # noqa: E722
             # File doesn't exist, proceed with upload
             pass
 
@@ -453,13 +428,11 @@ def upload_to_s3(local_file_path: str, s3_file_name: str = None) -> str:
 
     except FileNotFoundError:
         raise RuntimeError(f"Error: The file {local_file_path} was not found")
-        return None
     except NoCredentialsError:
         raise RuntimeError("Error: AWS credentials not available")
-        return None
     except Exception as e:
         raise RuntimeError(f"Error uploading to S3: {str(e)}")
-        return None
+
 
 def create_thumbnail_if_needed(image_path: str) -> str:
     """
@@ -470,15 +443,15 @@ def create_thumbnail_if_needed(image_path: str) -> str:
         # Maximum dimensions
         MAX_WIDTH = 1200
         MAX_HEIGHT = 1200
-        
+
         # Open the image
         with Image.open(image_path) as img:
             width, height = img.size
-            
+
             # Check if resizing is needed
             if width <= MAX_WIDTH and height <= MAX_HEIGHT:
                 return image_path
-            
+
             # Calculate new dimensions
             if width > height:
                 new_width = MAX_WIDTH
@@ -486,19 +459,20 @@ def create_thumbnail_if_needed(image_path: str) -> str:
             else:
                 new_height = MAX_HEIGHT
                 new_width = int(width * (MAX_HEIGHT / height))
-            
+
             # Resize the image
             img = img.resize((new_width, new_height), Image.LANCZOS)
-            
+
             # Save the thumbnail
             thumbnail_path = f"{os.path.splitext(image_path)[0]}_thumbnail{os.path.splitext(image_path)[1]}"
             img.save(thumbnail_path, quality=85, optimize=True)
             print(f"Created thumbnail: {thumbnail_path}")
-            
+
             return thumbnail_path
     except Exception as e:
         print(f"Error creating thumbnail: {str(e)}")
         return image_path  # Return original path if any error occurs
+
 
 def upload_screenshots_for_bug(screenshots: List[str], report_dir: str) -> List[str]:
     """
@@ -530,36 +504,31 @@ def upload_screenshots_for_bug(screenshots: List[str], report_dir: str) -> List[
 
                 # Clean up thumbnail if created
                 if optimized_path != local_path and os.path.exists(optimized_path):
-                    try:
-                        os.remove(optimized_path)
-                    except:
-                        pass
+                    os.remove(optimized_path)
         else:
             print(f"Warning: Screenshot file not found: {local_path}")
 
     return uploaded_urls
 
-def main():
+
+def main() -> None:
     """Main function to parse bugs and create database entries"""
     report_file = "data/PI - Mobile Interface Report 1acf1e9c39ff8014a93dc3b08c958bbe.md"
     report_dir = os.path.dirname(report_file)
-    
+
     if not os.path.exists(report_file):
         print(f"Error: Bug report file not found at {report_file}")
         return
-    
-    # Create S3 bucket if using real S3
-    s3_client = get_s3_client()
-    
+
     # Parse bugs from report
     bugs = parse_bug_report(report_file)
-    
+
     if not bugs:
         print("No bugs found in the report")
         return
-    
+
     print(f"Found {len(bugs)} bugs in the report")
-    
+
     # Create project structure
     print("Creating project structure...")
     structure = create_project_structure()
@@ -606,20 +575,20 @@ def main():
 
             created_bugs.append(created_bug)
             print(f"Created bug: {bug['title']} (Severity: {bug['severity']}) with {len(screenshot_urls)} S3 screenshot URLs")
-            
+
             # Also print the URL for reference
             if bug.get("url"):
                 print(f"  Bug URL: {bug['url']}")
-            
+
             # Also print the screenshots for reference
             if screenshot_urls:
                 print(f"  Screenshot URLs: {', '.join(screenshot_urls)}")
-            
+
             # Update the test status to FAILED (if not already updated)
             if test["id"] not in updated_tests:
                 # Set start time to a random time in the past (1-10 days ago)
                 start_time = datetime.now() - timedelta(days=random.randint(1, 10))
-                
+
                 # Set end time to a random time between start_time and now
                 max_hours = int((datetime.now() - start_time).total_seconds() / 3600) - 1
                 if max_hours <= 0:
@@ -627,7 +596,7 @@ def main():
                 else:
                     hours_later = random.randint(1, min(max_hours, 8))
                     end_time = start_time + timedelta(hours=hours_later)
-                
+
                 # Update the test status
                 update_test_status(
                     test_id=test["id"],
@@ -635,15 +604,16 @@ def main():
                     started_at=start_time.isoformat(),
                     ended_at=end_time.isoformat()
                 )
-                
+
                 updated_tests.add(test["id"])
-                
+
         except Exception as e:
             print(f"Error creating bug '{bug['title']}': {str(e)}")
             continue
-    
+
     print(f"Successfully created {len(created_bugs)} bugs out of {len(bugs)} found in the report.")
     print(f"Updated {len(updated_tests)} tests to FAILED status.")
 
+
 if __name__ == "__main__":
-    main() 
+    main()

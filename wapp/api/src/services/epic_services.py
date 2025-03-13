@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from dto.models import Epic as EpicModel
-from dto.schemas import EpicCreate as EpicCreateSchema
+from dto.schemas import EpicCreate as EpicCreateSchema, EpicUpdate as EpicUpdateSchema
 from pydantic import UUID4
 
 
@@ -45,3 +45,34 @@ async def delete_epic(epic_id: UUID4) -> bool:
     await epic.delete()
 
     return True
+
+
+async def update_epic(epic_id: UUID4, epic_update: EpicUpdateSchema) -> EpicModel:
+    """
+    Update an epic with the provided data.
+
+    Args:
+        epic_id: UUID of the epic to update
+        epic_update: Data to update the epic with
+
+    Returns:
+        The updated epic
+
+    Raises:
+        HTTPException: If the epic was not found
+    """
+    epic = await EpicModel.get_or_none(id=epic_id)
+
+    if not epic:
+        raise HTTPException(status_code=404, detail="Epic not found")
+
+    # Update only provided fields
+    update_data = epic_update.model_dump(exclude_unset=True, exclude_none=True)
+
+    if update_data:
+        for key, value in update_data.items():
+            setattr(epic, key, value)
+
+        await epic.save()
+
+    return await get_epic(epic_id)  # Return the full epic with related entities

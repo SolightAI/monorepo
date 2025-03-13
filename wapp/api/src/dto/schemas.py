@@ -81,11 +81,17 @@ class TestCategory(str, Enum):
     LOCALIZATION = "LOCALIZATION"
 
 
+class LinkDocument(BaseModel):
+    title: str
+    url: str
+
+
 class ProductBase(BaseModel):
     url: str
     name: str
     description: str
     documentation: str
+    links_to_documentation: list[LinkDocument] = []
 
 
 class ProductCreate(ProductBase):
@@ -100,36 +106,46 @@ class Product(ProductBase):
         from_attributes = True
 
 
-class EpicBase(BaseModel):
+class EpicCreate(BaseModel):
     name: str
     description: str
-
-
-class EpicCreate(EpicBase):
     product_id: UUID4
+
+
+class EpicUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+class EpicBase(EpicCreate):
+    id: UUID4
 
 
 class Epic(EpicBase):
-    id: UUID4
-    product_id: UUID4
-    features: list["Feature"] = []
+    features: list["FeatureBase"] = []
 
     class Config:
         from_attributes = True
 
 
-class FeatureBase(BaseModel):
+class FeatureCreate(BaseModel):
+    epic_id: UUID4
     name: str
     urls: list[str]
     description: str
 
 
-class FeatureCreate(FeatureBase):
-    epic_id: UUID4
+class FeatureUpdate(BaseModel):
+    name: Optional[str] = None
+    urls: Optional[list[str]] = None
+    description: Optional[str] = None
+
+
+class FeatureBase(FeatureCreate):
+    id: UUID4
 
 
 class Feature(FeatureBase):
-    id: UUID4
     epic_id: UUID4
     user_stories: list[UserStoryBase] = []
 
@@ -137,32 +153,42 @@ class Feature(FeatureBase):
         from_attributes = True
 
 
-class UserStoryBase(BaseModel):
+class UserStoryCreate(BaseModel):
+    feature_id: UUID4
     title: str
     description: str
 
 
-class UserStoryCreate(UserStoryBase):
-    feature_id: UUID4
+class UserStoryUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+
+
+class UserStoryBase(UserStoryCreate):
+    id: UUID4
 
 
 class UserStory(UserStoryBase):
-    id: UUID4
     feature_id: UUID4
     acceptance_criteria: list[AcceptanceCriteriaBase] = []
 
 
-class AcceptanceCriteriaBase(BaseModel):
+class AcceptanceCriteriaCreate(BaseModel):
+    user_story_id: UUID4
     title: str
     description: str
 
 
-class AcceptanceCriteriaCreate(AcceptanceCriteriaBase):
-    user_story_id: UUID4
+class AcceptanceCriteriaUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+
+
+class AcceptanceCriteriaBase(AcceptanceCriteriaCreate):
+    id: UUID4
 
 
 class AcceptanceCriteria(AcceptanceCriteriaBase):
-    id: UUID4
     user_story_id: UUID4
     tests: list[TestBase] = []
 
@@ -170,19 +196,27 @@ class AcceptanceCriteria(AcceptanceCriteriaBase):
         from_attributes = True
 
 
-class TestBase(BaseModel):
+class TestCreate(BaseModel):
+    acceptance_criteria_id: UUID4
     name: str
     description: str
     url: str
     category: TestCategory
 
 
-class TestCreate(TestBase):
-    acceptance_criteria_id: UUID4
+class TestUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    url: Optional[str] = None
+    category: Optional[TestCategory] = None
+    status: Optional[TestStatus] = None
+
+
+class TestBase(TestCreate):
+    id: UUID4
 
 
 class Test(TestBase):
-    id: UUID4
     status: TestStatus
     started_at: Optional[datetime]
     ended_at: Optional[datetime]
@@ -193,7 +227,8 @@ class Test(TestBase):
         from_attributes = True
 
 
-class BugBase(BaseModel):
+class BugCreate(BaseModel):
+    test_id: UUID4
     title: str
     description: str
     severity: SeverityLevel
@@ -203,12 +238,11 @@ class BugBase(BaseModel):
     detected_at: datetime
 
 
-class BugCreate(BugBase):
-    test_id: UUID4
+class BugBase(BugCreate):
+    id: UUID4
 
 
 class Bug(BugBase):
-    id: UUID4
     test_id: UUID4
 
     class Config:

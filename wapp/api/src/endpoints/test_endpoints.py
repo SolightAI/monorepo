@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Body
-from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestStatus
-from services.test_services import get_test, create_test, get_all_tests, update_test_status, get_tests_by_product_path, delete_test
+from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestStatus, TestUpdate as TestUpdateSchema
+from services.test_services import get_test, create_test, get_all_tests, update_test_status, get_tests_by_product_path, delete_test, update_test
 from pydantic import UUID4
 from typing import List
 
@@ -43,6 +43,12 @@ async def update_test_status_endpoint(
 ) -> TestSchema:
     await update_test_status(test_id, status)
     return await get_test(test_id)
+
+
+@router.put("/{test_id}")
+async def update_test_endpoint(test_id: UUID4, test_update: TestUpdateSchema) -> TestSchema:
+    """Update a test with the provided data."""
+    return await update_test(test_id, test_update)
 
 
 @router.delete("/{test_id}")

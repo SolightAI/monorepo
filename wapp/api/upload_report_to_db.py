@@ -3,9 +3,8 @@ import os
 import csv
 import sys
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 import argparse
-from uuid import uuid4
 
 # Import necessary functions from existing modules
 try:
@@ -18,7 +17,7 @@ try:
         create_test,
         create_bug
     )
-    from import_bugs import upload_to_s3, upload_screenshots_for_bug
+    from import_bugs import upload_screenshots_for_bug
 except ImportError:
     print("Error: Could not import required modules.")
     print("Make sure you're running this script from the project root directory.")
@@ -28,7 +27,7 @@ except ImportError:
 def parse_args() -> argparse.Namespace:
     """
     Parse command line arguments.
-    
+
     Returns:
         argparse.Namespace: Parsed command line arguments.
     """
@@ -41,7 +40,7 @@ def parse_args() -> argparse.Namespace:
                         help='Name of the epic to create')
     parser.add_argument('--feature-name', type=str,
                         help='Name of the feature to create')
-    parser.add_argument('--user-story-title', type=str, 
+    parser.add_argument('--user-story-title', type=str,
                         help='Title of the user story to create')
     parser.add_argument('--acceptance-criteria-title', type=str,
                         help='Title of the acceptance criteria to create')
@@ -55,13 +54,13 @@ def parse_args() -> argparse.Namespace:
 def read_csv_file(file_path: str) -> List[Dict]:
     """
     Read a CSV file containing bug reports and return a list of dictionaries.
-    
+
     Args:
         file_path: Path to the CSV file.
-        
+
     Returns:
         List of dictionaries representing each row in the CSV.
-        
+
     Raises:
         FileNotFoundError: If the CSV file cannot be found.
     """
@@ -72,23 +71,23 @@ def read_csv_file(file_path: str) -> List[Dict]:
             file_path = api_path
         else:
             raise FileNotFoundError(f"CSV file not found: {file_path}")
-    
+
     bugs = []
     with open(file_path, 'r', encoding='utf-8') as csv_file:
         reader = csv.DictReader(csv_file)
         for row in reader:
             bugs.append(row)
-    
+
     return bugs
 
 
 def process_screenshots(screenshot_path: str) -> List[str]:
     """
     Process screenshot paths from the CSV.
-    
+
     Args:
         screenshot_path: Path to the screenshot from the CSV.
-        
+
     Returns:
         List of processed screenshot URLs.
     """
@@ -98,9 +97,6 @@ def process_screenshots(screenshot_path: str) -> List[str]:
 
     # Split by commas if multiple screenshots are provided
     screenshot_paths = [os.path.split(path.strip())[-1] for path in screenshot_path.split(',')]
-
-    # Get the directory of the screenshot
-    report_dir = os.path.dirname(os.path.abspath(screenshot_paths[0]))
 
     # Upload screenshots to S3
     try:
@@ -114,10 +110,10 @@ def process_screenshots(screenshot_path: str) -> List[str]:
 def get_project_info(args: argparse.Namespace) -> Dict[str, str]:
     """
     Get required information for the project hierarchy.
-    
+
     Args:
         args: Command line arguments.
-        
+
     Returns:
         Dictionary containing all required project information.
     """
@@ -126,82 +122,82 @@ def get_project_info(args: argparse.Namespace) -> Dict[str, str]:
         'product_description': None,
         'product_url': None,
         'product_documentation': None,
-        
+
         'epic_name': args.epic_name,
         'epic_description': None,
-        
+
         'feature_name': args.feature_name,
         'feature_description': None,
         'feature_url': None,
-        
+
         'user_story_title': args.user_story_title,
         'user_story_description': None,
-        
+
         'acceptance_criteria_title': args.acceptance_criteria_title,
         'acceptance_criteria_description': None,
-        
+
         'test_name': args.test_name,
         'test_description': None,
         'test_category': 'REGRESSION',
         'test_status': 'Completed',
         'test_url': None,
-        
+
         'bug_status': args.status
     }
-    
+
     # Prompt for missing information
     if not info['product_name']:
         info['product_name'] = input("Product name: ")
         if not info['product_name']:
             print("Error: Product name is required")
             sys.exit(1)
-    
+
     info['product_description'] = input(f"Product description [{info['product_name']} Description]: ") or f"{info['product_name']} Description"
     info['product_url'] = input("Product URL [https://example.com]: ") or "https://example.com"
     info['product_documentation'] = input("Product documentation [https://docs.example.com]: ") or "https://docs.example.com"
-    
+
     if not info['epic_name']:
-        info['epic_name'] = input(f"Epic name [Bug Fixes]: ") or "Bug Fixes"
-    
+        info['epic_name'] = input("Epic name [Bug Fixes]: ") or "Bug Fixes"
+
     info['epic_description'] = input(f"Epic description [{info['epic_name']} Description]: ") or f"{info['epic_name']} Description"
-    
+
     if not info['feature_name']:
-        info['feature_name'] = input(f"Feature name [Bug Reporting]: ") or "Bug Reporting"
-    
+        info['feature_name'] = input("Feature name [Bug Reporting]: ") or "Bug Reporting"
+
     info['feature_description'] = input(f"Feature description [{info['feature_name']} Description]: ") or f"{info['feature_name']} Description"
     info['feature_url'] = input(f"Feature URL [{info['product_url']}/features]: ") or f"{info['product_url']}/features"
-    
+
     if not info['user_story_title']:
-        info['user_story_title'] = input(f"User story title [Fix reported bugs]: ") or "Fix reported bugs"
-    
-    info['user_story_description'] = input(f"User story description [As a developer, I want to fix all reported bugs]: ") or "As a developer, I want to fix all reported bugs"
-    
+        info['user_story_title'] = input("User story title [Fix reported bugs]: ") or "Fix reported bugs"
+
+    info['user_story_description'] = input("User story description [As a developer, I want to fix all reported bugs]: ") or "As a developer, I want to fix all reported bugs"
+
     if not info['acceptance_criteria_title']:
-        info['acceptance_criteria_title'] = input(f"Acceptance criteria title [All bugs are fixed]: ") or "All bugs are fixed"
-    
-    info['acceptance_criteria_description'] = input(f"Acceptance criteria description [All bugs should be fixed and verified]: ") or "All bugs should be fixed and verified"
-    
+        info['acceptance_criteria_title'] = input("Acceptance criteria title [All bugs are fixed]: ") or "All bugs are fixed"
+
+    info['acceptance_criteria_description'] = input("Acceptance criteria description [All bugs should be fixed and verified]: ") or "All bugs should be fixed and verified"
+
     if not info['test_name']:
-        info['test_name'] = input(f"Test name [Bug verification test]: ") or "Bug verification test"
-    
-    info['test_description'] = input(f"Test description [Verify that all bugs are fixed]: ") or "Verify that all bugs are fixed"
+        info['test_name'] = input("Test name [Bug verification test]: ") or "Bug verification test"
+
+    info['test_description'] = input("Test description [Verify that all bugs are fixed]: ") or "Verify that all bugs are fixed"
     info['test_url'] = input(f"Test URL [{info['product_url']}/tests]: ") or f"{info['product_url']}/tests"
-    
+
     return info
 
 
 def create_project_hierarchy(info: Dict[str, str]) -> str:
     """
     Create the project hierarchy and return the test ID.
-    
+
     Args:
         info: Dictionary containing all project information.
-    
+
     Returns:
         Test ID to associate with the bugs.
     """
     print("Creating project hierarchy...")
-    
+
     # Create product
     print(f"Creating product: {info['product_name']}")
     product = create_product(
@@ -210,7 +206,7 @@ def create_project_hierarchy(info: Dict[str, str]) -> str:
         url=info['product_url'],
         documentation=info['product_documentation']
     )
-    
+
     # Create epic
     print(f"Creating epic: {info['epic_name']}")
     epic = create_epic(
@@ -218,7 +214,7 @@ def create_project_hierarchy(info: Dict[str, str]) -> str:
         name=info['epic_name'],
         description=info['epic_description']
     )
-    
+
     # Create feature
     print(f"Creating feature: {info['feature_name']}")
     feature = create_feature(
@@ -227,7 +223,7 @@ def create_project_hierarchy(info: Dict[str, str]) -> str:
         description=info['feature_description'],
         url=info['feature_url']
     )
-    
+
     # Create user story
     print(f"Creating user story: {info['user_story_title']}")
     user_story = create_user_story(
@@ -235,7 +231,7 @@ def create_project_hierarchy(info: Dict[str, str]) -> str:
         title=info['user_story_title'],
         description=info['user_story_description']
     )
-    
+
     # Create acceptance criteria
     print(f"Creating acceptance criteria: {info['acceptance_criteria_title']}")
     acceptance_criteria = create_acceptance_criteria(
@@ -262,7 +258,7 @@ def create_project_hierarchy(info: Dict[str, str]) -> str:
 def upload_bugs(bugs: List[Dict], test_id: str, status: str) -> None:
     """
     Upload bugs to the system.
-    
+
     Args:
         bugs: List of dictionaries containing bug information.
         test_id: Test ID to associate with the bugs.
@@ -276,19 +272,19 @@ def upload_bugs(bugs: List[Dict], test_id: str, status: str) -> None:
             severity = bug.get('Severity', 'Medium')
             url = bug.get('Link', '')
             detected_at = datetime.now().isoformat()
-            
+
             # Process screenshots
             screenshots = process_screenshots(bug.get('Screenshot', ''))
-            
+
             # Add conditions and suggestion to description if available
             full_description = description
             if bug.get('Conditions'):
                 full_description += f"\n\nConditions: {bug['Conditions']}"
             if bug.get('Suggestion'):
                 full_description += f"\n\nSuggestion: {bug['Suggestion']}"
-            
+
             print(f"Uploading bug {i}/{len(bugs)}: {title}")
-            
+
             # Create the bug
             create_bug(
                 test_id=test_id,
@@ -300,9 +296,9 @@ def upload_bugs(bugs: List[Dict], test_id: str, status: str) -> None:
                 detected_at=detected_at,
                 screenshots=screenshots
             )
-            
+
             print(f"Successfully uploaded bug: {title}")
-            
+
         except Exception as e:
             print(f"Error uploading bug {title}: {str(e)}")
 
@@ -312,27 +308,27 @@ def main() -> None:
     Main function to coordinate the bug upload process.
     """
     args = parse_args()
-    
+
     try:
         # Read CSV file
         bugs = read_csv_file(args.csv_file)
         print(f"Found {len(bugs)} bugs in the CSV file.")
-        
+
         # Get project information
         project_info = get_project_info(args)
-        
+
         # Create project hierarchy
         test_id = create_project_hierarchy(project_info)
-        
+
         # Upload bugs
         upload_bugs(bugs, test_id, project_info['bug_status'])
-        
+
         print(f"Successfully processed {len(bugs)} bugs.")
-        
+
     except Exception as e:
         print(f"Error: {str(e)}")
         sys.exit(1)
 
 
 if __name__ == "__main__":
-    main() 
+    main()

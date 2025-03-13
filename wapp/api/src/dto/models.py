@@ -1,7 +1,5 @@
-import os
-
 from tortoise import fields, models
-from .schemas import TestStatus, SeverityLevel, TestCategory, Epic as EpicSchema, User as UserSchema, UserPrivate as UserPrivateSchema
+from .schemas import TestStatus, SeverityLevel, TestCategory
 
 
 class User(models.Model):
@@ -41,8 +39,9 @@ class Product(models.Model):
     id = fields.UUIDField(pk=True)
     url = fields.CharField(max_length=255)
     name = fields.CharField(max_length=255)
-    description = fields.TextField() # summary of what we've ingested from the project
-    documentation = fields.TextField() # what we ingest from the project (e.g. Jira, Linear, etc.)
+    description = fields.TextField()  # summary of what we've ingested from the project
+    documentation = fields.TextField()  # what we ingest from the project (e.g. Jira, Linear, etc.)
+    links_to_documentation = fields.JSONField(default=[])  # links to external documentation
 
     epics = fields.ReverseRelation["Epic"]
 
@@ -64,12 +63,12 @@ class Epic(models.Model):
 
 class Feature(models.Model):
     id = fields.UUIDField(pk=True)
-    urls = fields.JSONField() # where the feature is implemented
+    urls = fields.JSONField()  # where the feature is implemented
     name = fields.CharField(max_length=255)
     description = fields.TextField()
 
-    # dependents = fields.ManyToManyField("models.Feature", related_name="dependencies") # features depending on this feature
-    dependencies = fields.ManyToManyField("models.Feature", related_name="dependents") # features this feature depends on
+    # dependents = fields.ManyToManyField("models.Feature", related_name="dependencies")  # features depending on this feature
+    dependencies = fields.ManyToManyField("models.Feature", related_name="dependents")  # features this feature depends on
 
     epic = fields.ForeignKeyField("models.Epic", related_name="features")
     user_stories = fields.ReverseRelation["UserStory"]
@@ -105,7 +104,7 @@ class Test(models.Model):
     id = fields.UUIDField(pk=True)
     name = fields.CharField(max_length=255)
     description = fields.TextField()
-    url = fields.CharField(max_length=255) # where to store the test
+    url = fields.CharField(max_length=255)  # where to store the test
     category = fields.CharEnumField(TestCategory)
     status = fields.CharEnumField(TestStatus, default=TestStatus.NOT_STARTED)
     started_at = fields.DatetimeField(null=True)
@@ -123,9 +122,9 @@ class Bug(models.Model):
     title = fields.CharField(max_length=255)
     description = fields.TextField()
     severity = fields.CharEnumField(SeverityLevel)
-    url = fields.CharField(max_length=255) # url of the bug
-    screenshots = fields.JSONField(default=[]) # urls to screenshots of the bug
-    status = fields.CharField(max_length=50, null=True) # retrieved from Jira/Linear/other
+    url = fields.CharField(max_length=255)   # url of the bug
+    screenshots = fields.JSONField(default=[])   # urls to screenshots of the bug
+    status = fields.CharField(max_length=50, null=True)   # retrieved from Jira/Linear/other
     detected_at = fields.DatetimeField(auto_now_add=True)
 
     test = fields.ForeignKeyField("models.Test", related_name="bugs")
@@ -133,5 +132,5 @@ class Bug(models.Model):
     class Meta:
         table = "bugs"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.title} - {self.severity} ({self.url})"

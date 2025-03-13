@@ -1,7 +1,8 @@
 from fastapi import HTTPException
 from dto.models import Feature as FeatureModel
-from dto.schemas import FeatureCreate as FeatureCreateSchema
+from dto.schemas import FeatureCreate as FeatureCreateSchema, FeatureUpdate as FeatureUpdateSchema
 from uuid import UUID
+from pydantic import UUID4
 
 
 async def get_feature(feature_id: str | UUID) -> FeatureModel:
@@ -46,3 +47,34 @@ async def delete_feature(feature_id: str | UUID) -> bool:
     await feature.delete()
 
     return True
+
+
+async def update_feature(feature_id: UUID4, feature_update: FeatureUpdateSchema) -> FeatureModel:
+    """
+    Update a feature with the provided data.
+
+    Args:
+        feature_id: UUID of the feature to update
+        feature_update: Data to update the feature with
+
+    Returns:
+        The updated feature
+
+    Raises:
+        HTTPException: If the feature was not found
+    """
+    feature = await FeatureModel.get_or_none(id=feature_id)
+
+    if not feature:
+        raise HTTPException(status_code=404, detail="Feature not found")
+
+    # Update only provided fields
+    update_data = feature_update.model_dump(exclude_unset=True, exclude_none=True)
+
+    if update_data:
+        for key, value in update_data.items():
+            setattr(feature, key, value)
+
+        await feature.save()
+
+    return await get_feature(feature_id)  # Return the full feature with related entities

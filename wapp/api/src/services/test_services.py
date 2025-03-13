@@ -1,9 +1,10 @@
 from fastapi import HTTPException
 from dto.models import Test as TestModel
-from dto.schemas import TestCreate as TestCreateSchema, TestStatus
+from dto.schemas import TestCreate as TestCreateSchema, TestStatus, TestUpdate as TestUpdateSchema
 from typing import List
 from uuid import UUID
 from services.product_services import get_product_by_url_path
+from pydantic import UUID4
 
 
 async def get_test(test_id: UUID) -> TestModel:
@@ -107,3 +108,34 @@ async def delete_test(test_id: str | UUID) -> bool:
     await test.delete()
 
     return True
+
+
+async def update_test(test_id: UUID4, test_update: TestUpdateSchema) -> TestModel:
+    """
+    Update a test with the provided data.
+
+    Args:
+        test_id: UUID of the test to update
+        test_update: Data to update the test with
+
+    Returns:
+        The updated test
+
+    Raises:
+        HTTPException: If the test was not found
+    """
+    test = await TestModel.get_or_none(id=test_id)
+
+    if not test:
+        raise HTTPException(status_code=404, detail="Test not found")
+
+    # Update only provided fields
+    update_data = test_update.model_dump(exclude_unset=True, exclude_none=True)
+
+    if update_data:
+        for key, value in update_data.items():
+            setattr(test, key, value)
+
+        await test.save()
+
+    return await get_test(test_id)  # Return the full test with related entities
