@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from "react"
 import axios from "axios"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
-import TestResultsTable from "../components/TestResultsTable"
-import MetricsCards from "../components/MetricsCards"
-import FilterControls from "../components/FilterControls"
-import AddTestModal from "../components/AddTestModal"
-import AiDetectedBugs from "../components/AiDetectedBugs"
-import NotFound from "../pages/NotFound"
+import TestResultsTable from "@/components/test/TestResultsTable"
+import MetricsCards from "@/components/ui/MetricsCards"
+import FilterControls from "@/components/ui/FilterControls"
+import AddTestModal from "@/components/modals/AddTestModal"
+import AiDetectedBugs from "@/components/bugs/AiDetectedBugs"
+import NotFound from "@/pages/common/NotFound"
 
 // Base API URL - should be set in environment variable
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000"
@@ -35,7 +35,7 @@ const LoadingOverlay = ({ currentStep, progress }) => {
   )
 }
 
-function MainPage() {
+function ProductOverview() {
   const [tests, setTests] = useState([])
   const [bugs, setBugs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -368,6 +368,26 @@ function MainPage() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">{productInfo.name}</h1>
           <p className="text-gray-600">{productInfo.description}</p>
+          
+          {/* Documentation Links Section */}
+          {productInfo.links_to_documentation && productInfo.links_to_documentation.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold mb-2">Documentation</h3>
+              <div className="flex flex-wrap gap-2">
+                {productInfo.links_to_documentation.map((link, index) => (
+                  <a 
+                    key={index}
+                    href={link.url || link}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm hover:bg-blue-100 transition-colors"
+                  >
+                    {link.title || `Documentation ${index + 1}`}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -471,4 +491,4 @@ function MainPage() {
   )
 }
 
-export default MainPage
+export default ProductOverview

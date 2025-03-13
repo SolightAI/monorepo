@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../utils/auth';
-import ChangePassword from '../components/ChangePassword';
+import { logout } from '@/utils/auth';
+import ChangePassword from '@/components/auth/ChangePassword';
 
 // Account section (existing code)
 const Account = () => {

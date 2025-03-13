@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { login } from '../utils/auth';
+import { login } from '@/utils/auth';
 import { Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
 

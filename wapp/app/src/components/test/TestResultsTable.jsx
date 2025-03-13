@@ -1,5 +1,5 @@
 import { useState } from "react"
-import TestDetailsModal from "./TestDetailsModal"
+import TestDetailsModal from "@/components/modals/TestDetailsModal"
 
 function TestResultsTable({ tests }) {
   const [currentPage, setCurrentPage] = useState(1)

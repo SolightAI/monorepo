@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { register, validateInvitationCode } from '../utils/auth';
+import { register, validateInvitationCode } from '@/utils/auth';
 import { HelpCircle, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 
 
@@ -169,7 +169,6 @@ export default function Register() {
                   ) : null}
                 </span>
               </div>
-              {console.log('invitationValid', invitationValid)}
               {invitationValid === false && (
                 <p className="text-red-500 text-xs mt-1">Invalid invitation code</p>
               )}

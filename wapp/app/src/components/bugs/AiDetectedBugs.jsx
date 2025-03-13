@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react"
 import ReactMarkdown from 'react-markdown'
-import BugDetailsModal from "./BugDetailsModal"
-import ContactFormModal from "./ContactFormModal"
+import BugDetailsModal from "@/components/modals/BugDetailsModal"
+import ContactFormModal from "@/components/modals/ContactFormModal"
 
 // Check if user is authenticated by looking at localStorage
 const isAuthenticated = () => localStorage.getItem('isAuthenticated') === 'true';

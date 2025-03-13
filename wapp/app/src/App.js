@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import MainPage from './pages/MainPage';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ResetPassword from './pages/ResetPassword';
-import GoogleCallback from './components/GoogleCallback';
-import NotFound from './pages/NotFound';
-import Layout from './components/Layout';
-import Settings from './pages/Settings';
-import AdminInvitations from './pages/AdminInvitations';
+import ProductOverview from './pages/product/ProductOverview';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import ResetPassword from './pages/auth/ResetPassword';
+import GoogleCallback from './components/auth/GoogleCallback';
+import NotFound from './pages/common/NotFound';
+import Layout from './components/layout/Layout';
+import Settings from './pages/user/Settings';
+import AdminInvitations from './pages/admin/AdminInvitations';
 import { isAdmin, setupAxiosInterceptors } from './utils/auth';
+import Home from './pages/common/Home';
+import EpicDetails from './pages/product/EpicDetails';
+import FeatureDetails from './pages/product/FeatureDetails';
+import UserStoryDetails from './pages/product/UserStoryDetails';
+import AcceptanceCriteriaDetails from './pages/product/AcceptanceCriteriaDetails';
+import { ProductProvider } from './context/ProductContext';
 
 const isAuthenticated = () => {
   return localStorage.getItem('isAuthenticated') === 'true';
@@ -97,23 +103,42 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-50">
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/reset-password/:token" element={<ResetPassword />} />
-          <Route path="/auth/google/callback" element={<GoogleCallback />} />
+      <ProductProvider>
+        <div className="min-h-screen bg-gray-50">
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
+            <Route path="/auth/google/callback" element={<GoogleCallback />} />
 
-          <Route path="/" element={<ProtectedRoute><MainPage /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-          <Route path="/admin/invitations" element={<AdminRoute><AdminInvitations /></AdminRoute>} />
-          {/* Dynamic route for product paths */}
-          <Route path="/:productPath" element={<MainPage />} />
+            {/* Protected routes with Layout */}
+            <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+              {/* Home page showing epics of selected product */}
+              <Route path="/" element={<Home />} />
+              {/* Epic details page */}
+              <Route path="/epics/:epicId" element={<EpicDetails />} />
+              {/* Feature details page */}
+              <Route path="/features/:featureId" element={<FeatureDetails />} />
+              {/* User Story details page */}
+              <Route path="/user-stories/:storyId" element={<UserStoryDetails />} />
+              {/* Acceptance Criteria details page */}
+              <Route path="/acceptance-criteria/:criteriaId" element={<AcceptanceCriteriaDetails />} />
+              {/* Other protected routes */}
+              <Route path="/settings" element={<Settings />} />
+            </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        {/* {showOnboarding && <OnboardingFlow onComplete={handleOnboardingComplete} />} */}
-      </div>
+            {/* Admin routes with Layout */}
+            <Route element={<AdminRoute><Layout /></AdminRoute>}>
+              <Route path="/admin/invitations" element={<AdminInvitations />} />
+            </Route>
+
+            {/* Dynamic route for product paths */}
+            <Route path="/:productPath" element={<ProductOverview />} />
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
+      </ProductProvider>
     </BrowserRouter>
   );
 }
