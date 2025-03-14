@@ -22,7 +22,7 @@ export default function Login() {
   const [notificationMessage, setNotificationMessage] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
-  const { login: authLogin, error: authError, isAuthenticated, handleGoogleCallback } = useAuth();
+  const { login: authLogin, error: authError, isAuthenticated, handleGoogleCallback, logout } = useAuth();
   const authChecked = useRef(false);
 
   // Check if user is already authenticated using the server API
@@ -291,7 +291,7 @@ export default function Login() {
                 </>
               )}
 
-              {(highlightInvitationCode || invitationCode) && <div className={`mt-4 pt-2 ${highlightInvitationCode ? 'animate-pulse' : ''}`}>
+              {(highlightInvitationCode || invitationCode) && <div className={`mt-4 pt-2`}>
                 <label htmlFor="invitationCode" className="block text-sm font-medium text-gray-700">
                   Invitation Code {highlightInvitationCode && <span className="text-red-500">*</span>}
                 </label>
@@ -311,12 +311,44 @@ export default function Login() {
                   } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                   placeholder="Enter invitation code if you have one"
                 />
-                {highlightInvitationCode && (
-                  <p className="mt-1 text-sm text-red-600">
-                    An invitation code is required for new user registration.
-                  </p>
-                )}
               </div>}
+
+              {(highlightInvitationCode || invitationCode) && (
+                <div className="py-2 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        // Reset local state first
+                        setError('');
+                        setInvitationCode('');
+                        setHighlightInvitationCode(false);
+                        setIsLoading(false);
+
+                        // Reset Google auth URL to trigger re-fetching
+                        setGoogleAuthUrl('');
+
+                        // Reset auth checked flag to re-check auth status
+                        authChecked.current = false;
+
+                        // Then logout
+                        await logout();
+
+                        // Trigger re-fetching of Google Auth URL
+                        fetchGoogleAuthUrl();
+
+                        // Replace current location with clean state
+                        navigate('/login', { replace: true, state: {} });
+                      } catch (error) {
+                        console.error('Logout failed:', error);
+                      }
+                    }}
+                    className="text-sm font-medium text-gray-500 hover:text-gray-700"
+                  >
+                    Log out and use different account
+                  </button>
+                </div>
+              )}
             </div>
 
             {error && (
