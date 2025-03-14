@@ -51,10 +51,10 @@ export function DashboardProvider({ children }) {
 
   // Effect to verify user has an organization selected
   useEffect(() => {
-    if (!selectedOrganization) {
-      navigate('/organization/select');
+    if (!selectedOrganization && !isLoading) {
+      navigate('/organization/create');
     }
-  }, [selectedOrganization, navigate]);
+  }, [selectedOrganization, navigate, isLoading]);
 
   // Fetch all dashboard data when dependencies change
   useEffect(() => {

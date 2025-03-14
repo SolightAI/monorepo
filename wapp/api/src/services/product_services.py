@@ -49,9 +49,9 @@ async def get_product_by_url_path(url_path: str, organization_id: Optional[UUID]
     Returns:
         The matching product or None if no match is found
     """
-    # Format the url_path to be compatible with the product URL
-    # Remove any leading/trailing slashes
-    cleaned_path = url_path.strip('/')
+
+    # Get the domain from the url_path
+    cleaned_path = urlparse(url_path).netloc
 
     # Get products, filtered by organization if specified
     query = ProductModel.all()
@@ -60,10 +60,16 @@ async def get_product_by_url_path(url_path: str, organization_id: Optional[UUID]
 
     products = await query
 
-    # Find a product where url_path is part of the product URL
     for product in products:
-        # Check if the url_path is in the product domain
-        if cleaned_path == urlparse(product.url).netloc.split(".")[-2]:  # https://www.dev.domaine.com/ -> domaine
+
+        product_path = urlparse(product.url).netloc
+
+        if len(product_path.split(".")) > 2:
+            product_path = product_path.split(".")[-2]  # if it contains a ".com" (or other TLD)
+        else:
+            product_path = product_path.split(".")[-1]  # if it doesn't contain a ".com" (or other TLD) i.e "localhost:3000"
+
+        if cleaned_path == product_path:
             return await ProductModel.get(id=product.id).prefetch_related("epics")
 
     return None

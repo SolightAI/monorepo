@@ -7,12 +7,13 @@ import FilterControls from "@/components/ui/FilterControls"
 import AddTestModal from "@/components/modals/AddTestModal"
 import AiDetectedBugs from "@/components/bugs/AiDetectedBugs"
 import NotFound from "@/pages/common/NotFound"
+import { useAuth } from "@/context/AuthContext"
 
 // Base API URL - should be set in environment variable
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000"
 
-// Check if user is authenticated by looking at localStorage
-const isAuthenticated = () => localStorage.getItem('isAuthenticated') === 'true';
+// Use AuthContext instead of direct localStorage access
+// ... rest of the component
 
 // Loading overlay component with fake status updates
 const LoadingOverlay = ({ currentStep, progress }) => {
@@ -36,34 +37,32 @@ const LoadingOverlay = ({ currentStep, progress }) => {
 }
 
 function ProductOverview() {
-  const [tests, setTests] = useState([])
-  const [bugs, setBugs] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [activeTab, setActiveTab] = useState("ai-bugs")
-  const [isAddTestModalOpen, setIsAddTestModalOpen] = useState(false)
-  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false)
-  const [currentLoadingStep, setCurrentLoadingStep] = useState("")
-  const [loadingProgress, setLoadingProgress] = useState(0)
-  const [filters, setFilters] = useState({
-    page: "All Pages",
-    category: "All Categories",
-    status: "All Statuses",
-    type: "All Types",
-  })
-  const [productInfo, setProductInfo] = useState(null)
-  const [productNotFound, setProductNotFound] = useState(false)
-
-  // Check if user is authenticated
-  const userIsAuthenticated = useMemo(() => isAuthenticated(), []);
-
-  // Get the current location and params
+  const { productPath } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
-  const { productPath } = useParams()
+  const { isAuthenticated } = useAuth()
 
-  // Determine if we should show product-specific data
-  const shouldShowData = productPath !== undefined
+  const [product, setProduct] = useState(null)
+  const [notFound, setNotFound] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [showAddTest, setShowAddTest] = useState(false)
+  const [testsData, setTestsData] = useState([])
+  const [filters, setFilters] = useState({
+    status: "all",
+    browser: "all",
+    device: "all",
+    search: "",
+    dateRange: "all"
+  })
+  const [metrics, setMetrics] = useState({
+    passRate: 0,
+    totalRuns: 0,
+    avgDuration: 0,
+    flakiness: 0
+  })
+
+  // Get the user's authenticated status
+  const userIsAuthenticated = useMemo(() => isAuthenticated, [isAuthenticated])
 
   // Check for redirect messages (like when redirected from admin routes)
   const [notificationMessage, setNotificationMessage] = useState("");
@@ -89,26 +88,25 @@ function ProductOverview() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
-      setError(null)
-      setProductNotFound(false)
+      setNotFound(false)
 
       try {
         // Only fetch data if a product path is specified
-        if (shouldShowData) {
+        if (productPath) {
           // Try to get product information first
           try {
             const productResponse = await axios.get(`${API_URL}/products/by-path/${productPath}`)
             if (productResponse.data) {
-              setProductInfo(productResponse.data)
+              setProduct(productResponse.data)
             } else {
               // No product found for this path
-              setProductNotFound(true)
+              setNotFound(true)
               setLoading(false)
               return
             }
           } catch (err) {
             console.warn("Could not fetch product info:", err)
-            setProductNotFound(true)
+            setNotFound(true)
             setLoading(false)
             return
           }
@@ -133,7 +131,7 @@ function ProductOverview() {
             bugs: test.bugs || [],
           }))
 
-          setTests(transformedTests)
+          setTestsData(transformedTests)
 
           // Fetch bugs for the current product path
           const bugsResponse = await axios.get(`${API_URL}/bugs/by-product-path/${productPath}`)
@@ -152,28 +150,27 @@ function ProductOverview() {
             status: bug.status || "Open",
           }))
 
-          setBugs(transformedBugs)
+          setTestsData(transformedBugs)
         } else {
           // When no product path is specified, show empty data or a welcome page
-          setTests([])
-          setBugs([])
+          setTestsData([])
         }
       } catch (err) {
         console.error("Error fetching data:", err)
-        setError("Failed to load data. Please try again later.")
+        setNotFound(true)
       } finally {
         setLoading(false)
       }
     }
 
     fetchData()
-  }, [productPath, shouldShowData])
+  }, [productPath])
 
   // Calculate metrics - now based on conditional data
-  const totalTests = tests.length
-  const passedTests = tests.filter((test) => test.status === "Passed").length
-  const failedTests = tests.filter((test) => test.status === "Failed").length
-  const bugsCount = tests.reduce((total, test) => total + (test.bugs?.length || 0), 0)
+  const totalTests = testsData.length
+  const passedTests = testsData.filter((test) => test.status === "Passed").length
+  const failedTests = testsData.filter((test) => test.status === "Failed").length
+  const bugsCount = testsData.reduce((total, test) => total + (test.bugs?.length || 0), 0)
   const passRate = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0
 
   const addNewTest = async (newTest) => {
@@ -204,12 +201,11 @@ function ProductOverview() {
       //   bugs: [],
       // }
 
-      // setTests([...tests, transformedTest])
-      setIsAddTestModalOpen(false)
+      // setTestsData([...testsData, transformedTest])
+      setShowAddTest(false)
 
       // Show the loading overlay with fake status updates
-      setShowLoadingOverlay(true)
-      setLoadingProgress(0)
+      setLoading(true)
 
       // Simulate different loading steps with timeouts
       const loadingSteps = [
@@ -228,14 +224,12 @@ function ProductOverview() {
 
       const updateLoadingStep = () => {
         if (stepIndex < loadingSteps.length) {
-          setCurrentLoadingStep(loadingSteps[stepIndex]);
-
           // Calculate progress percentage, but ensure it never reaches 100%
           // Max progress will be 95% to give the impression that it's still working
           const maxProgress = 95;
           const progressPerStep = maxProgress / loadingSteps.length;
           const newProgress = Math.min(progressPerStep * (stepIndex + 1), maxProgress);
-          setLoadingProgress(newProgress);
+          setMetrics(prevMetrics => ({ ...prevMetrics, passRate: newProgress }))
 
           stepIndex++;
           // Make transitions between steps MUCH slower (8 seconds per step)
@@ -243,7 +237,7 @@ function ProductOverview() {
         } else {
           // Reset the step index and progress, then start over to create an infinite loop
           stepIndex = 0;
-          setLoadingProgress(0);
+          setMetrics(prevMetrics => ({ ...prevMetrics, passRate: 0 }))
           setTimeout(updateLoadingStep, 8000);
 
           // In a real application, you would hide the overlay here
@@ -266,20 +260,22 @@ function ProductOverview() {
 
   const resetFilters = () => {
     setFilters({
-      page: "All Pages",
-      category: "All Categories",
-      status: "All Statuses",
-      type: "All Types",
+      status: "all",
+      browser: "all",
+      device: "all",
+      search: "",
+      dateRange: "all"
     })
   }
 
   // Filter tests based on current filters
-  const filteredTests = tests.filter((test) => {
+  const filteredTests = testsData.filter((test) => {
     return (
-      (filters.page === "All Pages" || test.page === filters.page) &&
-      (filters.category === "All Categories" || test.category === filters.category) &&
-      (filters.status === "All Statuses" || test.status === filters.status) &&
-      (filters.type === "All Types" || test.type === filters.type)
+      (filters.status === "all" || test.status === filters.status) &&
+      (filters.browser === "all" || test.category === filters.browser) &&
+      (filters.device === "all" || test.page === filters.device) &&
+      (filters.search === "" || test.name.toLowerCase().includes(filters.search.toLowerCase())) &&
+      (filters.dateRange === "all" || (new Date(test.timestamp) >= new Date(filters.dateRange.split('-')[0]) && new Date(test.timestamp) <= new Date(filters.dateRange.split('-')[1])))
     )
   })
 
@@ -289,7 +285,7 @@ function ProductOverview() {
   };
 
   // Render the NotFound component directly when product is not found
-  if (productPath && productNotFound && !loading) {
+  if (productPath && notFound && !loading) {
     return <NotFound />
   }
 
@@ -297,14 +293,6 @@ function ProductOverview() {
     return (
       <div className="min-h-screen bg-gray-50 p-6 flex justify-center items-center">
         <p className="text-gray-600">Loading data...</p>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6 flex justify-center items-center">
-        <p className="text-red-500">{error}</p>
       </div>
     )
   }
@@ -337,7 +325,7 @@ function ProductOverview() {
               </nav>
             </div>
 
-            <AiDetectedBugs bugs={bugs} />
+            <AiDetectedBugs bugs={testsData} />
           </div>
         </div>
       </div>
@@ -353,10 +341,6 @@ function ProductOverview() {
         </div>
       )}
 
-      {showLoadingOverlay && (
-        <LoadingOverlay currentStep={currentLoadingStep} progress={loadingProgress} />
-      )}
-
       {!productPath && (
         <div className="text-center py-10">
           <h2 className="text-2xl font-bold mb-4">Welcome to the Bug Tracker</h2>
@@ -364,17 +348,17 @@ function ProductOverview() {
         </div>
       )}
 
-      {productPath && productInfo && (
+      {productPath && product && (
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">{productInfo.name}</h1>
-          <p className="text-gray-600">{productInfo.description}</p>
+          <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+          <p className="text-gray-600">{product.description}</p>
 
           {/* Documentation Links Section */}
-          {productInfo.links_to_documentation && productInfo.links_to_documentation.length > 0 && (
+          {product.links_to_documentation && product.links_to_documentation.length > 0 && (
             <div className="mt-4">
               <h3 className="text-lg font-semibold mb-2">Documentation</h3>
               <div className="flex flex-wrap gap-2">
-                {productInfo.links_to_documentation.map((link, index) => (
+                {product.links_to_documentation.map((link, index) => (
                   <a
                     key={index}
                     href={link.url || link}
@@ -392,7 +376,7 @@ function ProductOverview() {
       )}
 
       {/* Only show components when product path is available and product is found */}
-      {productPath && productInfo && (
+      {productPath && product && (
         <>
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-center">
@@ -424,7 +408,7 @@ function ProductOverview() {
             <FilterControls filters={filters} onApplyFilters={applyFilters} onResetFilters={resetFilters} />
 
             <button
-              onClick={() => setIsAddTestModalOpen(true)}
+              onClick={() => setShowAddTest(true)}
               className="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
@@ -443,50 +427,47 @@ function ProductOverview() {
               <nav className="-mb-px flex">
                 <button
                   className={`py-4 px-6 text-sm font-medium ${
-                    activeTab === "ai-bugs" ? "border-b-2 border-black text-black" : "text-gray-500 hover:text-gray-700"
+                    filters.status === "all" ? "border-b-2 border-black text-black" : "text-gray-500 hover:text-gray-700"
                   }`}
-                  onClick={() => setActiveTab("ai-bugs")}
+                  onClick={() => applyFilters({ ...filters, status: "all" })}
                 >
-                  AI-Detected Bugs
+                  All Tests
                 </button>
                 <button
                   className={`py-4 px-6 text-sm font-medium ${
-                    activeTab === "tests"
-                      ? "border-b-2 border-black text-black"
-                      : "text-gray-500 hover:text-gray-700"
+                    filters.status === "Passed" ? "border-b-2 border-black text-black" : "text-gray-500 hover:text-gray-700"
                   }`}
-                  onClick={() => setActiveTab("tests")}
+                  onClick={() => applyFilters({ ...filters, status: "Passed" })}
                 >
-                  Test Results
+                  Passed
+                </button>
+                <button
+                  className={`py-4 px-6 text-sm font-medium ${
+                    filters.status === "Failed" ? "border-b-2 border-black text-black" : "text-gray-500 hover:text-gray-700"
+                  }`}
+                  onClick={() => applyFilters({ ...filters, status: "Failed" })}
+                >
+                  Failed
                 </button>
               </nav>
             </div>
 
-            {error && (
-              <div className="p-4 mb-4 bg-red-100 text-red-700 rounded">
-                {error}
+            {filteredTests.length === 0 && (
+              <div className="p-4 text-center text-gray-500">
+                No tests found.
               </div>
             )}
 
-            {loading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-              </div>
-            ) : (
+            {filteredTests.length > 0 && (
               <>
-                {activeTab === "ai-bugs" && (
-                  <AiDetectedBugs bugs={bugs} />
-                )}
-                {activeTab === "tests" && (
-                  <TestResultsTable tests={tests} />
-                )}
+                <TestResultsTable tests={filteredTests} />
               </>
             )}
           </div>
         </>
       )}
 
-      {isAddTestModalOpen && <AddTestModal onClose={() => setIsAddTestModalOpen(false)} onAddTest={addNewTest} />}
+      {showAddTest && <AddTestModal onClose={() => setShowAddTest(false)} onAddTest={addNewTest} />}
     </div>
   )
 }

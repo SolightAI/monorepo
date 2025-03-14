@@ -1,20 +1,60 @@
-import { useState, useMemo } from "react"
+import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FileText, Link as LinkIcon, Info, AlertTriangle, Target, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import ReactMarkdown from 'react-markdown'
 import BugDetailsModal from "@/components/modals/BugDetailsModal"
 import ContactFormModal from "@/components/modals/ContactFormModal"
 
-// Check if user is authenticated by looking at localStorage
-const isAuthenticated = () => localStorage.getItem('isAuthenticated') === 'true';
-
-function AiDetectedBugs({ bugs }) {
+function AiDetectedBugs({ bugs = [] }) {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [selectedBug, setSelectedBug] = useState(null)
   const [showContactForm, setShowContactForm] = useState(false)
   const [sortBy, setSortBy] = useState("Sort by Severity")
+  const [expandedBugId, setExpandedBugId] = useState(null);
+  const [expandedCategories, setExpandedCategories] = useState([]);
 
   // Get authentication status when component renders
-  const userIsAuthenticated = useMemo(() => isAuthenticated(), []);
+  const userIsAuthenticated = useMemo(() => isAuthenticated, [isAuthenticated]);
   // Content is restricted for non-authenticated users
   const contentIsRestricted = !userIsAuthenticated;
+
+  // Group bugs by category
+  const bugsByCategory = useMemo(() => {
+    const grouped = {};
+    bugs.forEach(bug => {
+      if (!bug.category) {
+        bug.category = 'Uncategorized';
+      }
+      if (!grouped[bug.category]) {
+        grouped[bug.category] = [];
+      }
+      grouped[bug.category].push(bug);
+    });
+    return grouped;
+  }, [bugs]);
+
+  // Toggle expanded state for a bug
+  const toggleExpandBug = (bugId) => {
+    setExpandedBugId(expandedBugId === bugId ? null : bugId);
+  };
+
+  // Toggle expanded state for a category
+  const toggleExpandCategory = (category) => {
+    setExpandedCategories(prev =>
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  // Initially expand all categories if there are few bugs
+  React.useEffect(() => {
+    if (bugs.length > 0 && bugs.length <= 5) {
+      setExpandedCategories(Object.keys(bugsByCategory));
+    }
+  }, [bugs.length, bugsByCategory]);
 
   const getSortedBugs = () => {
     const sortedBugs = [...bugs]
@@ -87,189 +127,179 @@ function AiDetectedBugs({ bugs }) {
     }
   };
 
+  // Render different UI based on authentication status
+  if (!userIsAuthenticated) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow">
+        <h2 className="text-2xl font-bold mb-6">AI-Detected Issues</h2>
+        <div className="space-y-4">
+          {bugs.length === 0 ? (
+            <p className="text-gray-500 italic">No issues detected yet.</p>
+          ) : (
+            Object.entries(bugsByCategory).map(([category, categoryBugs]) => (
+              <div key={category} className="border rounded-lg overflow-hidden">
+                <div
+                  className="flex justify-between items-center p-4 bg-gray-50 cursor-pointer"
+                  onClick={() => toggleExpandCategory(category)}
+                >
+                  <div className="font-medium flex items-center">
+                    <Tag className="h-4 w-4 mr-2" />
+                    {category}
+                    <span className="ml-2 text-sm text-gray-500">({categoryBugs.length})</span>
+                  </div>
+                  {expandedCategories.includes(category) ?
+                    <ChevronUp className="h-4 w-4" /> :
+                    <ChevronDown className="h-4 w-4" />
+                  }
+                </div>
+
+                {expandedCategories.includes(category) && (
+                  <div className="divide-y">
+                    {categoryBugs.map((bug) => (
+                      <div key={bug.id} className="p-4">
+                        <div className="flex items-start">
+                          <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 mr-3 flex-shrink-0" />
+                          <div className="flex-1">
+                            <h3 className="font-medium">{bug.title}</h3>
+                            <p className="text-gray-600 mt-1 text-sm">{bug.description}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+        <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-100">
+          <p className="text-center text-blue-800">
+            Sign in to see full issue details and solutions.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="py-4">
-      {/* Information banner about restrictions - only show when content is restricted */}
-      {contentIsRestricted && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-md p-4 flex items-start">
-          <div className="text-blue-500 mr-3 flex-shrink-0 mt-0.5">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+    <div className="max-w-4xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6">AI-Detected Issues</h2>
+
+      {bugs.length === 0 ? (
+        <div className="bg-white rounded-lg shadow p-6 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <div>
-            <h3 className="text-sm font-medium text-blue-800">Access Restriction</h3>
-            <p className="text-sm text-blue-700 mt-1">
-              Unlock full access to all critical bugs we've discovered! Contact us now to learn how these insights can protect your application and improve user experience.
-            </p>
-          </div>
+          <h3 className="text-lg font-medium text-gray-900">No issues detected</h3>
+          <p className="mt-2 text-gray-600">The AI has not detected any issues with your product yet.</p>
         </div>
-      )}
-
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">AI-Detected Bugs</h2>
-        {userIsAuthenticated && <div className="flex gap-2">
-          <select
-            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option>Sort by Severity</option>
-            <option>Sort by Date</option>
-            <option>Sort by Page</option>
-            <option>Sort by Status</option>
-            <option>Sort by Category</option>
-          </select>
-        </div>}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {sortedBugs.map((bug, index) => {
-          const isRestricted = restrictedStatus[index];
-          return (
-            <div
-              key={bug.id}
-              className={`border border-gray-200 rounded-lg p-4 bg-white cursor-pointer hover:border-gray-300 ${isRestricted ? "relative" : ""}`}
-              onClick={() => handleBugSelect(bug, index)}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-start gap-3">
-                  <div className="mt-1">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 text-red-500"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    {!isRestricted ? (
-                      <>
-                        <h3 className="font-medium text-gray-900">{bug.title}</h3>
-                        {/* <p className="text-sm text-gray-600 mt-1">
-                          {bug.page} • {bug.category}
-                        </p> */}
-                      </>
-                    ) : (
-                      <>
-                        <h3 className="font-medium text-gray-400 blur-sm select-none">Bug #{index + 1}</h3>
-                        {/* <p className="text-sm text-gray-400 blur-sm select-none mt-1">
-                          {bug.page} • {bug.category}
-                        </p> */}
-                      </>
-                    )}
-                  </div>
+      ) : (
+        <div className="space-y-4">
+          {Object.entries(bugsByCategory).map(([category, categoryBugs]) => (
+            <div key={category} className="bg-white rounded-lg shadow overflow-hidden">
+              <div
+                className="flex justify-between items-center p-4 bg-gray-50 cursor-pointer"
+                onClick={() => toggleExpandCategory(category)}
+              >
+                <div className="font-medium flex items-center">
+                  <Tag className="h-4 w-4 mr-2" />
+                  {category}
+                  <span className="ml-2 text-sm text-gray-500">({categoryBugs.length})</span>
                 </div>
-                <span
-                  className={`
-                  inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                  ${bug.severity === "Critical" ? "bg-red-100 text-red-800" : ""}
-                  ${bug.severity === "High" ? "bg-orange-100 text-orange-800" : ""}
-                  ${bug.severity === "Medium" ? "bg-yellow-100 text-yellow-800" : ""}
-                `}
-                >
-                  {bug.severity === "Critical" && (
-                    <svg className="mr-1 h-2 w-2 text-red-500" fill="currentColor" viewBox="0 0 8 8">
-                      <circle cx="4" cy="4" r="3" />
-                    </svg>
-                  )}
-                  {bug.severity}
-                </span>
+                {expandedCategories.includes(category) ?
+                  <ChevronUp className="h-4 w-4" /> :
+                  <ChevronDown className="h-4 w-4" />
+                }
               </div>
 
-              {!isRestricted ? (
-                <ReactMarkdown
-                  components={{
-                    p: ({ node, ...props }) => <p className="text-sm text-gray-600 mb-3" {...props} />
-                  }}
-                >
-                  {bug.description}
-                </ReactMarkdown>
-              ) : (
-                <div className="relative">
-                  <ReactMarkdown
-                    components={{
-                      p: ({ node, ...props }) => <p className="text-sm text-gray-400 mb-3 blur-sm select-none" {...props} />
-                    }}
-                  >
-                    {bug.description.length > 100
-                      ? bug.description.substring(0, 100) + "..."
-                      : bug.description}
-                  </ReactMarkdown>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-md flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                      Restricted Content
-                    </span>
-                  </div>
-                </div>
-              )}
+              {expandedCategories.includes(category) && (
+                <div className="divide-y">
+                  {categoryBugs.map((bug) => (
+                    <div key={bug.id} className="p-4">
+                      <div
+                        className="flex items-start cursor-pointer"
+                        onClick={() => toggleExpandBug(bug.id)}
+                      >
+                        <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 mr-3 flex-shrink-0" />
+                        <div className="flex-1">
+                          <div className="flex justify-between">
+                            <h3 className="font-medium">{bug.title}</h3>
+                            {expandedBugId === bug.id ?
+                              <ChevronUp className="h-4 w-4" /> :
+                              <ChevronDown className="h-4 w-4" />
+                            }
+                          </div>
+                          <p className="text-gray-600 mt-1 text-sm">{bug.description}</p>
+                        </div>
+                      </div>
 
-              {!isRestricted ? (
-                <div className="text-xs text-gray-500">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="inline h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  Detected on {bug.detectedAt}
-                </div>
-              ) : (
-                <div className="text-xs text-gray-400 blur-sm select-none">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="inline h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  Detected on XX/XX/XXXX
-                </div>
-              )}
+                      {expandedBugId === bug.id && (
+                        <div className="mt-4 pl-8">
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <h4 className="font-medium text-sm flex items-center mb-2">
+                              <Info className="h-4 w-4 mr-1" />
+                              Details
+                            </h4>
+                            <p className="text-sm text-gray-700 mb-4">{bug.details || "No additional details available."}</p>
 
-              {isRestricted && (
-                <div className="absolute bottom-2 right-2">
-                  <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2 py-1 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="inline h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    Restricted
-                  </span>
+                            <h4 className="font-medium text-sm flex items-center mb-2">
+                              <Target className="h-4 w-4 mr-1" />
+                              Suggested Fix
+                            </h4>
+                            <p className="text-sm text-gray-700 mb-4">{bug.solution || "No suggested fix available yet."}</p>
+
+                            {bug.code_snippet && (
+                              <div className="mb-4">
+                                <h4 className="font-medium text-sm flex items-center mb-2">
+                                  <FileText className="h-4 w-4 mr-1" />
+                                  Code Snippet
+                                </h4>
+                                <pre className="bg-gray-800 text-gray-100 p-3 rounded text-sm overflow-x-auto">
+                                  <code>{bug.code_snippet}</code>
+                                </pre>
+                              </div>
+                            )}
+
+                            {bug.links && bug.links.length > 0 && (
+                              <div>
+                                <h4 className="font-medium text-sm flex items-center mb-2">
+                                  <LinkIcon className="h-4 w-4 mr-1" />
+                                  Related Resources
+                                </h4>
+                                <ul className="space-y-1">
+                                  {bug.links.map((link, index) => (
+                                    <li key={index} className="text-sm">
+                                      <a
+                                        href={link.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:underline"
+                                      >
+                                        {link.title || link.url}
+                                      </a>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
 
       {selectedBug && <BugDetailsModal bug={selectedBug} onClose={() => setSelectedBug(null)} isRestricted={contentIsRestricted} />}
       {showContactForm && <ContactFormModal onClose={() => setShowContactForm(false)} />}
     </div>
-  )
+  );
 }
 
-export default AiDetectedBugs
+export default AiDetectedBugs;

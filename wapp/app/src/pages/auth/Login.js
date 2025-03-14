@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { login } from '@/utils/auth';
 import { Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
+import { useAuth } from '@/context/AuthContext';
 
 const API_URL = process.env.REACT_APP_API_URL;
 const ALLOW_EMAIL_LOGIN = process.env.REACT_APP_ALLOW_EMAIL_LOGIN || false;
@@ -22,6 +22,80 @@ export default function Login() {
   const [notificationMessage, setNotificationMessage] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+  const { login: authLogin, error: authError, isAuthenticated, handleGoogleCallback } = useAuth();
+  const authChecked = useRef(false);
+
+  // Check if user is already authenticated using the server API
+  useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
+    const checkAuth = async () => {
+      try {
+        if (!isMounted) return;
+
+        setIsLoading(true);
+
+        // First check if user is already authenticated in context
+        if (isAuthenticated) {
+          console.log("User already authenticated according to context");
+          // Already authenticated, redirect
+          const from = location.state?.from?.pathname || '/';
+          navigate(from, { replace: true });
+          return;
+        }
+
+        // If not authenticated in context, check with server
+        try {
+          console.log("Checking auth status with server");
+          const response = await axios.get(`${API_URL}/auth/check-auth`, {
+            withCredentials: true,
+            timeout: 5000,
+            signal: controller.signal
+          });
+
+          if (isMounted && response.data.authenticated) {
+            console.log("User authenticated according to server");
+            // Update context with user data
+            handleGoogleCallback(response.data);
+
+            // Redirect user
+            const from = location.state?.from?.pathname || '/';
+            navigate(from, { replace: true });
+          } else if (isMounted) {
+            console.log("User not authenticated according to server");
+            setIsLoading(false);
+            // Set auth checked flag now that we have a definitive answer
+            authChecked.current = true;
+          }
+        } catch (error) {
+          if (isMounted) {
+            console.log("Error checking auth status:", error.message);
+            if (error.name !== 'AbortError' && error.response?.status !== 401) {
+              console.error('Error checking auth status:', error);
+            }
+
+            setIsLoading(false);
+            // Set auth checked flag after an error
+            authChecked.current = true;
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    // Always check auth status when login page mounts
+    checkAuth();
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [navigate, location.state?.from, isAuthenticated, handleGoogleCallback]);
 
   const fetchGoogleAuthUrl = useCallback(async (codeOverride = null) => {
     console.log(`Fetching Google auth URL from ${API_URL}/auth/login/google`);
@@ -41,46 +115,75 @@ export default function Login() {
 
   // Extract code from URL query parameters and check for messages from redirects
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const codeFromUrl = params.get('invitation_code');
-    if (codeFromUrl) {
-      setInvitationCode(codeFromUrl);
-      fetchGoogleAuthUrl(codeFromUrl);
-    } else {
-      fetchGoogleAuthUrl();
+    // Skip if already authenticated or in loading state
+    if (isAuthenticated || isLoading) {
+      return;
     }
 
-    // Check for error messages in location state (from GoogleCallback)
-    if (location.state && location.state.message) {
-      setNotificationMessage(location.state.message);
+    const params = new URLSearchParams(window.location.search);
 
-      // If the error is related to invitation code, highlight that field
-      if (location.state.requiresInvitationCode) {
+    // Check for error messages from URL parameters
+    const error = params.get('error');
+    const errorDescription = params.get('error_description');
+    if (error) {
+      setError(errorDescription || error);
+      if (error === 'invitation_required') {
+        setHighlightInvitationCode(true);
+      }
+    }
+
+    // Check for messages from React Router state (redirects)
+    const state = location.state;
+    if (state?.message) {
+      setError(state.message);
+      if (state.requiresInvitationCode) {
         setHighlightInvitationCode(true);
       }
 
-      // Clear the location state to prevent showing the message again on refresh
-      navigate(location.pathname, { replace: true, state: {} });
-
-      // Hide the notification after 5 seconds
+      // Clear the state message so it doesn't persist on refresh
       const timer = setTimeout(() => {
-        setNotificationMessage('');
-      }, 5000);
+        navigate(location.pathname, { replace: true });
+      }, 100);
 
       return () => clearTimeout(timer);
     }
-  }, [fetchGoogleAuthUrl, location, navigate]);
+
+    // Only fetch Google Auth URL if needed
+    if (!googleAuthUrl && !authChecked.current) {
+      const codeFromUrl = params.get('invitation_code');
+      if (codeFromUrl) {
+        setInvitationCode(codeFromUrl);
+        fetchGoogleAuthUrl(codeFromUrl);
+      } else {
+        fetchGoogleAuthUrl();
+      }
+    }
+  }, [fetchGoogleAuthUrl, location, navigate, isLoading, isAuthenticated, googleAuthUrl]);
+
+  // Use authError from context if available
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+    }
+  }, [authError]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+
     try {
-      await login(email, password);
-      navigate('/');
+      await authLogin(email, password);
+
+      // Set a short timeout before navigation to ensure UI feedback
+      setTimeout(() => {
+        // Navigate to home page or intended destination
+        const from = location.state?.from?.pathname || '/';
+        navigate(from, { replace: true });
+      }, 300);
+
     } catch (error) {
       setError(error.response?.data?.detail || 'An error occurred during login.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -89,12 +192,15 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+
     try {
       await axios.post(`${API_URL}/auth/forgot-password`, { email: forgotPasswordEmail });
       setForgotPasswordMessage('If an account exists for this email, you will receive a password reset link shortly.');
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 500);
     } catch (error) {
       setError('An error occurred. Please try again later.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -124,15 +230,23 @@ export default function Login() {
         <div>
           <h1 className="text-5xl font-bold text-center text-gray-900">Laneo</h1>
           <h2 className="mt-6 text-center text-2xl font-extrabold text-gray-900">
-            {showForgotPassword ? 'Reset Your Password' : 'Sign in to your account'}
+            {isLoading && "Checking authentication..."}
+            {!isLoading && (showForgotPassword ? 'Reset Your Password' : 'Sign in to your account')}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            {showForgotPassword
-              ? 'Enter your email to receive a password reset link.'
-              : 'The Product for Product people'}
+            {isLoading
+              ? "Please wait..."
+              : (showForgotPassword
+                ? 'Enter your email to receive a password reset link.'
+                : 'The Product for Product people')}
           </p>
         </div>
-        {!showForgotPassword ? (
+
+        {isLoading ? (
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+          </div>
+        ) : !showForgotPassword ? (
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div className="rounded-md shadow-sm -space-y-px">
               {ALLOW_EMAIL_LOGIN && (

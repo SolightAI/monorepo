@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { register, validateInvitationCode } from '@/utils/auth';
+import { validateInvitationCode } from '@/utils/auth';
 import { HelpCircle, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 
 export default function Register() {
@@ -16,6 +17,7 @@ export default function Register() {
   const [validatingCode, setValidatingCode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { register: authRegister, error: authError } = useAuth();
 
   // Extract invitation code from URL if present
   useEffect(() => {
@@ -25,6 +27,13 @@ export default function Register() {
       setInvitationCode(code);
     }
   }, [location]);
+
+  // Use authError from context if available
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+    }
+  }, [authError]);
 
   // Function to validate code (will be used during form submission)
   const validateCode = async (code) => {
@@ -65,7 +74,7 @@ export default function Register() {
     setInvitationValid(true);
 
     try {
-      await register(username, email, password, invitationCode);
+      await authRegister(username, email, password, invitationCode);
       navigate('/');
       return;
     } catch (error) {
@@ -80,16 +89,13 @@ export default function Register() {
             // If the error detail is an object, stringify it
             setError(JSON.stringify(errorData.detail));
           } else {
-            // If it's a simple string, use it directly
-            setError(errorData.detail || 'Validation error occurred');
+            setError(errorData.detail || 'Registration failed');
           }
-        } else if (error.response.status >= 400 && error.response.status < 500) {
-          setError(error.response.data.detail || 'An error occurred during registration.');
         } else {
-          setError('An unexpected error occurred. Please try again later.');
+          setError(error.response.data?.detail || 'Registration failed');
         }
       } else {
-        setError('An unexpected error occurred. Please try again later.');
+        setError('An error occurred during registration.');
       }
     } finally {
       setIsLoading(false);
