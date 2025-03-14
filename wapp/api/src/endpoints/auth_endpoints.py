@@ -36,7 +36,7 @@ async def refresh_google_token(params: RefreshTokenRequest):
 
 
 @router.get("/google/callback")
-async def auth_google(code: str, state: str | None = None, response: Response | None = None) -> dict:
+async def auth_google(code: str, state: Optional[str] = None, response: Response = None) -> dict:
     invitation_code = None
     if state:
         try:
