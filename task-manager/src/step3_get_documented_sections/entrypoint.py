@@ -2,7 +2,6 @@ import os
 import json
 import asyncio
 from logging import getLogger
-from traceback import format_exc
 
 from step2_get_website_sections.agent import WebsiteSections
 from step3_get_documented_sections.agent import generate_section_documentation

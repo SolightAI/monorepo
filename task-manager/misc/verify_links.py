@@ -52,11 +52,11 @@ class Status(Enum):
 class LinkChecker:
     """
     A class to check links on a website for various issues.
-    
+
     This class crawls a website starting from a given URL, checks all links
     found on each page, and reports issues such as broken links, redirects
     to wrong environments, and other HTTP errors.
-    
+
     The LinkChecker class contains methods to:
     - Check for broken links (404s)
     - Check for redirect loops
@@ -66,7 +66,7 @@ class LinkChecker:
     - Detect redirects to wrong environments (e.g., staging, dev)
     - Detect mixed content issues
     - Detect CORS issues
-    
+
     Attributes:
         base_domain (str): The domain part of the start_url.
         start_url (str): The URL to start checking from.
@@ -83,13 +83,13 @@ class LinkChecker:
         stats (Dict[str, int]): Statistics about the checks performed.
         trusted_domains (List[str]): List of trusted domains to skip soft 404 checks.
     """
-    
+
     def __init__(self, start_url: str, output_file: str,
                   check_ssl: bool = True, slow_response_threshold: int = 5000,
                   max_concurrent_checks: int = 5, check_slow_response: bool = True) -> None:
         """
         Initialize the LinkChecker.
-        
+
         Args:
             start_url: The URL to start checking from.
             output_file: The file to write the results to (default: None).
@@ -106,37 +106,37 @@ class LinkChecker:
         self.check_ssl = check_ssl
         self.slow_response_threshold = slow_response_threshold
         self.check_slow_response = check_slow_response
-        
+
         # Concurrency control
         self.max_concurrent_checks = max_concurrent_checks
         self.concurrency_semaphore = None  # Will be initialized in run()
-        
+
         # Tracking
         self.to_visit: List[str] = [start_url]
         self.visited_urls: Set[str] = set()
         self.checked_urls: Set[str] = set()
         self.results: List[Dict[str, Any]] = []
-        
+
         # Trusted domains to skip soft 404 checks
         self.trusted_domains: List[str] = ['googletagmanager.com', 'www.googletagmanager.com']
-        
+
         # Configure what counts as a "wrong environment"
         self.wrong_env_patterns: List[str] = ['staging', 'dev', 'test', 'uat', "testing", "development", "development"]
         logger.info(f"Wrong environment patterns configured: {', '.join(self.wrong_env_patterns)}")
-        
+
         # Feature toggles
         logger.info(f"SSL/TLS certificate checking: {'enabled' if check_ssl else 'disabled'}")
         logger.info(f"Slow response checking: {'enabled' if check_slow_response else 'disabled'}")
-        
+
         # Performance thresholds (in milliseconds)
         if check_slow_response:
             logger.info(f"Slow response threshold set to: {self.slow_response_threshold}ms")
-        
+
         # Track issues
         self.ssl_issues: Dict[str, str] = {}
         self.mixed_content_issues: Dict[str, List[str]] = {}
         self.cors_issues: Dict[str, List[str]] = {}
-        
+
         # Statistics
         self.stats = {
             "pages_checked": 0,
@@ -151,26 +151,26 @@ class LinkChecker:
             "console_messages": 0,
             "special_protocol_links": 0
         }
-        
+
     async def run(self, max_pages: int = 100) -> List[Dict[str, Any]]:
         """
         Run the link checker.
-        
+
         This method crawls the website starting from the start URL, checks all links
         found on each page, and reports issues.
-        
+
         Args:
             max_pages: Maximum number of pages to crawl.
-            
+
         Returns:
             A list of dictionaries containing the results for each link checked.
         """
         logger.info(f"Starting link checking process from {self.start_url} (max pages: {max_pages})")
         logger.info(f"Maximum concurrent link checks: {self.max_concurrent_checks}")
-        
+
         # Initialize the concurrency semaphore
         self.concurrency_semaphore = asyncio.Semaphore(self.max_concurrent_checks)
-        
+
         async with async_playwright() as p:
             logger.info("Launching browser...")
             browser: Browser = await p.chromium.launch()
@@ -220,7 +220,7 @@ class LinkChecker:
 
                 try:
                     # Navigate to the page
-                    response: Response = await page.goto(current_url, wait_until="load")
+                    await page.goto(current_url, wait_until="load")
 
                     # Extract all links on the page
                     links: List[Dict[str, Any]] = await page.evaluate('''() => {
@@ -231,65 +231,65 @@ class LinkChecker:
                                     if (el.id) {
                                         return `#${el.id}`;
                                     }
-                                    
+
                                     let path = [];
                                     let parent = el;
-                                    
+
                                     while (parent && parent.tagName !== 'HTML') {
                                         let selector = parent.tagName.toLowerCase();
-                                        
+
                                         if (parent.className) {
                                             const classes = Array.from(parent.classList).join('.');
                                             if (classes) {
                                                 selector += `.${classes}`;
                                             }
                                         }
-                                        
+
                                         if (parent.parentNode) {
                                             const siblings = Array.from(parent.parentNode.children).filter(
                                                 child => child.tagName === parent.tagName
                                             );
-                                            
+
                                             if (siblings.length > 1) {
                                                 const index = siblings.indexOf(parent) + 1;
                                                 selector += `:nth-child(${index})`;
                                             }
                                         }
-                                        
+
                                         path.unshift(selector);
                                         parent = parent.parentNode;
                                     }
-                                    
+
                                     return path.join(' > ');
                                 }
-                                
+
                                 // Generate XPath
                                 function generateXPath(el) {
                                     if (el.id) {
                                         return `//*[@id="${el.id}"]`;
                                     }
-                                    
+
                                     let path = [];
                                     let parent = el;
-                                    
+
                                     while (parent && parent.tagName !== 'HTML') {
                                         let tag = parent.tagName.toLowerCase();
                                         let siblings = Array.from(parent.parentNode.children).filter(
                                             child => child.tagName === parent.tagName
                                         );
-                                        
+
                                         if (siblings.length > 1) {
                                             const index = siblings.indexOf(parent) + 1;
                                             tag += `[${index}]`;
                                         }
-                                        
+
                                         path.unshift(tag);
                                         parent = parent.parentNode;
                                     }
-                                    
+
                                     return '//' + path.join('/');
                                 }
-                                
+
                                 return {
                                     href: a.href,
                                     text: a.innerText.trim().substring(0, 100),
@@ -316,7 +316,7 @@ class LinkChecker:
                             # Instead of awaiting, create a task
                             link_check_tasks.append(self.check_link(page, current_url, full_url, link['text'], link['cssSelector'], link['xpath']))
                             self.checked_urls.add(full_url)
-                    
+
                     # Run link checking tasks concurrently
                     if link_check_tasks:
                         await asyncio.gather(*link_check_tasks)
@@ -334,23 +334,23 @@ class LinkChecker:
                         'css_selector': 'N/A',
                         'xpath': 'N/A'
                     })
-            
+
             logger.info(f"Finished checking {len(self.visited_urls)} pages, closing browser")
             await browser.close()
             self.save_results()
             self._log_summary()
             return self.results
-            
-    async def check_link(self, page: Page, source_page: str, link_url: str, link_text: str, 
+
+    async def check_link(self, page: Page, source_page: str, link_url: str, link_text: str,
                          css_selector: str = None, xpath: str = None) -> None:
         """
         Check a specific link for issues.
-        
+
         This method navigates to the link URL in a new page and checks for issues
         such as 404s, redirects to wrong environments, and other HTTP errors.
         Special cases like telephone links (tel:), mailto:, and other special protocols
         are handled without navigation.
-        
+
         Args:
             page: The Playwright page object.
             source_page: The URL of the page where the link was found.
@@ -398,9 +398,9 @@ class LinkChecker:
                                 await check_page.set_extra_http_headers({
                                     "Referer": source_page
                                 })
-                                
+
                                 response: Response = await check_page.goto(link_url, wait_until="load", timeout=30000)
-                                
+
                                 # Calculate response time
                                 response_time = (datetime.now() - start_time).total_seconds() * 1000  # in milliseconds
 
@@ -520,21 +520,21 @@ class LinkChecker:
     async def handle_response(self, response: Response) -> None:
         """
         Handle a response from the server.
-        
+
         This method tracks network responses to detect various issues:
         - Status codes outside 200-399 range (errors and bad redirects)
         - Soft 404s (pages that return 200 but are actually 404 pages)
         - SSL/TLS certificate issues (if enabled)
         - Slow response times
-        
+
         Trusted domains listed in self.trusted_domains will skip the soft 404 check.
-        
+
         Args:
             response: The response object from Playwright.
         """
         url = response.url
         status = response.status
-        
+
         # Measure response time (if available)
         if self.check_slow_response:
             timing = response.request.timing if hasattr(response.request, 'timing') else None
@@ -552,7 +552,7 @@ class LinkChecker:
                         'issue': f"Slow response time: {response_time}ms (threshold: {self.slow_response_threshold}ms)",
                         'final_url': url
                     })
-        
+
         # Check for SSL/TLS issues (if enabled)
         if self.check_ssl and url.startswith('https://'):
             page = response.frame.page
@@ -566,15 +566,15 @@ class LinkChecker:
                         if (!window.performance) {
                           return false;
                         }
-                        
+
                         // Check if getEntriesByType method exists
                         if (typeof window.performance.getEntriesByType !== 'function') {
                           return false;
                         }
-                        
+
                         // Get resource entries
                         const resources = window.performance.getEntriesByType('resource');
-                        
+
                         // Check for SSL issues
                         for (let i = 0; i < resources.length; i++) {
                           const r = resources[i];
@@ -588,7 +588,7 @@ class LinkChecker:
                       }
                     }
                     """)
-                    
+
                     if has_ssl_issues and url not in self.ssl_issues:
                         logger.warning(f"SSL/TLS issue detected: {url}")
                         self.stats["ssl_issues"] += 1
@@ -604,12 +604,12 @@ class LinkChecker:
                         })
                 except Exception as e:
                     logger.error(f"Error checking SSL for {url}: {str(e)}")
-        
+
         # Skip non-HTML resources for content checks
         content_type = response.headers.get('content-type', '')
         if not content_type.startswith('text/html'):
             return
-        
+
         # Check for error status codes
         if status >= 400:
             logger.warning(f"HTTP error response ({status}): {url}")
@@ -622,7 +622,7 @@ class LinkChecker:
                 'issue': f"HTTP error: {status}",
                 'final_url': url
             })
-        
+
         # Check for soft 404s (pages that return 200 but are actually 404 pages)
         elif 200 <= status < 400:
             page = response.frame.page
@@ -633,7 +633,7 @@ class LinkChecker:
                     domain = parsed_url.netloc
                     if any(trusted_domain in domain for trusted_domain in self.trusted_domains):
                         return
-                        
+
                     # Set a timeout for the evaluation to prevent hanging if navigation occurs
                     has_404_indicators = False
                     try:
@@ -647,14 +647,14 @@ class LinkChecker:
                                 if (document.body) {
                                   pageText = document.body.textContent || "";
                                 }
-                                
+
                                 // Safely get title
                                 let title = document.title || "";
-                                
+
                                 // Convert to lowercase for case-insensitive comparison
                                 pageText = pageText.toLowerCase();
                                 title = title.toLowerCase();
-                                
+
                                 // Check for 404 indicators
                                 return (
                                   pageText.indexOf("page not found") >= 0 ||
@@ -674,7 +674,7 @@ class LinkChecker:
                                 return false;
                               }
                             }
-                            """), 
+                            """),
                             timeout=3.0  # 3 second timeout for evaluation
                         )
                     except asyncio.TimeoutError:
@@ -686,7 +686,7 @@ class LinkChecker:
                         else:
                             # Log other playwright errors but continue
                             logger.debug(f"Playwright error during soft 404 check for {url}: {str(pw_error)}")
-                    
+
                     if has_404_indicators:
                         logger.warning(f"Soft 404 detected: {url}")
                         self.stats["broken_links"] += 1
@@ -702,7 +702,7 @@ class LinkChecker:
                 except Exception as e:
                     # If we encounter an error checking for soft 404s, we log but continue
                     logger.error(f"Error checking for soft 404 at {url}: {str(e)}")
-    
+
     async def handle_console_message(self, msg, page_url: str) -> None:
         """
         Handle console messages from the browser.
@@ -711,18 +711,18 @@ class LinkChecker:
         if msg.type in ["error", "warning"]:
             self.stats["console_messages"] += 1
             logger.warning(f"Console {msg.type} on {page_url}: {msg.text}")
-        
+
         text = msg.text.lower()
-        
+
         # Detect CORS issues
         if "cors" in text or "cross-origin" in text or "access-control-allow-origin" in text:
             if page_url not in self.cors_issues:
                 self.cors_issues[page_url] = []
             self.cors_issues[page_url].append(msg.text)
-            
+
             logger.warning(f"CORS issue on {page_url}: {msg.text[:100]}...")
             self.stats["cors_issues"] += 1
-            
+
             self.results.append({
                 'source_page': page_url,
                 'link_url': page_url,
@@ -732,16 +732,16 @@ class LinkChecker:
                 'issue': f"CORS issue detected: {msg.text[:100]}...",
                 'final_url': page_url
             })
-        
+
         # Detect mixed content warnings
         if "mixed content" in text or "insecure content" in text:
             if page_url not in self.mixed_content_issues:
                 self.mixed_content_issues[page_url] = []
             self.mixed_content_issues[page_url].append(msg.text)
-            
+
             logger.warning(f"Mixed content on {page_url}: {msg.text[:100]}...")
             self.stats["mixed_content"] += 1
-            
+
             self.results.append({
                 'source_page': page_url,
                 'link_url': page_url,
@@ -751,15 +751,15 @@ class LinkChecker:
                 'issue': f"Mixed content detected: {msg.text[:100]}...",
                 'final_url': page_url
             })
-    
+
     def _is_wrong_environment(self, url: str) -> bool:
         """
         Check if a URL points to a wrong environment (dev/staging/test)
         by checking if any of the patterns appears in the subdomain.
-        
+
         Args:
             url: The URL to check
-            
+
         Returns:
             bool: True if the URL points to a wrong environment, False otherwise
         """
@@ -825,7 +825,7 @@ class LinkChecker:
         logger.info(f"Saving results to {self.output_file}")
         with open(self.output_file, 'w', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=[
-                'source_page', 'link_url', 'link_text', 'status', 
+                'source_page', 'link_url', 'link_text', 'status',
                 'status_code', 'final_url', 'css_selector', 'xpath', 'issue'
             ])
             writer.writeheader()
@@ -846,7 +846,7 @@ async def main(
 
     This function initializes the LinkChecker with a starting URL,
     runs the link checker, and prints a summary of the results.
-    
+
     Args:
         start_url: The URL to start checking from.
         output_file: The file to write the results to.
@@ -857,10 +857,10 @@ async def main(
     """
 
     checker = LinkChecker(
-        start_url, 
-        output_file, 
-        check_ssl, 
-        slow_response_threshold, 
+        start_url,
+        output_file,
+        check_ssl,
+        slow_response_threshold,
         max_concurrent_checks,
         check_slow_response
     )
@@ -872,12 +872,11 @@ async def main(
     redirects: int = sum(1 for r in results if r.get('status') == Status.REDIRECT.value)
     wrong_environment: int = sum(1 for r in results if r.get('status') == Status.WRONG_ENVIRONMENT.value)
     errors: int = sum(1 for r in results if r.get('status') == Status.ERROR.value)
-    special_protocols: int = sum(1 for r in results if 
-                              r.get('status') == Status.OK.value and 
-                              r.get('link_url', '').split(':', 1)[0] + ':' in 
-                              ['tel:', 'mailto:', 'sms:', 'whatsapp:', 'skype:', 'facetime:'])
+    special_protocols: int = sum(1 for r in results if
+                              r.get('status') == Status.OK.value and r.get('link_url', '').split(':', 1)[0] + ':'
+                              in ['tel:', 'mailto:', 'sms:', 'whatsapp:', 'skype:', 'facetime:'])
 
-    print(f"\nSummary:")
+    print("\nSummary:")
     print(f"Total links checked: {total}")
     print(f"Broken links: {broken}")
     print(f"Redirects: {redirects}")
@@ -898,10 +897,10 @@ if __name__ == "__main__":
     """
 
     asyncio.run(main(
-        start_url="https://www.predictiveindex.com/",
+        start_url="https://smith.ai/",
         output_file="output.csv",
         check_ssl=False,
         slow_response_threshold=5000,
-        max_concurrent_checks=5, # WARNING: Do not increase this number, it will lead to errors / ban / block from the site
+        max_concurrent_checks=5,  # WARNING: Do not increase this number, it will lead to errors / ban / block from the site
         check_slow_response=False  # Disable slow response checking
     ))

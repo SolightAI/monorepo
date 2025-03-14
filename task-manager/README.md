@@ -95,4 +95,4 @@ docker-compose exec web python test_api.py
 
 ## Development
 
-This server is designed to be integrated with Jira issue actions. The Celery worker handles long-running jobs, ensuring they continue processing even if the web server restarts. 
+This server is designed to be integrated with Jira issue actions. The Celery worker handles long-running jobs, ensuring they continue processing even if the web server restarts.

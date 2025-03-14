@@ -113,4 +113,4 @@ asyncio.run(main(
 - `REDIRECT`: Link redirects to another URL
 - `ERROR`: Error occurred while checking the link
 - `WARNING`: Minor issues detected
-- `WRONG_ENVIRONMENT`: Link points to a wrong environment 
+- `WRONG_ENVIRONMENT`: Link points to a wrong environment
