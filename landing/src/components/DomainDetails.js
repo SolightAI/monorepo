@@ -18,8 +18,8 @@ const DomainDetails = ({ data }) => {
   }
 
   // Get domain name and link from the first row (should be the same for all rows)
-  const domainName = data[0].Link.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0];
-  const domainLink = data[0].Link || '#';
+  const domainName = data[0].Domain.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0];
+  const domainLink = data[0].Domain || '#';
 
   // User authentication status (always false in this version)
   const userIsAuthenticated = false;

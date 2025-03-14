@@ -118,11 +118,11 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
                 {bug.severity}
               </span>
             </div>
-            {bug.url && (
+            {bug.page && (
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Page</h3>
                 <a
-                  href={bug.url}
+                  href={bug.page}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center mt-1 text-sm font-medium text-blue-600 hover:text-blue-800"
