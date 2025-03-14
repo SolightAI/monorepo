@@ -3,24 +3,22 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { validateInvitationCode } from '@/utils/auth';
 import { Users, CheckCircle2, XCircle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 const JoinOrganization = () => {
   const { code } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [invitation, setInvitation] = useState(null);
   const [organization, setOrganization] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [joining, setJoining] = useState(false);
   const [joinSuccess, setJoinSuccess] = useState(false);
 
   useEffect(() => {
-    // Check authentication status
-    setIsAuthenticated(localStorage.getItem('isAuthenticated') === 'true');
-
     // Validate the invitation code
     const validateInvitation = async () => {
       setLoading(true);

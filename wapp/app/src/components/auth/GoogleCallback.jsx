@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 function GoogleCallback() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { handleGoogleCallback } = useAuth();
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -15,8 +17,8 @@ function GoogleCallback() {
       // Set the token in a cookie (this is just for consistency, as the backend already sets the cookie)
       document.cookie = `access_token=Bearer ${token}; path=/; secure; samesite=lax`;
 
-      // Set isAuthenticated in localStorage
-      localStorage.setItem('isAuthenticated', 'true');
+      // Update authentication state using context
+      handleGoogleCallback(token);
 
       // Redirect to the home page or dashboard
       navigate('/');
@@ -42,7 +44,7 @@ function GoogleCallback() {
         }
       });
     }
-  }, [navigate, location]);
+  }, [navigate, location, handleGoogleCallback]);
 
   return <div>Processing Google login...</div>;
 }

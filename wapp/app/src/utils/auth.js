@@ -2,7 +2,21 @@ import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
+export const validateInvitationCode = async (code, email) => {
+  try {
+    const url = `${API_URL}/invitations/validate/${code}` + (email ? `?email=${email}` : '');
+    const response = await axios.get(url);
+    return { valid: true, data: response.data };
+  } catch (error) {
+    return { valid: false, error: error.response?.data?.detail || 'Invalid code' };
+  }
+};
+
+/**
+ * @deprecated Use AuthContext's login method instead
+ */
 export const login = async (username, password) => {
+  console.warn('Deprecated: Use AuthContext.login instead');
   try {
     const formData = new URLSearchParams();
     formData.append('username', username);
@@ -17,59 +31,38 @@ export const login = async (username, password) => {
         }
       }
     );
-    localStorage.setItem('isAuthenticated', 'true');
     return response.data;
   } catch (error) {
     throw error;
   }
 };
 
+/**
+ * @deprecated Use AuthContext's register method instead
+ */
 export const register = async (username, email, password, invitation_code) => {
+  console.warn('Deprecated: Use AuthContext.register instead');
   try {
     const response = await axios.post(`${API_URL}/auth/register`,
       { username, email, password, invitation_code },
       { withCredentials: true }
     );
-    localStorage.setItem('isAuthenticated', 'true');
     return response.data;
   } catch (error) {
     throw error;
   }
 };
 
-export const validateInvitationCode = async (code, email) => {
-  try {
-    const url = `${API_URL}/invitations/validate/${code}` + (email ? `?email=${email}` : '');
-    const response = await axios.get(url);
-    return { valid: true, data: response.data };
-  } catch (error) {
-    return { valid: false, error: error.response?.data?.detail || 'Invalid code' };
-  }
-};
-
+/**
+ * @deprecated Use AuthContext's isAdmin property instead
+ */
 export const isAdmin = async () => {
-  const cachedAdminStatus = localStorage.getItem('isAdmin');
-
-  // Return cached result if available and not expired (cache for 1 minute)
-  if (cachedAdminStatus) {
-    const { isAdmin, timestamp } = JSON.parse(cachedAdminStatus);
-    const cacheAge = Date.now() - timestamp;
-    if (cacheAge < 60000) { // 1 minute in milliseconds
-      return isAdmin;
-    }
-  }
-
+  console.warn('Deprecated: Use AuthContext.isAdmin instead');
   try {
     const response = await axios.get(`${API_URL}/auth/is-admin`, {
       withCredentials: true,
       timeout: 5000 // 5 second timeout
     });
-    // Cache the result with a timestamp
-    localStorage.setItem('isAdmin', JSON.stringify({
-      isAdmin: response.data,
-      timestamp: Date.now()
-    }));
-
     return response.data;
   } catch (error) {
     console.error('Error checking admin status:', error);
@@ -77,71 +70,21 @@ export const isAdmin = async () => {
   }
 };
 
+/**
+ * @deprecated Use AuthContext's logout method instead
+ */
 export const logout = async () => {
+  console.warn('Deprecated: Use AuthContext.logout instead');
   try {
     await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('isAdmin'); // Clear admin status on logout
   } catch (error) {
     console.error('Logout failed:', error);
   }
-  window.location.href = '/login';
 };
 
+/**
+ * @deprecated No longer needed as axios interceptors are set up in AuthContext
+ */
 export const setupAxiosInterceptors = () => {
-  // Keep track of redirect in progress to avoid loops
-  let isRedirecting = false;
-
-  axios.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-      if (error.response && !isRedirecting) {
-        // If the error is an authentication error, redirect to login
-        if (error.response.status === 401 && error.config && !error.config.__isRetryRequest) {
-          // Avoid redirect loops
-          const currentPath = window.location.pathname;
-          if (currentPath.includes('/login') ||
-              currentPath.includes('/register') ||
-              currentPath.includes('/auth/google/callback')) {
-            // Don't redirect again if already on auth page
-            return Promise.reject(error);
-          }
-
-          isRedirecting = true;
-          console.log('Authentication error detected, redirecting to login');
-          localStorage.removeItem('isAuthenticated');
-
-          // Use setTimeout to allow current execution to complete
-          setTimeout(() => {
-            window.location.href = '/login';
-            isRedirecting = false;
-          }, 100);
-        }
-
-        // Handle invitation code errors
-        if (error.response.status === 400 &&
-            error.response.data &&
-            error.response.data.detail &&
-            error.response.data.detail.includes('Invitation code required')) {
-
-          // If the error occurred during a Google auth flow
-          if (error.config.url.includes('/auth/google')) {
-            // We'll let the GoogleCallback component handle this
-            return Promise.reject(error);
-          }
-
-          // For other API calls, redirect to login with error message
-          if (!isRedirecting) {
-            isRedirecting = true;
-            setTimeout(() => {
-              window.location.href = '/login?error=invitation_required&error_description=Invitation code required for registration';
-              isRedirecting = false;
-            }, 100);
-          }
-        }
-      }
-
-      return Promise.reject(error);
-    }
-  );
+  console.warn('Deprecated: Axios interceptors are now set up in AuthContext');
 };

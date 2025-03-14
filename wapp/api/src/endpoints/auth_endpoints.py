@@ -36,7 +36,7 @@ async def refresh_google_token(params: RefreshTokenRequest):
 
 
 @router.get("/google/callback")
-async def auth_google(code: str, state: str = None, response: Response = None):
+async def auth_google(code: str, state: str | None = None, response: Response | None = None) -> dict:
     invitation_code = None
     if state:
         try:
@@ -50,7 +50,7 @@ async def auth_google(code: str, state: str = None, response: Response = None):
 
 
 @router.post("/confirm/new")
-def confirm(request: Request, current_user: User = Depends(get_current_user)):
+def confirm(request: Request, current_user: User = Depends(get_current_user)) -> dict:
     return auth_services.generate_and_send_confirmation_email(user=current_user, request=request)
 
 
@@ -60,10 +60,24 @@ async def confirm(token: str, current_user: User = Depends(get_current_user)):
 
 
 @router.post("/logout")
-async def logout(response: Response):
+async def logout(response: Response) -> dict:
     return await auth_services.logout(response)
 
 
 @router.get("/is-admin")
-async def is_admin(current_user: User = Depends(get_current_user)):
+async def is_admin(current_user: User = Depends(get_current_user)) -> dict:
     return await auth_services.check_is_admin(current_user)
+
+
+@router.get("/check-auth")
+async def check_auth(current_user: User = Depends(get_current_user)) -> dict:
+    """Check if the user is authenticated and return user info"""
+    return {
+        "authenticated": True,
+        "user": {
+            "id": str(current_user.id),
+            "email": current_user.email,
+            "username": current_user.username,
+            "is_admin": current_user.is_admin
+        }
+    }
