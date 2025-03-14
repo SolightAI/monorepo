@@ -42,13 +42,13 @@ function AiDetectedBugs({ bugs = [] }) {
 
   // Toggle expanded state for a category
   const toggleExpandCategory = (category) => {
-    setExpandedCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category) 
+    setExpandedCategories(prev =>
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
         : [...prev, category]
     );
   };
-  
+
   // Initially expand all categories if there are few bugs
   React.useEffect(() => {
     if (bugs.length > 0 && bugs.length <= 5) {
@@ -138,21 +138,21 @@ function AiDetectedBugs({ bugs = [] }) {
           ) : (
             Object.entries(bugsByCategory).map(([category, categoryBugs]) => (
               <div key={category} className="border rounded-lg overflow-hidden">
-                <div 
+                <div
                   className="flex justify-between items-center p-4 bg-gray-50 cursor-pointer"
                   onClick={() => toggleExpandCategory(category)}
                 >
                   <div className="font-medium flex items-center">
                     <Tag className="h-4 w-4 mr-2" />
-                    {category} 
+                    {category}
                     <span className="ml-2 text-sm text-gray-500">({categoryBugs.length})</span>
                   </div>
-                  {expandedCategories.includes(category) ? 
-                    <ChevronUp className="h-4 w-4" /> : 
+                  {expandedCategories.includes(category) ?
+                    <ChevronUp className="h-4 w-4" /> :
                     <ChevronDown className="h-4 w-4" />
                   }
                 </div>
-                
+
                 {expandedCategories.includes(category) && (
                   <div className="divide-y">
                     {categoryBugs.map((bug) => (
@@ -184,7 +184,7 @@ function AiDetectedBugs({ bugs = [] }) {
   return (
     <div className="max-w-4xl mx-auto">
       <h2 className="text-2xl font-bold mb-6">AI-Detected Issues</h2>
-      
+
       {bugs.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-6 text-center">
           <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
@@ -199,26 +199,26 @@ function AiDetectedBugs({ bugs = [] }) {
         <div className="space-y-4">
           {Object.entries(bugsByCategory).map(([category, categoryBugs]) => (
             <div key={category} className="bg-white rounded-lg shadow overflow-hidden">
-              <div 
+              <div
                 className="flex justify-between items-center p-4 bg-gray-50 cursor-pointer"
                 onClick={() => toggleExpandCategory(category)}
               >
                 <div className="font-medium flex items-center">
                   <Tag className="h-4 w-4 mr-2" />
-                  {category} 
+                  {category}
                   <span className="ml-2 text-sm text-gray-500">({categoryBugs.length})</span>
                 </div>
-                {expandedCategories.includes(category) ? 
-                  <ChevronUp className="h-4 w-4" /> : 
+                {expandedCategories.includes(category) ?
+                  <ChevronUp className="h-4 w-4" /> :
                   <ChevronDown className="h-4 w-4" />
                 }
               </div>
-              
+
               {expandedCategories.includes(category) && (
                 <div className="divide-y">
                   {categoryBugs.map((bug) => (
                     <div key={bug.id} className="p-4">
-                      <div 
+                      <div
                         className="flex items-start cursor-pointer"
                         onClick={() => toggleExpandBug(bug.id)}
                       >
@@ -226,34 +226,34 @@ function AiDetectedBugs({ bugs = [] }) {
                         <div className="flex-1">
                           <div className="flex justify-between">
                             <h3 className="font-medium">{bug.title}</h3>
-                            {expandedBugId === bug.id ? 
-                              <ChevronUp className="h-4 w-4" /> : 
+                            {expandedBugId === bug.id ?
+                              <ChevronUp className="h-4 w-4" /> :
                               <ChevronDown className="h-4 w-4" />
                             }
                           </div>
                           <p className="text-gray-600 mt-1 text-sm">{bug.description}</p>
                         </div>
                       </div>
-                      
+
                       {expandedBugId === bug.id && (
                         <div className="mt-4 pl-8">
                           <div className="bg-gray-50 p-4 rounded-lg">
                             <h4 className="font-medium text-sm flex items-center mb-2">
-                              <Info className="h-4 w-4 mr-1" /> 
+                              <Info className="h-4 w-4 mr-1" />
                               Details
                             </h4>
                             <p className="text-sm text-gray-700 mb-4">{bug.details || "No additional details available."}</p>
-                            
+
                             <h4 className="font-medium text-sm flex items-center mb-2">
-                              <Target className="h-4 w-4 mr-1" /> 
+                              <Target className="h-4 w-4 mr-1" />
                               Suggested Fix
                             </h4>
                             <p className="text-sm text-gray-700 mb-4">{bug.solution || "No suggested fix available yet."}</p>
-                            
+
                             {bug.code_snippet && (
                               <div className="mb-4">
                                 <h4 className="font-medium text-sm flex items-center mb-2">
-                                  <FileText className="h-4 w-4 mr-1" /> 
+                                  <FileText className="h-4 w-4 mr-1" />
                                   Code Snippet
                                 </h4>
                                 <pre className="bg-gray-800 text-gray-100 p-3 rounded text-sm overflow-x-auto">
@@ -261,19 +261,19 @@ function AiDetectedBugs({ bugs = [] }) {
                                 </pre>
                               </div>
                             )}
-                            
+
                             {bug.links && bug.links.length > 0 && (
                               <div>
                                 <h4 className="font-medium text-sm flex items-center mb-2">
-                                  <LinkIcon className="h-4 w-4 mr-1" /> 
+                                  <LinkIcon className="h-4 w-4 mr-1" />
                                   Related Resources
                                 </h4>
                                 <ul className="space-y-1">
                                   {bug.links.map((link, index) => (
                                     <li key={index} className="text-sm">
-                                      <a 
-                                        href={link.url} 
-                                        target="_blank" 
+                                      <a
+                                        href={link.url}
+                                        target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-blue-600 hover:underline"
                                       >

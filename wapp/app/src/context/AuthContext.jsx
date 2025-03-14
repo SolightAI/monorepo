@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const storedAuthState = localStorage.getItem('isAuthenticated') === 'true';
     setIsAuthenticated(storedAuthState);
-    
+
     // If authenticated, check admin status
     if (storedAuthState) {
       checkAdminStatus();
@@ -32,12 +32,12 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   }, []);
-  
+
   // Check admin status
   const checkAdminStatus = useCallback(async () => {
     try {
       const cachedAdminStatus = localStorage.getItem('isAdmin');
-      
+
       // Use cached admin status if available and not expired
       if (cachedAdminStatus) {
         const { isAdmin: adminStatus, timestamp } = JSON.parse(cachedAdminStatus);
@@ -48,18 +48,18 @@ export const AuthProvider = ({ children }) => {
           return;
         }
       }
-      
+
       const response = await axios.get(`${API_URL}/auth/is-admin`, {
         withCredentials: true,
         timeout: 5000
       });
-      
+
       // Cache the admin status
       localStorage.setItem('isAdmin', JSON.stringify({
         isAdmin: response.data,
         timestamp: Date.now()
       }));
-      
+
       setIsAdmin(response.data);
     } catch (error) {
       console.error('Error checking admin status:', error);
@@ -87,14 +87,14 @@ export const AuthProvider = ({ children }) => {
           }
         }
       );
-      
+
       // Update authentication state
       setIsAuthenticated(true);
       localStorage.setItem('isAuthenticated', 'true');
-      
+
       // Check admin status after login
       checkAdminStatus();
-      
+
       return response.data;
     } catch (error) {
       setError(error.response?.data?.detail || 'Login failed');
@@ -111,11 +111,11 @@ export const AuthProvider = ({ children }) => {
         { username, email, password, invitation_code },
         { withCredentials: true }
       );
-      
+
       // Update authentication state
       setIsAuthenticated(true);
       localStorage.setItem('isAuthenticated', 'true');
-      
+
       return response.data;
     } catch (error) {
       setError(error.response?.data?.detail || 'Registration failed');
@@ -146,13 +146,13 @@ export const AuthProvider = ({ children }) => {
         withCredentials: true,
         timeout: 5000
       });
-      
+
       if (response.data.authenticated) {
         // Update authentication state
         setIsAuthenticated(true);
         setUser(response.data.user);
         localStorage.setItem('isAuthenticated', 'true');
-        
+
         // Set admin status if it's included in the response
         if (response.data.user.is_admin !== undefined) {
           setIsAdmin(response.data.user.is_admin);
@@ -162,7 +162,7 @@ export const AuthProvider = ({ children }) => {
           }));
         }
       }
-      
+
       return response.data;
     } catch (error) {
       if (error.response?.status !== 401) {
@@ -170,13 +170,13 @@ export const AuthProvider = ({ children }) => {
         // 401 is expected when not authenticated
         setError(error.response?.data?.detail || 'Failed to check authentication status');
       }
-      
+
       // Ensure state reflects unauthenticated status
       setIsAuthenticated(false);
       setIsAdmin(false);
       localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('isAdmin');
-      
+
       return { authenticated: false };
     } finally {
       setLoading(false);
@@ -204,13 +204,13 @@ export const AuthProvider = ({ children }) => {
 
             isRedirecting = true;
             console.log('Authentication error detected, logging out');
-            
+
             // Update authentication state
             setIsAuthenticated(false);
             setIsAdmin(false);
             localStorage.removeItem('isAuthenticated');
             localStorage.removeItem('isAdmin');
-            
+
             // Use setTimeout to allow current execution to complete
             setTimeout(() => {
               window.location.href = '/login';
@@ -234,11 +234,11 @@ export const AuthProvider = ({ children }) => {
       // Set authentication state
       setIsAuthenticated(true);
       localStorage.setItem('isAuthenticated', 'true');
-      
+
       // If we received user data (from direct API check), save it
       if (typeof tokenOrUserData === 'object' && tokenOrUserData.user) {
         setUser(tokenOrUserData.user);
-        
+
         // Set admin status if provided
         if (tokenOrUserData.user.is_admin !== undefined) {
           setIsAdmin(tokenOrUserData.user.is_admin);
@@ -269,4 +269,4 @@ export const AuthProvider = ({ children }) => {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}; 
+};

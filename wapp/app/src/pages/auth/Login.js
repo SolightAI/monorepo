@@ -29,13 +29,13 @@ export default function Login() {
   useEffect(() => {
     let isMounted = true;
     const controller = new AbortController();
-    
+
     const checkAuth = async () => {
       try {
         if (!isMounted) return;
-        
+
         setIsLoading(true);
-        
+
         // First check if user is already authenticated in context
         if (isAuthenticated) {
           console.log("User already authenticated according to context");
@@ -44,7 +44,7 @@ export default function Login() {
           navigate(from, { replace: true });
           return;
         }
-        
+
         // If not authenticated in context, check with server
         try {
           console.log("Checking auth status with server");
@@ -53,12 +53,12 @@ export default function Login() {
             timeout: 5000,
             signal: controller.signal
           });
-          
+
           if (isMounted && response.data.authenticated) {
             console.log("User authenticated according to server");
             // Update context with user data
             handleGoogleCallback(response.data);
-            
+
             // Redirect user
             const from = location.state?.from?.pathname || '/';
             navigate(from, { replace: true });
@@ -74,7 +74,7 @@ export default function Login() {
             if (error.name !== 'AbortError' && error.response?.status !== 401) {
               console.error('Error checking auth status:', error);
             }
-            
+
             setIsLoading(false);
             // Set auth checked flag after an error
             authChecked.current = true;
@@ -86,10 +86,10 @@ export default function Login() {
         }
       }
     };
-    
+
     // Always check auth status when login page mounts
     checkAuth();
-    
+
     // Cleanup function
     return () => {
       isMounted = false;
@@ -119,9 +119,9 @@ export default function Login() {
     if (isAuthenticated || isLoading) {
       return;
     }
-    
+
     const params = new URLSearchParams(window.location.search);
-    
+
     // Check for error messages from URL parameters
     const error = params.get('error');
     const errorDescription = params.get('error_description');
@@ -131,7 +131,7 @@ export default function Login() {
         setHighlightInvitationCode(true);
       }
     }
-    
+
     // Check for messages from React Router state (redirects)
     const state = location.state;
     if (state?.message) {
@@ -139,15 +139,15 @@ export default function Login() {
       if (state.requiresInvitationCode) {
         setHighlightInvitationCode(true);
       }
-      
+
       // Clear the state message so it doesn't persist on refresh
       const timer = setTimeout(() => {
         navigate(location.pathname, { replace: true });
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
-    
+
     // Only fetch Google Auth URL if needed
     if (!googleAuthUrl && !authChecked.current) {
       const codeFromUrl = params.get('invitation_code');
@@ -171,17 +171,17 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    
+
     try {
       await authLogin(email, password);
-      
+
       // Set a short timeout before navigation to ensure UI feedback
       setTimeout(() => {
         // Navigate to home page or intended destination
         const from = location.state?.from?.pathname || '/';
         navigate(from, { replace: true });
       }, 300);
-      
+
     } catch (error) {
       setError(error.response?.data?.detail || 'An error occurred during login.');
       setIsLoading(false);
@@ -192,13 +192,13 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    
+
     try {
       await axios.post(`${API_URL}/auth/forgot-password`, { email: forgotPasswordEmail });
       setForgotPasswordMessage('If an account exists for this email, you will receive a password reset link shortly.');
       setTimeout(() => {
         setIsLoading(false);
-      }, 500); 
+      }, 500);
     } catch (error) {
       setError('An error occurred. Please try again later.');
       setIsLoading(false);
@@ -234,14 +234,14 @@ export default function Login() {
             {!isLoading && (showForgotPassword ? 'Reset Your Password' : 'Sign in to your account')}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            {isLoading 
-              ? "Please wait..." 
+            {isLoading
+              ? "Please wait..."
               : (showForgotPassword
                 ? 'Enter your email to receive a password reset link.'
                 : 'The Product for Product people')}
           </p>
         </div>
-        
+
         {isLoading ? (
           <div className="flex justify-center">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>

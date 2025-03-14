@@ -41,7 +41,7 @@ function ProductOverview() {
   const location = useLocation()
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
-  
+
   const [product, setProduct] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -60,7 +60,7 @@ function ProductOverview() {
     avgDuration: 0,
     flakiness: 0
   })
-  
+
   // Get the user's authenticated status
   const userIsAuthenticated = useMemo(() => isAuthenticated, [isAuthenticated])
 
