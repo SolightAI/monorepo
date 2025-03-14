@@ -25,21 +25,21 @@ const DomainPage = () => {
           return;
         }
 
-        // Find ALL matching domain rows
+        // Find ALL matching domain rows based on Domain column, not Link
         const matchingDomains = csvData.filter(row => {
-          if (!row || !row.Link) return false;
-          const route = extractRouteFromUrl(row.Link);
+          if (!row || !row.Domain) return false;
+          const route = extractRouteFromUrl(row.Domain);
           return route === domainRoute;
         });
 
         if (matchingDomains && matchingDomains.length > 0) {
           setDomainData(matchingDomains);
 
-          // Extract domain name and link from the first row
+          // Extract domain name and link from the first row's Domain field
           const firstRow = matchingDomains[0];
           setDomainInfo({
-            name: firstRow.Link.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0],
-            link: firstRow.Link
+            name: firstRow.Domain.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0],
+            link: firstRow.Domain
           });
         } else {
           setError(`Domain "${domainRoute}" not found`);
@@ -67,7 +67,7 @@ const DomainPage = () => {
     screenshots: issue.Screenshot ? [issue.Screenshot] : [],
     suggestion: issue.Suggestion,
     conditions: issue.Conditions,
-    url: issue.Domain
+    url: issue.Link
   }));
 
   if (loading) {
