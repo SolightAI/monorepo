@@ -67,7 +67,7 @@ const DomainPage = () => {
     screenshots: issue.Screenshot ? [issue.Screenshot] : [],
     suggestion: issue.Suggestion,
     conditions: issue.Conditions,
-    url: issue.Link
+    url: issue.Domain
   }));
 
   if (loading) {
