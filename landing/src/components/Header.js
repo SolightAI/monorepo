@@ -48,7 +48,15 @@ export default function Header() {
         </nav>
 
         {/* CTA button - hidden on mobile */}
-        <div className="hidden md:flex items-center">
+        <div className="hidden md:flex items-center space-x-3">
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLScq0g8iWlWzel10HwjhZeCWnGbl1VrzsHAnW8hj2h0mylQtew/viewform?usp=header"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-1.5 rounded-full bg-green-500 hover:bg-green-400 transition-colors text-white text-xs font-medium"
+          >
+            Sign Up
+          </a>
           <a
             href="https://calendly.com/antoinelevy"
             target="_blank"
@@ -83,6 +91,14 @@ export default function Header() {
               className="px-4 py-1.5 rounded-full bg-blue-500 hover:bg-blue-400 transition-colors text-white text-xs font-medium w-fit"
             >
               Request a Demo
+            </a>
+            <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLScq0g8iWlWzel10HwjhZeCWnGbl1VrzsHAnW8hj2h0mylQtew/viewform?usp=header"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-1.5 rounded-full bg-green-500 hover:bg-green-400 transition-colors text-white text-xs font-medium w-fit"
+            >
+              Sign Up
             </a>
           </nav>
         </div>
