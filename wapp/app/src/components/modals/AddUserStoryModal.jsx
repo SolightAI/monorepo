@@ -136,25 +136,6 @@ const AddUserStoryModal = ({ onClose, featureId, featureName, onUserStoryAdded }
               ></textarea>
             </div>
 
-            <div className="mb-6">
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-                Status
-              </label>
-              <select
-                id="status"
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              >
-                {statusOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             <div className="flex justify-end space-x-3">
               <button
                 type="button"
