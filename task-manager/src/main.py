@@ -1,20 +1,19 @@
-import asyncio
-
-from step1_get_website_documentation.entrypoint import step1_get_website_documentation
-from step2_get_website_sections.entrypoint import step2_get_website_sections
-from step3_get_documented_sections.entrypoint import step3_get_documented_sections
-from step4_get_test_plan.entrypoint import step4_get_test_plan
-from step5_get_reproducible_test_suites.entrypoint import step5_get_reproducible_test_suites
+from fastapi import FastAPI
+from utils.main import redis_client
+from generate_tests.generate_tests_for_acceptance_criteria import router as generate_tests_for_acceptance_criteria_router
 
 
-async def main():
-    documentation = await step1_get_website_documentation("https://qacrmdemo.netlify.app", "outputs")
-    sections = await step2_get_website_sections("https://qacrmdemo.netlify.app", documentation, "outputs")
-    documented_sections = await step3_get_documented_sections("https://qacrmdemo.netlify.app", documentation, sections, "outputs")
-    test_plan = await step4_get_test_plan("https://qacrmdemo.netlify.app", documented_sections, "outputs")
-    reproducible_test_suites, test_plan_result = await step5_get_reproducible_test_suites(test_plan, "outputs")
-    print(f"{test_plan_result=}")
+app = FastAPI()
+
+app.include_router(generate_tests_for_acceptance_criteria_router)
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+@app.post("/auth/store-credentials")
+async def store_credentials(product_id: str, username: str, password: str):
+    redis_client.set(product_id + ':username', username)
+    redis_client.set(product_id + ':password', password)
+
+
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run(app, host='0.0.0.0', port=8002)

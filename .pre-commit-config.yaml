@@ -19,4 +19,4 @@ repos:
     hooks:
       - id: flake8
         exclude: ^migrations/
-        args: [--ignore=E501] # ignore max line length
+        args: ["--ignore=E501,W503"] # ignore max line length

@@ -1,5 +1,25 @@
 services:
 
+  task-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./src/:/app/src
+    ports:
+      - "8001:8001"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - AZURE_OPENAI_KEY=${AZURE_OPENAI_KEY}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - HOST_SERVICE_URL=http://host.docker.internal:3000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - redis
+
   # Weaviate - Vector Database for RAG
   weaviate:
     image: semitechnologies/weaviate:latest
@@ -20,6 +40,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    ports:
+      - "5540:5540"
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
 
 volumes:
   weaviate_data:
