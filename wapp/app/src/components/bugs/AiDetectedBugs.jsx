@@ -160,7 +160,7 @@ function AiDetectedBugs({ bugs = [] }) {
                         <div className="flex items-start">
                           <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 mr-3 flex-shrink-0" />
                           <div className="flex-1">
-                            <h3 className="font-medium">{bug.title}</h3>
+                            <h3 className="font-medium">{bug.name}</h3>
                             <p className="text-gray-600 mt-1 text-sm">{bug.description}</p>
                           </div>
                         </div>
@@ -225,7 +225,7 @@ function AiDetectedBugs({ bugs = [] }) {
                         <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 mr-3 flex-shrink-0" />
                         <div className="flex-1">
                           <div className="flex justify-between">
-                            <h3 className="font-medium">{bug.title}</h3>
+                            <h3 className="font-medium">{bug.name}</h3>
                             {expandedBugId === bug.id ?
                               <ChevronUp className="h-4 w-4" /> :
                               <ChevronDown className="h-4 w-4" />
@@ -277,7 +277,7 @@ function AiDetectedBugs({ bugs = [] }) {
                                         rel="noopener noreferrer"
                                         className="text-blue-600 hover:underline"
                                       >
-                                        {link.title || link.url}
+                                        {link.name || link.url}
                                       </a>
                                     </li>
                                   ))}

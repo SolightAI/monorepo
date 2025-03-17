@@ -16,7 +16,7 @@ dependencies = [
     "tomlkit>=0.13.2",
     "tortoise-orm>=0.22.1",
     "uvicorn>=0.32.1",
-    "typeguard",
+    "cryptography>=44.0.2",
 ]
 
 [tool.aerich]

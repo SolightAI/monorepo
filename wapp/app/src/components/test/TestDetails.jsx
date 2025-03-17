@@ -24,6 +24,19 @@ function TestDetails({ test, onClose }) {
       })
     }
 
+    // Function to get a descriptive name for a secret type
+    const getSecretTypeDisplay = (type) => {
+      const typeMap = {
+        'username_password': 'Credentials',
+        'api_key': 'API Key',
+        'environment_variable': 'Environment Variable',
+        'connection_string': 'Connection String',
+        'oauth_credential': 'OAuth Credentials',
+        'other': 'Other'
+      };
+      return typeMap[type] || type;
+    }
+
     return (
       <div>
         <div className="flex justify-between items-start mb-6">
@@ -75,6 +88,28 @@ function TestDetails({ test, onClose }) {
           <p className="text-gray-700 whitespace-pre-line">{test.description}</p>
         </div>
 
+        {/* Display associated secrets */}
+        {test.secrets && test.secrets.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Associated Secrets</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {test.secrets.map((secret) => (
+                <div key={secret.id} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                  <div className="flex justify-between mb-2">
+                    <h4 className="font-medium text-gray-700">{secret.name}</h4>
+                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                      {getSecretTypeDisplay(secret.type)}
+                    </span>
+                  </div>
+                  {secret.description && (
+                    <p className="text-sm text-gray-600 mb-2">{secret.description}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {test.steps && test.steps.length > 0 && (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Test Steps</h3>
@@ -104,7 +139,7 @@ function TestDetails({ test, onClose }) {
               {test.bugs.map((bug, index) => (
                 <div key={index} className="bg-red-50 p-4 rounded-lg border border-red-200">
                   <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-medium text-red-800">{bug.title}</h4>
+                    <h4 className="font-medium text-red-800">{bug.name}</h4>
                     <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">{bug.severity}</span>
                   </div>
                   <p className="text-gray-700 mb-2">{bug.description}</p>
@@ -113,7 +148,7 @@ function TestDetails({ test, onClose }) {
                       <p className="text-sm text-gray-500 mb-1">Screenshot:</p>
                       <img
                         src={bug.screenshot || "/placeholder.svg"}
-                        alt={`Bug screenshot: ${bug.title}`}
+                        alt={`Bug screenshot: ${bug.name}`}
                         className="border border-gray-200 rounded-md max-w-full h-auto"
                       />
                     </div>

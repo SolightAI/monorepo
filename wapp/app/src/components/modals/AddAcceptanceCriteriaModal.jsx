@@ -7,7 +7,7 @@ const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCriteriaAdded }) => {
   const [formData, setFormData] = useState({
-    title: '',
+    name: '',
     description: ''
   });
   const [error, setError] = useState('');
@@ -28,8 +28,8 @@ const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCr
     setError('');
 
     // Validate form
-    if (!formData.title.trim()) {
-      setError('Acceptance criteria title is required');
+    if (!formData.name.trim()) {
+      setError('Acceptance criteria name is required');
       return;
     }
 
@@ -45,7 +45,7 @@ const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCr
       const response = await axios.post(
         `${API_URL}/acceptance-criteria/`,
         {
-          title: formData.title,
+          name: formData.name,
           description: formData.description,
           user_story_id: userStoryId
         },
@@ -105,17 +105,17 @@ const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCr
 
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                 Title *
               </label>
               <input
                 type="text"
-                id="title"
-                name="title"
-                value={formData.title}
+                id="name"
+                name="name"
+                value={formData.name}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter a concise title for this criteria"
+                placeholder="Enter a concise name for this criteria"
                 required
               />
               <p className="mt-1 text-sm text-gray-500">

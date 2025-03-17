@@ -26,6 +26,8 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - SECRET_ENCRYPTION_KEY=${SECRET_ENCRYPTION_KEY:-defaultsecret}
+      - TASK_MANAGER_URL=${TASK_MANAGER_URL}
     depends_on:
       db:
         condition: service_healthy

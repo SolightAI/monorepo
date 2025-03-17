@@ -7,7 +7,7 @@ const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 const AddUserStoryModal = ({ onClose, featureId, featureName, onUserStoryAdded }) => {
   const [formData, setFormData] = useState({
-    title: '',
+    name: '',
     description: '',
     status: 'NOT_STARTED'
   });
@@ -37,8 +37,8 @@ const AddUserStoryModal = ({ onClose, featureId, featureName, onUserStoryAdded }
     setError('');
 
     // Validate form
-    if (!formData.title.trim()) {
-      setError('User story title is required');
+    if (!formData.name.trim()) {
+      setError('User story name is required');
       return;
     }
 
@@ -49,7 +49,7 @@ const AddUserStoryModal = ({ onClose, featureId, featureName, onUserStoryAdded }
       const response = await axios.post(
         `${API_URL}/user-stories/`,
         {
-          title: formData.title,
+          name: formData.name,
           description: formData.description,
           status: formData.status,
           feature_id: featureId
@@ -107,14 +107,14 @@ const AddUserStoryModal = ({ onClose, featureId, featureName, onUserStoryAdded }
 
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                 Title *
               </label>
               <input
                 type="text"
-                id="title"
-                name="title"
-                value={formData.title}
+                id="name"
+                name="name"
+                value={formData.name}
                 onChange={handleInputChange}
                 placeholder="As a [user], I want to [action] so that [benefit]"
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"

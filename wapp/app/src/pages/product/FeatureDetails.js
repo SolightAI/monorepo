@@ -160,7 +160,7 @@ const FeatureDetails = () => {
                           onClick={() => navigate(`/user-stories/${story.id}`)}
                         >
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{story.title}</div>
+                            <div className="text-sm font-medium text-gray-900">{story.name}</div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-500 truncate max-w-xs">{story.description}</div>
@@ -169,7 +169,7 @@ const FeatureDetails = () => {
                             <div className="text-sm text-gray-500">
                               {story.acceptance_criteria?.map((criteria, index) => (
                                 <div key={index} className="mb-1">
-                                  <span className="font-medium">{criteria.title}</span>
+                                  <span className="font-medium">{criteria.name}</span>
                                   {criteria.description && (
                                     <span className="ml-1">- {criteria.description}</span>
                                   )}

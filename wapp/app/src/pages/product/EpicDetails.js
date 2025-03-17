@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader, AlertCircle, Plus, ArrowLeft, Sparkles, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Loader, AlertCircle, Plus, ArrowLeft, Sparkles } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
 import AddFeatureModal from '@/components/modals/AddFeatureModal';
 
@@ -53,20 +53,6 @@ const EpicDetails = () => {
     }));
   };
 
-  // Get status icon based on feature status
-  const getStatusIcon = (status) => {
-    switch (status?.toUpperCase()) {
-      case 'COMPLETED':
-        return <CheckCircle size={18} className="text-green-500" />;
-      case 'FAILED':
-        return <XCircle size={18} className="text-red-500" />;
-      case 'IN_PROGRESS':
-        return <Clock size={18} className="text-yellow-500" />;
-      default:
-        return <Clock size={18} className="text-gray-400" />;
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -76,7 +62,7 @@ const EpicDetails = () => {
           className="flex items-center mb-6 text-gray-600 hover:text-blue-600 transition-colors"
         >
           <ArrowLeft size={20} className="mr-2" />
-          Back to Epics
+          Back to Product
         </button>
 
         {/* Error message */}

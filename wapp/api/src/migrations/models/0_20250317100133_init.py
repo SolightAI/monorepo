@@ -67,34 +67,69 @@ CREATE TABLE IF NOT EXISTS "organization_members" (
     CONSTRAINT "uid_organizatio_user_id_a28e0b" UNIQUE ("user_id", "organization_id")
 );
 COMMENT ON COLUMN "organization_members"."role" IS 'OWNER: owner\nADMIN: admin\nMEMBER: member\nGUEST: guest';
+CREATE TABLE IF NOT EXISTS "secrets" (
+    "id" UUID NOT NULL PRIMARY KEY,
+    "name" VARCHAR(255) NOT NULL,
+    "description" TEXT,
+    "type" VARCHAR(20) NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expires_at" TIMESTAMPTZ,
+    "created_by_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
+    "organization_id" UUID NOT NULL REFERENCES "organizations" ("id") ON DELETE CASCADE,
+    "product_id" UUID REFERENCES "products" ("id") ON DELETE CASCADE
+);
+COMMENT ON COLUMN "secrets"."type" IS 'USERNAME_PASSWORD: username_password\nAPI_KEY: api_key\nENVIRONMENT_VARIABLE: environment_variable\nCONNECTION_STRING: connection_string\nOAUTH_CREDENTIAL: oauth_credential\nOTHER: other';
+CREATE TABLE IF NOT EXISTS "secret_access_logs" (
+    "id" UUID NOT NULL PRIMARY KEY,
+    "action" VARCHAR(50) NOT NULL,
+    "accessed_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "secret_id" UUID NOT NULL REFERENCES "secrets" ("id") ON DELETE CASCADE,
+    "user_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS "secret_values" (
+    "id" UUID NOT NULL PRIMARY KEY,
+    "key" VARCHAR(255) NOT NULL,
+    "encrypted_value" TEXT NOT NULL,
+    "is_required" BOOL NOT NULL DEFAULT True,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "secret_id" UUID NOT NULL REFERENCES "secrets" ("id") ON DELETE CASCADE,
+    CONSTRAINT "uid_secret_valu_secret__935722" UNIQUE ("secret_id", "key")
+);
 CREATE TABLE IF NOT EXISTS "user_stories" (
     "id" UUID NOT NULL PRIMARY KEY,
-    "title" VARCHAR(255) NOT NULL,
+    "name" VARCHAR(255) NOT NULL,
     "description" TEXT NOT NULL,
     "feature_id" UUID NOT NULL REFERENCES "features" ("id") ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS "acceptance_criteria" (
     "id" UUID NOT NULL PRIMARY KEY,
-    "title" VARCHAR(255) NOT NULL,
+    "name" VARCHAR(255) NOT NULL,
     "description" TEXT NOT NULL,
     "user_story_id" UUID NOT NULL REFERENCES "user_stories" ("id") ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS "tests" (
     "id" UUID NOT NULL PRIMARY KEY,
+    "url" VARCHAR(255) NOT NULL,
     "name" VARCHAR(255) NOT NULL,
     "description" TEXT NOT NULL,
-    "url" VARCHAR(255) NOT NULL,
+    "preconditions" TEXT NOT NULL,
+    "steps" TEXT NOT NULL,
+    "expected_results" TEXT NOT NULL,
+    "assertions" TEXT NOT NULL,
     "category" VARCHAR(13) NOT NULL,
     "status" VARCHAR(11) NOT NULL DEFAULT 'NOT_STARTED',
     "started_at" TIMESTAMPTZ,
     "ended_at" TIMESTAMPTZ,
-    "acceptance_criteria_id" UUID NOT NULL REFERENCES "acceptance_criteria" ("id") ON DELETE CASCADE
+    "acceptance_criteria_id" UUID NOT NULL REFERENCES "acceptance_criteria" ("id") ON DELETE CASCADE,
+    "secret_id" UUID REFERENCES "secrets" ("id") ON DELETE CASCADE
 );
 COMMENT ON COLUMN "tests"."category" IS 'SMOKE: SMOKE\nFUNCTIONAL: FUNCTIONAL\nEND_TO_END: END_TO_END\nUNIT: UNIT\nREGRESSION: REGRESSION\nINTEGRATION: INTEGRATION\nPERFORMANCE: PERFORMANCE\nUSABILITY: USABILITY\nCOMPATIBILITY: COMPATIBILITY\nLOCALIZATION: LOCALIZATION';
 COMMENT ON COLUMN "tests"."status" IS 'NOT_STARTED: NOT_STARTED\nPENDING: PENDING\nPASSED: PASSED\nFAILED: FAILED\nBLOCKED: BLOCKED\nSKIPPED: SKIPPED';
 CREATE TABLE IF NOT EXISTS "bugs" (
     "id" UUID NOT NULL PRIMARY KEY,
-    "title" VARCHAR(255) NOT NULL,
+    "name" VARCHAR(255) NOT NULL,
     "description" TEXT NOT NULL,
     "severity" VARCHAR(8) NOT NULL,
     "url" VARCHAR(255) NOT NULL,

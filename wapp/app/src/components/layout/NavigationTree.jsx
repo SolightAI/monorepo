@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useLocation, useParams, Link } from 'react-router-dom';
-import { ChevronRight, ChevronDown, Sparkles, Layers, FileText, CheckSquare, Beaker, AlertTriangle, Building, Users, Home, BarChart2 } from 'lucide-react';
+import { ChevronRight, ChevronDown, Sparkles, Layers, FileText, CheckSquare, Beaker, AlertTriangle, Building, Users, Home, BarChart2, Key } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import axios from 'axios';
@@ -33,6 +33,8 @@ const getIconForType = (type) => {
       return <Home size={16} className="text-gray-600" />;
     case 'dashboard':
       return <BarChart2 size={16} className="text-blue-500" />;
+    case 'secrets':
+      return <Key size={16} className="text-amber-500" />;
     default:
       return null;
   }
@@ -186,7 +188,7 @@ const NavigationTree = () => {
       // Now add the acceptance criteria if we have it
       if (criteriaData) {
         // Add fallbacks for acceptance criteria name
-        const criteriaName = criteriaData.name || criteriaData.title || criteriaData.description || `Acceptance Criteria (ID: ${criteriaData.id})`;
+        const criteriaName = criteriaData.name || criteriaData.name || criteriaData.description || `Acceptance Criteria (ID: ${criteriaData.id})`;
         newBreadcrumbs.push({
           name: criteriaName,
           path: `/acceptance-criteria/${criteriaData.id}`,
@@ -206,7 +208,7 @@ const NavigationTree = () => {
       // Finally add the test if we have it
       if (testData) {
         // Use a fallback in case name property is missing or undefined
-        const testName = testData.name || testData.title || testData.description || `Test (ID: ${testData.id})`;
+        const testName = testData.name || testData.name || testData.description || `Test (ID: ${testData.id})`;
         console.log('Adding test breadcrumb with name:', testName); // Debug the test name
         newBreadcrumbs.push({
           name: testName,
@@ -355,6 +357,23 @@ const NavigationTree = () => {
         </div>
       )}
 
+      {/* Secrets Management Link */}
+      {selectedOrganization && (
+        <div className="pt-2">
+          <Link
+            to="/secrets"
+            className={`flex items-center text-sm px-3 py-2 rounded-md ${
+              location.pathname.startsWith('/secrets')
+                ? 'bg-blue-50 text-blue-600 font-medium'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            {getIconForType('secrets')}
+            <span className="ml-2">Secrets</span>
+          </Link>
+        </div>
+      )}
+
       {/* Vertical Navigation Tree */}
       {breadcrumbs.length > 0 && (
         <ul className="space-y-1">
@@ -376,7 +395,7 @@ const NavigationTree = () => {
                   ${crumb.type === 'error' ? 'text-red-500 hover:text-red-600' : ''}
                   ${location.pathname === crumb.path ? 'bg-blue-50 text-blue-600' : ''}
                 `}
-                title={crumb.name}
+                name={crumb.name}
               >
                 <span className="mr-2 flex-shrink-0">
                   {getIconForType(crumb.type)}

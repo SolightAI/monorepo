@@ -72,7 +72,7 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
               </svg>
             </span>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">{bug.title}</h2>
+              <h2 className="text-xl font-semibold text-gray-900">{bug.name}</h2>
               <p className="text-sm text-gray-500 mt-1">
                 BUG-{String(bug.id).padStart(3, "0")} • Detected on {bug.detectedAt}
               </p>
@@ -225,7 +225,7 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
                       rel="noopener noreferrer"
                       className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
                     >
-                      {bug.jiraTicket?.key || "PROJ-244"}: {bug.jiraTicket?.summary || bug.title}
+                      {bug.jiraTicket?.key || "PROJ-244"}: {bug.jiraTicket?.summary || bug.name}
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
+import SecretSelector from "../secrets/SecretSelector"
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -11,6 +12,7 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
   const [userStory, setUserStory] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedSecretIds, setSelectedSecretIds] = useState([]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -19,10 +21,14 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
     category: "FUNCTIONAL",
     type: "UserStory", // Default to UserStory since we're in an acceptance criteria
     steps: "",
+    preconditions: "None", // Default value to avoid null
+    expected_results: "None", // Default value to avoid null
+    assertions: "None", // Default value to avoid null
     epic_id: "",
     feature_id: "",
     user_story_id: "",
-    acceptance_criteria_id: criteriaId
+    acceptance_criteria_id: criteriaId,
+    secret_ids: []
   });
 
   // Test categories from the backend schema
@@ -137,6 +143,13 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
 
         return { ...prev, ...updates };
       });
+    } else if (name === "preconditions" || name === "assertions" || name === "expected_results") {
+      // Special handling for preconditions, assertions, and expected_results fields
+      // If the field is empty, set it to the default "None" value
+      setFormData(prev => ({
+        ...prev,
+        [name]: value.trim() === "" ? "None" : value
+      }));
     } else {
       // Default handling for other fields
       setFormData(prev => ({
@@ -146,23 +159,29 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
     }
   };
 
+  const handleSecretSelect = (secretIds, secrets) => {
+    setSelectedSecretIds(secretIds);
+    setFormData(prev => ({
+      ...prev,
+      secret_ids: secretIds
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Form submitted");
 
-    // Convert steps string to array
-    const stepsArray = formData.steps
-      .split("\n")
-      .filter((step) => step.trim() !== "")
-      .map((step) => step.trim());
-
-    // Create the test object based on the selected type
+    // Create the test object with string fields (not arrays)
     let testData = {
       name: formData.name,
       description: formData.description,
       url: formData.url,
       category: formData.category,
-      steps: stepsArray,
+      steps: formData.steps || "None",
+      preconditions: formData.preconditions || "None",
+      expected_results: formData.expected_results || "None",
+      assertions: formData.assertions || "None",
+      secret_ids: formData.secret_ids
     };
 
     // Add the appropriate ID based on test type
@@ -222,7 +241,7 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
               {userStory && (
                 <div className="bg-blue-50 p-3 rounded-md">
                   <p className="text-sm text-blue-800">
-                    Adding test for: <span className="font-semibold">{userStory.title}</span>
+                    Adding test for: <span className="font-semibold">{userStory.name}</span>
                   </p>
                   {feature && (
                     <p className="text-xs text-blue-600 mt-1">
@@ -271,7 +290,7 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
 
               <div>
                 <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
-                  URL *
+                  Start URL *
                 </label>
                 <input
                   type="url"
@@ -303,6 +322,91 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label htmlFor="preconditions" className="block text-sm font-medium text-gray-700 mb-1">
+                  Preconditions *
+                </label>
+                <textarea
+                  id="preconditions"
+                  name="preconditions"
+                  required
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={formData.preconditions}
+                  onChange={handleChange}
+                  placeholder="List any required preconditions, one per line (e.g. 'User must be logged in'). Use 'None' if not applicable."
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter any conditions that must be met before the test can be executed. Required field.
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="expected_results" className="block text-sm font-medium text-gray-700 mb-1">
+                  Expected Results *
+                </label>
+                <textarea
+                  id="expected_results"
+                  name="expected_results"
+                  required
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={formData.expected_results}
+                  onChange={handleChange}
+                  placeholder="List the expected results of the test, one per line"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter the expected outcomes of the test. Required field.
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="steps" className="block text-sm font-medium text-gray-700 mb-1">
+                  Test Steps *
+                </label>
+                <textarea
+                  id="steps"
+                  name="steps"
+                  required
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={formData.steps}
+                  onChange={handleChange}
+                  placeholder="List the steps to perform this test, one step per line"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="assertions" className="block text-sm font-medium text-gray-700 mb-1">
+                  Assertions *
+                </label>
+                <textarea
+                  id="assertions"
+                  name="assertions"
+                  required
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={formData.assertions}
+                  onChange={handleChange}
+                  placeholder="List what should be verified during the test, one assertion per line (e.g. 'Error message appears when submitting invalid form'). Use 'None' if not applicable."
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter verification points that confirm the test is working as expected. Required field.
+                </p>
+              </div>
+
+              {/* Update SecretSelector to support multiple selection */}
+              <div>
+                <SecretSelector
+                  onSecretSelect={handleSecretSelect}
+                  selectedSecretIds={selectedSecretIds}
+                  secretType="username_password"
+                  label="Test Credentials (Optional)"
+                  placeholder="Select credentials for this test..."
+                  multiple={true}
+                />
               </div>
             </div>
 

@@ -5,6 +5,7 @@ General:
 * When asked for your opinion, be critical, the user don't need approval, just the best solution
 * Avoid leaving any trailing spaces in the code
 * Do not run applications (docker compose up, python main.py, npm run dev) unless explicitly asked
+* Don't assume anything, always check the codebase
 
 In Python:
 * Always type-hint variables and for all function signatures

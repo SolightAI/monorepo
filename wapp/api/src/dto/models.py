@@ -1,5 +1,5 @@
 from tortoise import fields, models
-from .schemas import TestStatus, SeverityLevel, TestCategory, OrganizationRole, OrganizationType
+from .schemas import TestStatus, SeverityLevel, TestCategory, OrganizationRole, OrganizationType, SecretType
 
 
 class User(models.Model):
@@ -118,7 +118,7 @@ class Feature(models.Model):
 
 class UserStory(models.Model):
     id = fields.UUIDField(pk=True)
-    title = fields.CharField(max_length=255)
+    name = fields.CharField(max_length=255)
     description = fields.TextField()
 
     feature = fields.ForeignKeyField("models.Feature", related_name="user_stories")
@@ -129,7 +129,7 @@ class UserStory(models.Model):
 
 class AcceptanceCriteria(models.Model):
     id = fields.UUIDField(pk=True)
-    title = fields.CharField(max_length=255)
+    name = fields.CharField(max_length=255)
     description = fields.TextField()
 
     user_story = fields.ForeignKeyField("models.UserStory", related_name="acceptance_criteria")
@@ -141,16 +141,23 @@ class AcceptanceCriteria(models.Model):
 
 class Test(models.Model):
     id = fields.UUIDField(pk=True)
+    url = fields.CharField(max_length=255)  # where to start the test
     name = fields.CharField(max_length=255)
     description = fields.TextField()
-    url = fields.CharField(max_length=255)  # where to store the test
+    preconditions = fields.TextField()
+    steps = fields.TextField()
+    expected_results = fields.TextField()
+    assertions = fields.TextField()
+
     category = fields.CharEnumField(TestCategory)
     status = fields.CharEnumField(TestStatus, default=TestStatus.NOT_STARTED)
+
     started_at = fields.DatetimeField(null=True)
     ended_at = fields.DatetimeField(null=True)
 
     acceptance_criteria = fields.ForeignKeyField("models.AcceptanceCriteria", related_name="tests")
     bugs = fields.ReverseRelation["Bug"]
+    test_secrets = fields.ReverseRelation["TestSecret"]
 
     class Meta:
         table = "tests"
@@ -158,7 +165,7 @@ class Test(models.Model):
 
 class Bug(models.Model):
     id = fields.UUIDField(pk=True)
-    title = fields.CharField(max_length=255)
+    name = fields.CharField(max_length=255)
     description = fields.TextField()
     severity = fields.CharEnumField(SeverityLevel)
     url = fields.CharField(max_length=255)   # url of the bug
@@ -172,4 +179,67 @@ class Bug(models.Model):
         table = "bugs"
 
     def __str__(self) -> str:
-        return f"{self.title} - {self.severity} ({self.url})"
+        return f"{self.name} - {self.severity} ({self.url})"
+
+
+class Secret(models.Model):
+    id = fields.UUIDField(pk=True)
+    name = fields.CharField(max_length=255)
+    description = fields.TextField(null=True)
+    type = fields.CharEnumField(SecretType)
+    created_at = fields.DatetimeField(auto_now_add=True)
+    updated_at = fields.DatetimeField(auto_now=True)
+    expires_at = fields.DatetimeField(null=True)
+
+    # Relations
+    organization = fields.ForeignKeyField('models.Organization', related_name='secrets')
+    product = fields.ForeignKeyField('models.Product', related_name='secrets', null=True)
+    created_by = fields.ForeignKeyField('models.User', related_name='created_secrets')
+    values = fields.ReverseRelation["SecretValue"]
+    access_logs = fields.ReverseRelation["SecretAccess"]
+    test_secrets = fields.ReverseRelation["TestSecret"]
+
+    class Meta:
+        table = "secrets"
+
+
+class SecretValue(models.Model):
+    id = fields.UUIDField(pk=True)
+    key = fields.CharField(max_length=255)
+    encrypted_value = fields.TextField()  # Encrypted value stored here
+    is_required = fields.BooleanField(default=True)
+    created_at = fields.DatetimeField(auto_now_add=True)
+    updated_at = fields.DatetimeField(auto_now=True)
+
+    # Relations
+    secret = fields.ForeignKeyField('models.Secret', related_name='values')
+
+    class Meta:
+        table = "secret_values"
+        unique_together = (("secret", "key"),)
+
+
+class SecretAccess(models.Model):
+    id = fields.UUIDField(pk=True)
+    action = fields.CharField(max_length=50)  # "view", "create", "update", "delete"
+    accessed_at = fields.DatetimeField(auto_now_add=True)
+
+    # Relations
+    secret = fields.ForeignKeyField('models.Secret', related_name='access_logs')
+    user = fields.ForeignKeyField('models.User', related_name='secret_access_logs')
+
+    class Meta:
+        table = "secret_access_logs"
+
+
+class TestSecret(models.Model):
+    id = fields.UUIDField(pk=True)
+    created_at = fields.DatetimeField(auto_now_add=True)
+
+    # Relations
+    test = fields.ForeignKeyField('models.Test', related_name='test_secrets')
+    secret = fields.ForeignKeyField('models.Secret', related_name='test_secrets')
+
+    class Meta:
+        table = "test_secrets"
+        unique_together = (("test", "secret"),)

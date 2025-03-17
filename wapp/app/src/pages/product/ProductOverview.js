@@ -15,27 +15,6 @@ const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000"
 // Use AuthContext instead of direct localStorage access
 // ... rest of the component
 
-// Loading overlay component with fake status updates
-const LoadingOverlay = ({ currentStep, progress }) => {
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
-        <div className="flex flex-col items-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <h2 className="text-xl font-semibold mb-2">Processing Test</h2>
-          <p className="text-gray-600 mb-4">{currentStep || "Initializing..."}</p>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div
-              className="bg-blue-600 h-2.5 rounded-full transition-all duration-1000 ease-in-out"
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function ProductOverview() {
   const { productPath } = useParams()
   const location = useLocation()
@@ -139,7 +118,7 @@ function ProductOverview() {
           // Transform the API response to match the format expected by components
           const transformedBugs = bugsResponse.data.map(bug => ({
             id: bug.id,
-            title: bug.title,
+            name: bug.name,
             url: bug.url,
             page: bug.test ? bug.test.name.split(' - ')[1] || "Unknown" : "Unknown",
             category: bug.test ? bug.test.category : "Unknown",
@@ -366,7 +345,7 @@ function ProductOverview() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm hover:bg-blue-100 transition-colors"
                   >
-                    {link.title || `Documentation ${index + 1}`}
+                    {link.name || `Documentation ${index + 1}`}
                   </a>
                 ))}
               </div>

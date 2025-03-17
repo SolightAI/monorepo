@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import ProductOverview from './pages/product/ProductOverview';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ResetPassword from './pages/auth/ResetPassword';
@@ -21,9 +20,11 @@ import EpicDetails from './pages/product/EpicDetails';
 import FeatureDetails from './pages/product/FeatureDetails';
 import UserStoryDetails from './pages/product/UserStoryDetails';
 import AcceptanceCriteriaDetails from './pages/product/AcceptanceCriteriaDetails';
+import Secrets from './pages/product/Secrets';
 import { ProductProvider } from './context/ProductContext';
 import { OrganizationProvider } from './context/OrganizationContext';
 import { DashboardProvider } from './context/DashboardContext';
+import { SecretProvider } from './context/SecretContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Remove the local isAuthenticated function and use the one from AuthContext instead
@@ -95,69 +96,70 @@ function AppContent() {
   return (
     <OrganizationProvider>
       <ProductProvider>
-        <div className="min-h-screen bg-gray-50">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/reset-password/:token" element={<ResetPassword />} />
-            <Route path="/auth/google/callback" element={<GoogleCallback />} />
-            <Route path="/join-organization/:code" element={<JoinOrganization />} />
+        <SecretProvider>
+          <div className="min-h-screen bg-gray-50">
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/reset-password/:token" element={<ResetPassword />} />
+              <Route path="/auth/google/callback" element={<GoogleCallback />} />
+              <Route path="/join-organization/:code" element={<JoinOrganization />} />
 
-            {/* Organization Setup Route */}
-            <Route path="/organizations/create" element={
-              <ProtectedRoute>
-                <OrganizationCreate />
-              </ProtectedRoute>
-            } />
-            <Route path="/organization/create" element={
-              <ProtectedRoute>
-                <OrganizationCreate />
-              </ProtectedRoute>
-            } />
-
-            {/* Protected routes with Layout */}
-            <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              {/* Home page showing epics of selected product */}
-              <Route path="/" element={<Home />} />
-
-              {/* Dashboard Routes */}
-              <Route path="/dashboard" element={
-                <DashboardProvider>
-                  <Dashboard />
-                </DashboardProvider>
+              {/* Organization Setup Route */}
+              <Route path="/organizations/create" element={
+                <ProtectedRoute>
+                  <OrganizationCreate />
+                </ProtectedRoute>
               } />
-              <Route path="/dashboard/product/:productId" element={
-                <DashboardProvider>
-                  <Dashboard />
-                </DashboardProvider>
+              <Route path="/organization/create" element={
+                <ProtectedRoute>
+                  <OrganizationCreate />
+                </ProtectedRoute>
               } />
 
-              {/* Epic details page */}
-              <Route path="/epics/:epicId" element={<EpicDetails />} />
-              {/* Feature details page */}
-              <Route path="/features/:featureId" element={<FeatureDetails />} />
-              {/* User Story details page */}
-              <Route path="/user-stories/:storyId" element={<UserStoryDetails />} />
-              {/* Acceptance Criteria details page */}
-              <Route path="/acceptance-criteria/:criteriaId" element={<AcceptanceCriteriaDetails />} />
-              {/* Organization routes */}
-              <Route path="/organizations/dashboard" element={<OrganizationDashboard />} />
-              <Route path="/organizations/members" element={<OrganizationMembers />} />
-              {/* Other protected routes */}
-              <Route path="/settings" element={<Settings />} />
-            </Route>
+              {/* Protected routes with Layout */}
+              <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                {/* Home page showing epics of selected product */}
+                <Route path="/" element={<Home />} />
 
-            {/* Admin routes with Layout */}
-            <Route element={<AdminRoute><Layout /></AdminRoute>}>
-              <Route path="/admin/invitations" element={<AdminInvitations />} />
-            </Route>
+                {/* Dashboard Routes */}
+                <Route path="/dashboard" element={
+                  <DashboardProvider>
+                    <Dashboard />
+                  </DashboardProvider>
+                } />
+                <Route path="/dashboard/product/:productId" element={
+                  <DashboardProvider>
+                    <Dashboard />
+                  </DashboardProvider>
+                } />
 
-            {/* Dynamic route for product paths */}
-            <Route path="/:productPath" element={<ProductOverview />} />
+                {/* Epic details page */}
+                <Route path="/epics/:epicId" element={<EpicDetails />} />
+                {/* Feature details page */}
+                <Route path="/features/:featureId" element={<FeatureDetails />} />
+                {/* User Story details page */}
+                <Route path="/user-stories/:storyId" element={<UserStoryDetails />} />
+                {/* Acceptance Criteria details page */}
+                <Route path="/acceptance-criteria/:criteriaId" element={<AcceptanceCriteriaDetails />} />
+                {/* Secrets Management page */}
+                <Route path="/secrets" element={<Secrets />} />
+                {/* Organization routes */}
+                <Route path="/organizations/dashboard" element={<OrganizationDashboard />} />
+                <Route path="/organizations/members" element={<OrganizationMembers />} />
+                {/* Other protected routes */}
+                <Route path="/settings" element={<Settings />} />
+              </Route>
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </div>
+              {/* Admin routes with Layout */}
+              <Route element={<AdminRoute><Layout /></AdminRoute>}>
+                <Route path="/admin/invitations" element={<AdminInvitations />} />
+              </Route>
+
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
+        </SecretProvider>
       </ProductProvider>
     </OrganizationProvider>
   );

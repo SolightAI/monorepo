@@ -81,7 +81,7 @@ const UserStoryDetails = () => {
               <div className="bg-white rounded-lg shadow-md p-6 mb-6">
                 <div className="flex items-center mb-4">
                   <CheckSquare size={24} className="text-green-500 mr-3" />
-                  <h1 className="text-3xl font-bold text-gray-800">{story.title}</h1>
+                  <h1 className="text-3xl font-bold text-gray-800">{story.name}</h1>
                 </div>
                 {story.description && (
                   <p className="text-gray-700 mb-4">{story.description}</p>
@@ -132,7 +132,7 @@ const UserStoryDetails = () => {
                       <div className="flex items-start">
                         <CheckSquare size={20} className="text-green-500 mr-3 mt-1 flex-shrink-0" />
                         <div>
-                          <h3 className="text-lg font-medium text-gray-800 mb-1">{criteria.title}</h3>
+                          <h3 className="text-lg font-medium text-gray-800 mb-1">{criteria.name}</h3>
                           <p className="text-gray-600 mb-2">{criteria.description}</p>
                           {criteria.tests_count > 0 && (
                             <p className="text-sm text-gray-500">
@@ -155,7 +155,7 @@ const UserStoryDetails = () => {
         <AddAcceptanceCriteriaModal
           onClose={() => setIsAddCriteriaModalOpen(false)}
           userStoryId={storyId}
-          userStoryTitle={story.title}
+          userStoryTitle={story.name}
           onCriteriaAdded={handleCriteriaAdded}
         />
       )}

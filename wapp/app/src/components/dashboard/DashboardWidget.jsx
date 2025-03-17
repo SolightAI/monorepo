@@ -9,7 +9,7 @@ import { useDashboard } from '../../context/DashboardContext';
  */
 function DashboardWidget({
   id,
-  title,
+  name,
   children,
   className = '',
   allowHide = true,
@@ -47,7 +47,7 @@ function DashboardWidget({
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {/* Widget Header */}
         <div className="flex justify-between items-center px-4 py-3 bg-gray-50 border-b">
-          <h3 className="text-lg font-medium text-gray-700">{title}</h3>
+          <h3 className="text-lg font-medium text-gray-700">{name}</h3>
 
           <div className="flex items-center space-x-2">
             {/* Export button */}
@@ -55,7 +55,7 @@ function DashboardWidget({
               <button
                 onClick={handleExport}
                 className="text-gray-500 hover:text-blue-500 focus:outline-none"
-                title="Export data"
+                name="Export data"
               >
                 <DownloadIcon className="h-4 w-4" />
               </button>
@@ -66,7 +66,7 @@ function DashboardWidget({
               <button
                 onClick={() => toggleWidgetMinimized(id)}
                 className="text-gray-500 hover:text-blue-500 focus:outline-none"
-                title={config.minimized ? 'Maximize' : 'Minimize'}
+                name={config.minimized ? 'Maximize' : 'Minimize'}
               >
                 {config.minimized ? (
                   <MaximizeIcon className="h-4 w-4" />
@@ -81,7 +81,7 @@ function DashboardWidget({
               <button
                 onClick={() => toggleWidgetVisibility(id)}
                 className="text-gray-500 hover:text-red-500 focus:outline-none"
-                title="Hide widget"
+                name="Hide widget"
               >
                 <XIcon className="h-4 w-4" />
               </button>
@@ -102,7 +102,7 @@ function DashboardWidget({
 
 DashboardWidget.propTypes = {
   id: PropTypes.string.isRequired,
-  title: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
   children: PropTypes.node,
   className: PropTypes.string,
   allowHide: PropTypes.bool,

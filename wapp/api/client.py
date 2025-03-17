@@ -7,10 +7,10 @@ BASE_URL = "http://localhost:8000"
 def create_product(name: str, description: str, url: str, documentation: str, links_to_documentation: list | None = None) -> dict:
     if links_to_documentation is None:
         links_to_documentation = []
-    # Ensure each link has title and url properties
+    # Ensure each link has name and url properties
     for link in links_to_documentation:
-        if not isinstance(link, dict) or "title" not in link or "url" not in link:
-            raise ValueError("Each link in links_to_documentation must be a dictionary with 'title' and 'url' keys")
+        if not isinstance(link, dict) or "name" not in link or "url" not in link:
+            raise ValueError("Each link in links_to_documentation must be a dictionary with 'name' and 'url' keys")
     response = requests.post(f"{BASE_URL}/products/", json={"name": name, "description": description, "url": url, "documentation": documentation, "links_to_documentation": links_to_documentation})
 
     if response.status_code != 200:
@@ -34,23 +34,23 @@ def create_feature(epic_id: str, name: str, description: str, url: str) -> dict:
     return response.json()
 
 
-def create_user_story(feature_id: str, title: str, description: str) -> dict:
-    response = requests.post(f"{BASE_URL}/user-stories/", json={"title": title, "description": description, "feature_id": feature_id})
+def create_user_story(feature_id: str, name: str, description: str) -> dict:
+    response = requests.post(f"{BASE_URL}/user-stories/", json={"name": name, "description": description, "feature_id": feature_id})
 
     if response.status_code != 200:
         raise RuntimeError(f"Received non-200 status code ({response.status_code}): {response.text}")
     return response.json()
 
 
-def create_acceptance_criteria(user_story_id: str, title: str, description: str) -> dict:
+def create_acceptance_criteria(user_story_id: str, name: str, description: str) -> dict:
     """Create acceptance criteria for a user story.
 
     Args:
         user_story_id: ID of the user story this acceptance criteria is associated with
-        title: Acceptance criteria title
+        name: Acceptance criteria name
         description: Acceptance criteria description
     """
-    response = requests.post(f"{BASE_URL}/acceptance-criteria/", json={"title": title, "description": description, "user_story_id": user_story_id})
+    response = requests.post(f"{BASE_URL}/acceptance-criteria/", json={"name": name, "description": description, "user_story_id": user_story_id})
 
     if response.status_code != 200:
         raise RuntimeError(f"Received non-200 status code ({response.status_code}): {response.text}")
@@ -75,12 +75,12 @@ def create_test(acceptance_criteria_id: str, name: str, description: str, catego
     return response.json()
 
 
-def create_bug(test_id: str, title: str, description: str, severity: str, url: str, status: str, detected_at: str, screenshots: list[str] | None = None) -> dict:
+def create_bug(test_id: str, name: str, description: str, severity: str, url: str, status: str, detected_at: str, screenshots: list[str] | None = None) -> dict:
     """Create a bug in the database.
 
     Args:
         test_id: ID of the test this bug is associated with
-        title: Bug title
+        name: Bug name
         description: Bug description
         severity: Bug severity (Critical, High, Medium, Low)
         url: URL to the bug
@@ -90,7 +90,7 @@ def create_bug(test_id: str, title: str, description: str, severity: str, url: s
     """
     # Use a type annotation to indicate this is a dict that can hold various types
     data: dict[str, object] = {
-        "title": title,
+        "name": name,
         "description": description,
         "test_id": test_id,
         "severity": severity,
@@ -160,18 +160,18 @@ def update_feature(feature_id: str, name: str | None = None, description: str | 
     return response.json()
 
 
-def update_user_story(user_story_id: str, title: str | None = None, description: str | None = None) -> dict:
+def update_user_story(user_story_id: str, name: str | None = None, description: str | None = None) -> dict:
     """Update a user story with the provided data.
 
     Args:
         user_story_id: ID of the user story to update
-        title: New title for the user story (optional)
+        name: New name for the user story (optional)
         description: New description for the user story (optional)
     """
     # Only include provided fields in the update data
     update_data = {}
-    if title is not None:
-        update_data["title"] = title
+    if name is not None:
+        update_data["name"] = name
     if description is not None:
         update_data["description"] = description
 
@@ -182,18 +182,18 @@ def update_user_story(user_story_id: str, title: str | None = None, description:
     return response.json()
 
 
-def update_acceptance_criteria(acceptance_criteria_id: str, title: str | None = None, description: str | None = None) -> dict:
+def update_acceptance_criteria(acceptance_criteria_id: str, name: str | None = None, description: str | None = None) -> dict:
     """Update acceptance criteria with the provided data.
 
     Args:
         acceptance_criteria_id: ID of the acceptance criteria to update
-        title: New title for the acceptance criteria (optional)
+        name: New name for the acceptance criteria (optional)
         description: New description for the acceptance criteria (optional)
     """
     # Only include provided fields in the update data
     update_data = {}
-    if title is not None:
-        update_data["title"] = title
+    if name is not None:
+        update_data["name"] = name
     if description is not None:
         update_data["description"] = description
 
@@ -243,8 +243,8 @@ def main() -> None:
         "https://example.com",
         "This is a test documentation",
         links_to_documentation=[
-            {"title": "API Documentation", "url": "https://example.com/api-docs"},
-            {"title": "User Guide", "url": "https://example.com/user-guide"}
+            {"name": "API Documentation", "url": "https://example.com/api-docs"},
+            {"name": "User Guide", "url": "https://example.com/user-guide"}
         ]
     )
 
@@ -276,12 +276,12 @@ def main() -> None:
     print(f"Feature updated: {updated_feature['name']}")
 
     print("Updating user story")
-    updated_user_story = update_user_story(user_story["id"], title="Updated User Story Title", description="Updated user story description")
-    print(f"User story updated: {updated_user_story['title']}")
+    updated_user_story = update_user_story(user_story["id"], name="Updated User Story Title", description="Updated user story description")
+    print(f"User story updated: {updated_user_story['name']}")
 
     print("Updating acceptance criteria")
-    updated_acceptance_criteria = update_acceptance_criteria(acceptance_criteria["id"], title="Updated Acceptance Criteria Title", description="Updated acceptance criteria description")
-    print(f"Acceptance criteria updated: {updated_acceptance_criteria['title']}")
+    updated_acceptance_criteria = update_acceptance_criteria(acceptance_criteria["id"], name="Updated Acceptance Criteria Title", description="Updated acceptance criteria description")
+    print(f"Acceptance criteria updated: {updated_acceptance_criteria['name']}")
 
     print("Updating test")
     updated_test = update_test(test["id"], name="Updated Test Name", description="Updated test description", status="PASSED")

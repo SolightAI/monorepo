@@ -614,26 +614,26 @@ def create_successful_tests(product_id: str) -> list[dict]:
         # Create user stories
         user_story_visual = create_user_story(
             feature_id=feature_visual["id"],
-            title=f"As a user, I want the {page} to display correctly on mobile",
+            name=f"As a user, I want the {page} to display correctly on mobile",
             description=f"The {page} should have proper visual formatting on mobile devices"
         )
 
         user_story_functional = create_user_story(
             feature_id=feature_functional["id"],
-            title=f"As a user, I want to use {page} features on mobile",
+            name=f"As a user, I want to use {page} features on mobile",
             description=f"The {page} functionality should work correctly on mobile devices"
         )
 
         # Create acceptance criteria for visual and functional user stories
         acceptance_criteria_visual = create_acceptance_criteria(
             user_story_id=user_story_visual["id"],
-            title=f"The {page} must display properly on all mobile devices",
+            name=f"The {page} must display properly on all mobile devices",
             description=f"All visual elements of the {page} must be properly sized, positioned, and readable on mobile devices"
         )
 
         acceptance_criteria_functional = create_acceptance_criteria(
             user_story_id=user_story_functional["id"],
-            title=f"All {page} features must work correctly on mobile devices",
+            name=f"All {page} features must work correctly on mobile devices",
             description=f"All interactive elements and functionality of the {page} must work as expected on mobile devices"
         )
 

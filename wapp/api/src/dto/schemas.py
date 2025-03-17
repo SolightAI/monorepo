@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pydantic import BaseModel, UUID4
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
 
@@ -157,7 +157,7 @@ class TestCategory(str, Enum):
 
 
 class LinkDocument(BaseModel):
-    title: str
+    name: str
     url: str
 
 
@@ -240,12 +240,12 @@ class Feature(FeatureBase):
 
 class UserStoryCreate(BaseModel):
     feature_id: UUID4
-    title: str
+    name: str
     description: str
 
 
 class UserStoryUpdate(BaseModel):
-    title: Optional[str] = None
+    name: Optional[str] = None
     description: Optional[str] = None
 
 
@@ -260,12 +260,12 @@ class UserStory(UserStoryBase):
 
 class AcceptanceCriteriaCreate(BaseModel):
     user_story_id: UUID4
-    title: str
+    name: str
     description: str
 
 
 class AcceptanceCriteriaUpdate(BaseModel):
-    title: Optional[str] = None
+    name: Optional[str] = None
     description: Optional[str] = None
 
 
@@ -287,6 +287,11 @@ class TestCreate(BaseModel):
     description: str
     url: str
     category: TestCategory
+    preconditions: str
+    steps: str
+    expected_results: str
+    assertions: str
+    secret_ids: Optional[List[UUID4]] = None
 
 
 class TestUpdate(BaseModel):
@@ -295,6 +300,11 @@ class TestUpdate(BaseModel):
     url: Optional[str] = None
     category: Optional[TestCategory] = None
     status: Optional[TestStatus] = None
+    preconditions: Optional[str] = None
+    steps: Optional[str] = None
+    expected_results: Optional[str] = None
+    assertions: Optional[str] = None
+    secret_ids: Optional[List[UUID4]] = None
 
 
 class TestBase(TestCreate):
@@ -306,6 +316,7 @@ class Test(TestBase):
     started_at: Optional[datetime]
     ended_at: Optional[datetime]
     acceptance_criteria_id: UUID4
+    secrets: List[Dict[str, Any]] = []
     bugs: list[BugBase] = []
 
     class Config:
@@ -314,7 +325,7 @@ class Test(TestBase):
 
 class BugCreate(BaseModel):
     test_id: UUID4
-    title: str
+    name: str
     description: str
     severity: SeverityLevel
     screenshots: list[str]
@@ -369,3 +380,117 @@ class OrganizationHealth(BaseModel):
     total_features: int
     total_tests: int
     total_bugs: int
+
+
+class SecretType(str, Enum):
+    """Type of secret for categorization and handling."""
+    USERNAME_PASSWORD = "username_password"
+    API_KEY = "api_key"
+    ENVIRONMENT_VARIABLE = "environment_variable"
+    CONNECTION_STRING = "connection_string"
+    OAUTH_CREDENTIAL = "oauth_credential"
+    OTHER = "other"
+
+
+class SecretBase(BaseModel):
+    """Base class for Secret models."""
+    name: str
+    description: Optional[str] = None
+    type: SecretType
+    organization_id: UUID4
+    product_id: Optional[UUID4] = None
+    expires_at: Optional[datetime] = None
+
+
+class SecretCreate(SecretBase):
+    """Schema for creating a new secret."""
+    values: Dict[str, str]
+
+
+class SecretUpdate(BaseModel):
+    """Schema for updating an existing secret."""
+    name: Optional[str] = None
+    description: Optional[str] = None
+    type: Optional[SecretType] = None
+    organization_id: Optional[UUID4] = None
+    product_id: Optional[UUID4] = None
+    expires_at: Optional[datetime] = None
+
+
+class Secret(SecretBase):
+    """Schema for a secret with its metadata."""
+    id: UUID4
+    created_at: datetime
+    updated_at: datetime
+    created_by_id: int
+
+    class Config:
+        from_attributes = True
+
+
+class SecretValueBase(BaseModel):
+    """Base class for SecretValue models."""
+    key: str
+    is_required: bool = True
+
+
+class SecretValueCreate(SecretValueBase):
+    """Schema for creating a new secret value."""
+    value: str
+    secret_id: UUID4
+
+
+class SecretValueUpdate(BaseModel):
+    """Schema for updating an existing secret value."""
+    value: str
+
+
+class SecretValue(SecretValueBase):
+    """Schema for a secret value."""
+    id: UUID4
+    created_at: datetime
+    updated_at: datetime
+    secret_id: UUID4
+    # Note: actual value is not included in responses
+
+    class Config:
+        from_attributes = True
+
+
+class SecretWithValues(Secret):
+    """Schema for a secret with its decrypted values."""
+    values: Dict[str, str]
+
+
+class SecretAccess(BaseModel):
+    """Schema for logging secret access."""
+    id: UUID4
+    secret_id: UUID4
+    user_id: int
+    accessed_at: datetime
+    action: str  # view, create, update, delete
+
+    class Config:
+        from_attributes = True
+
+
+class TestSecretCreate(BaseModel):
+    """Schema for creating a new test-secret relationship."""
+    test_id: UUID4
+    secret_id: UUID4
+
+
+class TestSecretBase(TestSecretCreate):
+    """Base class for TestSecret models."""
+    id: UUID4
+    created_at: datetime
+
+
+class TestSecret(TestSecretBase):
+    """Schema for a test-secret relationship."""
+    # Secret metadata for convenience
+    secret_name: Optional[str] = None
+    secret_type: Optional[SecretType] = None
+
+    class Config:
+        from_attributes = True
