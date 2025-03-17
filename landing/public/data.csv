@@ -68,15 +68,7 @@ The content is displayed in bullet points, where each bullet point has a heading
 2. Either increase the numbering font size or decrease the heading font size to maintain consistency.
 
 3. Use a typographical hierarchy that maintains clarity while aligning with the website’s design style."
-Medium,"Transparency in Coverage Links Lead to ""Access Denied"" Error","On the Transparency in Coverage page (accessible from the footer), two links are provided. However, clicking on either of them results in an XML error message instead of the expected content:
-
-This XML file does not appear to have any style information associated with it. The document tree is shown below. 
-<Error> 
-<Code>AccessDenied</Code> 
-<Message>Access denied</Message> 
-</Error>
-
-This suggests that the linked resources are either restricted or improperly configured.",https://smith.ai/transparency-in-coverage,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/two.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. Users are unable to access the intended Transparency in Coverage information.
+Medium,"Transparency in Coverage Links Lead to ""Access Denied"" Error","On the Transparency in Coverage page (accessible from the footer), two links are provided. However, clicking on either of them results in an XML error message instead of the expected content.",https://smith.ai/transparency-in-coverage,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/two.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. Users are unable to access the intended Transparency in Coverage information.
 
 2. This could lead to compliance issues if this information is legally required to be publicly available.
 
@@ -85,23 +77,7 @@ This suggests that the linked resources are either restricted or improperly conf
 2. Ensure the links point to publicly accessible resources.
 
 3. If the content is restricted intentionally, display a proper message informing users instead of showing an XML error."
-Medium,Submission with Spaces in Business Name Field Causes Modal to Become Blank,"For all forms on the following links, when all fields are filled correctly but the Business Name field contains only spaces, clicking 'Send' does not display the expected 'Thank You' message. Instead, the modal becomes blank and remains on the screen indefinitely. On the following pages: https://smith.ai/features/24-7-answering-service
-https://smith.ai/features/outbound-calls-for-sales-and-support
-https://smith.ai/features/24-7-website-chat
-https://smith.ai/features/lead-screening-intake-service
-https://smith.ai/features/appointment-scheduling-service
-https://smith.ai/features/crm-zapier-integration
-https://smith.ai/features/bilingual-answering-service
-https://smith.ai/features/warm-transfer-answering-service
-https://smith.ai/features/payment-collection-service
-https://smith.ai/features/spam-blocking-answering-service
-https://smith.ai/features/call-intelligence-and-metadata
-https://smith.ai/features/outbound-call-back-service
-https://smith.ai/features/temporary-receptionist-front-desk-service
-https://smith.ai/features/sms-email-follow-up
-https://smith.ai/features/call-recording-transcription
-https://smith.ai/features/after-hours-answering-service
-https://smith.ai/features/overflow-call-answering-service",https://smith.ai/features/24-7-answering-service,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/three.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. Creates a poor user experience as there is no confirmation of successful form submission.
+Medium,Submission with Spaces in Business Name Field Causes Modal to Become Blank,"For all forms on the following links, when all fields are filled correctly but the Business Name field contains only spaces, clicking 'Send' does not display the expected 'Thank You' message. Instead, the modal becomes blank and remains on the screen indefinitely.",https://smith.ai/features/24-7-answering-service,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/three.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. Creates a poor user experience as there is no confirmation of successful form submission.
 
 2. Users may think the form is broken or that their submission failed.
 
@@ -117,20 +93,7 @@ Medium,"Low Contrast on ""Return to Login"" Button Makes Text Hard to Read","On 
 3. Creates an inconsistent user experience compared to other buttons on the site.","1. Increase contrast by changing either the font color or button background color to ensure readability.
 
 2. Follow WCAG (Web Content Accessibility Guidelines) by maintaining a minimum 4.5:1 contrast ratio for text against its background."
-High,"""Learn More"" button above the footer on Industry & Company sections is non-functional","On the Industry and Company pages accessed from the ""Solutions"" dropdown in the navigation bar, a ""Learn More"" button is present just above the footer links. However, clicking this button does not trigger any action or navigation, making it non-functional. On the following pages: https://smith.ai/industries/legal-law-firms-answering-service 
-https://smith.ai/industries/home-services-answering-service 
-https://smith.ai/industries/software-saas-companies-answering-service 
-https://smith.ai/industries/marketing-design-answering-service 
-https://smith.ai/industries/home-office-contractors-answering-service 
-https://smith.ai/industries/finance-accounting-answering-service 
-https://smith.ai/industries/medical-wellness-answering-service 
-https://smith.ai/company/solo-business 
-https://smith.ai/company/small-business 
-https://smith.ai/company/mid-market-companies 
-https://smith.ai/company/enterprise 
-https://smith.ai/company/franchise-owner 
-https://smith.ai/company/agency 
-https://smith.ai/company/consulting-firm",https://smith.ai/industries/legal-law-firms-answering-service,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/seven.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. User Confusion – Clicking the button does not lead anywhere, leading to a poor user experience.
+High,"""Learn More"" button above the footer on Industry & Company sections is non-functional","On the Industry and Company pages accessed from the ""Solutions"" dropdown in the navigation bar, a ""Learn More"" button is present just above the footer links. However, clicking this button does not trigger any action or navigation, making it non-functional.",https://smith.ai/industries/legal-law-firms-answering-service,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/seven.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. User Confusion – Clicking the button does not lead anywhere, leading to a poor user experience.
 
 2. Navigation Issue – If this button is meant to provide additional information, its non-functionality prevents users from accessing that content.
 
