@@ -18,6 +18,8 @@ Low,Excessive vertical spacing in the hero section on mobile,"The hero section u
 Low,Fixed header overlay potentially obscuring page content,"The header uses a fixed-top position. On mobile, it obscures top content unless properly offset or padded. This hampers readability and user interaction.",https://www.predictiveindex.com/software/,predictiveindex.com,https://screenshot-pi.s3.fr-par.scw.cloud/nine.png,-,-,,
 Medium,Overly Large Hero Heading Font Size,"The main hero heading font size (50px) is too large, causing excessive text wrapping and potentially pushing other elements off-screen on mobile.",https://www.predictiveindex.com/software/,predictiveindex.com,https://screenshot-pi.s3.fr-par.scw.cloud/ten.png,-,-,,
 Medium,Table Layout Horizontal Overflow,"Table in “Get Even More with PI Inspire” section causes horizontal overflow, forcing horizontal scrolling.",https://www.predictiveindex.com/software/managing/,predictiveindex.com,https://screenshot-pi.s3.fr-par.scw.cloud/eleven.png,-,-,,
+Medium,Back button redirects inconsistently from Inspiration records,"When a user opens a record from the Inspiration section and clicks the Back button, the navigation behavior is inconsistent. In some cases, the user is correctly redirected back to the Inspiration page, while in other cases, they are redirected to the Gammas page.",https://gamma.app/#inspiration,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/eight.png,-,Ensure that the Back button consistently returns users to the Inspiration page after viewing a record. Check the routing logic and confirm that all records have the correct navigation behavior.,,
+Medium,"Templates, Themes, and Custom Fonts missing on mobile","On desktop, the homepage navigation panel includes options for Templates, Themes, and Custom Fonts to allow customization. However, these options are completely missing on mobile, with no menu or alternative access.",https://gamma.app/,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/six.png,-,"Implement a mobile-accessible menu or navigation panel to allow users to access Templates, Themes, and Custom Fonts.",,
 Medium,Search Icon and Placeholder Text Overlap in Search Bar,"On the Templates page, when clicking on the search bar, the search icon and the placeholder text overlap, making the text difficult to read and affecting the input experience.",https://gamma.app/templates,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/one.png,"Desktop - Mobile
 Chrome - Firefox - Edge - Safari","1. Adjust the positioning of the search icon and placeholder text to prevent overlap.
 
@@ -48,11 +50,9 @@ High,"""Publish/Present"" button, Theme button, and AI Icon missing on mobile","
 - Share a Follow Link
 
 Additionally, the Theme Button, which allows users to change the appearance of their presentations, and the AI Icon (Edit All Cards with AI), which provides AI-powered editing features, are also missing on mobile. There is no alternative way to access these functions.",https://gamma.app/,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/five.png,-,"Implement a mobile-friendly version of the Publish/Present buttons, Theme button, and AI editing icon, either in a dropdown or a dedicated mobile menu.",,
-Medium,"Templates, Themes, and Custom Fonts missing on mobile","On desktop, the homepage navigation panel includes options for Templates, Themes, and Custom Fonts to allow customization. However, these options are completely missing on mobile, with no menu or alternative access.",https://gamma.app/,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/six.png,-,"Implement a mobile-accessible menu or navigation panel to allow users to access Templates, Themes, and Custom Fonts.",,
 Low,Broken Image Icon Appears After Deleting All AI-Generated Images,"When all AI-generated images are deleted from the side panel in the AI Images section, the panel turns blank, but a broken image icon appears in the top-left corner instead of a proper placeholder or reset state.",https://gamma.app/#images,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/seven.png,-,"1. Implement a proper placeholder or message indicating no images are available.
 
 2. Ensure that after all images are deleted, the UI resets cleanly without referencing a missing image.",,
-Medium,Back button redirects inconsistently from Inspiration records,"When a user opens a record from the Inspiration section and clicks the Back button, the navigation behavior is inconsistent. In some cases, the user is correctly redirected back to the Inspiration page, while in other cases, they are redirected to the Gammas page.",https://gamma.app/#inspiration,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/eight.png,-,Ensure that the Back button consistently returns users to the Inspiration page after viewing a record. Check the routing logic and confirm that all records have the correct navigation behavior.,,
 Low,Inconsistent Font Size Between Bullet Point Headings and Numbering,"On the following pages:
 
 1. Terms of Service (https://smith.ai/receptionists/terms )
@@ -85,9 +85,7 @@ This suggests that the linked resources are either restricted or improperly conf
 2. Ensure the links point to publicly accessible resources.
 
 3. If the content is restricted intentionally, display a proper message informing users instead of showing an XML error."
-Medium,"Submission with Spaces in Business Name Field Causes Modal to Become Blank
-
-https://smith.ai/features/24-7-answering-service
+Medium,Submission with Spaces in Business Name Field Causes Modal to Become Blank,"For all forms on the following links, when all fields are filled correctly but the Business Name field contains only spaces, clicking 'Send' does not display the expected 'Thank You' message. Instead, the modal becomes blank and remains on the screen indefinitely. On the following pages: https://smith.ai/features/24-7-answering-service
 https://smith.ai/features/outbound-calls-for-sales-and-support
 https://smith.ai/features/24-7-website-chat
 https://smith.ai/features/lead-screening-intake-service
@@ -103,7 +101,7 @@ https://smith.ai/features/temporary-receptionist-front-desk-service
 https://smith.ai/features/sms-email-follow-up
 https://smith.ai/features/call-recording-transcription
 https://smith.ai/features/after-hours-answering-service
-https://smith.ai/features/overflow-call-answering-service","For all forms on the following links, when all fields are filled correctly but the Business Name field contains only spaces, clicking 'Send' does not display the expected 'Thank You' message. Instead, the modal becomes blank and remains on the screen indefinitely.",https://smith.ai/features/24-7-answering-service,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/three.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. Creates a poor user experience as there is no confirmation of successful form submission.
+https://smith.ai/features/overflow-call-answering-service",https://smith.ai/features/24-7-answering-service,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/three.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. Creates a poor user experience as there is no confirmation of successful form submission.
 
 2. Users may think the form is broken or that their submission failed.
 
@@ -119,10 +117,29 @@ Medium,"Low Contrast on ""Return to Login"" Button Makes Text Hard to Read","On 
 3. Creates an inconsistent user experience compared to other buttons on the site.","1. Increase contrast by changing either the font color or button background color to ensure readability.
 
 2. Follow WCAG (Web Content Accessibility Guidelines) by maintaining a minimum 4.5:1 contrast ratio for text against its background."
-High,"Invalid Email/Mobile Input Displays Raw API Response Instead of UI Error Message on the following pages:
+High,"""Learn More"" button above the footer on Industry & Company sections is non-functional","On the Industry and Company pages accessed from the ""Solutions"" dropdown in the navigation bar, a ""Learn More"" button is present just above the footer links. However, clicking this button does not trigger any action or navigation, making it non-functional. On the following pages: https://smith.ai/industries/legal-law-firms-answering-service 
+https://smith.ai/industries/home-services-answering-service 
+https://smith.ai/industries/software-saas-companies-answering-service 
+https://smith.ai/industries/marketing-design-answering-service 
+https://smith.ai/industries/home-office-contractors-answering-service 
+https://smith.ai/industries/finance-accounting-answering-service 
+https://smith.ai/industries/medical-wellness-answering-service 
+https://smith.ai/company/solo-business 
+https://smith.ai/company/small-business 
+https://smith.ai/company/mid-market-companies 
+https://smith.ai/company/enterprise 
+https://smith.ai/company/franchise-owner 
+https://smith.ai/company/agency 
+https://smith.ai/company/consulting-firm",https://smith.ai/industries/legal-law-firms-answering-service,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/seven.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. User Confusion – Clicking the button does not lead anywhere, leading to a poor user experience.
 
-https://smith.ai/receptionists/almost-there 
-https://agent.smith.ai/pro/signup_post/","On the Smith.ai Sign-up Page, when a user enters invalid data in both the Email Address and Mobile Number fields and clicks the ""Get Started Now"" button, they are redirected to a blank page displaying a raw API response in JSON format instead of a proper error message.
+2. Navigation Issue – If this button is meant to provide additional information, its non-functionality prevents users from accessing that content.
+
+3. Potential Conversion Loss – If the button is supposed to guide users to important pages (e.g., pricing, contact, or sign-up), a non-functional button could lead to missed opportunities.","1. Ensure the ""Learn More"" button is correctly linked to a relevant page.
+
+2. If no additional content exists, consider removing the button to avoid confusion.
+
+3. Verify that JavaScript or CSS issues are not preventing the button from functioning."
+High,Invalid Email/Mobile Input Displays Raw API Response Instead of UI Error Message on the following pages,"On the Smith.ai Sign-up Page, when a user enters invalid data in both the Email Address and Mobile Number fields and clicks the ""Get Started Now"" button, they are redirected to a blank page displaying a raw API response in JSON format instead of a proper error message.
 
 Error Message Shown:
 { 
@@ -150,30 +167,6 @@ Medium,Validation message on Login page is cropped on mobile and not fully visib
 2. Allow scrolling or zooming to view the full message.
 
 3. Adjust the font size or container width to prevent cropping."
-High,"""Learn More"" button above the footer on Industry & Company sections is non-functional for the following pages:
-
-https://smith.ai/industries/legal-law-firms-answering-service 
-https://smith.ai/industries/home-services-answering-service 
-https://smith.ai/industries/software-saas-companies-answering-service 
-https://smith.ai/industries/marketing-design-answering-service 
-https://smith.ai/industries/home-office-contractors-answering-service 
-https://smith.ai/industries/finance-accounting-answering-service 
-https://smith.ai/industries/medical-wellness-answering-service 
-https://smith.ai/company/solo-business 
-https://smith.ai/company/small-business 
-https://smith.ai/company/mid-market-companies 
-https://smith.ai/company/enterprise 
-https://smith.ai/company/franchise-owner 
-https://smith.ai/company/agency 
-https://smith.ai/company/consulting-firm","On the Industry and Company pages accessed from the ""Solutions"" dropdown in the navigation bar, a ""Learn More"" button is present just above the footer links. However, clicking this button does not trigger any action or navigation, making it non-functional.",https://smith.ai/industries/legal-law-firms-answering-service,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/seven.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. User Confusion – Clicking the button does not lead anywhere, leading to a poor user experience.
-
-2. Navigation Issue – If this button is meant to provide additional information, its non-functionality prevents users from accessing that content.
-
-3. Potential Conversion Loss – If the button is supposed to guide users to important pages (e.g., pricing, contact, or sign-up), a non-functional button could lead to missed opportunities.","1. Ensure the ""Learn More"" button is correctly linked to a relevant page.
-
-2. If no additional content exists, consider removing the button to avoid confusion.
-
-3. Verify that JavaScript or CSS issues are not preventing the button from functioning."
 Medium,Some External Article Links Display a 404 Error,"Certain external article links on the Press Releases page lead to a ""404 Not Found"" error, indicating that the content is either missing or has been removed from the source website.
 
 Examples:
@@ -199,3 +192,13 @@ This behavior creates confusion and disrupts the signup flow.",https://smith.ai/
 
 3. Replace the raw JSON error message with a user-friendly alert, such as:
 ""You have already signed up. Please continue your setup or log in."""
+High,Buy Button on Branding page leads to a page not found error,"On the Branding Page inside Settings, clicking the text Button leads to an error. 'Page Not Found'",https://app.squareup.com/dashboard/payment-links/settings/branding,squareup,https://screenshots-square.s3.fr-par.scw.cloud/1.png,"Desktop & Mobile, Chrome, Firefox, Edge, Safari",Investigate the handling between pages,,
+Medium,Large Businesses Page 404,"On the Home Page, clicking on the 'Large Businesses' link leads to a 404",https://squareup.com/us/en,squareup,https://screenshots-square.s3.fr-par.scw.cloud/2.png,"Desktop & Mobile, all major browsers",-,,
+Medium,Learn more Button redirect to the Home Page,On the Sign in Page when user the user Click on Learn More it does not show any content and redirects to the Home Page,https://app.squareup.com/login?lang_code=en-us,squareup,https://screenshots-square.s3.fr-par.scw.cloud/3.png,"Desktop & Mobile, all browsers","include the Content for ""Page"" For Learn More",,
+Medium,Read Article Links issue,"On the Marketing page, moving some 'Read Article' links are non-clickable",https://squareup.com/us/en/marketing,squareup,https://screenshots-square.s3.fr-par.scw.cloud/4.png,"Desktop, all browsers",Investigate the iframe event handling and implement fixes to ensure smooth article reading functionality.,,
+Medium,Misaligned Order Buttons,"On the Gift Cards Pricing page, the 'Order' Buttons are not aligned",https://squareup.com/us/en/gift-cards/pricing,squareup,https://screenshots-square.s3.fr-par.scw.cloud/5.png,"Desktop, all browsers",Reorganize the layout to ensure that content is properly aligned and structured.,,
+Medium,Space-Saving POS Scroll Issue,"On the Hardware Kiosk page, the ""Looking for a space-saving POS?"" section scrolls left until it reaches a black area, disrupting the intended view.",https://squareup.com/us/en/hardware/kiosk,squareup,https://screenshots-square.s3.fr-par.scw.cloud/6.png,"Desktop, all major browsers",Adjust horizontal scroll boundaries to prevent scrolling into the undesired black area.,,
+Low,Privacy Policy Color Change,"The Privacy Policy link on the Hardware Kiosk page changes its color to black when hovering over it, causing visual inconsistency.",https://squareup.com/us/en/hardware/kiosk,squareup,https://screenshots-square.s3.fr-par.scw.cloud/8.png,"Desktop & Mobile, all browsers",Update the CSS styling to maintain a consistent link color across all states.,,
+Low,"Misaligned ""Stay Up to Date"" Section","On the Fitness industry page, the ""Stay Up to Date"" div is misaligned (shifted left), affecting the visual balance of the page.",https://squareup.com/us/en/industry/fitness,squareup,https://screenshots-square.s3.fr-par.scw.cloud/8.png,"Desktop & Mobile, all browsers",Center-align the section to enhance visual consistency.,,
+Low,FAQ Toggle Double Open Issue,"On the Software page, clicking the ""+"" in the FAQ section causes both FAQ divs to open simultaneously, leading to a confusing display.",https://squareup.com/us/en/software,squareup,https://screenshots-square.s3.fr-par.scw.cloud/9.png,"Desktop & Mobile, all major browsers",Modify the FAQ toggle logic to ensure that only the selected FAQ opens at a time.,,
+Medium,Get Details link 404,"On the Restaurants Page, in the FAQ section, under the 'How long will it take to get started with Square for Restaurants?' question, clicking on the 'Get the details' link redirects to a 404",https://squareup.com/us/en/point-of-sale/restaurants,squareup,https://screenshots-square.s3.fr-par.scw.cloud/9.png,"Desktop & Mobile, all major browsers",-,,
