@@ -16,7 +16,6 @@ from fixtures.generate_auth_session import generate_auth_session
 from generate_tests.dto import Product, Test, Epic, Feature, UserStory, AcceptanceCriteria, TestCategory
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from redis import Redis
 
 
 PROMPT = """
@@ -38,11 +37,11 @@ Name: {feature.name}
 Description: {feature.description}
 
 == User Story ==
-User Story: {user_story.title}
+User Story: {user_story.name}
 Description: {user_story.description}
 
 == Acceptance Criteria ==
-Title: {acceptance_criteria.title}
+Name: {acceptance_criteria.name}
 Description: {acceptance_criteria.description}
 
 URL of the page to start the test: {url}
@@ -97,15 +96,6 @@ LLM_CLIENT = AzureChatOpenAI(
     api_key=SecretStr(azure_openai_key),
     temperature=0.0,
 )
-
-if (redis_host := os.getenv('REDIS_HOST')) is None:
-    raise ValueError('REDIS_HOST is not set')
-
-if (redis_port := os.getenv('REDIS_PORT')) is None:
-    raise ValueError('REDIS_PORT is not set')
-
-
-redis_client = Redis(host=redis_host, port=int(redis_port), db=0)
 
 
 router = APIRouter(prefix="/generate-tests")
@@ -182,7 +172,7 @@ async def _generate_test_category_for_acceptance_criteria(
     ))
 
     # TODO: not only on the first url, but on all the urls
-    await context.navigate_to(feature.urls[0])  # NOTE: allows to load the localStorage
+    await context.navigate_to(feature.urls[0])  # allowing us to load the localStorage
 
     if localStorage is not None:
         load_script = """
@@ -212,7 +202,7 @@ async def _generate_test_category_for_acceptance_criteria(
         llm=LLM_CLIENT,
         initial_actions=[{'go_to_url': {'url': feature.urls[0]}}, {'go_to_url': {'url': feature.urls[0]}}],
         browser_context=context,
-        # generate_gif=gif_output_path,
+        # generate_gif=gif_output_path,  # deactivated cause it leads to thread blocking
     )
 
     try:
@@ -228,11 +218,13 @@ async def _generate_test_category_for_acceptance_criteria(
         raise Exception("Failed to generate tests for acceptance criteria")
 
     if result is None:
-        logger.error("Couldn't generate tests for acceptance criteria for %s", acceptance_criteria.title)
-        logger.debug("History of the agent when generating tests for acceptance criteria for %s: %s", acceptance_criteria.title, history.action_results())
+        logger.error("Couldn't generate tests for acceptance criteria for %s", acceptance_criteria.name)
+        logger.debug("History of the agent when generating tests for acceptance criteria for %s: %s", acceptance_criteria.name, history.action_results())
         raise Exception("Failed to generate tests for acceptance criteria, result is None")
 
-    return _parse_test_cases(result)
+    result = _parse_test_cases(result)
+
+    return [_test | {'category': category_of_test, "acceptance_criteria_id": acceptance_criteria.id, "url": feature.urls[0]} for _test in result]
 
 
 def handle_background_task_errors(func):
@@ -263,9 +255,6 @@ def handle_background_task_errors(func):
                 "traceback": error_traceback
             }
 
-            # Re-raise the exception if needed for debugging
-            # raise
-
             return None
 
     return wrapper
@@ -274,14 +263,13 @@ def handle_background_task_errors(func):
 @handle_background_task_errors
 async def background_generate_tests_for_acceptance_criteria(
     task_id: str,
-    credentials: dict[str, str],
     product: Product,
     epic: Epic,
     feature: Feature,
     user_story: UserStory,
     acceptance_criteria: AcceptanceCriteria,
     categories_of_test: list[TestCategory],
-    # cookies: dict[str, str] | None = None,
+    secrets: dict[str, dict[str, str]],
     gif_output_path: str | bool = False,
 ) -> list[Test]:
 
@@ -290,8 +278,7 @@ async def background_generate_tests_for_acceptance_criteria(
     try:
         auth_session = await generate_auth_session(
             url=product.url,
-            username=SecretStr(credentials['username']),
-            password=SecretStr(credentials['password']),
+            secrets=secrets,
         )
     except Exception as e:
         logger.error(f"Error in background task {task_id}: {e}")
@@ -324,21 +311,22 @@ async def background_generate_tests_for_acceptance_criteria(
 
         logger.info(f"Gathering tests for {product.url}")
         results = await asyncio.gather(*coroutines)
+        results = [_test for tests_per_category in results for _test in tests_per_category]
         logger.info(f"Gathered tests for {product.url}")
 
-    task_ids[task_id] = {"status": "done", "results": results}
+    task_ids[task_id] = {"status": "completed", "results": results}
 
     return results
 
 
 @router.post("/generate-tests-for-acceptance-criteria")
 async def generate_tests_for_acceptance_criteria(
-    product_id: str,  # used to retrieve credentials from Redis
     product: Product,
     epic: Epic,
     feature: Feature,
     user_story: UserStory,
     acceptance_criteria: AcceptanceCriteria,
+    secrets: dict[str, dict[str, str]],
     background_task: BackgroundTasks,
 ) -> str:
 
@@ -347,16 +335,13 @@ async def generate_tests_for_acceptance_criteria(
     background_task.add_task(
         background_generate_tests_for_acceptance_criteria,
         task_id=task_id,
-        credentials={
-            'username': redis_client.get(product_id + ':username').decode('utf-8'),  # TODO: use vault
-            'password': redis_client.get(product_id + ':password').decode('utf-8'),  # TODO: use vault
-        },
+        secrets=secrets,
         product=product,
         epic=epic,
         feature=feature,
         user_story=user_story,
-        categories_of_test=[TestCategory.SMOKE],
         acceptance_criteria=acceptance_criteria,
+        categories_of_test=[TestCategory.SMOKE],
     )
 
     task_ids[task_id] = {"status": "pending", "results": None}
@@ -364,8 +349,8 @@ async def generate_tests_for_acceptance_criteria(
     return task_id
 
 
-@router.get("/get-tests-for-acceptance-criteria")
-async def get_tests_for_acceptance_criteria(
+@router.get("/get-test-generation-status/{task_id}")
+async def get_test_generation_status(
     task_id: str,
 ) -> dict[str, Any]:
 
@@ -376,57 +361,5 @@ async def get_tests_for_acceptance_criteria(
 
 
 # TODO: Test both w/ and w/o the browser-use to see what leads to better results
-# TODO: give access to dog RAD to the agent can ask questions about the product
+# TODO: give access to doc RAD so the agent can ask questions about the product
 # TODO: give a Laneo doc for LLMs (super useful both for cursor and for the QA agent)
-
-
-if __name__ == '__main__':
-
-    auth_session = asyncio.run(generate_auth_session(
-        url='http://localhost:3000',
-        username=SecretStr(os.getenv('LANEO_USERNAME')),
-        password=SecretStr(os.getenv('LANEO_PASSWORD')),
-    ))
-
-    result = asyncio.run(generate_tests_for_acceptance_criteria(
-        product=Product(
-            url='http://localhost:3000',
-            name='Laneo',
-            description='AI Agent for Quality Assurance',
-            documentation=(
-                'Laneo automatically tests your product, weither it\'s at each release or at each commit. '
-                'It\'s like a QA team that never sleeps.\n'
-                'HOW IT WORKS:\n'
-                'Just provide the link to your public documentation and Laneo will read it to generate tests.\n'
-                'Our Agent will start by detecting the Epics of your product, then the Features of each Epic, then the User Stories of each Feature.\n'
-                'Then, for each User Story, the Agent will generate the Acceptance Criteria.\n'
-                'Finally, for each Acceptance Criteria, the Agent will generate tests.\n'
-                'DASHBOARD:\n'
-                'Laneo also provides a dashboard to track the tests and the results.\n'
-            ),
-            links_to_documentation=[],
-        ),
-        epic=Epic(
-            name='Dashboard',
-            description='Enable the user to have an overview of the tests, the results and potential bugs.\n'
-        ),
-        feature=Feature(
-            urls=['http://localhost:3000/dashboard'],
-            name='Dashboard personalization',
-            description='The user should be able to personalize their dashboard.',
-            dependents=[],
-            dependencies=[],
-        ),
-        user_story=UserStory(
-            title='Hiding information',
-            description='As a user, I want to be able to remove information that is not relevant to me by clicking on the "x" button.',
-        ),
-        acceptance_criteria=AcceptanceCriteria(
-            title='Hiding information',
-            description='Given a widget on the dashboard, when the user clicks on the "x" button (in the top right corner), then the widget should be removed from the dashboard.',
-        ),
-        categories_of_test=[value for value in TestCategory],
-        # gif_output_path='gifs',  # NOTE: do not use this, it leads to thread-locks
-        cookies=auth_session['cookies'],  # dict of cookies (generated by fixtures.login)
-        localStorage=auth_session['localStorage'],  # dict of localStorage (generated by fixtures.login)
-    ))

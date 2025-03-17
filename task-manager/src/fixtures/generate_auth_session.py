@@ -7,20 +7,15 @@ from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 
 
-# PROMPT = """
-# You are an AI assistant acting as a test automation engineer. Your task is to login to the application.
-
-# If both the google oauth and the email/password login are available, you should try the email/password login first.
-# If the email/password login is not available, you should use the google oauth login.
-
-# If the provided credentials are invalid, you should raise an error message that must include "[AN ERROR OCCURED]".
-# In case of invalid credentials, you will probably see an error message on screen.
-# However, if the credentials are valid, you will not see any message on screen confirming the login. It's up to you to detect if the login was successful.
-# """.strip()
-
-
 PROMPT = """
 You are an AI assistant acting as a test automation engineer. Your task is to login to the application.
+
+If both the google oauth and the email/password login are available, you should try the email/password login first.
+If the email/password login is not available, you should use the google oauth login.
+
+If the provided credentials are invalid, you should raise an error message that must include "[AN ERROR OCCURED]".
+In case of invalid credentials, you will probably see an error message on screen.
+However, if the credentials are valid, you will not see any message on screen confirming the login. It's up to you to detect if the login was successful.
 """.strip()
 
 
@@ -45,8 +40,7 @@ logger = getLogger(__name__)
 
 async def generate_auth_session(
     url: str,
-    username: SecretStr,
-    password: SecretStr,
+    secrets: dict[str, dict[str, str]],
     gif_output_path: str | bool = False,
 ) -> dict[str, dict[str, str]]:
 
@@ -54,13 +48,18 @@ async def generate_auth_session(
     Login to the webapp and return the generated cookies
     """
 
-    if (
-        username.get_secret_value() is None or len(username.get_secret_value()) == 0
-        or password.get_secret_value() is None or len(password.get_secret_value()) == 0
-    ):
-        raise ValueError('Username or password is empty')
+    if 'username_password' not in secrets:
+        raise ValueError('No username or password found in secrets')
 
-    logger.info(f"Generating cookies for {url} with username {username.get_secret_value()} and password {password.get_secret_value()}")
+    sensitive_data = {f"{_sec_category}:{_sec_name}": _sec_value for _sec_category, _secrets in secrets.items() for _sec_name, _sec_value in _secrets.items()}
+
+    # if (
+    #     username.get_secret_value() is None or len(username.get_secret_value()) == 0
+    #     or password.get_secret_value() is None or len(password.get_secret_value()) == 0
+    # ):
+    #     raise ValueError('Username or password is empty')
+
+    # logger.info(f"Generating cookies for {url} with username {username.get_secret_value()} and password {password.get_secret_value()}")
 
     browser = Browser(
         config=BrowserConfig(
@@ -81,10 +80,10 @@ async def generate_auth_session(
     agent = Agent(
         task=PROMPT,
         llm=CLIENT,
-        sensitive_data={'username': username.get_secret_value(), 'password': password.get_secret_value()},
+        sensitive_data=sensitive_data,
         initial_actions=[{'go_to_url': {'url': url}}, {'go_to_url': {'url': url}}],  # twice cause it some case we have a redirect at the first try
         browser_context=context,
-        # generate_gif=gif_output_path,
+        # generate_gif=gif_output_path,  # NOTE: deactivated cause it leads to thread blocking
     )
 
     try:

@@ -18,9 +18,9 @@ RUN playwright install && playwright install-deps
 COPY . .
 
 # Expose the port the app runs on
-EXPOSE 8001
+EXPOSE 9000
 
 WORKDIR /app/src
 
 # Command to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "9000", "--reload"]

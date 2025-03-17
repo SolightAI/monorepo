@@ -43,12 +43,13 @@ class Feature(BaseModel):
 
 
 class UserStory(BaseModel):
-    title: str
+    name: str
     description: str
 
 
 class AcceptanceCriteria(BaseModel):
-    title: str
+    id: str
+    name: str
     description: str
 
 

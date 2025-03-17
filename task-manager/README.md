@@ -1,47 +1,45 @@
-# Jira Action API
+# Task Manager
 
-A FastAPI server that handles Jira issue actions with support for long-running jobs.
+A FastAPI server that generates automated tests based on acceptance criteria.
 
 ## Features
 
-- Trigger jobs from Jira actions
-- Support for long-running jobs (up to 10 minutes or more)
-- Persistent job processing with Celery
-- Get job results
+- Generate automated tests from acceptance criteria
+- Browser automation for authentication
+- Support for authentication fixture generation
+- API endpoints for test generation
 
 ## Requirements
 
 - Python 3.7+
-- Redis (for Celery message broker)
-- Docker and Docker Compose (optional, for containerized deployment)
+- Docker and Docker Compose (recommended for containerized deployment)
+- Azure OpenAI API key for AI-powered test generation
+
+## Project Status
+
+**Important Note**: Only the `fixtures` and `generate_tests` modules are currently up-to-date and maintained. Other components in the codebase are deprecated.
 
 ## Setup
 
+### Environment Variables
+
+The following environment variables are required:
+
+```bash
+AZURE_OPENAI_KEY=your_openai_key
+AZURE_OPENAI_ENDPOINT=your_openai_endpoint
+```
+
 ### Option 1: Local Development
 
-1. Install Redis:
-   - macOS: `brew install redis`
-   - Ubuntu: `sudo apt install redis-server`
-   - Or use Docker: `docker run -d -p 6379:6379 redis`
-
-2. Install dependencies:
+1. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Start Redis (if not already running):
+2. Run the server:
 ```bash
-redis-server
-```
-
-4. Start the Celery worker:
-```bash
-./run_worker.sh
-```
-
-5. Run the server:
-```bash
-./run_server.sh
+python src/main.py
 ```
 
 ### Option 2: Docker Deployment
@@ -50,49 +48,46 @@ redis-server
 
 2. Build and start the containers:
 ```bash
-docker-compose up -d
+docker-compose -f dev.docker-compose.yaml up -d
 ```
 
 3. To view logs:
 ```bash
 # All services
-docker-compose logs -f
+docker-compose -f dev.docker-compose.yaml logs -f
 
 # Specific service
-docker-compose logs -f web
-docker-compose logs -f worker
+docker-compose -f dev.docker-compose.yaml logs -f task-manager
 ```
 
 4. To stop the containers:
 ```bash
-docker-compose down
+docker-compose -f dev.docker-compose.yaml down
 ```
 
 ## API Endpoints
 
-- `POST /api/jobs`: Trigger a new job
-- `GET /api/jobs/{job_id}`: Get the result of a specific job
+- `POST /generate-tests-for-acceptance-criteria`: Generate tests based on acceptance criteria
+- `GET /get-test-generation-status/{task_id}`: Get the status of a test generation task
 
 ## Architecture
 
 This application uses:
 - **FastAPI**: For the REST API endpoints
-- **Celery**: For processing long-running jobs
-- **Redis**: As the message broker and result backend for Celery
+- **Browser-Use**: For browser automation and authentication
+- **Azure OpenAI**: For AI-powered test generation
+- **Weaviate**: Vector database for RAG (optional, configured in Docker setup)
 
-## Testing
+### Core Components
 
-You can test the API using the provided test script:
-```bash
-python test_api.py
-```
+1. **Test Generation Module** (`src/generate_tests/`)
+   - Generates automated tests from acceptance criteria using AI
+   - Supports various test categories
 
-With Docker:
-```bash
-# Make sure the containers are running
-docker-compose exec web python test_api.py
-```
+2. **Authentication Fixtures** (`src/fixtures/`)
+   - Provides utilities for generating authenticated sessions
+   - Can be used for testing authenticated applications
 
 ## Development
 
-This server is designed to be integrated with Jira issue actions. The Celery worker handles long-running jobs, ensuring they continue processing even if the web server restarts.
+The test generation functionality is designed to be integrated with task management systems. It can generate test scripts based on product information, epics, features, user stories, and acceptance criteria.

@@ -1,0 +1,45 @@
+services:
+
+  task-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./src/:/app/src
+    ports:
+      - "9000:9000"
+    environment:
+      - AZURE_OPENAI_KEY=${AZURE_OPENAI_KEY}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+    networks:
+      - default
+      - api-tm_shared_network
+
+  # Weaviate - Vector Database for RAG
+  weaviate:
+    image: semitechnologies/weaviate:latest
+    ports:
+      - "8081:8080"
+      - "50051:50051"
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    environment:
+      - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
+      - PERSISTENCE_DATA_PATH=/var/lib/weaviate
+      - DEFAULT_VECTORIZER_MODULE=none  # We'll use our own vectors from OpenAI
+      - ENABLE_MODULES=text2vec-openai
+      - CLUSTER_HOSTNAME=weaviate
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/v1/.well-known/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  weaviate_data:
+
+networks:
+  default:
+  api-tm_shared_network: # api and task manager shared network
+    external: true
