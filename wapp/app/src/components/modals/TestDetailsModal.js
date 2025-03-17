@@ -1,10 +1,37 @@
-import React from 'react';
-import { X, CheckCircle, XCircle, Loader, TestTube, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, CheckCircle, XCircle, Loader, TestTube, AlertCircle, Play } from 'lucide-react';
+import TestExecutionHistory from '../test/TestExecutionHistory';
+import TestExecutionDetail from '../test/TestExecutionDetail';
+import RunTestModal from './RunTestModal';
+import { getTestExecutions } from '@/services/testExecutionService';
 
 /**
  * Modal component for displaying detailed test information
  */
 const TestDetailsModal = ({ test, onClose }) => {
+  const [activeTab, setActiveTab] = useState('details');
+  const [selectedExecution, setSelectedExecution] = useState(null);
+  const [isRunTestModalOpen, setIsRunTestModalOpen] = useState(false);
+  const [executions, setExecutions] = useState([]);
+  const [loadingExecutions, setLoadingExecutions] = useState(false);
+
+  useEffect(() => {
+    // Load test executions when the modal opens or when a new execution is created
+    fetchTestExecutions();
+  }, [test.id]);
+
+  const fetchTestExecutions = async () => {
+    try {
+      setLoadingExecutions(true);
+      const data = await getTestExecutions(test.id);
+      setExecutions(data);
+    } catch (err) {
+      console.error('Error fetching test executions:', err);
+    } finally {
+      setLoadingExecutions(false);
+    }
+  };
+
   // Format date and time display
   const formatDateTime = (dateString) => {
     if (!dateString) return 'Not available';
@@ -70,6 +97,24 @@ const TestDetailsModal = ({ test, onClose }) => {
     }
   };
 
+  // Handle test execution created
+  const handleTestExecutionCreated = (execution) => {
+    // Add the new execution to the list
+    setExecutions([execution, ...executions]);
+    // Switch to the history tab
+    setActiveTab('history');
+  };
+
+  // Handle execution selection
+  const handleExecutionSelect = (execution) => {
+    setSelectedExecution(execution);
+  };
+
+  // Handle back to history
+  const handleBackToHistory = () => {
+    setSelectedExecution(null);
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-auto">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -87,179 +132,167 @@ const TestDetailsModal = ({ test, onClose }) => {
           </button>
         </div>
 
+        {/* Tabs navigation */}
+        <div className="border-b border-gray-200">
+          <nav className="flex -mb-px px-6">
+            <button
+              onClick={() => setActiveTab('details')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm mr-8 ${
+                activeTab === 'details'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Test Details
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('history');
+                setSelectedExecution(null);
+              }}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'history'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Execution History
+            </button>
+          </nav>
+        </div>
+
         {/* Modal body */}
         <div className="px-6 py-4">
-          {/* Status and category section */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            <span className={`px-3 py-1 text-sm font-medium rounded-full ${getTestStatusColor(test.status)}`}>
-              {test.status || 'Not Started'}
-            </span>
-            {test.category && (
-              <span className="px-3 py-1 text-sm font-medium rounded-full bg-purple-100 text-purple-800">
-                {test.category}
-              </span>
-            )}
-          </div>
+          {activeTab === 'details' && (
+            <>
+              {/* Status and category section */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span className={`px-3 py-1 text-sm font-medium rounded-full ${getTestStatusColor(test.status)}`}>
+                  {test.status || 'Not Started'}
+                </span>
+                {test.category && (
+                  <span className="px-3 py-1 text-sm font-medium rounded-full bg-purple-100 text-purple-800">
+                    {test.category}
+                  </span>
+                )}
+              </div>
 
-          {/* Description */}
-          <div className="mb-6">
-            <h3 className="text-md font-semibold text-gray-700 mb-2">Description</h3>
-            <p className="text-gray-600">{test.description || 'No description provided'}</p>
-          </div>
-
-          {/* Test details grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Left column - general info */}
-            <div className="space-y-4">
-              {/* URL */}
-              {test.url && (
-                <div>
-                  <h3 className="text-md font-semibold text-gray-700 mb-2">URL</h3>
-                  <a
-                    href={test.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 break-words"
-                  >
-                    {test.url}
-                  </a>
-                </div>
-              )}
-
-              {/* Timing information */}
-              <div>
-                <h3 className="text-md font-semibold text-gray-700 mb-2">Timing Information</h3>
+              {/* Basic details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Started:</span>
-                    <span className="text-gray-700">{formatDateTime(test.started_at)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Ended:</span>
-                    <span className="text-gray-700">{formatDateTime(test.ended_at)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Duration:</span>
-                    <span className="text-gray-700">{getDuration(test.started_at, test.ended_at)}</span>
-                  </div>
+                  <div className="text-sm text-gray-500">URL</div>
+                  <div className="text-gray-800">{test.url || 'Not specified'}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm text-gray-500">Last Run</div>
+                  <div className="text-gray-800">{test.started_at ? formatDateTime(test.started_at) : 'Not run yet'}</div>
                 </div>
               </div>
 
-              {/* Secret information */}
-              {test.secrets && test.secrets.length > 0 && (
-                <div>
-                  <h3 className="text-md font-semibold text-gray-700 mb-2">Secrets</h3>
-                  <div className="space-y-2">
-                    {test.secrets.map((secret, index) => (
-                      <div key={index} className="bg-blue-50 p-2 rounded-md">
-                        <div className="flex justify-between">
-                          <span className="font-medium">{secret.name}</span>
-                          <span className="text-xs bg-blue-100 px-2 py-1 rounded-full">
-                            {secret.type?.replace('_', ' ')}
-                          </span>
-                        </div>
-                        {secret.description && (
-                          <p className="text-sm mt-1">{secret.description}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+              {/* Description section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">Description</h3>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-gray-800 whitespace-pre-line">{test.description}</p>
                 </div>
-              )}
-            </div>
-
-            {/* Right column - test details */}
-            <div className="space-y-4">
-              {/* Preconditions */}
-              <div>
-                <h3 className="text-md font-semibold text-gray-700 mb-2">Preconditions</h3>
-                <p className="text-gray-600 whitespace-pre-line">{test.preconditions || 'None specified'}</p>
               </div>
 
-              {/* Bugs */}
+              {/* Preconditions section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">Preconditions</h3>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-gray-800 whitespace-pre-line">{test.preconditions}</p>
+                </div>
+              </div>
+
+              {/* Steps section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">Steps</h3>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-gray-800 whitespace-pre-line">{test.steps}</p>
+                </div>
+              </div>
+
+              {/* Expected results section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">Expected Results</h3>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-gray-800 whitespace-pre-line">{test.expected_results}</p>
+                </div>
+              </div>
+
+              {/* Assertions section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">Assertions</h3>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-gray-800 whitespace-pre-line">{test.assertions}</p>
+                </div>
+              </div>
+
+              {/* Bugs section */}
               {test.bugs && test.bugs.length > 0 && (
-                <div>
-                  <h3 className="text-md font-semibold text-gray-700 mb-2">
-                    Bugs <span className="text-red-500">({test.bugs.length})</span>
-                  </h3>
-                  <div className="space-y-2">
-                    {test.bugs.map((bug, index) => (
-                      <div key={index} className="bg-red-50 p-2 rounded-md">
-                        <div className="flex justify-between">
-                          <span className="font-medium">{bug.name}</span>
-                          <span className="text-xs bg-red-100 px-2 py-1 rounded-full">
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-2">Bugs ({test.bugs.length})</h3>
+                  <div className="space-y-3">
+                    {test.bugs.map(bug => (
+                      <div key={bug.id} className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-medium text-red-800">{bug.name}</h4>
+                          <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
                             {bug.severity}
                           </span>
                         </div>
-                        {bug.description && (
-                          <p className="text-sm mt-1">{bug.description}</p>
-                        )}
-                        {bug.url && (
-                          <a
-                            href={bug.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:text-blue-800 mt-1 block"
-                          >
-                            {bug.url}
-                          </a>
-                        )}
+                        <p className="text-gray-700">{bug.description}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-            </div>
-          </div>
+            </>
+          )}
 
-          {/* Steps, expected results and assertions */}
-          <div className="space-y-6 mb-6">
-            {/* Test steps */}
-            <div>
-              <h3 className="text-md font-semibold text-gray-700 mb-2">Test Steps</h3>
-              <div className="bg-gray-50 p-4 rounded-md">
-                <p className="whitespace-pre-line">{test.steps || 'No steps defined'}</p>
-              </div>
-            </div>
+          {activeTab === 'history' && !selectedExecution && (
+            <TestExecutionHistory
+              testId={test.id}
+              onExecutionSelect={handleExecutionSelect}
+            />
+          )}
 
-            {/* Expected results */}
-            <div>
-              <h3 className="text-md font-semibold text-gray-700 mb-2">Expected Results</h3>
-              <div className="bg-gray-50 p-4 rounded-md">
-                <p className="whitespace-pre-line">{test.expected_results || 'No expected results defined'}</p>
-              </div>
-            </div>
-
-            {/* Assertions */}
-            <div>
-              <h3 className="text-md font-semibold text-gray-700 mb-2">Assertions</h3>
-              <div className="bg-gray-50 p-4 rounded-md">
-                <p className="whitespace-pre-line">{test.assertions || 'No assertions defined'}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Test code if available */}
-          {test.code && (
-            <div>
-              <h3 className="text-md font-semibold text-gray-700 mb-2">Test Code</h3>
-              <pre className="p-4 bg-gray-50 rounded-lg overflow-x-auto text-sm">
-                <code>{test.code}</code>
-              </pre>
-            </div>
+          {activeTab === 'history' && selectedExecution && (
+            <TestExecutionDetail
+              execution={selectedExecution}
+              onBack={handleBackToHistory}
+            />
           )}
         </div>
 
-        {/* Modal footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
+        {/* Modal footer with action buttons */}
+        <div className="border-t border-gray-200 px-6 py-4 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 mr-3"
           >
             Close
           </button>
+
+          <button
+            onClick={() => setIsRunTestModalOpen(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+          >
+            <Play size={18} className="mr-2" />
+            Run Test
+          </button>
         </div>
       </div>
+
+      {/* Run Test Modal */}
+      {isRunTestModalOpen && (
+        <RunTestModal
+          test={test}
+          onClose={() => setIsRunTestModalOpen(false)}
+          onTestExecutionCreated={handleTestExecutionCreated}
+        />
+      )}
     </div>
   );
 };

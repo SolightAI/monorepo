@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query
-from typing import List, Optional
+from typing import List, Optional, Dict
 from pydantic import UUID4
 
 from services.dashboard_services import (
@@ -8,6 +8,8 @@ from services.dashboard_services import (
     get_bug_trend_data,
     get_feature_health_data,
     get_organization_health_data,
+    get_test_execution_trend_data,
+    get_test_execution_environment_comparison
 )
 from dto.schemas import (
     User as UserModel,
@@ -122,3 +124,51 @@ async def get_organization_health(
         Organization health metrics
     """
     return await get_organization_health_data(user)
+
+
+@router.get("/metrics/test-executions/trend")
+async def get_test_executions_trend(
+    time_range: str = Query(TimeRange.THIRTY_DAYS, description="Time range for the trend data"),
+    product_id: Optional[UUID4] = None,
+    environment: Optional[str] = None,
+    user: UserModel = Depends(get_current_user),
+) -> List[TrendDataPoint]:
+    """
+    Get test execution trend data for visualization.
+    
+    This endpoint provides data about test executions over time, grouped by date and status.
+    It can be filtered by product and environment.
+    
+    Args:
+        time_range: Time range for the data (7d, 30d, 90d, all)
+        product_id: Optional product ID to filter metrics by
+        environment: Optional environment to filter by (e.g., 'development', 'staging')
+        user: The authenticated user
+        
+    Returns:
+        A list of trend data points for visualization
+    """
+    return await get_test_execution_trend_data(user, time_range, product_id, environment)
+
+
+@router.get("/metrics/test-executions/environment-comparison")
+async def get_environment_comparison(
+    product_id: UUID4,
+    time_range: str = Query(TimeRange.THIRTY_DAYS, description="Time range for the comparison data"),
+    user: UserModel = Depends(get_current_user),
+) -> Dict[str, Dict[str, int]]:
+    """
+    Get test execution comparison across different environments.
+    
+    This endpoint provides data to compare how tests perform across different
+    environments (e.g., development, staging, production).
+    
+    Args:
+        product_id: Product ID to get comparison data for
+        time_range: Time range for the data (7d, 30d, 90d, all)
+        user: The authenticated user
+        
+    Returns:
+        Dictionary with environment names as keys and status counts as values
+    """
+    return await get_test_execution_environment_comparison(user, time_range, product_id)

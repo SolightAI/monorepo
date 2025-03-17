@@ -1,5 +1,5 @@
 from tortoise import fields, models
-from .schemas import TestStatus, SeverityLevel, TestCategory, OrganizationRole, OrganizationType, SecretType
+from .schemas import TestStatus, SeverityLevel, TestCategory, OrganizationRole, OrganizationType, SecretType, ExecutorType
 
 
 class User(models.Model):
@@ -158,9 +158,32 @@ class Test(models.Model):
     acceptance_criteria = fields.ForeignKeyField("models.AcceptanceCriteria", related_name="tests")
     bugs = fields.ReverseRelation["Bug"]
     test_secrets = fields.ReverseRelation["TestSecret"]
+    executions = fields.ReverseRelation["TestExecution"]
 
     class Meta:
         table = "tests"
+
+
+class TestExecution(models.Model):
+    """Model for storing each individual test execution."""
+    id = fields.UUIDField(pk=True)
+    status = fields.CharEnumField(TestStatus)
+    environment = fields.CharField(max_length=50)  # dev, staging, production, etc.
+    executor_type = fields.CharEnumField(ExecutorType)
+    executor_name = fields.CharField(max_length=255, null=True)  # name of user or automation system
+    started_at = fields.DatetimeField(auto_now_add=True)
+    ended_at = fields.DatetimeField(null=True)
+    duration_ms = fields.IntField(null=True)  # duration in milliseconds
+    notes = fields.TextField(null=True)
+    evidence = fields.JSONField(default=[])  # URLs to screenshots, logs, etc.
+    metadata = fields.JSONField(default={})  # Any additional metadata about the execution
+
+    # Relations
+    test = fields.ForeignKeyField("models.Test", related_name="executions")
+    bugs = fields.ReverseRelation["Bug"]
+
+    class Meta:
+        table = "test_executions"
 
 
 class Bug(models.Model):
@@ -174,6 +197,7 @@ class Bug(models.Model):
     detected_at = fields.DatetimeField(auto_now_add=True)
 
     test = fields.ForeignKeyField("models.Test", related_name="bugs")
+    test_execution = fields.ForeignKeyField("models.TestExecution", related_name="bugs", null=True)
 
     class Meta:
         table = "bugs"

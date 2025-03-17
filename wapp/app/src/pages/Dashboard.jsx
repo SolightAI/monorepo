@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
 import { Settings, RefreshCw } from 'lucide-react';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import DashboardWidget from '../components/dashboard/DashboardWidget';
@@ -9,6 +8,8 @@ import BugTrendChart from '../components/dashboard/BugTrendChart';
 import FeatureHealthTable from '../components/dashboard/FeatureHealthTable';
 import OrganizationHealthCard from '../components/dashboard/OrganizationHealthCard';
 import EpicPassRateChart from '../components/dashboard/EpicPassRateChart';
+import TestExecutionTrendChart from '../components/dashboard/TestExecutionTrendChart';
+import EnvironmentComparisonChart from '../components/dashboard/EnvironmentComparisonChart';
 import { useDashboard } from '../context/DashboardContext';
 
 const timeRangeOptions = [
@@ -19,10 +20,10 @@ const timeRangeOptions = [
 ];
 
 function Dashboard() {
-  const { productId } = useParams();
   const {
     timeRange,
     setTimeRange,
+    productId,
     isLoading,
     error,
     summaryMetrics,
@@ -143,6 +144,8 @@ function Dashboard() {
                   {widgetId === 'organizationHealth' && 'Organization Health'}
                   {widgetId === 'featureHealth' && 'Feature Health'}
                   {widgetId === 'epicPassRate' && 'Epic Pass Rate'}
+                  {widgetId === 'testExecutionTrend' && 'Test Execution Trend'}
+                  {widgetId === 'environmentComparison' && 'Environment Comparison'}
                 </label>
               </div>
             ))}
@@ -171,6 +174,27 @@ function Dashboard() {
             <SummaryMetrics metrics={summaryMetrics} />
           </DashboardWidget>
         )}
+
+        {/* Test Execution Trend Chart */}
+        <DashboardWidget
+          id="testExecutionTrend"
+          title="Test Execution Trend"
+          colSpan="col-span-12"
+          allowExport
+          exportFilename="test-execution-trend-data"
+        >
+          <TestExecutionTrendChart productId={productId} timeRange={timeRange} />
+        </DashboardWidget>
+
+        <DashboardWidget
+          id="environmentComparison"
+          title="Test Results by Environment"
+          colSpan="col-span-12 md:col-span-6"
+          allowExport
+          exportFilename="environment-comparison-data"
+        >
+          <EnvironmentComparisonChart productId={productId} timeRange={timeRange} />
+        </DashboardWidget>
 
         {/* Test Trend Chart */}
         <DashboardWidget

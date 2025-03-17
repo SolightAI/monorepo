@@ -1,6 +1,13 @@
 from fastapi import APIRouter
 from dto.schemas import BugCreate as BugCreateSchema, Bug as BugSchema
-from services.bug_services import get_bug, create_bug, get_all_bugs, get_bugs_by_product_path, delete_bug
+from services.bug_services import (
+    get_bug, 
+    create_bug, 
+    get_all_bugs, 
+    get_bugs_by_product_path, 
+    delete_bug,
+    get_bugs_by_test_execution
+)
 from pydantic import UUID4
 from typing import List
 
@@ -25,6 +32,20 @@ async def get_bugs_by_product_path_endpoint(url_path: str) -> List[BugSchema]:
         A list of bugs for the matched product, or an empty list if no product matches
     """
     return await get_bugs_by_product_path(url_path)
+
+
+@router.get("/by-test-execution/{test_execution_id}")
+async def get_bugs_by_test_execution_endpoint(test_execution_id: UUID4) -> List[BugSchema]:
+    """
+    Get all bugs discovered during a specific test execution.
+
+    Args:
+        test_execution_id: UUID of the test execution
+
+    Returns:
+        A list of bugs discovered during the specified test execution
+    """
+    return await get_bugs_by_test_execution(test_execution_id)
 
 
 @router.get("/{bug_id}")

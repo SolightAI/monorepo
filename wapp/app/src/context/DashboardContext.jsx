@@ -11,7 +11,9 @@ const defaultWidgets = {
   testTrend: { visible: true, minimized: false, position: 1 },
   bugTrend: { visible: true, minimized: false, position: 2 },
   organizationHealth: { visible: true, minimized: false, position: 3 },
-  featureHealth: { visible: true, minimized: false, position: 4 }
+  featureHealth: { visible: true, minimized: false, position: 4 },
+  testExecutionTrend: { visible: true, minimized: false, position: 5 },
+  environmentComparison: { visible: true, minimized: false, position: 6 }
 };
 
 // Create the context

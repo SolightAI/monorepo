@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 async def get_test(test_id: UUID) -> TestModel:
-    test = await TestModel.get_or_none(id=test_id).prefetch_related("bugs", "test_secrets__secret")
+    test = await TestModel.get_or_none(id=test_id).prefetch_related("bugs", "test_secrets__secret", "executions")
 
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")

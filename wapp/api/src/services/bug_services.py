@@ -1,13 +1,14 @@
 from fastapi import HTTPException
 from dto.models import Bug as BugModel
 from dto.schemas import BugCreate as BugCreateSchema
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from services.test_services import get_tests_by_product_path
+from pydantic import UUID4
 
 
 async def get_bug(bug_id: str | UUID) -> BugModel:
-    bug = await BugModel.get_or_none(id=bug_id)
+    bug = await BugModel.get_or_none(id=bug_id).prefetch_related("test", "test_execution")
 
     if not bug:
         raise HTTPException(status_code=404, detail="Bug not found")
@@ -16,7 +17,7 @@ async def get_bug(bug_id: str | UUID) -> BugModel:
 
 
 async def get_all_bugs() -> List[BugModel]:
-    bugs = await BugModel.all().prefetch_related("test")
+    bugs = await BugModel.all().prefetch_related("test", "test_execution")
     return bugs
 
 
@@ -45,6 +46,20 @@ async def get_bugs_by_product_path(url_path: str) -> List[BugModel]:
         await test.fetch_related("bugs")
         bugs.extend(test.bugs)
 
+    return bugs
+
+
+async def get_bugs_by_test_execution(test_execution_id: UUID4) -> List[BugModel]:
+    """
+    Get bugs that were found during a specific test execution.
+
+    Args:
+        test_execution_id: UUID of the test execution to get bugs for
+
+    Returns:
+        List of bugs found during the specified test execution
+    """
+    bugs = await BugModel.filter(test_execution_id=test_execution_id).prefetch_related("test", "test_execution")
     return bugs
 
 

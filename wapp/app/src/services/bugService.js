@@ -34,6 +34,21 @@ export const getBugsByTest = async (testId) => {
 };
 
 /**
+ * Get bugs for a specific test execution
+ * @param {string} executionId - The test execution ID
+ * @returns {Promise} Promise with the bugs data
+ */
+export const getBugsByTestExecution = async (executionId) => {
+  try {
+    const response = await axios.get(`${API_URL}/bugs/by-test-execution/${executionId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching bugs for test execution ${executionId}:`, error);
+    throw error;
+  }
+};
+
+/**
  * Get bugs for a specific product
  * @param {string} productPath - The product path
  * @returns {Promise} Promise with the bugs data
@@ -52,6 +67,7 @@ export const getBugsByProductPath = async (productPath) => {
  * Create a new bug
  * @param {Object} bugData - The bug data
  * @param {string} bugData.test_id - ID of the test this bug is associated with
+ * @param {string} [bugData.test_execution_id] - Optional ID of the test execution this bug is associated with
  * @param {string} bugData.name - Bug name
  * @param {string} bugData.description - Bug description
  * @param {string} bugData.severity - Bug severity (Critical, High, Medium, Low)

@@ -156,6 +156,14 @@ class TestCategory(str, Enum):
     LOCALIZATION = "LOCALIZATION"
 
 
+class ExecutorType(str, Enum):
+    """Type of executor that performed the test."""
+    MANUAL = "MANUAL"
+    AUTOMATED = "AUTOMATED"
+    CI_PIPELINE = "CI_PIPELINE"
+    SCHEDULED = "SCHEDULED"
+
+
 class LinkDocument(BaseModel):
     name: str
     url: str
@@ -340,6 +348,7 @@ class BugBase(BugCreate):
 
 class Bug(BugBase):
     test_id: UUID4
+    test_execution_id: Optional[UUID4] = None
 
     class Config:
         from_attributes = True
@@ -492,5 +501,48 @@ class TestSecret(TestSecretBase):
     secret_name: Optional[str] = None
     secret_type: Optional[SecretType] = None
 
+    class Config:
+        from_attributes = True
+
+
+class TestExecutionCreate(BaseModel):
+    """Schema for creating a new test execution."""
+    test_id: UUID4
+    status: TestStatus = TestStatus.PENDING
+    environment: str
+    executor_type: ExecutorType
+    executor_name: Optional[str] = None
+    notes: Optional[str] = None
+    evidence: List[str] = []
+    metadata: Dict[str, Any] = {}
+
+
+class TestExecutionUpdate(BaseModel):
+    """Schema for updating an existing test execution."""
+    status: Optional[TestStatus] = None
+    environment: Optional[str] = None
+    executor_name: Optional[str] = None
+    ended_at: Optional[datetime] = None
+    duration_ms: Optional[int] = None
+    notes: Optional[str] = None
+    evidence: Optional[List[str]] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class TestExecution(BaseModel):
+    """Schema for a test execution response."""
+    id: UUID4
+    test_id: UUID4
+    status: TestStatus
+    environment: str
+    executor_type: ExecutorType
+    executor_name: Optional[str] = None
+    started_at: datetime
+    ended_at: Optional[datetime] = None
+    duration_ms: Optional[int] = None
+    notes: Optional[str] = None
+    evidence: List[str] = []
+    metadata: Dict[str, Any] = {}
+    
     class Config:
         from_attributes = True

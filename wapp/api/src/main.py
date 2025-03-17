@@ -6,6 +6,7 @@ from endpoints.epic_endpoints import router as epic_router
 from endpoints.feature_endpoints import router as feature_router
 from endpoints.user_story_endpoints import router as user_story_router
 from endpoints.test_endpoints import router as test_router
+from endpoints.test_execution_endpoints import router as test_execution_router
 from endpoints.bug_endpoints import router as bug_router
 from endpoints.acceptance_criteria_endpoints import router as acceptance_criteria_router
 from endpoints.invitation_endpoints import router as invitation_router
@@ -49,6 +50,7 @@ app.include_router(feature_router)
 app.include_router(user_story_router)
 app.include_router(acceptance_criteria_router)
 app.include_router(test_router)
+app.include_router(test_execution_router)
 app.include_router(bug_router)
 app.include_router(invitation_router)
 app.include_router(dashboard_router)
