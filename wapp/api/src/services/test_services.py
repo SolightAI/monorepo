@@ -18,6 +18,8 @@ from services.product_services import get_product
 from services.secret_services import get_secret_with_values, get_organization_secrets
 from pydantic import UUID4
 
+from services.crypto_service import crypto_service
+
 
 logger = logging.getLogger(__name__)
 
@@ -298,7 +300,17 @@ async def trigger_test_generation(acceptance_criteria_id: UUID4) -> str:
 
     # Add all organization secrets to the payload
     if all_secrets:
-        payload['secrets'] = all_secrets
+        # Encrypt the secrets using the task-manager's public key
+        encryption_success, encrypted_secrets = crypto_service.encrypt_secrets(all_secrets)
+
+        if encryption_success and encrypted_secrets:
+            # Add the encrypted secrets to the payload
+            payload['encrypted_secrets'] = encrypted_secrets
+            logger.info("Successfully encrypted secrets for test generation")
+        else:
+            # Fallback to plain text only if encryption fails
+            payload['secrets'] = all_secrets
+            logger.warning("Encryption failed, sending secrets in plain text to task generation")
 
     response = requests.post(
         os.getenv("TASK_MANAGER_URL") + "/generate-tests/generate-tests-for-acceptance-criteria",

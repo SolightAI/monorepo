@@ -214,3 +214,60 @@ The API includes several helper scripts:
 - Secrets are scoped to organizations and optionally to specific products
 - Access to secrets is logged for audit purposes
 - Only users with appropriate permissions can create, update, or delete sensitive data
+
+## End-to-End Encryption for Communication with Task Manager
+
+This API implements end-to-end encryption for secret values transmitted to the Task Manager service using asymmetric encryption (RSA).
+
+### How It Works
+
+1. **Key Generation**: The Task Manager generates an RSA key pair (or loads an existing one) on startup.
+2. **Public Key Sharing**: The Task Manager exposes its public key through a `/crypto/public-key` endpoint.
+3. **Encryption Process**:
+   - The API fetches and caches the Task Manager's public key
+   - When sending secrets, the API encrypts each value with the public key
+   - Only the Task Manager can decrypt these values using its private key
+
+### Implementation Details
+
+#### API Components
+
+- **CryptoService**: Manages public key retrieval and encryption (in `src/services/crypto_service.py`)
+- **Service Integration**: Both test execution and test generation services encrypt secrets by default
+
+#### Task Manager Components
+
+- **CryptoService**: Handles key generation, storage, and decryption (in `src/utils/crypto.py`)
+- **Public Key Endpoint**: Exposes the public key (in `src/utils/crypto_router.py`)
+- **Request Handlers**: Decrypts encrypted secrets automatically
+
+### Configuration
+
+#### Environment Variables
+
+- **API Side:**
+  - `TASK_MANAGER_URL`: URL of the Task Manager service
+
+- **Task Manager Side:**
+  - `PRIVATE_KEY_PATH`: Path where the private key will be stored (default: `/app/keys/private.pem`)
+
+### Docker Configuration
+
+For Docker Compose, ensure the Task Manager has the private key path configured:
+
+```yaml
+task-manager:
+  environment:
+    - PRIVATE_KEY_PATH=/app/keys/private.pem
+```
+
+### Security Considerations
+
+- The private key is generated and stored only on the Task Manager
+- Automatic fallback to plaintext is provided only as a safety mechanism
+- Keys persist across restarts to maintain decryption capabilities
+- No secrets are logged in plaintext
+
+### Dependencies
+
+- Python cryptography library (`cryptography>=39.0.0`)

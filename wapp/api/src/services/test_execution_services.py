@@ -18,6 +18,7 @@ from dto.schemas import (
 )
 from services.test_services import get_test, get_organization_secrets
 from services.secret_services import get_secret_with_values
+from services.crypto_service import crypto_service
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +158,17 @@ async def create_test_execution(
 
         # Add secrets to the payload if available
         if all_secrets:
-            task_manager_payload["secrets"] = all_secrets
+            # Encrypt the secrets using the task-manager's public key
+            encryption_success, encrypted_secrets = crypto_service.encrypt_secrets(all_secrets)
+
+            if encryption_success and encrypted_secrets:
+                # Add the encrypted secrets to the payload
+                task_manager_payload["encrypted_secrets"] = encrypted_secrets
+                logger.info("Successfully encrypted secrets for task manager")
+            else:
+                # Fallback to plain text only if encryption fails
+                task_manager_payload["secrets"] = all_secrets
+                logger.warning("Encryption failed, sending secrets in plain text to task manager")
 
         # Send request to task manager
         response = requests.post(

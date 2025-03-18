@@ -4,9 +4,8 @@ import json
 import asyncio
 import functools
 import traceback
-
 from uuid import uuid4
-from typing import Any
+from typing import Any, Optional
 from pydantic import SecretStr
 from logging import getLogger
 from tempfile import NamedTemporaryFile
@@ -16,6 +15,7 @@ from fixtures.generate_auth_session import generate_auth_session
 from generate_tests.dto import Product, Test, Epic, Feature, UserStory, AcceptanceCriteria, TestCategory
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
+from utils.crypto import crypto_service
 
 
 PROMPT = """
@@ -325,11 +325,30 @@ async def generate_tests_for_acceptance_criteria(
     feature: Feature,
     user_story: UserStory,
     acceptance_criteria: AcceptanceCriteria,
-    secrets: dict[str, dict[str, str]],
     background_task: BackgroundTasks,
+    secrets: Optional[dict[str, dict[str, str]]] = None,
+    encrypted_secrets: Optional[dict[str, dict[str, str]]] = None,
 ) -> str:
 
     task_id = str(uuid4())
+
+    # Decrypt encrypted secrets if provided
+    if encrypted_secrets:
+        try:
+            # Decrypt the secrets
+            decrypted_secrets = crypto_service.decrypt_secrets(encrypted_secrets)
+
+            # Use the decrypted secrets instead of any plaintext secrets provided
+            secrets = decrypted_secrets
+
+            logger.info("Successfully decrypted secrets for test generation")
+        except Exception as e:
+            logger.error(f"Failed to decrypt secrets: {str(e)}")
+            raise HTTPException(status_code=400, detail="Failed to decrypt secrets")
+
+    # Ensure we have secrets
+    if not secrets:
+        secrets = {}
 
     background_task.add_task(
         background_generate_tests_for_acceptance_criteria,
