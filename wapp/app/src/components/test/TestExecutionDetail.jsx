@@ -36,6 +36,8 @@ const TestExecutionDetail = ({ execution, onBack }) => {
         return <CheckCircle size={20} className="text-green-500" />;
       case 'FAILED':
         return <XCircle size={20} className="text-red-500" />;
+      case 'ERROR':
+        return <XCircle size={20} className="text-red-500" />;
       case 'PENDING':
         return <Clock size={20} className="text-yellow-500" />;
       case 'BLOCKED':
@@ -53,6 +55,8 @@ const TestExecutionDetail = ({ execution, onBack }) => {
       case 'PASSED':
         return 'bg-green-50 border-green-200';
       case 'FAILED':
+        return 'bg-red-50 border-red-200';
+      case 'ERROR':
         return 'bg-red-50 border-red-200';
       case 'PENDING':
         return 'bg-yellow-50 border-yellow-200';

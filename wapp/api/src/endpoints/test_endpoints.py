@@ -57,7 +57,7 @@ async def get_test_endpoint(test_id: UUID4) -> TestSchema:
 async def get_test_executions_endpoint(test_id: UUID4) -> List[TestExecutionSchema]:
     """
     Get the execution history for a specific test.
-    
+
     Returns a chronological list of all test executions for this test,
     providing a complete history of test runs.
     """

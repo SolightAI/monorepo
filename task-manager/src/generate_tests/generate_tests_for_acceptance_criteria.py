@@ -206,7 +206,7 @@ async def _generate_test_category_for_acceptance_criteria(
     )
 
     try:
-        history = await agent.run(max_steps=100)
+        history = await agent.run(max_steps=30)
     finally:
         await context.close()
         await browser.close()
@@ -244,8 +244,7 @@ def handle_background_task_errors(func):
         except Exception as e:
             error_message = str(e)
             error_traceback = traceback.format_exc()
-            logger.error(f"Error in background task {task_id}: {error_message}")
-            logger.debug(f"Traceback: {error_traceback}")
+            logger.error(f"Error in background task {task_id}: Error: {error_message} Traceback: {error_traceback}")
 
             # Update task_ids to indicate failure
             task_ids[task_id] = {
@@ -281,8 +280,8 @@ async def background_generate_tests_for_acceptance_criteria(
             secrets=secrets,
         )
     except Exception as e:
-        logger.error(f"Error in background task {task_id}: {e}")
-        raise
+        logger.error(f"Error in background task {task_id}: Error: {e} Traceback: {traceback.format_exc()}")
+        raise e
 
     logger.info(f"Generated cookies for {product.url}")
 

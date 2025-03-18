@@ -12,6 +12,7 @@ function SummaryMetrics({ metrics }) {
   const statusColors = {
     'PASSED': 'text-green-600 bg-green-50 border-green-100',
     'FAILED': 'text-red-600 bg-red-50 border-red-100',
+    'ERROR': 'text-red-600 bg-red-50 border-red-100',
     'PENDING': 'text-orange-600 bg-orange-50 border-orange-100',
     'NOT_STARTED': 'text-gray-600 bg-gray-50 border-gray-100',
     'BLOCKED': 'text-purple-600 bg-purple-50 border-purple-100',

@@ -49,14 +49,14 @@ async def auth_google(code: str, state: Optional[str] = None, response: Response
     return await auth_services.auth_google_callback(code=code, response=response, invitation_code=invitation_code)
 
 
-@router.post("/confirm/new")
-def confirm(request: Request, current_user: User = Depends(get_current_user)) -> dict:
-    return auth_services.generate_and_send_confirmation_email(user=current_user, request=request)
+# @router.post("/confirm/new")
+# def confirm(request: Request, current_user: User = Depends(get_current_user)) -> dict:
+#     return auth_services.generate_and_send_confirmation_email(user=current_user, request=request)
 
 
-@router.get("/confirm/{token}")
-async def confirm(token: str, current_user: User = Depends(get_current_user)):
-    return await auth_services.confirm_user(user=current_user, token=token)
+# @router.get("/confirm/{token}")
+# async def confirm(token: str, current_user: User = Depends(get_current_user)):
+#     return await auth_services.confirm_user(user=current_user, token=token)
 
 
 @router.post("/logout")
@@ -65,6 +65,7 @@ async def logout(response: Response) -> dict:
 
 
 @router.get("/is-admin")
+
 async def is_admin(current_user: User = Depends(get_current_user)) -> dict:
     is_admin_result = await auth_services.check_is_admin(current_user)
     return {"is_admin": is_admin_result}

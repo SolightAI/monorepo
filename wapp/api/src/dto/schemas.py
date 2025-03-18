@@ -134,6 +134,7 @@ class TestStatus(str, Enum):
     FAILED = "FAILED"
     BLOCKED = "BLOCKED"
     SKIPPED = "SKIPPED"
+    ERROR = "ERROR"
 
 
 class SeverityLevel(str, Enum):
@@ -543,6 +544,6 @@ class TestExecution(BaseModel):
     notes: Optional[str] = None
     evidence: List[str] = []
     metadata: Dict[str, Any] = {}
-    
+
     class Config:
         from_attributes = True

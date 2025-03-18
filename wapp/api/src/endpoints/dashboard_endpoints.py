@@ -135,16 +135,16 @@ async def get_test_executions_trend(
 ) -> List[TrendDataPoint]:
     """
     Get test execution trend data for visualization.
-    
+
     This endpoint provides data about test executions over time, grouped by date and status.
     It can be filtered by product and environment.
-    
+
     Args:
         time_range: Time range for the data (7d, 30d, 90d, all)
         product_id: Optional product ID to filter metrics by
         environment: Optional environment to filter by (e.g., 'development', 'staging')
         user: The authenticated user
-        
+
     Returns:
         A list of trend data points for visualization
     """
@@ -159,15 +159,15 @@ async def get_environment_comparison(
 ) -> Dict[str, Dict[str, int]]:
     """
     Get test execution comparison across different environments.
-    
+
     This endpoint provides data to compare how tests perform across different
     environments (e.g., development, staging, production).
-    
+
     Args:
         product_id: Product ID to get comparison data for
         time_range: Time range for the data (7d, 30d, 90d, all)
         user: The authenticated user
-        
+
     Returns:
         Dictionary with environment names as keys and status counts as values
     """

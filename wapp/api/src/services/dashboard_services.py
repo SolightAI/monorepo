@@ -445,83 +445,83 @@ async def get_test_execution_trend_data(
 ) -> List[TrendDataPoint]:
     """
     Get test execution trend data grouped by date and status.
-    
+
     This function retrieves data about test executions over time, allowing
     for visualization of execution status trends across different environments.
-    
+
     Args:
         user: The current user
         time_range: Time period to get data for (7d, 30d, 90d, all)
         product_id: Optional product ID to filter data by
         environment: Optional environment to filter by (e.g., 'development', 'staging')
-        
+
     Returns:
         List of data points for trend visualization
     """
     # Get organizations for the current user
     organizations = await get_organizations_for_user(user.id)
-    
+
     # Check if user has any organizations
     if not organizations:
         return []
-        
+
     # Use the first organization by default
     organization = organizations[0]
-    
+
     # Get start date based on time range
     start_date = await get_time_range_dates(time_range)
-    
+
     # Get test executions based on product
     if product_id:
         product = await get_product(product_id)
         if not product or product.organization_id != organization.id:
             raise ValueError("Product not found or not accessible")
-            
+
         # Get tests for this product
         tests = await get_tests_by_product_path(product.url)
         test_ids = [test.id for test in tests]
-        
+
         # Get executions for these tests
         query = TestExecutionModel.filter(test_id__in=test_ids)
     else:
         # Get all products for this organization
         products = await ProductModel.filter(organization_id=organization.id)
-        
+
         # Get all tests for all products
         all_tests = []
         for product in products:
             product_tests = await get_tests_by_product_path(product.url)
             all_tests.extend(product_tests)
-            
+
         test_ids = [test.id for test in all_tests]
-        
+
         # Get executions for these tests
         query = TestExecutionModel.filter(test_id__in=test_ids)
-    
+
     # Filter by start date
     query = query.filter(started_at__gte=start_date)
-    
+
     # Optional filter by environment
     if environment:
         query = query.filter(environment=environment)
-        
+
     executions = await query.all()
-    
+
     # Group executions by date and status
     date_status_counts = {}
-    
+
     for execution in executions:
         # Format date as YYYY-MM-DD for grouping
         date_str = execution.started_at.strftime("%Y-%m-%d")
-        
+
         if date_str not in date_status_counts:
             date_status_counts[date_str] = {status.value: 0 for status in TestStatus}
-            
+
         date_status_counts[date_str][execution.status] += 1
-        
+
     # Convert the grouped data to trend data format
     trend_data = []
-    
+
     for date_str, status_counts in date_status_counts.items():
         for status, count in status_counts.items():
             if count > 0:  # Only include non-zero counts
@@ -532,7 +532,7 @@ async def get_test_execution_trend_data(
                         category=status
                     )
                 )
-                
+
     return trend_data
 
 
@@ -543,55 +543,55 @@ async def get_test_execution_environment_comparison(
 ) -> dict:
     """
     Get test execution comparison across different environments.
-    
+
     This function provides data to compare test execution results
     across different environments (e.g., development vs. production).
-    
+
     Args:
         user: The current user
         time_range: Time period to get data for (7d, 30d, 90d, all)
         product_id: Product ID to analyze
-        
+
     Returns:
         Dictionary with environment names as keys and status counts as values
     """
     # Get organizations for the current user
     organizations = await get_organizations_for_user(user.id)
-    
+
     # Check if user has any organizations
     if not organizations:
         return {}
-        
+
     # Use the first organization by default
     organization = organizations[0]
-    
+
     # Get start date based on time range
     start_date = await get_time_range_dates(time_range)
-    
+
     # Get product
     product = await get_product(product_id)
     if not product or product.organization_id != organization.id:
         raise ValueError("Product not found or not accessible")
-        
+
     # Get tests for this product
     tests = await get_tests_by_product_path(product.url)
     test_ids = [test.id for test in tests]
-    
+
     # Get executions for these tests
     executions = await TestExecutionModel.filter(
         test_id__in=test_ids,
         started_at__gte=start_date
     ).all()
-    
+
     # Group by environment and status
     environment_status_counts = {}
-    
+
     for execution in executions:
         env = execution.environment
-        
+
         if env not in environment_status_counts:
             environment_status_counts[env] = {status.value: 0 for status in TestStatus}
-            
+
         environment_status_counts[env][execution.status] += 1
-        
+
     return environment_status_counts

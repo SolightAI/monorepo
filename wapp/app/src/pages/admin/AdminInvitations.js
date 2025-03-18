@@ -35,10 +35,10 @@ export default function AdminInvitations() {
       }
 
 
-      const is_admin_response = await axios.get(`${API_URL}/auth/is-admin`, {
+      await axios.get(`${API_URL}/auth/is-admin`, {
         withCredentials: true,
         timeout: 5000 // 5 second timeout
-      });
+      });  // waits for potential 4xx status code
 
       const response = await axios.get(url, {
         withCredentials: true,

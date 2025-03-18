@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 from dto.schemas import BugCreate as BugCreateSchema, Bug as BugSchema
 from services.bug_services import (
-    get_bug, 
-    create_bug, 
-    get_all_bugs, 
-    get_bugs_by_product_path, 
+    get_bug,
+    create_bug,
+    get_all_bugs,
+    get_bugs_by_product_path,
     delete_bug,
     get_bugs_by_test_execution
 )

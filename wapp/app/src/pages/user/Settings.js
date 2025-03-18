@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '@/utils/auth';
+import { useAuth } from '@/context/AuthContext';
 import ChangePassword from '@/components/auth/ChangePassword';
 
 // Account section (existing code)
 const Account = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+
   const handleLogout = async () => {
     await logout();
     navigate('/login');

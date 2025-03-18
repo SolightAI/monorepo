@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from dto.schemas import ProductCreate as ProductCreateSchema, Product as ProductSchema, ProductUpdate as ProductUpdateSchema
-from services.product_services import get_product, create_product, get_product_by_url_path, get_products_list, delete_product, update_product
+from services.product_services import get_product, create_product, get_products_list, delete_product, update_product
 from services import organization_services
 from pydantic import UUID4
 from typing import List, Optional
@@ -34,34 +34,6 @@ async def get_all_products_endpoint(
             )
 
     return await get_products_list(organization_id)
-
-
-@router.get("/by-path/{url_path}")
-async def get_product_by_path_endpoint(
-    url_path: str,
-    organization_id: Optional[UUID] = Query(None, description="Filter by organization ID"),
-    current_user=Depends(get_current_user)
-) -> Optional[ProductSchema]:
-    """
-    Get a product by matching the URL path with the product URL.
-    If no product is found, returns null.
-
-    If organization_id is provided, only products belonging to that organization will be considered.
-    The user must be a member of the organization to access its products.
-    """
-    if organization_id:
-        # Check if user is a member of the organization
-        member = await organization_services.get_organization_member(
-            organization_id, current_user.id
-        )
-        if not member:
-            raise HTTPException(
-                status_code=403,
-                detail="You do not have permission to access products in this organization"
-            )
-
-    product = await get_product_by_url_path(url_path, organization_id)
-    return product
 
 
 @router.get("/{product_id}")

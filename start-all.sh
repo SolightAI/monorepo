@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Script to start all services from the root docker-compose.yaml
+
+# Create the shared network if it doesn't exist yet
+if ! docker network inspect api-tm_shared_network &>/dev/null; then
+  echo "Creating shared network: api-tm_shared_network"
+  docker network create api-tm_shared_network
+else
+  echo "Shared network already exists"
+fi
+
+# Load environment variables from .env file if it exists
+if [ -f .env ]; then
+  echo "Loading environment variables from .env file"
+  export $(grep -v '^#' .env | xargs)
+fi
+
+# Stop any running containers
+echo "Stopping any running containers..."
+docker compose down
+
+# Start all services
+echo "Starting all services..."
+docker compose up --build
+
+echo "All services started. Use 'docker compose logs -f' to view logs."
+echo "Access your services at:"
+echo "- React App: http://localhost:3000"
+echo "- API: http://localhost:8000"
+echo "- Task Manager: http://localhost:9000"
+echo "- PgAdmin: http://localhost:8080"
+echo "- Weaviate: http://localhost:8081"

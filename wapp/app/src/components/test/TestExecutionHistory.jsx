@@ -43,6 +43,8 @@ const TestExecutionHistory = ({ testId, onExecutionSelect }) => {
         return { icon: <XCircle size={16} />, color: 'text-red-500 bg-red-50' };
       case 'PENDING':
         return { icon: <Clock size={16} />, color: 'text-yellow-500 bg-yellow-50' };
+      case 'ERROR':
+        return { icon: <XCircle size={16} />, color: 'text-red-500 bg-red-50' };
       case 'BLOCKED':
         return { icon: <AlertCircle size={16} />, color: 'text-orange-500 bg-orange-50' };
       case 'SKIPPED':
