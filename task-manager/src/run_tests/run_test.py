@@ -151,7 +151,7 @@ def handle_background_task_errors(func):
         An async function wrapped with error handling that updates task_ids.
     """
     @functools.wraps(func)
-    async def wrapper(task_id: str, *args, **kwargs):
+    async def wrapper(task_id: str, *args, **kwargs):  # type: ignore
         try:
             return await func(task_id, *args, **kwargs)
         except Exception as e:
@@ -221,13 +221,13 @@ async def background_run_test(
 async def run_test(
     test: Test,
     background_task: BackgroundTasks,
-    secrets: Optional[dict[str, dict[str, str]]] = None,
     encrypted_secrets: Optional[dict[str, dict[str, str]]] = None,
 ) -> str:
 
     task_id = str(uuid4())
 
     # Decrypt encrypted secrets if provided
+    secrets = {}
     if encrypted_secrets:
         try:
             # Decrypt the secrets
@@ -237,9 +237,6 @@ async def run_test(
             logging.error(f"Failed to decrypt secrets: {str(e)}")
             raise HTTPException(status_code=400, detail="Failed to decrypt secrets")
 
-    # Ensure we have secrets
-    if not secrets:
-        secrets = {}
 
     background_task.add_task(
         background_run_test,
