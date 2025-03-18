@@ -20,6 +20,7 @@ function TestTrendChart({ data }) {
   const statusColors = {
     'PASSED': '#10B981', // green
     'FAILED': '#EF4444', // red
+    'ERROR': '#EF4444', // red
     'PENDING': '#F59E0B', // amber
     'NOT_STARTED': '#6B7280', // gray
     'BLOCKED': '#8B5CF6', // purple

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, status, BackgroundTasks
 from typing import List
 from pydantic import UUID4
 
@@ -6,7 +6,7 @@ from dto.schemas import (
     TestExecution as TestExecutionSchema,
     TestExecutionCreate as TestExecutionCreateSchema,
     TestExecutionUpdate as TestExecutionUpdateSchema,
-    TestStatus
+    TestStatus, ExecutorType
 )
 from services.test_execution_services import (
     create_test_execution,
@@ -25,19 +25,20 @@ router = APIRouter(prefix="/test-executions", tags=["test-executions"])
 @router.post("/", response_model=TestExecutionSchema, status_code=status.HTTP_201_CREATED)
 async def create_test_execution_endpoint(
     test_execution: TestExecutionCreateSchema,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user)
 ) -> TestExecutionSchema:
     """
     Create a new test execution.
-    
+
     This endpoint creates a record of a test being run, including information about
     who ran it, in which environment, and other execution details.
     """
     # If this is a manual test execution, set the executor name to the current user
-    if test_execution.executor_type == "MANUAL" and not test_execution.executor_name:
+    if test_execution.executor_type == ExecutorType.MANUAL and not test_execution.executor_name:
         test_execution.executor_name = current_user.username
-        
-    return await create_test_execution(test_execution)
+
+    return await create_test_execution(test_execution, background_tasks)
 
 
 @router.get("/{test_execution_id}", response_model=TestExecutionSchema)
@@ -58,7 +59,7 @@ async def get_test_executions_by_test_endpoint(
 ) -> List[TestExecutionSchema]:
     """
     Get all executions for a specific test.
-    
+
     This endpoint returns the complete history of all times the specified test has been run.
     """
     return await get_test_executions_by_test(test_id)
@@ -86,7 +87,7 @@ async def finish_test_execution_endpoint(
 ) -> TestExecutionSchema:
     """
     Mark a test execution as complete with a final status.
-    
+
     This endpoint finalizes a test execution by setting its status to the final result
     and recording the completion time.
     """
@@ -95,4 +96,4 @@ async def finish_test_execution_endpoint(
         status=status,
         notes=notes,
         evidence=evidence
-    ) 
+    )

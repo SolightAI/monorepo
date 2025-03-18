@@ -206,7 +206,7 @@ async def _generate_test_category_for_acceptance_criteria(
     )
 
     try:
-        history = await agent.run(max_steps=100)
+        history = await agent.run(max_steps=30)
     finally:
         await context.close()
         await browser.close()

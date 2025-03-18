@@ -64,9 +64,12 @@ const TestDetailsModal = ({ test, onClose }) => {
         return <CheckCircle size={20} className="text-green-500" />;
       case 'FAILED':
         return <XCircle size={20} className="text-red-500" />;
+      case 'ERROR':
+        return <XCircle size={20} className="text-red-500" />;
       case 'PENDING':
-      case 'IN_PROGRESS':
         return <Loader size={20} className="text-yellow-500" />;
+      case 'IN_PROGRESS':
+        return <Loader size={20} className="text-blue-500" />;
       case 'BLOCKED':
         return <AlertCircle size={20} className="text-orange-500" />;
       case 'SKIPPED':
@@ -84,9 +87,12 @@ const TestDetailsModal = ({ test, onClose }) => {
         return 'bg-green-100 text-green-800';
       case 'FAILED':
         return 'bg-red-100 text-red-800';
+      case 'ERROR':
+        return 'bg-red-100 text-red-800';
       case 'PENDING':
-      case 'IN_PROGRESS':
         return 'bg-yellow-100 text-yellow-800';
+      case 'IN_PROGRESS':
+        return 'bg-blue-100 text-blue-800';
       case 'BLOCKED':
         return 'bg-orange-100 text-orange-800';
       case 'SKIPPED':

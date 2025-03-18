@@ -135,15 +135,6 @@ const OrganizationCreate = () => {
             </button>
           </div>
         </form>
-
-        <div className="mt-4 text-center">
-          <button
-            onClick={() => navigate('/')}
-            className="font-medium text-indigo-600 hover:text-indigo-500"
-          >
-            Skip for now
-          </button>
-        </div>
       </div>
     </div>
   );
