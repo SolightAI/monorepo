@@ -66,7 +66,8 @@ async def logout(response: Response) -> dict:
 
 @router.get("/is-admin")
 async def is_admin(current_user: User = Depends(get_current_user)) -> dict:
-    return await auth_services.check_is_admin(current_user)
+    is_admin_result = await auth_services.check_is_admin(current_user)
+    return {"is_admin": is_admin_result}
 
 
 @router.get("/check-auth")
