@@ -23,7 +23,7 @@ router = APIRouter(
 )
 
 
-@router.post("", response_model=Organization, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=Organization, status_code=status.HTTP_201_CREATED)
 async def create_organization(
     data: OrganizationCreate, current_user=Depends(get_current_user)
 ):
@@ -35,7 +35,7 @@ async def create_organization(
     return await organization_services.create_organization(data, current_user.id)
 
 
-@router.get("", response_model=List[Organization])
+@router.get("/", response_model=List[Organization])
 async def get_user_organizations(current_user=Depends(get_current_user)):
     """
     Get all organizations the current user belongs to.

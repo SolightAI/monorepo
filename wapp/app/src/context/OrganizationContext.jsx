@@ -35,8 +35,7 @@ export const OrganizationProvider = ({ children }) => {
     setError(null);
 
     try {
-      console.log(`Fetching organizations from ${API_URL} -> full URL: ${API_URL}/organizations`);
-      const response = await axios.get(`${API_URL}/organizations`, {
+      const response = await axios.get(`${API_URL}/organizations/`, {
         withCredentials: true
       });
 
