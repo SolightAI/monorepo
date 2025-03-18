@@ -161,14 +161,24 @@ async def create_test_execution(
             # Encrypt the secrets using the task-manager's public key
             encryption_success, encrypted_secrets = crypto_service.encrypt_secrets(all_secrets)
 
-            if encryption_success and encrypted_secrets:
-                # Add the encrypted secrets to the payload
-                task_manager_payload["encrypted_secrets"] = encrypted_secrets
-                logger.info("Successfully encrypted secrets for task manager")
-            else:
-                # Fallback to plain text only if encryption fails
-                task_manager_payload["secrets"] = all_secrets
-                logger.warning("Encryption failed, sending secrets in plain text to task manager")
+            if not (encryption_success and encrypted_secrets):
+                # Don't proceed with the operation if encryption fails
+                logger.error("Encryption failed, aborting test execution for security reasons")
+                # Update the execution with an error status
+                await update_test_execution(
+                    test_execution_model.id,
+                    TestExecutionUpdateSchema(
+                        status=TestStatus.ERROR,
+                        notes="Failed to encrypt secrets. Test execution aborted for security reasons.",
+                        ended_at=datetime.now(test_execution_model.started_at.tzinfo if test_execution_model.started_at else None)
+                    )
+                )
+                # Return early without sending any secrets to the task manager
+                return await get_test_execution(test_execution_model.id)
+
+            # Add the encrypted secrets to the payload
+            task_manager_payload["encrypted_secrets"] = encrypted_secrets
+            logger.info("Successfully encrypted secrets for task manager")
 
         # Send request to task manager
         response = requests.post(
