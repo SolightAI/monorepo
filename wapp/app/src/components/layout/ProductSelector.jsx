@@ -135,6 +135,12 @@ const ProductSelector = ({ isMobile = false }) => {
     e.preventDefault();
     setFormError('');
 
+    // Validate URL field is not empty
+    if (!formData.url || formData.url.trim() === '') {
+      setFormError('URL is required. Please enter a valid URL for the product.');
+      return;
+    }
+
     try {
       let response;
 
@@ -340,7 +346,7 @@ const ProductSelector = ({ isMobile = false }) => {
 
                 <div className="mb-4">
                   <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
-                    URL (optional)
+                    URL *
                   </label>
                   <input
                     type="url"
@@ -350,7 +356,11 @@ const ProductSelector = ({ isMobile = false }) => {
                     onChange={handleInputChange}
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     placeholder="https://yourproduct.com"
+                    required
                   />
+                  <p className="mt-1 text-sm text-gray-500">
+                    A URL is required.
+                  </p>
                 </div>
 
                 <div className="mb-4">
@@ -424,7 +434,12 @@ const ProductSelector = ({ isMobile = false }) => {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    className={`px-4 py-2 rounded-md ${
+                      !formData.name.trim() || !formData.url.trim() 
+                        ? 'bg-blue-300 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    } text-white`}
+                    disabled={!formData.name.trim() || !formData.url.trim()}
                   >
                     {isEditing ? 'Update Product' : 'Create Product'}
                   </button>
