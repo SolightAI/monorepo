@@ -71,18 +71,6 @@ export const isAdmin = async () => {
 };
 
 /**
- * @deprecated Use AuthContext's logout method instead
- */
-export const logout = async () => {
-  console.warn('Deprecated: Use AuthContext.logout instead');
-  try {
-    await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
-  } catch (error) {
-    console.error('Logout failed:', error);
-  }
-};
-
-/**
  * @deprecated No longer needed as axios interceptors are set up in AuthContext
  */
 export const setupAxiosInterceptors = () => {

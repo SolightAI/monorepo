@@ -3,15 +3,16 @@ import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
+import { useAuth } from '@/context/AuthContext';
 import ProductSelector from './ProductSelector';
 import OrganizationSelector from './OrganizationSelector';
-import { logout } from '@/utils/auth';
 import NavigationTree from './NavigationTree';
 
 export default function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { selectedProduct } = useProduct();
   const { selectedOrganization } = useOrganization();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const toggleSidebar = () => {
