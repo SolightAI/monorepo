@@ -1,0 +1,8 @@
+version: '3'
+
+# Root docker-compose file that includes all services
+name: laneo
+
+include:
+  - path: ./wapp/local.docker-compose.yaml
+  - path: ./task-manager/local.docker-compose.yaml
