@@ -231,11 +231,7 @@ async def run_test(
     if encrypted_secrets:
         try:
             # Decrypt the secrets
-            decrypted_secrets = crypto_service.decrypt_secrets(encrypted_secrets)
-
-            # Use the decrypted secrets instead of any plaintext secrets provided
-            secrets = decrypted_secrets
-
+            secrets = crypto_service.decrypt_secrets(encrypted_secrets)
             logging.info("Successfully decrypted secrets for task")
         except Exception as e:
             logging.error(f"Failed to decrypt secrets: {str(e)}")

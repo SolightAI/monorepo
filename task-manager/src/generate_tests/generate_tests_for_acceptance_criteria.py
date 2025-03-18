@@ -336,11 +336,7 @@ async def generate_tests_for_acceptance_criteria(
     if encrypted_secrets:
         try:
             # Decrypt the secrets
-            decrypted_secrets = crypto_service.decrypt_secrets(encrypted_secrets)
-
-            # Use the decrypted secrets instead of any plaintext secrets provided
-            secrets = decrypted_secrets
-
+            secrets = crypto_service.decrypt_secrets(encrypted_secrets)
             logger.info("Successfully decrypted secrets for test generation")
         except Exception as e:
             logger.error(f"Failed to decrypt secrets: {str(e)}")
