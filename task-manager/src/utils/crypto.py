@@ -206,13 +206,8 @@ class CryptoService:
             decrypted_secrets[secret_type] = {}
 
             for key, value in secrets.items():
-                try:
-                    decrypted_value = self.decrypt(value)
-                    decrypted_secrets[secret_type][key] = decrypted_value
-                except Exception as e:
-                    logger.error(f"Failed to decrypt secret {secret_type}.{key}: {str(e)}")
-                    # Include a placeholder to indicate decryption failed
-                    decrypted_secrets[secret_type][key] = ""
+                decrypted_value = self.decrypt(value)
+                decrypted_secrets[secret_type][key] = decrypted_value
 
         return decrypted_secrets
 

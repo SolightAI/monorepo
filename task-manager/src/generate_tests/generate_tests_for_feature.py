@@ -333,7 +333,6 @@ async def generate_tests_for_feature(
     user_stories: list[UserStory],
     acceptance_criteria: list[AcceptanceCriteria],
     background_task: BackgroundTasks,
-    secrets: Optional[dict[str, dict[str, str]]] = None,
     encrypted_secrets: Optional[dict[str, dict[str, str]]] = None,
 ) -> str:
     """
@@ -361,19 +360,16 @@ async def generate_tests_for_feature(
         raise HTTPException(status_code=400, detail="No acceptance criteria provided")
 
     # Decrypt secrets if provided
-    decrypted_secrets = None
+    secrets_to_use = None
 
-    if encrypted_secrets and not secrets:
+    if encrypted_secrets:
         try:
-            decrypted_secrets = crypto_service.decrypt_secrets(encrypted_secrets)
-            if not decrypted_secrets:
+            secrets_to_use = crypto_service.decrypt_secrets(encrypted_secrets)
+            if not secrets_to_use:
                 raise HTTPException(status_code=400, detail="No secrets provided")
         except Exception as e:
             logger.error(f"Failed to decrypt secrets: {str(e)}")
             raise HTTPException(status_code=400, detail=f"Failed to decrypt secrets: {str(e)}")
-
-    # Use provided secrets or decrypted secrets
-    secrets_to_use = secrets or decrypted_secrets
 
     # List of test categories to generate
     categories = [
