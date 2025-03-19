@@ -19,7 +19,7 @@ from utils.crypto import crypto_service
 
 
 PROMPT = """
-You are an AI assistant acting as a test automation engineer. Your task is to generate a suite of automated tests based on the provided product information, epic, feature, and acceptance criteria. Follow these instructions carefully to create well-structured, maintainable, and easy-to-understand test cases.
+You are an AI assistant acting as a test automation engineer. Your task is to generate a suite of automated tests based on the provided product information, epic, feature, user stories, and acceptance criteria. Follow these instructions carefully to create well-structured, maintainable, and easy-to-understand test cases.
 
 First, review the following information:
 
@@ -152,55 +152,41 @@ async def _generate_test_category_for_acceptance_criteria(
     feature: Feature,
     acceptance_criteria: AcceptanceCriteria,
     category_of_test: TestCategory,
-    secrets: dict[str, dict[str, str]] = None,
+    auth_session: dict = None,
     gif_output_path: str | bool = False,
 ) -> list[Test]:
 
-    # Setup for authenticated session if username_password secrets are available
-    cookies_file = None
-    localStorage_file = None
+    # Setup browser and auth session
+    browser_config = BrowserConfig()
+    browser = Browser(browser_config)
     
-    if secrets and "username_password" in secrets and len(secrets["username_password"]) > 0:
-        # Write cookies and localStorage to temporary files
-        with NamedTemporaryFile(suffix=".json", delete=False) as cookies_file_obj, NamedTemporaryFile(
-            suffix=".json", delete=False
-        ) as localStorage_file_obj:
-            cookies_file = cookies_file_obj.name
-            localStorage_file = localStorage_file_obj.name
-            
-        await generate_auth_session(
-            url=product.url,
-            cookies_file=cookies_file,
-            localStorage_file=localStorage_file,
-            username=secrets["username_password"].get("username"),
-            password=secrets["username_password"].get("password"),
-        )
-        
-        logger.info(f"Generated auth session for {product.url}")
-
+    context_config = BrowserContextConfig(
+        minimum_wait_page_load_time=1,
+        viewport_expansion=0,
+    )
+    
     try:
-        # Setup browser config
-        browser_config = BrowserConfig()
-        browser = Browser(browser_config)
-        
-        # Create browser context with cookies if available
-        context = BrowserContext(browser=browser, config=BrowserContextConfig(
-            cookies_file=cookies_file,
-            minimum_wait_page_load_time=1,
-            viewport_expansion=0,
-        ))
+        # Create browser context
+        context = BrowserContext(browser=browser, config=context_config)
         
         # Initialize browser context
         await context.initialize()
         
-        # Navigate to the feature URL to load localStorage
+        # Navigate to the feature URL
         await context.navigate_to(feature.urls[0])
         
-        # Load localStorage if available
-        if localStorage_file is not None:
-            with open(localStorage_file, "r") as f:
-                localStorage_data = json.load(f)
+        # Load cookies if available
+        if auth_session and auth_session.get('cookies'):
+            with NamedTemporaryFile(delete=True, suffix='.json', mode='w+') as cookies_file:
+                json.dump(auth_session['cookies'], cookies_file)
+                cookies_file.flush()
+                cookies_file.seek(0)
                 
+                # Apply cookies to the browser context
+                await context.load_cookies(cookies_file.name)
+        
+        # Load localStorage if available
+        if auth_session and auth_session.get('localStorage'):
             load_script = """
             (storage => {
                 for (let [key, value] of Object.entries(storage)) {
@@ -208,7 +194,7 @@ async def _generate_test_category_for_acceptance_criteria(
                 }
                 return localStorage.length;
             })(%s)
-            """.strip() % json.dumps(localStorage_data)
+            """.strip() % json.dumps(auth_session.get('localStorage'))
             await context.execute_javascript(load_script)
         
         # Create a directory for GIF output if needed
@@ -266,18 +252,11 @@ async def _generate_test_category_for_acceptance_criteria(
         return tests
         
     finally:
-        # Clean up temporary files
-        if cookies_file:
-            try:
-                os.unlink(cookies_file)
-            except Exception as e:
-                logger.error(f"Failed to clean up cookies file: {e}")
-        
-        if localStorage_file:
-            try:
-                os.unlink(localStorage_file)
-            except Exception as e:
-                logger.error(f"Failed to clean up localStorage file: {e}")
+        # Clean up browser resources
+        if 'context' in locals():
+            await context.close()
+        if 'browser' in locals():
+            await browser.close()
 
 
 def handle_background_task_errors(func):
@@ -343,6 +322,21 @@ async def background_generate_tests_for_acceptance_criteria(
     if categories_of_test is None:
         categories_of_test = [TestCategory.SMOKE]
     
+    # Generate auth session if username/password secrets are available
+    auth_session = None
+    if secrets and "username_password" in secrets and len(secrets["username_password"]) > 0:
+        try:
+            logger.info(f"Generating auth session for {product.url}")
+            auth_session = await generate_auth_session(
+                url=product.url,
+                username=secrets["username_password"].get("username"),
+                password=secrets["username_password"].get("password"),
+            )
+            logger.info(f"Generated auth session for {product.url}")
+        except Exception as e:
+            logger.error(f"Failed to generate auth session: {e}")
+            raise e
+    
     try:
         results = []
         
@@ -355,7 +349,7 @@ async def background_generate_tests_for_acceptance_criteria(
                 feature=feature,
                 acceptance_criteria=acceptance_criteria,
                 category_of_test=category,
-                secrets=secrets,
+                auth_session=auth_session,
                 gif_output_path=gif_output_path,
             )
             
