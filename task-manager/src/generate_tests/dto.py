@@ -1,5 +1,6 @@
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import List
 
 
 class TestStatus(str, Enum):
@@ -25,7 +26,7 @@ class Product(BaseModel):
     name: str
     description: str
     documentation: str
-    links_to_documentation: list[str] = []
+    links_to_documentation: List[str] = Field(default_factory=list)
 
 
 class Epic(BaseModel):
