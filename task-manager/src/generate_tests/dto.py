@@ -1,5 +1,6 @@
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import List
 
 
 class TestStatus(str, Enum):
@@ -39,8 +40,8 @@ class Feature(BaseModel):
     name: str
     description: str
 
-    dependents: list["Feature"] = []  # features depending on this feature
-    dependencies: list["Feature"] = []  # features this feature depends on
+    dependents: List["Feature"] = Field(default_factory=list)  # features depending on this feature
+    dependencies: List["Feature"] = Field(default_factory=list)  # features this feature depends on
 
 
 class UserStory(BaseModel):
