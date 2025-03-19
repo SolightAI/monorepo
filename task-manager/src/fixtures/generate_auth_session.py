@@ -52,6 +52,8 @@ async def generate_auth_session(
         raise ValueError('No username or password found in secrets')
 
     sensitive_data = {f"{_sec_category}:{_sec_name}": _sec_value for _sec_category, _secrets in secrets.items() for _sec_name, _sec_value in _secrets.items()}
+    logger.info(f"Sensitive data: {sensitive_data}")
+    logger.error(f"Sensitive data: {sensitive_data}")
 
     # if (
     #     username.get_secret_value() is None or len(username.get_secret_value()) == 0

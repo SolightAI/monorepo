@@ -68,7 +68,7 @@ Some extra ground rules:
 
 On your final response, for each test case, you should write the following informations in the following format:
 <test_case>
-<n>Name of the test</n>
+<name>Name of the test</name>
 <description>Description of the test</description>
 <preconditions>Preconditions or setup required</preconditions>
 <steps>Step-by-step instructions for test execution</steps>
@@ -103,7 +103,7 @@ def _parse_test_cases(test_case_text: str) -> list[dict[str, str]]:
     """Parse the text returned from LLM into a list of test case dictionaries."""
     # Use regex to extract test cases
     test_cases = []
-    pattern = r'<test_case>\s*<n>(.*?)</n>\s*<description>(.*?)</description>\s*<preconditions>(.*?)</preconditions>\s*<steps>(.*?)</steps>\s*<expected_results>(.*?)</expected_results>\s*<assertions>(.*?)</assertions>\s*</test_case>'
+    pattern = r'<test_case>\s*<name>(.*?)</name>\s*<description>(.*?)</description>\s*<preconditions>(.*?)</preconditions>\s*<steps>(.*?)</steps>\s*<expected_results>(.*?)</expected_results>\s*<assertions>(.*?)</assertions>\s*</test_case>'
 
     matches = re.finditer(pattern, test_case_text, re.DOTALL)
 
@@ -164,8 +164,8 @@ async def _generate_test_category_for_feature(
 
     # Configure the browser session with cookies and localStorage
     browser_config = BrowserConfig(
-        headless=True,
-        chrome_instance_path=os.getenv("CHROME_INSTANCE_PATH", None),
+        headless=os.getenv("HEADLESS", "true").lower() == "true",
+        chrome_instance_path=os.getenv("CHROME_INSTANCE_PATH", None)
     )
 
     browser = Browser(browser_config)
