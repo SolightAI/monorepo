@@ -86,15 +86,6 @@ const UserStoryDetails = () => {
                 {story.description && (
                   <p className="text-gray-700 mb-4">{story.description}</p>
                 )}
-                <div className="mt-4">
-                  <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${
-                    story.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                    story.status === 'IN_PROGRESS' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {story.status || 'Not Started'}
-                  </span>
-                </div>
               </div>
             )}
 

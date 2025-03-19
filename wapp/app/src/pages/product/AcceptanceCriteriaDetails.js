@@ -5,7 +5,7 @@ import { Loader, AlertCircle, ArrowLeft, TestTube, Plus, CheckCircle, XCircle, S
 import AddTestModal from '@/components/modals/AddTestModal';
 import TestGenerationStatusModal from '@/components/modals/TestGenerationStatusModal';
 import TestDetailsModal from '@/components/modals/TestDetailsModal';
-import { triggerTestGeneration } from '@/services/testService';
+import { triggerFeatureTestGeneration } from '@/services/testService';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -57,13 +57,18 @@ const AcceptanceCriteriaDetails = () => {
     console.log("Test added:", newTest);
 
     try {
-      // No need to convert strings to arrays, just use the strings directly
-      console.log("Sending to API:", newTest);
+      // Add the feature_id from the acceptance criteria
+      const testWithFeatureId = {
+        ...newTest,
+        feature_id: criteria.feature_id
+      };
+
+      console.log("Sending to API:", testWithFeatureId);
 
       // Make API call to save the test
       const response = await axios.post(
         `${API_URL}/tests/`,
-        newTest,
+        testWithFeatureId,
         {
           withCredentials: true,
           headers: {
@@ -94,8 +99,12 @@ const AcceptanceCriteriaDetails = () => {
       setGeneratingTest(true);
       setError(null);
 
-      // Call the test generation API
-      const taskId = await triggerTestGeneration(criteriaId);
+      if (!criteria || !criteria.feature_id) {
+        throw new Error("Cannot generate tests: Feature ID not available");
+      }
+
+      // Call the test generation API using the feature_id
+      const taskId = await triggerFeatureTestGeneration(criteria.feature_id);
 
       // Set the task ID and open the status modal
       setTestGenerationTaskId(taskId);
@@ -114,7 +123,7 @@ const AcceptanceCriteriaDetails = () => {
         return <CheckCircle size={20} className="text-green-500" />;
       case 'FAILED':
         return <XCircle size={20} className="text-red-500" />;
-      case 'IN_PROGRESS':
+      case 'PENDING':
         return <Loader size={20} className="text-yellow-500" />;
       case 'NOT_STARTED':
         return <TestTube size={20} className="text-gray-400" />;
@@ -129,7 +138,7 @@ const AcceptanceCriteriaDetails = () => {
         return 'bg-green-100 text-green-800';
       case 'FAILED':
         return 'bg-red-100 text-red-800';
-      case 'IN_PROGRESS':
+      case 'PENDING':
         return 'bg-yellow-100 text-yellow-800';
       case 'NOT_STARTED':
       default:
@@ -166,16 +175,22 @@ const AcceptanceCriteriaDetails = () => {
     setIsTestDetailsModalOpen(true);
   };
 
+  const handleGenerationComplete = () => {
+    // Refresh criteria data to get the newly generated tests
+    fetchCriteriaDetails();
+    setIsTestGenerationModalOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Back button */}
         <button
-          onClick={() => navigate(`/user-stories/${criteria?.user_story_id}`)}
+          onClick={() => navigate(`/features/${criteria?.feature_id}`)}
           className="flex items-center mb-6 text-gray-600 hover:text-blue-600 transition-colors"
         >
           <ArrowLeft size={20} className="mr-2" />
-          Back to User Story
+          Back to Feature
         </button>
 
         {/* Error message */}
@@ -215,7 +230,7 @@ const AcceptanceCriteriaDetails = () => {
                     disabled={generatingTest}
                   >
                     <Sparkles size={18} className="mr-2" />
-                    {generatingTest ? 'Generating...' : 'Generate Test with AI'}
+                    {generatingTest ? 'Generating...' : 'Generate Tests with AI'}
                   </button>
                   <button
                     className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
@@ -237,7 +252,7 @@ const AcceptanceCriteriaDetails = () => {
                       disabled={generatingTest}
                     >
                       <Sparkles size={18} className="mr-2" />
-                      {generatingTest ? 'Generating...' : 'Generate Test with AI'}
+                      {generatingTest ? 'Generating...' : 'Generate Tests with AI'}
                     </button>
                     <button
                       className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
@@ -249,121 +264,44 @@ const AcceptanceCriteriaDetails = () => {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {criteria.tests.map((test, index) => (
-                    <div
-                      key={index}
-                      className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors cursor-pointer hover:shadow-md"
-                      onClick={() => handleTestClick(test)}
-                    >
-                      {/* Header section with status and category */}
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center">
-                          {getTestStatusIcon(test.status)}
-                          <h3 className="text-lg font-medium text-gray-800 ml-3">{test.name}</h3>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getTestStatusColor(test.status)}`}>
-                            {test.status || 'Not Started'}
-                          </span>
-                          {test.category && (
-                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                              {test.category}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Description */}
-                      {test.description && (
-                        <p className="text-gray-600 mb-3">{test.description}</p>
-                      )}
-
-                      {/* Endpoint */}
-                      {test.url && (
-                        <div className="mb-4">
-                          <span className="text-gray-500">Endpoint:</span>
-                          <a
-                            href={test.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="ml-2 text-blue-600 hover:text-blue-800"
-                            onClick={(e) => e.stopPropagation()} // Prevent the parent click event when clicking the link
-                          >
-                            {test.url}
-                          </a>
-                        </div>
-                      )}
-
-                      {/* Test details grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        {/* Timing information */}
-                        <div className="space-y-2">
-                          {test.started_at && (
-                            <div className="text-sm">
-                              <span className="text-gray-500">Started:</span>
-                              <span className="ml-2 text-gray-700">{formatDateTime(test.started_at)}</span>
-                            </div>
-                          )}
-                          {test.ended_at && (
-                            <div className="text-sm">
-                              <span className="text-gray-500">Ended:</span>
-                              <span className="ml-2 text-gray-700">{formatDateTime(test.ended_at)}</span>
-                            </div>
-                          )}
-                          {test.started_at && test.ended_at && (
-                            <div className="text-sm">
-                              <span className="text-gray-500">Duration:</span>
-                              <span className="ml-2 text-gray-700">{getDuration(test.started_at, test.ended_at)}</span>
-                            </div>
-                          )}
-
-                          {/* Display Secret Information */}
-                          {test.secret && (
-                            <div className="text-sm mt-2">
-                              <span className="text-gray-500">Secret:</span>
-                              <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                                {test.secret.name} ({test.secret.type.replace('_', ' ')})
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Run</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {criteria.tests.map((test) => (
+                        <tr 
+                          key={test.id} 
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onClick={() => handleTestClick(test)}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              {getTestStatusIcon(test.status)}
+                              <span className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTestStatusColor(test.status)}`}>
+                                {test.status}
                               </span>
                             </div>
-                          )}
-                        </div>
-
-                        {/* Bugs */}
-                        <div>
-                          {test.bugs && test.bugs.length > 0 && (
-                            <div className="text-sm">
-                              <span className="text-gray-500">Bugs:</span>
-                              <div className="mt-1">
-                                {test.bugs.map((bug, bugIndex) => (
-                                  <div
-                                    key={bugIndex}
-                                    className="inline-flex items-center px-2 py-1 mr-2 mb-2 rounded bg-red-50 text-red-700 text-xs"
-                                  >
-                                    <XCircle size={12} className="mr-1" />
-                                    {bug.name || bug}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Preview of test steps */}
-                      {test.steps && (
-                        <div className="mt-4">
-                          <div className="text-sm font-medium text-gray-700 mb-2">Test Steps Preview:</div>
-                          <div className="p-2 bg-gray-50 rounded-lg overflow-hidden">
-                            <p className="text-sm line-clamp-2">{test.steps}</p>
-                          </div>
-                          <div className="mt-2 text-blue-600 text-sm flex justify-end">
-                            Click to view full details
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{test.name}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-500">{test.category}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {formatDateTime(test.ended_at) || 'Never run'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -375,19 +313,15 @@ const AcceptanceCriteriaDetails = () => {
       {isAddTestModalOpen && (
         <AddTestModal
           onClose={() => setIsAddTestModalOpen(false)}
-          onAddTest={handleTestAdded}
-          criteriaId={criteriaId}
+          onTestAdded={handleTestAdded}
+          defaultUrl={criteria?.url || ''}
         />
       )}
 
       {/* Test Generation Status Modal */}
-      {isTestGenerationModalOpen && testGenerationTaskId && (
+      {isTestGenerationModalOpen && (
         <TestGenerationStatusModal
-          onClose={() => {
-            setIsTestGenerationModalOpen(false);
-            // Refresh the criteria details to show the newly generated test
-            fetchCriteriaDetails();
-          }}
+          onClose={handleGenerationComplete}
           taskId={testGenerationTaskId}
         />
       )}
@@ -395,11 +329,9 @@ const AcceptanceCriteriaDetails = () => {
       {/* Test Details Modal */}
       {isTestDetailsModalOpen && selectedTest && (
         <TestDetailsModal
+          onClose={() => setIsTestDetailsModalOpen(false)}
           test={selectedTest}
-          onClose={() => {
-            setIsTestDetailsModalOpen(false);
-            setSelectedTest(null);
-          }}
+          onTestUpdated={fetchCriteriaDetails}
         />
       )}
     </div>

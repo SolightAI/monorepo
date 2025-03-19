@@ -103,8 +103,8 @@ async def create_test_execution(
     # Trigger test execution on task manager if this is an automated test
     try:
         # Get test data and related information
-        await test.fetch_related("acceptance_criteria__user_story__feature__epic__product")
-        product = test.acceptance_criteria.user_story.feature.epic.product
+        await test.fetch_related("feature__epic__product")
+        product = test.feature.epic.product
 
         # Build dictionary of all secrets with their decrypted values
         all_secrets = {}

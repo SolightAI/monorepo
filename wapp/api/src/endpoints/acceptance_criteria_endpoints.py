@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from dto.schemas import AcceptanceCriteriaCreate as AcceptanceCriteriaCreateSchema, AcceptanceCriteria as AcceptanceCriteriaSchema, AcceptanceCriteriaUpdate as AcceptanceCriteriaUpdateSchema
-from services.acceptance_criteria_services import get_acceptance_criteria, create_acceptance_criteria, get_all_acceptance_criteria, delete_acceptance_criteria, update_acceptance_criteria
+from services.acceptance_criteria_services import get_acceptance_criteria, create_acceptance_criteria, get_all_acceptance_criteria, delete_acceptance_criteria, update_acceptance_criteria, get_acceptance_criteria_by_feature
 from pydantic import UUID4
 from typing import List
 
@@ -16,6 +16,12 @@ async def get_all_acceptance_criteria_endpoint() -> List[AcceptanceCriteriaSchem
 @router.get("/{acceptance_criteria_id}")
 async def get_acceptance_criteria_endpoint(acceptance_criteria_id: UUID4) -> AcceptanceCriteriaSchema:
     return await get_acceptance_criteria(acceptance_criteria_id)
+
+
+@router.get("/by-feature/{feature_id}")
+async def get_acceptance_criteria_by_feature_endpoint(feature_id: UUID4) -> List[AcceptanceCriteriaSchema]:
+    """Get all acceptance criteria for a feature."""
+    return await get_acceptance_criteria_by_feature(feature_id)
 
 
 @router.post("/")

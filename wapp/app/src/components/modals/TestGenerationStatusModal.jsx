@@ -53,7 +53,7 @@ const TestGenerationStatusModal = ({ onClose, taskId }) => {
   }, [taskId]);
 
   const getStatusIcon = () => {
-    if (loading) {
+    if (loading && !status) {
       return <Loader size={24} className="text-blue-500 animate-spin" />;
     }
 
@@ -94,7 +94,8 @@ const TestGenerationStatusModal = ({ onClose, taskId }) => {
       case 'pending':
         return 'Test generation in progress...';
       case 'completed':
-        return 'Test generation completed successfully!';
+        const testCount = status.results ? status.results.length : 0;
+        return `${testCount} tests generated successfully!`;
       case 'error':
         return `Error: ${status.error || 'Unknown error occurred'}`;
       default:
@@ -106,6 +107,16 @@ const TestGenerationStatusModal = ({ onClose, taskId }) => {
     fetchStatus();
   };
 
+  const handleClose = () => {
+    // Clear polling interval
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+    
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
@@ -115,7 +126,7 @@ const TestGenerationStatusModal = ({ onClose, taskId }) => {
               Test Generation Status
             </h2>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               <X size={24} />
@@ -128,10 +139,20 @@ const TestGenerationStatusModal = ({ onClose, taskId }) => {
               <h3 className="text-lg font-medium">{getStatusText()}</h3>
             </div>
 
-            {status && status.status === 'completed' && status.result && (
-              <div className="mt-4 p-4 bg-green-50 border border-green-100 rounded-md">
-                <p className="font-medium text-green-800 mb-2">Test created successfully:</p>
-                <p className="text-green-700">{status.result.name}</p>
+            {status && status.status === 'completed' && status.results && (
+              <div className="mt-4 p-4 bg-green-50 border border-green-100 rounded-md max-h-60 overflow-y-auto">
+                <p className="font-medium text-green-800 mb-2">
+                  {status.results.length === 1 
+                    ? "1 test created successfully:" 
+                    : `${status.results.length} tests created successfully:`}
+                </p>
+                <ul className="list-disc pl-5">
+                  {status.results.map((test, index) => (
+                    <li key={index} className="text-green-700 mb-1">
+                      {test.name} <span className="text-green-600">({test.category})</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 
@@ -166,7 +187,7 @@ const TestGenerationStatusModal = ({ onClose, taskId }) => {
               Refresh
             </button>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               Close

@@ -15,13 +15,6 @@ const AddUserStoryModal = ({ onClose, featureId, featureName, onUserStoryAdded }
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Status options
-  const statusOptions = [
-    { value: 'NOT_STARTED', label: 'Not Started' },
-    { value: 'IN_PROGRESS', label: 'In Progress' },
-    { value: 'COMPLETED', label: 'Completed' }
-  ];
-
   // Handle input change
   const handleInputChange = (e) => {
     const { name, value } = e.target;

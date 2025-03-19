@@ -1,5 +1,6 @@
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import List
 
 
 class TestStatus(str, Enum):
@@ -34,15 +35,17 @@ class Epic(BaseModel):
 
 
 class Feature(BaseModel):
+    id: str  # Added id field to use for linking tests
     urls: list[str]  # where the feature is implemented
     name: str
     description: str
 
-    dependents: list["Feature"]  # features depending on this feature
-    dependencies: list["Feature"]  # features this feature depends on
+    dependents: List["Feature"] = Field(default_factory=list)  # features depending on this feature
+    dependencies: List["Feature"] = Field(default_factory=list)  # features this feature depends on
 
 
 class UserStory(BaseModel):
+    id: str  # Added id field for reference
     name: str
     description: str
 
@@ -58,4 +61,8 @@ class Test(BaseModel):
     description: str
     url: str  # where to start the test
     category: TestCategory
-    status: TestStatus
+    preconditions: str
+    steps: str
+    expected_results: str
+    assertions: str
+    feature_id: str  # Changed from acceptance_criteria_id to feature_id

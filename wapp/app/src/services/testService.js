@@ -23,6 +23,25 @@ export const triggerTestGeneration = async (acceptanceCriteriaId) => {
 };
 
 /**
+ * Trigger test generation for a feature
+ * @param {string} featureId - The UUID of the feature
+ * @returns {Promise<string>} Promise with the task ID (UUID)
+ */
+export const triggerFeatureTestGeneration = async (featureId) => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/tests/generate?feature_id=${featureId}`,
+      {},
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(`Error triggering test generation for feature ${featureId}:`, error);
+    throw error;
+  }
+};
+
+/**
  * Check the status of a test generation task
  * @param {string} taskId - The task ID (UUID)
  * @returns {Promise<object>} Promise with the task status data
