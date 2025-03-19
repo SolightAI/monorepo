@@ -231,7 +231,7 @@ class FeatureCreate(BaseModel):
 
 class FeatureUpdate(BaseModel):
     name: Optional[str] = None
-    urls: Optional[list[str]] = None
+    urls: list[str] = []
     description: Optional[str] = None
 
 
