@@ -251,11 +251,22 @@ async def trigger_test_generation(acceptance_criteria_id: UUID4) -> str:
         "description": acceptance_criteria.description
     }
     
+    # Include user stories data
+    user_stories_data = []
+    if hasattr(feature, 'user_stories') and feature.user_stories:
+        for story in feature.user_stories:
+            user_stories_data.append({
+                "id": str(story.id),
+                "name": story.name,
+                "description": story.description
+            })
+    
     feature_data = {
         "id": str(feature.id),
         "name": feature.name,
         "description": feature.description,
-        "urls": feature.urls
+        "urls": feature.urls,
+        "user_stories": user_stories_data
     }
     
     epic_data = {

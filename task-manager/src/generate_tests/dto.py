@@ -39,9 +39,10 @@ class Feature(BaseModel):
     urls: list[str]  # where the feature is implemented
     name: str
     description: str
+    user_stories: list[UserStory] = Field(default_factory=list)
 
-    dependents: list["Feature"]  # features depending on this feature
-    dependencies: list["Feature"]  # features this feature depends on
+    dependents: list["Feature"] = Field(default_factory=list)  # features depending on this feature
+    dependencies: list["Feature"] = Field(default_factory=list)  # features this feature depends on
 
 
 class UserStory(BaseModel):

@@ -36,6 +36,9 @@ Description: {epic.description}
 Name: {feature.name}
 Description: {feature.description}
 
+== User Stories ==
+{user_stories_text}
+
 == Acceptance Criteria ==
 Name: {acceptance_criteria.name}
 Description: {acceptance_criteria.description}
@@ -43,7 +46,7 @@ Description: {acceptance_criteria.description}
 URL of the page to start the test: {url}
 Test Category: {category_of_test}
 
-Analyze the provided information carefully. Pay special attention to the acceptance criteria, as this will be the primary basis for your test cases.
+Analyze the provided information carefully. Pay special attention to the acceptance criteria and user stories, as these will be the primary basis for your test cases.
 
 Generate a suite of {category_of_test} test cases that thoroughly cover the acceptance criteria. Each test case should:
 1. Have a clear and descriptive title
@@ -217,11 +220,21 @@ async def _generate_test_category_for_acceptance_criteria(
         # Setup agent for test generation
         agent = Agent(context)
         
+        # Format user stories text
+        user_stories_text = ""
+        if hasattr(feature, 'user_stories') and feature.user_stories:
+            for i, story in enumerate(feature.user_stories, 1):
+                user_stories_text += f"User Story {i}: {story.name}\n"
+                user_stories_text += f"Description: {story.description}\n\n"
+        else:
+            user_stories_text = "No user stories defined for this feature."
+        
         # Create prompt for test case generation
         prompt = PROMPT.format(
             product=product,
             epic=epic,
             feature=feature,
+            user_stories_text=user_stories_text,
             acceptance_criteria=acceptance_criteria,
             url=feature.urls[0],
             category_of_test=category_of_test,
@@ -311,55 +324,57 @@ async def background_generate_tests_for_acceptance_criteria(
     gif_output_path: str | bool = False,
 ):
     """
-    Generate tests for acceptance criteria in a background task.
-    """
-    logger.info(f"Starting background test generation task {task_id}")
+    Background task to generate tests for an acceptance criteria.
     
-    # Default to SMOKE tests if no categories specified
+    This function runs in the background and generates test cases for the given acceptance criteria.
+    It generates tests for each category in the list of categories provided.
+    
+    Args:
+        task_id: UUID of the task
+        product: Product data
+        epic: Epic data
+        feature: Feature data with user stories
+        acceptance_criteria: Acceptance criteria to generate tests for
+        secrets: Dictionary of secrets to use for authentication
+        categories_of_test: List of test categories to generate
+        gif_output_path: Path to save GIF output to, or False to disable GIF output
+    """
+    # Use the default list of categories if none provided
     if categories_of_test is None:
         categories_of_test = [TestCategory.SMOKE]
     
-    # Initialize an empty list for test results
-    tests = []
-    
     try:
-        # Generate tests for each category
-        for category_of_test in categories_of_test:
-            category_tests = await _generate_test_category_for_acceptance_criteria(
+        results = []
+        
+        for category in categories_of_test:
+            logger.info(f"Generating {category} tests for acceptance criteria {acceptance_criteria.id}")
+            
+            tests = await _generate_test_category_for_acceptance_criteria(
                 product=product,
                 epic=epic,
                 feature=feature,
                 acceptance_criteria=acceptance_criteria,
-                category_of_test=category_of_test,
+                category_of_test=category,
                 secrets=secrets,
-                gif_output_path=gif_output_path
+                gif_output_path=gif_output_path,
             )
-            tests.extend(category_tests)
             
-        # Convert the tests to a serializable format - feature_id is the only ID we need
-        serialized_tests = [
-            {
-                "name": test.name,
-                "description": test.description,
-                "url": test.url,
-                "category": test.category,
-                "status": test.status,
-                "feature_id": test.feature_id,  # This still works since we kept Feature.id
-                "preconditions": test.preconditions,
-                "steps": test.steps,
-                "expected_results": test.expected_results,
-                "assertions": test.assertions
-            }
-            for test in tests
-        ]
+            # Add results
+            for test in tests:
+                test_dict = test.model_dump()
+                test_dict["category"] = category
+                test_dict["feature_id"] = feature.id
+                results.append(test_dict)
+                
+            logger.info(f"Generated {len(tests)} {category} tests for acceptance criteria {acceptance_criteria.id}")
         
         # Store the result
         task_ids[task_id] = {
             "status": "completed",
-            "results": serialized_tests
+            "results": results
         }
         
-        logger.info(f"Completed test generation task {task_id} with {len(tests)} tests")
+        logger.info(f"Completed test generation task {task_id} with {len(results)} tests")
         
     except Exception as e:
         logger.error(f"Failed to generate tests in task {task_id}: {str(e)}")
@@ -380,10 +395,35 @@ async def generate_tests_for_acceptance_criteria(
     encrypted_secrets: Optional[dict[str, dict[str, str]]] = None,
 ) -> dict:
     """
-    Generate test cases for a specific acceptance criteria, and return those cases.
+    Generate tests for an acceptance criteria.
+    
+    This endpoint starts a background task that generates test cases for the given acceptance criteria.
+    The test cases are generated using an AI agent that analyzes the provided information.
+    
+    Product, Epic, Feature, and AcceptanceCriteria models should be provided.
+    The Feature should include any associated UserStories that provide context for test generation.
+    
+    Args:
+        product: Product data for context
+        epic: Epic data
+        feature: Feature with associated user stories
+        acceptance_criteria: Acceptance criteria to generate tests for
+        background_tasks: FastAPI background tasks
+        secrets: Dictionary of secrets to use for authentication
+        encrypted_secrets: Dictionary of encrypted secrets
+        
+    Returns:
+        Dictionary with the task_id for status polling
     """
+    # Create unique ID for this task
     task_id = str(uuid4())
     
+    # Prepare the task metadata
+    task_ids[task_id] = {
+        "status": "starting",
+        "results": []
+    }
+
     # Decrypt encrypted secrets if provided
     if encrypted_secrets:
         try:
