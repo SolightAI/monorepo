@@ -18,6 +18,8 @@ from services.product_services import get_product
 from services.secret_services import get_secret_with_values, get_organization_secrets
 from pydantic import UUID4
 
+from services.crypto_service import crypto_service
+
 
 logger = logging.getLogger(__name__)
 
@@ -298,7 +300,19 @@ async def trigger_test_generation(acceptance_criteria_id: UUID4) -> str:
 
     # Add all organization secrets to the payload
     if all_secrets:
-        payload['secrets'] = all_secrets
+        # Encrypt the secrets using the task-manager's public key
+        encryption_success, encrypted_secrets = crypto_service.encrypt_secrets(all_secrets)
+
+        if not (encryption_success and encrypted_secrets):
+            # Don't proceed with the operation if encryption fails
+            error_msg = "Encryption failed, aborting test generation for security reasons"
+            logger.error(error_msg)
+            # Raise an exception to abort the operation
+            raise HTTPException(status_code=500, detail=error_msg)
+
+        # Add the encrypted secrets to the payload
+        payload['encrypted_secrets'] = encrypted_secrets
+        logger.info("Successfully encrypted secrets for test generation")
 
     response = requests.post(
         os.getenv("TASK_MANAGER_URL") + "/generate-tests/generate-tests-for-acceptance-criteria",
@@ -323,7 +337,7 @@ async def get_test_generation_status(test_id: UUID4) -> dict:
     return response.json()
 
 
-async def poll_test_generation_status(test_id: UUID4) -> str:
+async def poll_test_generation_status(test_id: UUID4) -> None:
     while True:
 
         response = await get_test_generation_status(test_id)

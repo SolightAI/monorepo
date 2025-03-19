@@ -4,7 +4,7 @@ import functools
 import traceback
 
 from uuid import uuid4
-from typing import Any
+from typing import Any, Optional
 from pydantic import SecretStr
 from logging import getLogger
 from tempfile import NamedTemporaryFile
@@ -14,6 +14,8 @@ from fixtures.generate_auth_session import generate_auth_session
 from run_tests.dto import Test
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
+import logging
+from utils.crypto import crypto_service
 
 
 # TODO: use Preconditions to let the agent know what fixture to run before running the test
@@ -83,7 +85,7 @@ async def _run_test(
     context = BrowserContext(browser=browser, config=BrowserContextConfig(
         cookies_file=cookies_file,
         minimum_wait_page_load_time=1,
-        # viewport_expansion=0,
+        viewport_expansion=0,
     ))
 
     await context.navigate_to(test.url)  # allowing us to load the localStorage
@@ -149,7 +151,7 @@ def handle_background_task_errors(func):
         An async function wrapped with error handling that updates task_ids.
     """
     @functools.wraps(func)
-    async def wrapper(task_id: str, *args, **kwargs):
+    async def wrapper(task_id: str, *args, **kwargs):  # type: ignore
         try:
             return await func(task_id, *args, **kwargs)
         except Exception as e:
@@ -218,11 +220,23 @@ async def background_run_test(
 @router.post("/run-test")
 async def run_test(
     test: Test,
-    secrets: dict[str, dict[str, str]],
     background_task: BackgroundTasks,
+    encrypted_secrets: Optional[dict[str, dict[str, str]]] = None,
 ) -> str:
 
     task_id = str(uuid4())
+
+    # Decrypt encrypted secrets if provided
+    secrets = {}
+    if encrypted_secrets:
+        try:
+            # Decrypt the secrets
+            secrets = crypto_service.decrypt_secrets(encrypted_secrets)
+            logging.info("Successfully decrypted secrets for task")
+        except Exception as e:
+            logging.error(f"Failed to decrypt secrets: {str(e)}")
+            raise HTTPException(status_code=400, detail="Failed to decrypt secrets")
+
 
     background_task.add_task(
         background_run_test,

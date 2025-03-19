@@ -8,3 +8,4 @@ pydantic
 pyperclip==1.9.0
 gradio==5.10.0
 json-repair
+cryptography>=44.0.2

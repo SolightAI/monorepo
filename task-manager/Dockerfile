@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN playwright install && playwright install-deps
 
 # Copy the rest of the application
-COPY . .
+COPY src/ /app/src/
 
 # Expose the port the app runs on
 EXPOSE 9000

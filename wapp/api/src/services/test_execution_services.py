@@ -18,6 +18,7 @@ from dto.schemas import (
 )
 from services.test_services import get_test, get_organization_secrets
 from services.secret_services import get_secret_with_values
+from services.crypto_service import crypto_service
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +158,27 @@ async def create_test_execution(
 
         # Add secrets to the payload if available
         if all_secrets:
-            task_manager_payload["secrets"] = all_secrets
+            # Encrypt the secrets using the task-manager's public key
+            encryption_success, encrypted_secrets = crypto_service.encrypt_secrets(all_secrets)
+
+            if not (encryption_success and encrypted_secrets):
+                # Don't proceed with the operation if encryption fails
+                logger.error("Encryption failed, aborting test execution for security reasons")
+                # Update the execution with an error status
+                await update_test_execution(
+                    test_execution_model.id,
+                    TestExecutionUpdateSchema(
+                        status=TestStatus.ERROR,
+                        notes="Failed to encrypt secrets. Test execution aborted for security reasons.",
+                        ended_at=datetime.now(test_execution_model.started_at.tzinfo if test_execution_model.started_at else None)
+                    )
+                )
+                # Return early without sending any secrets to the task manager
+                return await get_test_execution(test_execution_model.id)
+
+            # Add the encrypted secrets to the payload
+            task_manager_payload["encrypted_secrets"] = encrypted_secrets
+            logger.info("Successfully encrypted secrets for task manager")
 
         # Send request to task manager
         response = requests.post(
