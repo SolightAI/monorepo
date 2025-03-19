@@ -1,6 +1,6 @@
 from __future__ import annotations
-from pydantic import BaseModel, UUID4
-from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, UUID4, Field
+from typing import Optional, List, Dict, Any, Callable
 from datetime import datetime
 from enum import Enum
 
@@ -231,7 +231,7 @@ class FeatureCreate(BaseModel):
 
 class FeatureUpdate(BaseModel):
     name: Optional[str] = None
-    urls: list[str] = []
+    urls: list[str] = Field(default_factory=list)
     description: Optional[str] = None
 
 
