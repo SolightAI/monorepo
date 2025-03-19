@@ -14,6 +14,33 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
 
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [touched, setTouched] = useState({
+    name: false,
+    urls: false
+  });
+  const [urlErrors, setUrlErrors] = useState([]);
+
+  // URL validation function
+  const isValidUrl = (url) => {
+    try {
+      // Use the URL constructor to validate the URL
+      new URL(url);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  // Calculate if form is valid for submit button
+  const isFormValid = () => {
+    const nameValid = formData.name.trim() !== '';
+    const urlsValid = formData.urls.some(url => url.trim() !== '' && isValidUrl(url));
+    return nameValid && urlsValid && urlErrors.every(error => !error);
+  };
+
+  // Check individual field validity for UI feedback
+  const isNameValid = formData.name.trim() !== '';
+  const isUrlsValid = formData.urls.some(url => url.trim() !== '');
 
   // Handle input change for name and description
   const handleInputChange = (e) => {
@@ -22,6 +49,14 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
       ...formData,
       [name]: value
     });
+
+    // Mark field as touched
+    if (!touched[name]) {
+      setTouched({
+        ...touched,
+        [name]: true
+      });
+    }
   };
 
   // Handle URL input changes
@@ -33,6 +68,23 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
       ...formData,
       urls: updatedUrls
     });
+    
+    // Validate URL
+    const newUrlErrors = [...urlErrors];
+    if (value.trim() !== '' && !isValidUrl(value)) {
+      newUrlErrors[index] = 'Please enter a valid URL (e.g., https://example.com)';
+    } else {
+      newUrlErrors[index] = '';
+    }
+    setUrlErrors(newUrlErrors);
+    
+    // Mark URLs as touched
+    if (!touched.urls) {
+      setTouched({
+        ...touched,
+        urls: true
+      });
+    }
   };
 
   // Add a new URL field
@@ -65,6 +117,21 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
 
     // Filter out empty URLs
     const filteredUrls = formData.urls.filter(url => url.trim() !== '');
+    
+    // Simple validation: require at least one URL
+    if (filteredUrls.length === 0) {
+      setError('At least one URL is required');
+      return;
+    }
+
+    // Validate all URLs
+    const invalidUrls = filteredUrls.filter(url => !isValidUrl(url));
+    if (invalidUrls.length > 0) {
+      // Instead of showing global error, we'll rely on the field-level errors
+      // Update touched state to show all URL field errors
+      setTouched(prev => ({...prev, urls: true}));
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -76,7 +143,7 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
           name: formData.name,
           description: formData.description,
           epic_id: epicId,
-          urls: filteredUrls
+          urls: filteredUrls 
         },
         { withCredentials: true }
       );
@@ -140,7 +207,7 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full p-2 border ${touched.name && !isNameValid ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-md focus:ring-blue-500 focus:border-blue-500`}
                 required
               />
             </div>
@@ -161,25 +228,32 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
 
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Related URLs
+                Related URLs *
               </label>
 
               {formData.urls.map((url, index) => (
-                <div key={index} className="flex items-center space-x-2 mb-2">
-                  <input
-                    type="url"
-                    placeholder="https://..."
-                    value={url}
-                    onChange={(e) => handleUrlChange(index, e.target.value)}
-                    className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveUrl(index)}
-                    className="p-2 text-red-500 hover:text-red-700 transition-colors"
-                  >
-                    <X size={16} />
-                  </button>
+                <div key={index} className="flex flex-col w-full mb-4">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="url"
+                      placeholder="https://..."
+                      value={url}
+                      onChange={(e) => handleUrlChange(index, e.target.value)}
+                      className={`flex-1 p-2 border ${touched.urls && url.trim() !== '' && !isValidUrl(url) ? 'border-red-300 bg-red-50' : touched.urls && !isUrlsValid ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm`}
+                      required={index === 0}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveUrl(index)}
+                      className="p-2 text-red-500 hover:text-red-700 transition-colors"
+                      disabled={formData.urls.length === 1}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                  {touched.urls && url.trim() !== '' && !isValidUrl(url) && (
+                    <div className="text-xs text-red-500 mt-1">Please enter a valid URL (e.g., https://example.com)</div>
+                  )}
                 </div>
               ))}
 
@@ -203,8 +277,8 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
-                disabled={isSubmitting}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed"
+                disabled={isSubmitting || !isFormValid()}
               >
                 {isSubmitting ? 'Creating...' : 'Create Feature'}
               </button>
