@@ -156,34 +156,35 @@ async def _generate_test_category_for_acceptance_criteria(
     gif_output_path: str | bool = False,
 ) -> list[Test]:
 
-    # Setup browser and auth session
-    browser_config = BrowserConfig()
-    browser = Browser(browser_config)
-    
-    context_config = BrowserContextConfig(
-        minimum_wait_page_load_time=1,
-        viewport_expansion=0,
-    )
-    
+    # Create cookies file if auth session is available
+    cookies_file = None
+    if auth_session and auth_session.get('cookies'):
+        with NamedTemporaryFile(delete=False, suffix='.json', mode='w+') as f:
+            json.dump(auth_session['cookies'], f)
+            f.flush()
+            cookies_file = f.name
+
     try:
-        # Create browser context
-        context = BrowserContext(browser=browser, config=context_config)
+        # Setup browser with proper configuration
+        browser = Browser(
+            config=BrowserConfig(
+                headless=os.getenv("HEADLESS", "true").lower() == "true",
+                chrome_instance_path=os.getenv("CHROME_INSTANCE_PATH", None)
+            )
+        )
+
+        # Create context with cookies file
+        context = BrowserContext(browser=browser, config=BrowserContextConfig(
+            cookies_file=cookies_file,
+            minimum_wait_page_load_time=1,
+            viewport_expansion=0,
+        ))
         
         # Initialize browser context
         await context.initialize()
         
         # Navigate to the feature URL
         await context.navigate_to(feature.urls[0])
-        
-        # Load cookies if available
-        if auth_session and auth_session.get('cookies'):
-            with NamedTemporaryFile(delete=True, suffix='.json', mode='w+') as cookies_file:
-                json.dump(auth_session['cookies'], cookies_file)
-                cookies_file.flush()
-                cookies_file.seek(0)
-                
-                # Apply cookies to the browser context
-                await context.load_cookies(cookies_file.name)
         
         # Load localStorage if available
         if auth_session and auth_session.get('localStorage'):
@@ -252,6 +253,13 @@ async def _generate_test_category_for_acceptance_criteria(
         return tests
         
     finally:
+        # Clean up resources
+        if cookies_file:
+            try:
+                os.unlink(cookies_file)
+            except Exception as e:
+                logger.error(f"Failed to clean up cookies file: {e}")
+                
         # Clean up browser resources
         if 'context' in locals():
             await context.close()
