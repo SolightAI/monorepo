@@ -184,8 +184,8 @@ class CryptoService:
             # Return the decrypted value
             return decrypted_data.decode('utf-8')
         except Exception as e:
-            logger.error(f"Error decrypting value: {type(e).__name__}")
-            raise ValueError("Failed to decrypt the value") from e
+            logger.error(f"Error decrypting value: {e}")
+            raise e
 
     def decrypt_secrets(self, encrypted_secrets: Dict[str, Dict[str, str]]) -> Dict[str, Dict[str, str]]:
         """
