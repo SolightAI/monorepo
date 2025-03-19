@@ -106,6 +106,6 @@ async def generate_auth_session(
     result = history.final_result()  # type: ignore
 
     if history.has_errors() or not history.is_done() or result is None or not history.is_successful() or "[AN ERROR OCCURED]" in result:
-        raise Exception("Failed to login to %s, result is None", url)
+        raise Exception(f"Failed to login to {url}, result is None")
 
     return {"cookies": cookies, "localStorage": localStorage_data}

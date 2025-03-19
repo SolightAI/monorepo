@@ -4,14 +4,14 @@ import re
 import functools
 import traceback
 from uuid import uuid4
-from typing import Any, Optional, Dict
+from typing import Any, Optional
 from pydantic import SecretStr
 from logging import getLogger
 from tempfile import NamedTemporaryFile
 from langchain_openai import AzureChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig
 from fixtures.generate_auth_session import generate_auth_session
-from generate_tests.dto import Product, Test, Epic, Feature, UserStory, AcceptanceCriteria, TestCategory, TestStatus
+from generate_tests.dto import Product, Test, Epic, Feature, UserStory, AcceptanceCriteria, TestCategory
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service
@@ -104,9 +104,9 @@ def _parse_test_cases(test_case_text: str) -> list[dict[str, str]]:
     # Use regex to extract test cases
     test_cases = []
     pattern = r'<test_case>\s*<n>(.*?)</n>\s*<description>(.*?)</description>\s*<preconditions>(.*?)</preconditions>\s*<steps>(.*?)</steps>\s*<expected_results>(.*?)</expected_results>\s*<assertions>(.*?)</assertions>\s*</test_case>'
-    
+
     matches = re.finditer(pattern, test_case_text, re.DOTALL)
-    
+
     for match in matches:
         test_case = {
             'name': match.group(1).strip(),
@@ -117,7 +117,7 @@ def _parse_test_cases(test_case_text: str) -> list[dict[str, str]]:
             'assertions': match.group(6).strip(),
         }
         test_cases.append(test_case)
-    
+
     return test_cases
 
 
@@ -134,7 +134,7 @@ async def _generate_test_category_for_feature(
 ) -> list[Test]:
     """
     Generate test cases for a specific category for a feature.
-    
+
     Args:
         product: Product information
         epic: Epic information
@@ -145,29 +145,29 @@ async def _generate_test_category_for_feature(
         cookies_file: Path to cookies file for browser automation
         localStorage: Path to localStorage file for browser automation
         gif_output_path: Path to store GIF output of browser automation
-        
+
     Returns:
         List of generated tests
     """
 
     # Format user stories and acceptance criteria for the prompt
     user_stories_text = "\n\n".join([
-        f"User Story: {us.name}\nDescription: {us.description}" 
+        f"User Story: {us.name}\nDescription: {us.description}"
         for us in user_stories
     ])
-    
+
     acceptance_criteria_text = "\n\n".join([
-        f"Name: {ac.name}\nDescription: {ac.description}" 
+        f"Name: {ac.name}\nDescription: {ac.description}"
         for ac in acceptance_criteria_list
     ])
-    
-    
+
+
     # Configure the browser session with cookies and localStorage
     browser_config = BrowserConfig(
         headless=True,
         chrome_instance_path=os.getenv("CHROME_INSTANCE_PATH", None),
     )
-    
+
     browser = Browser(browser_config)
     context = BrowserContext(browser=browser, config=BrowserContextConfig(
         cookies_file=cookies_file,
@@ -226,9 +226,9 @@ async def _generate_test_category_for_feature(
 
     # Parse the test cases from the LLM response
     test_cases = _parse_test_cases(result)
-    
+
     tests = []
-    
+
     # Convert parsed test cases to Test objects
     for tc in test_cases:
         test = Test(
@@ -281,7 +281,7 @@ async def background_generate_tests_for_feature(
 ) -> list[Test]:
     """
     Background task to generate tests for a feature.
-    
+
     Args:
         task_id: Task ID for tracking
         product: Product information
@@ -292,13 +292,10 @@ async def background_generate_tests_for_feature(
         categories_of_test: List of test categories to generate
         secrets: Dictionary of secrets for authentication
         gif_output_path: Path to store GIF output of browser automation
-        
+
     Returns:
         List of generated tests
     """
-    # Generate session for test generation
-    cookies_file = None
-    localStorage = None
 
     auth_session = await generate_auth_session(
         product.url,
@@ -341,7 +338,7 @@ async def generate_tests_for_feature(
 ) -> str:
     """
     Endpoint to generate tests for a feature.
-    
+
     Args:
         product: Product information
         epic: Epic information
@@ -351,21 +348,21 @@ async def generate_tests_for_feature(
         background_task: Background tasks handler
         secrets: Dictionary of secrets for authentication
         encrypted_secrets: Dictionary of encrypted secrets for authentication
-        
+
     Returns:
         Task ID for tracking the test generation process
     """
     task_id = str(uuid4())
-    
+
     if len(user_stories) == 0:
         raise HTTPException(status_code=400, detail="No user stories provided")
-    
+
     if len(acceptance_criteria) == 0:
         raise HTTPException(status_code=400, detail="No acceptance criteria provided")
-    
+
     # Decrypt secrets if provided
     decrypted_secrets = None
-    
+
     if encrypted_secrets and not secrets:
         try:
             decrypted_secrets = crypto_service.decrypt_secrets(encrypted_secrets)
@@ -374,17 +371,15 @@ async def generate_tests_for_feature(
         except Exception as e:
             logger.error(f"Failed to decrypt secrets: {str(e)}")
             raise HTTPException(status_code=400, detail=f"Failed to decrypt secrets: {str(e)}")
-    
+
     # Use provided secrets or decrypted secrets
     secrets_to_use = secrets or decrypted_secrets
-    
+
     # List of test categories to generate
     categories = [
         TestCategory.SMOKE,
-        TestCategory.FUNCTIONAL,
-        TestCategory.END_TO_END,
     ]
-    
+
     background_task.add_task(
         background_generate_tests_for_feature,
         task_id=task_id,
@@ -397,7 +392,7 @@ async def generate_tests_for_feature(
         secrets=secrets_to_use or {},
         gif_output_path="/tmp",
     )
-    
+
     return task_id
 
 
@@ -407,10 +402,10 @@ async def get_test_generation_status(
 ) -> dict[str, Any]:
     """
     Get the status of a test generation task.
-    
+
     Args:
         task_id: Task ID to check
-        
+
     Returns:
         Dictionary with task status information
     """
