@@ -12,7 +12,7 @@ repos:
     hooks:
       - id: mypy
         exclude: ^migrations/
-        args: [--disallow-untyped-defs, --disallow-incomplete-defs]
+        args: [--disallow-untyped-defs, --disallow-incomplete-defs, --explicit-package-bases]
 
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
