@@ -6,11 +6,11 @@ from pydantic import UUID4
 
 
 async def get_all_acceptance_criteria() -> list[AcceptanceCriteriaSchema]:
-    return await AcceptanceCriteriaModel.all().prefetch_related("tests")
+    return await AcceptanceCriteriaModel.all()
 
 
 async def get_acceptance_criteria(acceptance_criteria_id: str) -> AcceptanceCriteriaSchema:
-    acceptance_criteria = await AcceptanceCriteriaModel.get_or_none(id=acceptance_criteria_id).prefetch_related("tests")
+    acceptance_criteria = await AcceptanceCriteriaModel.get_or_none(id=acceptance_criteria_id)
 
     if not acceptance_criteria:
         raise HTTPException(status_code=404, detail="Acceptance criteria not found")
@@ -28,7 +28,7 @@ async def get_acceptance_criteria_by_feature(feature_id: UUID) -> list[Acceptanc
     Returns:
         List of acceptance criteria for the feature
     """
-    return await AcceptanceCriteriaModel.filter(feature_id=feature_id).prefetch_related("tests")
+    return await AcceptanceCriteriaModel.filter(feature_id=feature_id)
 
 
 async def create_acceptance_criteria(acceptance_criteria: AcceptanceCriteriaCreateSchema) -> AcceptanceCriteriaSchema:
@@ -39,7 +39,7 @@ async def create_acceptance_criteria(acceptance_criteria: AcceptanceCriteriaCrea
 
 async def delete_acceptance_criteria(acceptance_criteria_id: str | UUID) -> bool:
     """
-    Delete an acceptance criteria and all its related tests.
+    Delete an acceptance criteria.
 
     Args:
         acceptance_criteria_id: UUID of the acceptance criteria to delete
@@ -50,15 +50,10 @@ async def delete_acceptance_criteria(acceptance_criteria_id: str | UUID) -> bool
     Raises:
         HTTPException: If the acceptance criteria was not found
     """
-    acceptance_criteria = await AcceptanceCriteriaModel.get_or_none(id=acceptance_criteria_id).prefetch_related("tests")
+    acceptance_criteria = await AcceptanceCriteriaModel.get_or_none(id=acceptance_criteria_id)
 
     if not acceptance_criteria:
         raise HTTPException(status_code=404, detail="Acceptance criteria not found")
-
-    # Delete all tests related to this acceptance criteria
-    from services.test_services import delete_test
-    for test in acceptance_criteria.tests:
-        await delete_test(test.id)
 
     # Delete the acceptance criteria
     await acceptance_criteria.delete()

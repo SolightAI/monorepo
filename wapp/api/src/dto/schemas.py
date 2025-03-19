@@ -288,7 +288,6 @@ class AcceptanceCriteriaBase(AcceptanceCriteriaCreate):
 
 class AcceptanceCriteria(AcceptanceCriteriaBase):
     feature_id: UUID4
-    tests: list[TestBase] = []
 
     class Config:
         from_attributes = True

@@ -14,6 +14,8 @@ from services.feature_services import get_feature
 from services.epic_services import get_epic
 from services.product_services import get_product
 from services.secret_services import get_secret_with_values, get_organization_secrets
+from services.acceptance_criteria_services import get_acceptance_criteria_by_feature
+from services.user_story_services import get_user_story
 from pydantic import UUID4
 
 from services.crypto_service import crypto_service
@@ -222,19 +224,17 @@ async def get_test_secrets_with_values(test_id: UUID4) -> Dict[str, Dict[str, st
     return result
 
 
-async def trigger_test_generation(acceptance_criteria_id: UUID4) -> str:
+async def trigger_test_generation(feature_id: UUID4) -> str:
     """
-    Trigger test generation for an acceptance criteria.
+    Trigger test generation for a feature.
 
     Args:
-        acceptance_criteria_id: The ID of the acceptance criteria
+        feature_id: The ID of the feature
 
     Returns:
         The ID of the generated test
     """
-    acceptance_criteria = await get_acceptance_criteria(acceptance_criteria_id)
-    user_story = await get_user_story(acceptance_criteria.user_story_id)
-    feature = await get_feature(user_story.feature_id)
+    feature = await get_feature(feature_id)
     epic = await get_epic(feature.epic_id)
     product = await get_product(epic.product_id)
 
@@ -275,23 +275,36 @@ async def trigger_test_generation(acceptance_criteria_id: UUID4) -> str:
                 logger.error(f"Error processing secret {secret.id}: {str(e)}")
                 continue
 
+    # Get acceptance criteria for this feature
+    acceptance_criteria_list = await get_acceptance_criteria_by_feature(feature_id)
+    
+    # Get user stories for this feature
+    await feature.fetch_related("user_stories")
+    user_stories = feature.user_stories
+
     payload = {
-        'acceptance_criteria': {
-            'id': str(acceptance_criteria.id),
-            'name': acceptance_criteria.name,
-            'description': acceptance_criteria.description,
-        },
-        'user_story': {
-            'name': user_story.name,
-            'description': user_story.description,
-        },
         'feature': {
+            'id': str(feature.id),
             'name': feature.name,
             'description': feature.description,
             'dependents': [],  # TODO
             'dependencies': [],  # TODO
             'urls': feature.urls,
         },
+        'user_stories': [
+            {
+                'id': str(story.id),
+                'name': story.name,
+                'description': story.description,
+            } for story in user_stories
+        ],
+        'acceptance_criteria': [
+            {
+                'id': str(ac.id),
+                'name': ac.name,
+                'description': ac.description,
+            } for ac in acceptance_criteria_list
+        ],
         'epic': {
             'name': epic.name,
             'description': epic.description,
@@ -322,7 +335,7 @@ async def trigger_test_generation(acceptance_criteria_id: UUID4) -> str:
         logger.info("Successfully encrypted secrets for test generation")
 
     response = requests.post(
-        os.getenv("TASK_MANAGER_URL") + "/generate-tests/generate-tests-for-acceptance-criteria",
+        os.getenv("TASK_MANAGER_URL") + "/generate-tests/generate-tests-for-feature",
         json=payload
     )
 
@@ -362,7 +375,7 @@ async def poll_test_generation_status(test_id: UUID4) -> None:
             for _test in response["results"]:
                 await create_test(
                     TestCreateSchema(
-                        acceptance_criteria_id=_test["acceptance_criteria_id"],
+                        feature_id=_test["feature_id"],
                         name=_test["name"],
                         description=_test["description"],
                         url=_test["url"],

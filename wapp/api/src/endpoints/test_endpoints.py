@@ -132,8 +132,8 @@ async def add_test_secret_endpoint(
     """
     # Verify user has access to the test and the secret by checking organization membership
     test = await get_test(test_id)
-    await test.fetch_related("acceptance_criteria__user_story__feature__epic__product__organization")
-    org = test.acceptance_criteria.user_story.feature.epic.product.organization
+    await test.fetch_related("feature__epic__product__organization")
+    org = test.feature.epic.product.organization
 
     # Check if user has access to the organization
     await organization_services.verify_user_in_organization(current_user.id, org.id)
@@ -162,8 +162,8 @@ async def get_test_secrets_endpoint(
     """
     # Verify user has access to the test by checking organization membership
     test = await get_test(test_id)
-    await test.fetch_related("acceptance_criteria__user_story__feature__epic__product__organization")
-    org = test.acceptance_criteria.user_story.feature.epic.product.organization
+    await test.fetch_related("feature__epic__product__organization")
+    org = test.feature.epic.product.organization
 
     # Check if user has access to the organization
     await organization_services.verify_user_in_organization(current_user.id, org.id)
@@ -195,8 +195,8 @@ async def delete_test_secret_endpoint(
     """
     # Verify user has access to the test by checking organization membership
     test = await get_test(test_id)
-    await test.fetch_related("acceptance_criteria__user_story__feature__epic__product__organization")
-    org = test.acceptance_criteria.user_story.feature.epic.product.organization
+    await test.fetch_related("feature__epic__product__organization")
+    org = test.feature.epic.product.organization
 
     # Verify user has admin access to the organization
     member = await organization_services.get_organization_member(current_user.id, org.id)

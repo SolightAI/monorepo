@@ -1,12 +1,12 @@
 from fastapi import FastAPI
-from generate_tests.generate_tests_for_acceptance_criteria import router as generate_tests_for_acceptance_criteria_router
+from generate_tests.generate_tests_for_feature import router as generate_tests_router
 from run_tests.run_test import router as run_test_router
 from utils.crypto_router import router as crypto_router
 
 
 app = FastAPI()
 
-app.include_router(generate_tests_for_acceptance_criteria_router)
+app.include_router(generate_tests_router)
 app.include_router(run_test_router)
 app.include_router(crypto_router)
 
