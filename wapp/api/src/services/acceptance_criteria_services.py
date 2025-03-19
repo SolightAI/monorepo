@@ -18,6 +18,19 @@ async def get_acceptance_criteria(acceptance_criteria_id: str) -> AcceptanceCrit
     return acceptance_criteria
 
 
+async def get_acceptance_criteria_by_feature(feature_id: UUID) -> list[AcceptanceCriteriaSchema]:
+    """
+    Get all acceptance criteria for a feature.
+    
+    Args:
+        feature_id: UUID of the feature
+    
+    Returns:
+        List of acceptance criteria for the feature
+    """
+    return await AcceptanceCriteriaModel.filter(feature_id=feature_id).prefetch_related("tests")
+
+
 async def create_acceptance_criteria(acceptance_criteria: AcceptanceCriteriaCreateSchema) -> AcceptanceCriteriaSchema:
     acceptance_criteria_model = await AcceptanceCriteriaModel.create(**acceptance_criteria.model_dump())
 

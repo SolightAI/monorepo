@@ -10,8 +10,6 @@ from dto.schemas import TestCreate as TestCreateSchema, TestStatus, TestUpdate a
 from typing import List, Dict
 from uuid import UUID
 from services.product_services import get_product_by_url_path
-from services.acceptance_criteria_services import get_acceptance_criteria
-from services.user_story_services import get_user_story
 from services.feature_services import get_feature
 from services.epic_services import get_epic
 from services.product_services import get_product
@@ -53,26 +51,35 @@ async def get_tests_by_product_path(url_path: str) -> List[TestModel]:
         return []
 
     tests = []
-    # Traverse the hierarchy: Product -> Epics -> Features -> User Stories -> Acceptance Criteria -> Tests
+    # Simplified hierarchy: Product -> Epics -> Features -> Tests
     await product.fetch_related("epics")
     for epic in product.epics:
         await epic.fetch_related("features")
         for feature in epic.features:
-            await feature.fetch_related("user_stories")
-            for user_story in feature.user_stories:
-                await user_story.fetch_related("acceptance_criteria")
-                for acceptance_criteria in user_story.acceptance_criteria:
-                    await acceptance_criteria.fetch_related("tests")
-                    # Fetch test secrets relation for each test
-                    for test in acceptance_criteria.tests:
-                        await test.fetch_related("test_secrets__secret")
-                    tests.extend(acceptance_criteria.tests)
+            await feature.fetch_related("tests")
+            # Fetch test secrets relation for each test
+            for test in feature.tests:
+                await test.fetch_related("test_secrets__secret")
+            tests.extend(feature.tests)
 
     # Fetch bugs for each test
     for test in tests:
         await test.fetch_related("bugs")
 
     return tests
+
+
+async def get_tests_by_feature(feature_id: UUID) -> List[TestModel]:
+    """
+    Get all tests for a feature.
+    
+    Args:
+        feature_id: UUID of the feature
+        
+    Returns:
+        List of tests for the feature
+    """
+    return await TestModel.filter(feature_id=feature_id).prefetch_related("bugs", "test_secrets__secret", "executions")
 
 
 async def create_test(test: TestCreateSchema) -> TestModel:

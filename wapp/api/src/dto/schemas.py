@@ -242,6 +242,8 @@ class FeatureBase(FeatureCreate):
 class Feature(FeatureBase):
     epic_id: UUID4
     user_stories: list[UserStoryBase] = []
+    acceptance_criteria: list[AcceptanceCriteriaBase] = []
+    tests: list[TestBase] = []
 
     class Config:
         from_attributes = True
@@ -264,11 +266,13 @@ class UserStoryBase(UserStoryCreate):
 
 class UserStory(UserStoryBase):
     feature_id: UUID4
-    acceptance_criteria: list[AcceptanceCriteriaBase] = []
+
+    class Config:
+        from_attributes = True
 
 
 class AcceptanceCriteriaCreate(BaseModel):
-    user_story_id: UUID4
+    feature_id: UUID4
     name: str
     description: str
 
@@ -283,7 +287,7 @@ class AcceptanceCriteriaBase(AcceptanceCriteriaCreate):
 
 
 class AcceptanceCriteria(AcceptanceCriteriaBase):
-    user_story_id: UUID4
+    feature_id: UUID4
     tests: list[TestBase] = []
 
     class Config:
@@ -291,7 +295,7 @@ class AcceptanceCriteria(AcceptanceCriteriaBase):
 
 
 class TestCreate(BaseModel):
-    acceptance_criteria_id: UUID4
+    feature_id: UUID4
     name: str
     description: str
     url: str
@@ -324,7 +328,7 @@ class Test(TestBase):
     status: TestStatus
     started_at: Optional[datetime]
     ended_at: Optional[datetime]
-    acceptance_criteria_id: UUID4
+    feature_id: UUID4
     secrets: List[Dict[str, Any]] = []
     bugs: list[BugBase] = []
 
