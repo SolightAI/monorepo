@@ -36,6 +36,59 @@ CREATE TABLE IF NOT EXISTS "features" (
     "description" TEXT NOT NULL,
     "epic_id" UUID NOT NULL REFERENCES "epics" ("id") ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS "acceptance_criteria" (
+    "id" UUID NOT NULL PRIMARY KEY,
+    "name" VARCHAR(255) NOT NULL,
+    "description" TEXT NOT NULL,
+    "feature_id" UUID NOT NULL REFERENCES "features" ("id") ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS "tests" (
+    "id" UUID NOT NULL PRIMARY KEY,
+    "url" VARCHAR(255) NOT NULL,
+    "name" VARCHAR(255) NOT NULL,
+    "description" TEXT NOT NULL,
+    "preconditions" TEXT NOT NULL,
+    "steps" TEXT NOT NULL,
+    "expected_results" TEXT NOT NULL,
+    "assertions" TEXT NOT NULL,
+    "category" VARCHAR(13) NOT NULL,
+    "status" VARCHAR(11) NOT NULL DEFAULT 'NOT_STARTED',
+    "started_at" TIMESTAMPTZ,
+    "ended_at" TIMESTAMPTZ,
+    "feature_id" UUID NOT NULL REFERENCES "features" ("id") ON DELETE CASCADE
+);
+COMMENT ON COLUMN "tests"."category" IS 'SMOKE: SMOKE\nFUNCTIONAL: FUNCTIONAL\nEND_TO_END: END_TO_END\nUNIT: UNIT\nREGRESSION: REGRESSION\nINTEGRATION: INTEGRATION\nPERFORMANCE: PERFORMANCE\nUSABILITY: USABILITY\nCOMPATIBILITY: COMPATIBILITY\nLOCALIZATION: LOCALIZATION';
+COMMENT ON COLUMN "tests"."status" IS 'NOT_STARTED: NOT_STARTED\nPENDING: PENDING\nPASSED: PASSED\nFAILED: FAILED\nBLOCKED: BLOCKED\nSKIPPED: SKIPPED\nERROR: ERROR';
+CREATE TABLE IF NOT EXISTS "test_executions" (
+    "id" UUID NOT NULL PRIMARY KEY,
+    "status" VARCHAR(11) NOT NULL,
+    "environment" VARCHAR(50) NOT NULL,
+    "executor_type" VARCHAR(11) NOT NULL,
+    "executor_name" VARCHAR(255),
+    "started_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "ended_at" TIMESTAMPTZ,
+    "duration_ms" INT,
+    "notes" TEXT,
+    "evidence" JSONB NOT NULL,
+    "metadata" JSONB NOT NULL,
+    "test_id" UUID NOT NULL REFERENCES "tests" ("id") ON DELETE CASCADE
+);
+COMMENT ON COLUMN "test_executions"."status" IS 'NOT_STARTED: NOT_STARTED\nPENDING: PENDING\nPASSED: PASSED\nFAILED: FAILED\nBLOCKED: BLOCKED\nSKIPPED: SKIPPED\nERROR: ERROR';
+COMMENT ON COLUMN "test_executions"."executor_type" IS 'MANUAL: MANUAL\nAUTOMATED: AUTOMATED\nCI_PIPELINE: CI_PIPELINE\nSCHEDULED: SCHEDULED';
+COMMENT ON TABLE "test_executions" IS 'Model for storing each individual test execution.';
+CREATE TABLE IF NOT EXISTS "bugs" (
+    "id" UUID NOT NULL PRIMARY KEY,
+    "name" VARCHAR(255) NOT NULL,
+    "description" TEXT NOT NULL,
+    "severity" VARCHAR(8) NOT NULL,
+    "url" VARCHAR(255) NOT NULL,
+    "screenshots" JSONB NOT NULL,
+    "status" VARCHAR(50),
+    "detected_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "test_id" UUID NOT NULL REFERENCES "tests" ("id") ON DELETE CASCADE,
+    "test_execution_id" UUID REFERENCES "test_executions" ("id") ON DELETE CASCADE
+);
+COMMENT ON COLUMN "bugs"."severity" IS 'CRITICAL: Critical\nHIGH: High\nMEDIUM: Medium\nLOW: Low';
 CREATE TABLE IF NOT EXISTS "users" (
     "id" SERIAL NOT NULL PRIMARY KEY,
     "username" VARCHAR(255) NOT NULL,
@@ -97,48 +150,19 @@ CREATE TABLE IF NOT EXISTS "secret_values" (
     "secret_id" UUID NOT NULL REFERENCES "secrets" ("id") ON DELETE CASCADE,
     CONSTRAINT "uid_secret_valu_secret__935722" UNIQUE ("secret_id", "key")
 );
+CREATE TABLE IF NOT EXISTS "test_secrets" (
+    "id" UUID NOT NULL PRIMARY KEY,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "secret_id" UUID NOT NULL REFERENCES "secrets" ("id") ON DELETE CASCADE,
+    "test_id" UUID NOT NULL REFERENCES "tests" ("id") ON DELETE CASCADE,
+    CONSTRAINT "uid_test_secret_test_id_168b03" UNIQUE ("test_id", "secret_id")
+);
 CREATE TABLE IF NOT EXISTS "user_stories" (
     "id" UUID NOT NULL PRIMARY KEY,
     "name" VARCHAR(255) NOT NULL,
     "description" TEXT NOT NULL,
     "feature_id" UUID NOT NULL REFERENCES "features" ("id") ON DELETE CASCADE
 );
-CREATE TABLE IF NOT EXISTS "acceptance_criteria" (
-    "id" UUID NOT NULL PRIMARY KEY,
-    "name" VARCHAR(255) NOT NULL,
-    "description" TEXT NOT NULL,
-    "user_story_id" UUID NOT NULL REFERENCES "user_stories" ("id") ON DELETE CASCADE
-);
-CREATE TABLE IF NOT EXISTS "tests" (
-    "id" UUID NOT NULL PRIMARY KEY,
-    "url" VARCHAR(255) NOT NULL,
-    "name" VARCHAR(255) NOT NULL,
-    "description" TEXT NOT NULL,
-    "preconditions" TEXT NOT NULL,
-    "steps" TEXT NOT NULL,
-    "expected_results" TEXT NOT NULL,
-    "assertions" TEXT NOT NULL,
-    "category" VARCHAR(13) NOT NULL,
-    "status" VARCHAR(11) NOT NULL DEFAULT 'NOT_STARTED',
-    "started_at" TIMESTAMPTZ,
-    "ended_at" TIMESTAMPTZ,
-    "acceptance_criteria_id" UUID NOT NULL REFERENCES "acceptance_criteria" ("id") ON DELETE CASCADE,
-    "secret_id" UUID REFERENCES "secrets" ("id") ON DELETE CASCADE
-);
-COMMENT ON COLUMN "tests"."category" IS 'SMOKE: SMOKE\nFUNCTIONAL: FUNCTIONAL\nEND_TO_END: END_TO_END\nUNIT: UNIT\nREGRESSION: REGRESSION\nINTEGRATION: INTEGRATION\nPERFORMANCE: PERFORMANCE\nUSABILITY: USABILITY\nCOMPATIBILITY: COMPATIBILITY\nLOCALIZATION: LOCALIZATION';
-COMMENT ON COLUMN "tests"."status" IS 'NOT_STARTED: NOT_STARTED\nPENDING: PENDING\nPASSED: PASSED\nFAILED: FAILED\nBLOCKED: BLOCKED\nSKIPPED: SKIPPED';
-CREATE TABLE IF NOT EXISTS "bugs" (
-    "id" UUID NOT NULL PRIMARY KEY,
-    "name" VARCHAR(255) NOT NULL,
-    "description" TEXT NOT NULL,
-    "severity" VARCHAR(8) NOT NULL,
-    "url" VARCHAR(255) NOT NULL,
-    "screenshots" JSONB NOT NULL,
-    "status" VARCHAR(50),
-    "detected_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "test_id" UUID NOT NULL REFERENCES "tests" ("id") ON DELETE CASCADE
-);
-COMMENT ON COLUMN "bugs"."severity" IS 'CRITICAL: Critical\nHIGH: High\nMEDIUM: Medium\nLOW: Low';
 CREATE TABLE IF NOT EXISTS "aerich" (
     "id" SERIAL NOT NULL PRIMARY KEY,
     "version" VARCHAR(255) NOT NULL,
