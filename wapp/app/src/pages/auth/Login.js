@@ -96,7 +96,7 @@ export default function Login() {
       controller.abort();
     };
   }, [navigate, location.state?.from, isAuthenticated, handleGoogleCallback]);
-
+  
   const fetchGoogleAuthUrl = useCallback(async (codeOverride = null) => {
     console.log(`Fetching Google auth URL from ${API_URL}/auth/login/google`);
 
