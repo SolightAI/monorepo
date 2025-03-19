@@ -28,7 +28,7 @@ class CryptoService:
         self.public_key = None
         self.public_key_pem = None
         self.last_refresh_time = 0
-        self.refresh_interval = 86400  # 24 hours in seconds
+        self.refresh_interval = 0  # no interval, we refresh the key on every request
         self.lock = threading.RLock()
 
         # URL of the task manager
