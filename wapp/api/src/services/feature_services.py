@@ -6,7 +6,9 @@ from pydantic import UUID4
 
 
 async def get_feature(feature_id: str | UUID) -> FeatureModel:
-    feature = await FeatureModel.get_or_none(id=feature_id).prefetch_related("user_stories")
+    feature = await FeatureModel.get_or_none(id=feature_id).prefetch_related(
+        "user_stories", "acceptance_criteria", "tests"
+    )
 
     if not feature:
         raise HTTPException(status_code=404, detail="Feature not found")
@@ -22,7 +24,7 @@ async def create_feature(feature: FeatureCreateSchema) -> FeatureModel:
 
 async def delete_feature(feature_id: str | UUID) -> bool:
     """
-    Delete a feature and all its related user stories.
+    Delete a feature and all its related user stories, acceptance criteria, and tests.
 
     Args:
         feature_id: UUID of the feature to delete
@@ -33,10 +35,22 @@ async def delete_feature(feature_id: str | UUID) -> bool:
     Raises:
         HTTPException: If the feature was not found
     """
-    feature = await FeatureModel.get_or_none(id=feature_id).prefetch_related("user_stories")
+    feature = await FeatureModel.get_or_none(id=feature_id).prefetch_related(
+        "user_stories", "acceptance_criteria", "tests"
+    )
 
     if not feature:
         raise HTTPException(status_code=404, detail="Feature not found")
+
+    # Delete all tests related to this feature
+    from services.test_services import delete_test
+    for test in feature.tests:
+        await delete_test(test.id)
+
+    # Delete all acceptance criteria related to this feature
+    from services.acceptance_criteria_services import delete_acceptance_criteria
+    for acceptance_criteria in feature.acceptance_criteria:
+        await delete_acceptance_criteria(acceptance_criteria.id)
 
     # Delete all user stories related to this feature
     from services.user_story_services import delete_user_story

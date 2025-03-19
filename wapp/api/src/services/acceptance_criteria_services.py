@@ -26,7 +26,7 @@ async def create_acceptance_criteria(acceptance_criteria: AcceptanceCriteriaCrea
 
 async def delete_acceptance_criteria(acceptance_criteria_id: str | UUID) -> bool:
     """
-    Delete an acceptance criteria and all its related tests.
+    Delete an acceptance criteria.
 
     Args:
         acceptance_criteria_id: UUID of the acceptance criteria to delete
@@ -37,15 +37,10 @@ async def delete_acceptance_criteria(acceptance_criteria_id: str | UUID) -> bool
     Raises:
         HTTPException: If the acceptance criteria was not found
     """
-    acceptance_criteria = await AcceptanceCriteriaModel.get_or_none(id=acceptance_criteria_id).prefetch_related("tests")
+    acceptance_criteria = await AcceptanceCriteriaModel.get_or_none(id=acceptance_criteria_id)
 
     if not acceptance_criteria:
         raise HTTPException(status_code=404, detail="Acceptance criteria not found")
-
-    # Delete all tests related to this acceptance criteria
-    from services.test_services import delete_test
-    for test in acceptance_criteria.tests:
-        await delete_test(test.id)
 
     # Delete the acceptance criteria
     await acceptance_criteria.delete()

@@ -171,11 +171,11 @@ const AcceptanceCriteriaDetails = () => {
       <div className="max-w-7xl mx-auto">
         {/* Back button */}
         <button
-          onClick={() => navigate(`/user-stories/${criteria?.user_story_id}`)}
+          onClick={() => navigate(`/features/${criteria?.feature_id}`)}
           className="flex items-center mb-6 text-gray-600 hover:text-blue-600 transition-colors"
         >
           <ArrowLeft size={20} className="mr-2" />
-          Back to User Story
+          Back to Feature
         </button>
 
         {/* Error message */}

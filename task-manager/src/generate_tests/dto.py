@@ -25,7 +25,7 @@ class Product(BaseModel):
     name: str
     description: str
     documentation: str
-    links_to_documentation: list[str]
+    links_to_documentation: list[str] = []
 
 
 class Epic(BaseModel):
@@ -34,6 +34,7 @@ class Epic(BaseModel):
 
 
 class Feature(BaseModel):
+    id: str
     urls: list[str]  # where the feature is implemented
     name: str
     description: str
@@ -59,3 +60,8 @@ class Test(BaseModel):
     url: str  # where to start the test
     category: TestCategory
     status: TestStatus
+    feature_id: str  # Keep this for returning to API
+    preconditions: str = ""
+    steps: str = ""
+    expected_results: str = ""
+    assertions: str = ""

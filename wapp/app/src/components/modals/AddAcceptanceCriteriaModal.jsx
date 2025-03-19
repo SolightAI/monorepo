@@ -5,7 +5,7 @@ import { X, AlertCircle } from 'lucide-react';
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
-const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCriteriaAdded }) => {
+const AddAcceptanceCriteriaModal = ({ onClose, featureId, featureTitle, onCriteriaAdded }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: ''
@@ -47,7 +47,7 @@ const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCr
         {
           name: formData.name,
           description: formData.description,
-          user_story_id: userStoryId
+          feature_id: featureId
         },
         { withCredentials: true }
       );
@@ -90,10 +90,10 @@ const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCr
           </div>
 
           <p className="text-gray-600 mb-2">
-            For user story:
+            For feature:
           </p>
           <p className="font-medium text-gray-800 mb-6">
-            {userStoryTitle}
+            {featureTitle}
           </p>
 
           {error && (

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader, AlertCircle, Plus, ArrowLeft, FileText, ExternalLink } from 'lucide-react';
+import { Loader, AlertCircle, Plus, ArrowLeft, FileText, ExternalLink, CheckSquare, Beaker } from 'lucide-react';
 import AddUserStoryModal from '@/components/modals/AddUserStoryModal';
+import AddAcceptanceCriteriaModal from '@/components/modals/AddAcceptanceCriteriaModal';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -13,8 +14,9 @@ const FeatureDetails = () => {
   const [error, setError] = useState(null);
   const [feature, setFeature] = useState(null);
 
-  // State for Add User Story Modal
+  // State for Modals
   const [isAddUserStoryModalOpen, setIsAddUserStoryModalOpen] = useState(false);
+  const [isAddCriteriaModalOpen, setIsAddCriteriaModalOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -28,7 +30,7 @@ const FeatureDetails = () => {
     setError(null);
 
     try {
-      // Get the feature details (which includes user stories)
+      // Get the feature details (which includes user stories, acceptance criteria, and tests)
       const featureResponse = await axios.get(`${API_URL}/features/${featureId}`, {
         withCredentials: true
       });
@@ -48,6 +50,15 @@ const FeatureDetails = () => {
     setFeature(prevFeature => ({
       ...prevFeature,
       user_stories: [...(prevFeature.user_stories || []), newUserStory]
+    }));
+  };
+
+  // Handle acceptance criteria added
+  const handleCriteriaAdded = (newCriteria) => {
+    // Update the feature state with the new acceptance criteria
+    setFeature(prevFeature => ({
+      ...prevFeature,
+      acceptance_criteria: [...(prevFeature.acceptance_criteria || []), newCriteria]
     }));
   };
 
@@ -111,7 +122,7 @@ const FeatureDetails = () => {
             )}
 
             {/* User Stories section */}
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">User Stories</h2>
                 <button
@@ -145,9 +156,6 @@ const FeatureDetails = () => {
                           Description
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Acceptance Criteria
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Status
                         </th>
                       </tr>
@@ -165,18 +173,6 @@ const FeatureDetails = () => {
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-500 truncate max-w-xs">{story.description}</div>
                           </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-500">
-                              {story.acceptance_criteria?.map((criteria, index) => (
-                                <div key={index} className="mb-1">
-                                  <span className="font-medium">{criteria.name}</span>
-                                  {criteria.description && (
-                                    <span className="ml-1">- {criteria.description}</span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                               story.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
@@ -184,6 +180,120 @@ const FeatureDetails = () => {
                               'bg-gray-100 text-gray-800'
                             }`}>
                               {story.status || 'Not Started'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Acceptance Criteria section */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-800">Acceptance Criteria</h2>
+                <button
+                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
+                  onClick={() => setIsAddCriteriaModalOpen(true)}
+                >
+                  <Plus size={18} className="mr-2" />
+                  Add Acceptance Criteria
+                </button>
+              </div>
+
+              {!feature?.acceptance_criteria || feature.acceptance_criteria.length === 0 ? (
+                <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
+                  <p className="text-gray-500 mb-4">No acceptance criteria found for this feature</p>
+                  <button
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
+                    onClick={() => setIsAddCriteriaModalOpen(true)}
+                  >
+                    Create your first acceptance criteria
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {feature.acceptance_criteria.map((criteria, index) => (
+                    <div
+                      key={index}
+                      onClick={() => navigate(`/acceptance-criteria/${criteria.id}`)}
+                      className="p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer"
+                    >
+                      <div className="flex items-start">
+                        <CheckSquare size={20} className="text-green-500 mr-3 mt-1 flex-shrink-0" />
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-800 mb-1">{criteria.name}</h3>
+                          <p className="text-gray-600 mb-2">{criteria.description}</p>
+                          {criteria.tests && criteria.tests.length > 0 && (
+                            <p className="text-sm text-gray-500">
+                              {criteria.tests.length} test{criteria.tests.length !== 1 ? 's' : ''}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Tests section */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-800">Tests</h2>
+              </div>
+
+              {!feature?.tests || feature.tests.length === 0 ? (
+                <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
+                  <p className="text-gray-500 mb-4">No tests found for this feature</p>
+                  <p className="text-sm text-gray-500">
+                    Add tests by generating them from acceptance criteria or creating them manually via the API.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Name
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Category
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {feature.tests.map((test) => (
+                        <tr
+                          key={test.id}
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onClick={() => navigate(`/tests/${test.id}`)}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <Beaker size={16} className="text-purple-500 mr-2" />
+                              <div className="text-sm font-medium text-gray-900">{test.name}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                              {test.category}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              test.status === 'PASSED' ? 'bg-green-100 text-green-800' :
+                              test.status === 'FAILED' ? 'bg-red-100 text-red-800' :
+                              test.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {test.status}
                             </span>
                           </td>
                         </tr>
@@ -204,6 +314,16 @@ const FeatureDetails = () => {
           featureId={featureId}
           featureName={feature.name}
           onUserStoryAdded={handleUserStoryAdded}
+        />
+      )}
+
+      {/* Add Acceptance Criteria Modal */}
+      {isAddCriteriaModalOpen && feature && (
+        <AddAcceptanceCriteriaModal
+          onClose={() => setIsAddCriteriaModalOpen(false)}
+          featureId={featureId}
+          featureTitle={feature.name}
+          onCriteriaAdded={handleCriteriaAdded}
         />
       )}
     </div>

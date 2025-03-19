@@ -111,6 +111,8 @@ class Feature(models.Model):
 
     epic = fields.ForeignKeyField("models.Epic", related_name="features")
     user_stories = fields.ReverseRelation["UserStory"]
+    acceptance_criteria = fields.ReverseRelation["AcceptanceCriteria"]
+    tests = fields.ReverseRelation["Test"]
 
     class Meta:
         table = "features"
@@ -132,7 +134,8 @@ class AcceptanceCriteria(models.Model):
     name = fields.CharField(max_length=255)
     description = fields.TextField()
 
-    user_story = fields.ForeignKeyField("models.UserStory", related_name="acceptance_criteria")
+    # user_story = fields.ForeignKeyField("models.UserStory", related_name="acceptance_criteria")
+    feature = fields.ForeignKeyField("models.Feature", related_name="acceptance_criteria")
     tests = fields.ReverseRelation["Test"]
 
     class Meta:
@@ -155,7 +158,8 @@ class Test(models.Model):
     started_at = fields.DatetimeField(null=True)
     ended_at = fields.DatetimeField(null=True)
 
-    acceptance_criteria = fields.ForeignKeyField("models.AcceptanceCriteria", related_name="tests")
+    # acceptance_criteria = fields.ForeignKeyField("models.AcceptanceCriteria", related_name="tests")
+    feature = fields.ForeignKeyField("models.Feature", related_name="tests")
     bugs = fields.ReverseRelation["Bug"]
     test_secrets = fields.ReverseRelation["TestSecret"]
     executions = fields.ReverseRelation["TestExecution"]

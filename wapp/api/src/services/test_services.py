@@ -3,6 +3,7 @@ import requests
 import asyncio
 import logging
 import uuid
+import httpx
 
 from fastapi import HTTPException
 from dto.models import Test as TestModel, TestSecret as TestSecretModel, Secret as SecretModel
@@ -53,20 +54,17 @@ async def get_tests_by_product_path(url_path: str) -> List[TestModel]:
         return []
 
     tests = []
-    # Traverse the hierarchy: Product -> Epics -> Features -> User Stories -> Acceptance Criteria -> Tests
+    # Traverse the hierarchy: Product -> Epics -> Features -> Tests
     await product.fetch_related("epics")
     for epic in product.epics:
         await epic.fetch_related("features")
         for feature in epic.features:
-            await feature.fetch_related("user_stories")
-            for user_story in feature.user_stories:
-                await user_story.fetch_related("acceptance_criteria")
-                for acceptance_criteria in user_story.acceptance_criteria:
-                    await acceptance_criteria.fetch_related("tests")
-                    # Fetch test secrets relation for each test
-                    for test in acceptance_criteria.tests:
-                        await test.fetch_related("test_secrets__secret")
-                    tests.extend(acceptance_criteria.tests)
+            # Fetch tests directly linked to the feature
+            await feature.fetch_related("tests")
+            # Fetch test secrets relation for each test
+            for test in feature.tests:
+                await test.fetch_related("test_secrets__secret")
+            tests.extend(feature.tests)
 
     # Fetch bugs for each test
     for test in tests:
@@ -217,161 +215,196 @@ async def get_test_secrets_with_values(test_id: UUID4) -> Dict[str, Dict[str, st
 
 async def trigger_test_generation(acceptance_criteria_id: UUID4) -> str:
     """
-    Trigger test generation for an acceptance criteria.
-
+    Trigger a test generation task for a given acceptance criteria.
+    
     Args:
-        acceptance_criteria_id: The ID of the acceptance criteria
-
+        acceptance_criteria_id: ID of the acceptance criteria to generate tests for
+        
     Returns:
-        The ID of the generated test
+        Task ID string to use for checking status
     """
+    from services.acceptance_criteria_services import get_acceptance_criteria
+    from services.feature_services import get_feature
+    from services.epic_services import get_epic
+    from services.product_services import get_product
+    
+    # Get acceptance criteria
     acceptance_criteria = await get_acceptance_criteria(acceptance_criteria_id)
-    user_story = await get_user_story(acceptance_criteria.user_story_id)
-    feature = await get_feature(user_story.feature_id)
+    
+    # Get feature from acceptance criteria
+    feature = await get_feature(acceptance_criteria.feature_id)
+    
+    # Get epic from feature
     epic = await get_epic(feature.epic_id)
+    
+    # Get product from epic
     product = await get_product(epic.product_id)
-
-    # Build dictionary of all secrets with their decrypted values
-    all_secrets = {}
-
-    # Get the organization ID from the product (if available)
-    organization_id = product.organization_id
-    if organization_id:
-        # Get all secrets for this organization
-        org_secrets = await get_organization_secrets(organization_id)
-
-        # Add all organization secrets to the dictionary
-        for secret in org_secrets:
-            # Get the secret with its values
-            try:
-                secret_with_values = await get_secret_with_values(secret.id)
-
-                # Skip if no values
-                if not secret_with_values or not hasattr(secret_with_values, 'values'):
-                    continue
-
-                # If this is the first secret of this type, create a new entry
-                if secret_with_values.type not in all_secrets:
-                    all_secrets[secret_with_values.type] = {}
-
-                # Add values to the result
-                for key, value in secret_with_values.values.items():
-                    # For username_password type, store directly
-                    if secret_with_values.type == SecretType.USERNAME_PASSWORD:
-                        all_secrets[secret_with_values.type][key] = value
-                    else:
-                        # For other types, prefix with secret name to avoid conflicts
-                        prefixed_key = f"{secret_with_values.name}_{key}"
-                        all_secrets[secret_with_values.type][prefixed_key] = value
-            except Exception as e:
-                # Log the error but continue processing other secrets
-                logger.error(f"Error processing secret {secret.id}: {str(e)}")
-                continue
-
-    payload = {
-        'acceptance_criteria': {
-            'id': str(acceptance_criteria.id),
-            'name': acceptance_criteria.name,
-            'description': acceptance_criteria.description,
-        },
-        'user_story': {
-            'name': user_story.name,
-            'description': user_story.description,
-        },
-        'feature': {
-            'name': feature.name,
-            'description': feature.description,
-            'dependents': [],  # TODO
-            'dependencies': [],  # TODO
-            'urls': feature.urls,
-        },
-        'epic': {
-            'name': epic.name,
-            'description': epic.description,
-        },
-        'product': {
-            'name': product.name,
-            'url': product.url,
-            'description': product.description,
-            'documentation': product.documentation,
-            'links_to_documentation': [],  # TODO
-        },
+    
+    # Get any secrets for this product's organization that might be needed for test generation
+    logger.info(f"Getting secrets for product {product.id}")
+    secrets = await get_formatted_secrets_by_product(product.id)
+    
+    # Only pass values that can be serialized to JSON
+    acceptance_criteria_data = {
+        "id": str(acceptance_criteria.id),
+        "name": acceptance_criteria.name,
+        "description": acceptance_criteria.description
     }
+    
+    feature_data = {
+        "id": str(feature.id),
+        "name": feature.name,
+        "description": feature.description,
+        "urls": feature.urls
+    }
+    
+    epic_data = {
+        "name": epic.name,
+        "description": epic.description
+    }
+    
+    product_data = {
+        "name": product.name,
+        "description": product.description,
+        "url": product.url,
+        "documentation": product.documentation,
+        "links_to_documentation": [link.model_dump() for link in product.links_to_documentation] if hasattr(product, "links_to_documentation") else []
+    }
+    
+    # Call the task manager to generate tests
+    url = f"{os.environ.get('TASK_MANAGER_URL', 'http://localhost:8001')}/generate-tests-for-acceptance-criteria"
+    
+    response = None
+    try:
+        response = await httpx.post(
+            url,
+            json={
+                "product": product_data,
+                "epic": epic_data,
+                "feature": feature_data,
+                "acceptance_criteria": acceptance_criteria_data,
+                "secrets": secrets
+            },
+            timeout=30.0,
+        )
+        response.raise_for_status()
+        task_id = response.json().get("task_id")
+        return task_id
+    except httpx.HTTPError as e:
+        logger.error(f"Error triggering test generation: {e}")
+        if response:
+            logger.error(f"Response status: {response.status_code}, Response body: {response.text}")
+        raise HTTPException(status_code=500, detail="Failed to trigger test generation")
+    except Exception as e:
+        logger.error(f"Unexpected error triggering test generation: {e}")
+        raise HTTPException(status_code=500, detail="Failed to trigger test generation")
 
-    # Add all organization secrets to the payload
-    if all_secrets:
-        # Encrypt the secrets using the task-manager's public key
-        encryption_success, encrypted_secrets = crypto_service.encrypt_secrets(all_secrets)
 
-        if not (encryption_success and encrypted_secrets):
-            # Don't proceed with the operation if encryption fails
-            error_msg = "Encryption failed, aborting test generation for security reasons"
-            logger.error(error_msg)
-            # Raise an exception to abort the operation
-            raise HTTPException(status_code=500, detail=error_msg)
-
-        # Add the encrypted secrets to the payload
-        payload['encrypted_secrets'] = encrypted_secrets
-        logger.info("Successfully encrypted secrets for test generation")
-
-    response = requests.post(
-        os.getenv("TASK_MANAGER_URL") + "/generate-tests/generate-tests-for-acceptance-criteria",
-        json=payload
-    )
-
-    if response.status_code != 200:
-        logger.error(f"Failed to trigger test generation ({response.status_code}): {response.text}")
-        raise HTTPException(status_code=500, detail=f"Failed to trigger test generation ({response.status_code}): {response.text}")
-
-    return response.json()
-
-
-async def get_test_generation_status(test_id: UUID4) -> dict:
-    response = requests.get(
-        os.getenv("TASK_MANAGER_URL") + f"/generate-tests/get-test-generation-status/{test_id}"
-    )
-
-    if response.status_code != 200:
-        raise HTTPException(status_code=500, detail=f"Failed to get test generation status ({response.status_code}): {response.text}")
-
-    return response.json()
+async def get_test_generation_status(task_id: UUID4) -> dict:
+    """
+    Check the status of a test generation task.
+    
+    Args:
+        task_id: The ID of the test generation task
+        
+    Returns:
+        Dictionary with status information
+    """
+    try:
+        # Call the task manager API to get status
+        url = f"{os.environ.get('TASK_MANAGER_URL', 'http://localhost:8001')}/get-test-generation-status/{task_id}"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, timeout=10.0)
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPError as e:
+        logger.error(f"Error checking test generation status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to check test generation status")
+    except Exception as e:
+        logger.error(f"Unexpected error checking test generation status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to check test generation status")
 
 
-async def poll_test_generation_status(test_id: UUID4) -> None:
-    while True:
-
-        response = await get_test_generation_status(test_id)
-        status = response["status"]
-
-        if status == "pending":
-            await asyncio.sleep(1)
-            continue
-
-        elif status == "error":
-            logger.error(f"Test generation failed for test {test_id}")
-            return
-
-        elif status == "completed":
-            for _test in response["results"]:
-                await create_test(
-                    TestCreateSchema(
-                        acceptance_criteria_id=_test["acceptance_criteria_id"],
-                        name=_test["name"],
-                        description=_test["description"],
-                        url=_test["url"],
-                        category=_test["category"],
-                        preconditions=_test["preconditions"],
-                        steps=_test["steps"],
-                        expected_results=_test["expected_results"],
-                        assertions=_test["assertions"],
-                        secret_ids=None,  # TODO: add secret_ids based on what the agent used
-                    )
-                )
-            return
-
-        else:
-            logger.error(f"Unknown test generation status: {status}")
-            return
+async def poll_test_generation_status(task_id: UUID4) -> None:
+    """
+    Poll for test generation status and create tests when complete.
+    This function runs in the background and will poll until the test
+    generation is complete or fails.
+    
+    Args:
+        task_id: The ID of the test generation task
+    """
+    MAX_RETRIES = 60  # 5 minutes at 5-second intervals
+    retry_count = 0
+    
+    while retry_count < MAX_RETRIES:
+        try:
+            # Sleep to avoid hammering the API
+            await asyncio.sleep(5)
+            
+            # Get the current status
+            status_response = await get_test_generation_status(task_id)
+            
+            # Check if we have a status
+            if not status_response:
+                logger.warning(f"Empty response for test generation task {task_id}")
+                retry_count += 1
+                continue
+                
+            status = status_response.get("status")
+            
+            # If still pending, continue polling
+            if status == "pending":
+                logger.info(f"Test generation task {task_id} still pending...")
+                retry_count += 1
+                continue
+                
+            # If completed, create the tests
+            if status == "completed":
+                logger.info(f"Test generation task {task_id} completed")
+                test_results = status_response.get("results", [])
+                
+                # Create tests from the results
+                if test_results:
+                    for test_data in test_results:
+                        try:
+                            # Create the test schema
+                            test_schema = TestCreateSchema(
+                                name=test_data.get("name", "Generated Test"),
+                                description=test_data.get("description", ""),
+                                url=test_data.get("url", ""),
+                                category=test_data.get("category", TestCategory.SMOKE),
+                                feature_id=UUID(test_data.get("feature_id")),
+                                preconditions=test_data.get("preconditions", ""),
+                                steps=test_data.get("steps", ""),
+                                expected_results=test_data.get("expected_results", ""),
+                                assertions=test_data.get("assertions", "")
+                            )
+                            
+                            # Create the test
+                            await create_test(test_schema)
+                        except Exception as e:
+                            logger.error(f"Failed to create test from generation result: {e}")
+                
+                # We're done
+                return
+                
+            # If failed, log the error
+            if status == "failed":
+                error = status_response.get("error", "Unknown error")
+                logger.error(f"Test generation task {task_id} failed: {error}")
+                return
+                
+            # Unknown status
+            logger.warning(f"Unknown status for test generation task {task_id}: {status}")
+            retry_count += 1
+            
+        except Exception as e:
+            logger.error(f"Error polling test generation status: {e}")
+            retry_count += 1
+    
+    logger.error(f"Test generation task {task_id} timed out after {MAX_RETRIES} retries")
 
 
 async def get_test_secrets(test_id: UUID4) -> List[TestSecretModel]:
@@ -452,3 +485,62 @@ async def delete_test_secret(test_id: UUID4, secret_id: UUID4) -> None:
     # Check if the relationship existed
     if deleted_count == 0:
         raise HTTPException(status_code=404, detail="Secret not associated with this test")
+
+
+async def get_formatted_secrets_by_product(product_id: UUID4) -> dict:
+    """
+    Get all secrets associated with a product's organization, formatted for test generation.
+    
+    Args:
+        product_id: ID of the product to get secrets for
+        
+    Returns:
+        Dictionary of secrets by type, ready for test generation
+    """
+    # Build dictionary of all secrets with their decrypted values
+    all_secrets = {}
+    
+    try:
+        # Get the product to find its organization
+        product = await get_product(product_id)
+        
+        # Skip if product has no organization
+        if not product.organization_id:
+            logger.error(f"Product {product_id} has no organization, cannot retrieve secrets")
+            return all_secrets
+            
+        # Get all secrets for this organization
+        org_secrets = await get_organization_secrets(product.organization_id)
+        
+        # Process each secret
+        for secret in org_secrets:
+            try:
+                # Get the secret with its values
+                secret_with_values = await get_secret_with_values(secret.id)
+                
+                # Skip if no values
+                if not secret_with_values or not hasattr(secret_with_values, 'values'):
+                    continue
+                
+                # If this is the first secret of this type, create a new entry
+                if secret_with_values.type not in all_secrets:
+                    all_secrets[secret_with_values.type] = {}
+                
+                # Add values to the result
+                for key, value in secret_with_values.values.items():
+                    # For username_password type, store directly
+                    if secret_with_values.type == SecretType.USERNAME_PASSWORD:
+                        all_secrets[secret_with_values.type][key] = value
+                    else:
+                        # For other types, prefix with secret name to avoid conflicts
+                        prefixed_key = f"{secret_with_values.name}_{key}"
+                        all_secrets[secret_with_values.type][prefixed_key] = value
+            except Exception as e:
+                # Log the error but continue processing other secrets
+                logger.error(f"Error processing secret {secret.id}: {str(e)}")
+                continue
+    except Exception as e:
+        # Log the error but return empty secrets dictionary
+        logger.error(f"Error getting secrets for product {product_id}: {str(e)}")
+    
+    return all_secrets
