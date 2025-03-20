@@ -11,7 +11,7 @@ from tempfile import NamedTemporaryFile
 from langchain_openai import AzureChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig
 from fixtures.generate_auth_session import generate_auth_session
-from utils.dto import Product, Epic, Feature
+from utils.dto import Product, Epic
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service
@@ -19,7 +19,7 @@ from utils.task_status import task_status_manager
 
 
 PROMPT = """
-You are an AI assistant acting as a product owner. Your task is to explore the provided product and to write all the features that you are present inside the provided epic.
+You are an AI assistant acting as a product owner. Your task is to explore the provided product and identify all the epics that would be needed to fully implement this product.
 
 First, review the following information:
 
@@ -28,36 +28,29 @@ Project: {product.name}
 URL: {product.url}
 Description: {product.description}
 
-== Epic ==
-Name: {epic.name}
-Description: {epic.description}
+Analyze the provided information carefully and explore the product to identify meaningful epics.
+An epic is a large body of work that can be broken down into features. Think of epics as major product sections or significant capabilities.
 
-Analyze the provided information carefully and explore the product to find all the features that are present inside the epic.
-Once done, write for each feature present inside the epic the name and the description of the feature.
+For each epic, provide a descriptive name and detailed description explaining what this epic encompasses.
 
 Some extra ground rules:
-- Note that a feature can be present on multiple part of the product, for each place where the feature is present, you should write the url of the page
-- Do not logout from the application when generating the features
-- Do not exit from the application when generating the features
+- Make sure each epic is distinct and focused on a specific area of functionality
+- Don't create epics that are too granular (those would be features)
+- Don't create epics that are too broad (those would be impossible to implement as a cohesive unit)
+- Do not logout from the application when exploring
+- Do not exit from the application when exploring
 - If you need to login, stop by raising an exception to the user
 - If you're on an unrelated page, stop by raising an exception to the user
 
-On your final response, for each feature, you should write the following informations in the following format:
-<feature>
+On your final response, for each epic, you should write the following information in the following format:
+<epic>
 <name>
 content of the name
 </name>
 <description>
 content of the description
 </description>
-<urls>
-<url>
-url where the feature is
-</url>
-...
-</urls>
-
-</feature>
+</epic>
 ...
 """.strip()
 
@@ -78,55 +71,45 @@ LLM_CLIENT = AzureChatOpenAI(
 )
 
 
-router = APIRouter(prefix="/generate-features")
+router = APIRouter(prefix="/generate-epics")
 logger = getLogger(__name__)
 
 
-def _parse_features(features_text: str) -> list[dict[str, str]]:
-    """Parse the text returned from LLM into a list of feature dictionaries."""
-    # Use regex to extract features
-    features = []
-    pattern = r'<feature>\s*<name>(.*?)</name>\s*<description>(.*?)</description>\s*<urls>(.*?)</urls>\s*</feature>'
+def _parse_epics(epics_text: str) -> list[dict[str, str]]:
+    """Parse the text returned from LLM into a list of epic dictionaries."""
+    # Use regex to extract epics
+    epics = []
+    pattern = r'<epic>\s*<name>(.*?)</name>\s*<description>(.*?)</description>\s*</epic>'
 
-    matches = re.finditer(pattern, features_text, re.DOTALL)
+    matches = re.finditer(pattern, epics_text, re.DOTALL)
 
     for match in matches:
-        urls = match.group(3).strip()
-        pattern = r'<url>(.*?)</url>'
-        urls = re.findall(pattern, urls)
-
-        if not urls:
-            raise Exception(f"No urls found for feature {match.group(1).strip()}")
-
-        feature = {
+        epic = {
             'name': match.group(1).strip(),
             'description': match.group(2).strip(),
-            'urls': urls,
         }
-        features.append(feature)
+        epics.append(epic)
 
-    return features
+    return epics
 
 
-async def _generate_features(
+async def _generate_epics(
     product: Product,
-    epic: Epic,
     cookies_file: str | None = None,
     localStorage: str | None = None,
     gif_output_path: str | bool = False,
-) -> list[Feature]:
+) -> list[Epic]:
     """
-    Generate features for an epic.
+    Generate epics for a product.
 
     Args:
         product: Product information
-        epic: Epic information
         cookies_file: Path to cookies file for browser automation
         localStorage: Path to localStorage file for browser automation
         gif_output_path: Path to store GIF output of browser automation
 
     Returns:
-        List of generated features
+        List of generated epics
     """
 
     # Configure the browser session with cookies and localStorage
@@ -142,8 +125,8 @@ async def _generate_features(
         viewport_expansion=0,
     ))
 
-    # TODO: not only on the first url, but on all the urls
-    await context.navigate_to(product.url)  # allowing us to load the localStorage
+    # Initial navigation to the product URL
+    await context.navigate_to(product.url)
 
     if localStorage is not None:
         load_script = """
@@ -159,16 +142,14 @@ async def _generate_features(
     if gif_output_path:
         os.makedirs(os.path.dirname(gif_output_path), exist_ok=True)
 
-    # NOTE: we do not provide a controller as models tend to provide better results when not constrained by a controller output model
+    # Create agent with the prompt and browser context
     agent = Agent(
         task=PROMPT.format(
             product=product,
-            epic=epic,
         ),
         llm=LLM_CLIENT,
         initial_actions=[{'go_to_url': {'url': product.url}}, {'go_to_url': {'url': product.url}}],
         browser_context=context,
-        # generate_gif=gif_output_path,  # deactivated cause it leads to thread blocking
     )
 
     try:
@@ -179,17 +160,17 @@ async def _generate_features(
 
     result = history.final_result()
     if history.has_errors() or not history.is_done() or result is None or not history.is_successful():
-        raise Exception("Failed to generate features for epic")
+        raise Exception("Failed to generate epics for product")
 
     if result is None:
-        logger.error("Couldn't generate features for epic %s", epic.name)
-        logger.debug("History of the agent when generating features for epic %s: %s", epic.name, history.action_results())
-        raise Exception("Failed to generate features for epic, result is None")
+        logger.error("Couldn't generate epics for product %s", product.name)
+        logger.debug("History of the agent when generating epics for product %s: %s", product.name, history.action_results())
+        raise Exception("Failed to generate epics for product, result is None")
 
-    # Parse the test cases from the LLM response
-    features = _parse_features(result)
+    # Parse the epics from the LLM response
+    epics = _parse_epics(result)
 
-    return [Feature(name=f['name'], description=f['description'], urls=f['urls']) for f in features]
+    return [Epic(name=e['name'], description=e['description']) for e in epics]
 
 
 def handle_background_task_errors(func):
@@ -213,26 +194,23 @@ def handle_background_task_errors(func):
 
 
 @handle_background_task_errors
-async def background_generate_features(
+async def background_generate_epics(
     task_id: str,
     product: Product,
-    epic: Epic,
     secrets: dict[str, dict[str, str]],
     gif_output_path: str | bool = False,
-) -> list[Feature]:
+) -> list[Epic]:
     """
-    Background task to generate features for an epic.
+    Background task to generate epics for a product.
 
     Args:
         task_id: Task ID for tracking
         product: Product information
-        epic: Epic information
-        feature: Feature information
         secrets: Dictionary of secrets for authentication
         gif_output_path: Path to store GIF output of browser automation
 
     Returns:
-        List of generated features
+        List of generated epics
     """
 
     auth_session = await generate_auth_session(
@@ -245,36 +223,32 @@ async def background_generate_features(
         cookies_file.flush()
         cookies_file.seek(0)
 
-        features = await _generate_features(
+        epics = await _generate_epics(
             product=product,
-            epic=epic,
             cookies_file=cookies_file.name if auth_session.get('cookies') is not None else None,
             localStorage=auth_session.get('localStorage'),
             gif_output_path=gif_output_path,
         )
 
-    return features
+    return epics
 
 
 @router.post("/")
-async def generate_features(
+async def generate_epics(
     product: Product,
-    epic: Epic,
     background_task: BackgroundTasks,
     encrypted_secrets: Optional[dict[str, dict[str, str]]] = None,
 ) -> str:
     """
-    Endpoint to generate features for an epic.
+    Endpoint to generate epics for a product.
 
     Args:
         product: Product information
-        epic: Epic information
         background_task: Background tasks handler
-        secrets: Dictionary of secrets for authentication
         encrypted_secrets: Dictionary of encrypted secrets for authentication
 
     Returns:
-        Task ID for tracking the test generation process
+        Task ID for tracking the epic generation process
     """
     task_id = str(uuid4())
 
@@ -290,10 +264,9 @@ async def generate_features(
             raise HTTPException(status_code=400, detail=f"Failed to decrypt secrets: {str(e)}")
 
     background_task.add_task(
-        background_generate_features,
+        background_generate_epics,
         task_id=task_id,
         product=product,
-        epic=epic,
         secrets=secrets_to_use or {},
         gif_output_path="/tmp",
     )
@@ -302,11 +275,11 @@ async def generate_features(
 
 
 @router.get("/status/{task_id}")
-async def get_features_generation_status(
+async def get_epics_generation_status(
     task_id: str,
 ) -> dict[str, Any]:
     """
-    Get the status of a features generation task.
+    Get the status of an epics generation task.
 
     Args:
         task_id: Task ID to check
@@ -316,7 +289,3 @@ async def get_features_generation_status(
     """
     status = task_status_manager.get_status(task_id)
     return status
-
-
-# TODO: Test both w/ and w/o the browser-use to see what leads to better results
-# TODO: give access to doc RAD so the agent can ask questions about the product

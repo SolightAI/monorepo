@@ -11,6 +11,7 @@ from endpoints.bug_endpoints import router as bug_router
 from endpoints.acceptance_criteria_endpoints import router as acceptance_criteria_router
 from endpoints.acceptance_criteria_generation_endpoints import router as acceptance_criteria_generation_router
 from endpoints.feature_generation_endpoints import router as feature_generation_router
+from endpoints.epic_generation_endpoints import router as epic_generation_router
 from endpoints.invitation_endpoints import router as invitation_router
 from endpoints.organization_endpoints import router as organization_router
 from endpoints.dashboard_endpoints import router as dashboard_router
@@ -53,6 +54,7 @@ app.include_router(user_story_router)
 app.include_router(acceptance_criteria_router)
 app.include_router(acceptance_criteria_generation_router)
 app.include_router(feature_generation_router)
+app.include_router(epic_generation_router)
 app.include_router(test_router)
 app.include_router(test_execution_router)
 app.include_router(bug_router)
