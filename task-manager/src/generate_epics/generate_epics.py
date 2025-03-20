@@ -39,8 +39,6 @@ Some extra ground rules:
 - Don't create epics that are too broad (those would be impossible to implement as a cohesive unit)
 - Do not logout from the application when exploring
 - Do not exit from the application when exploring
-- If you need to login, stop by raising an exception to the user
-- If you're on an unrelated page, stop by raising an exception to the user
 
 On your final response, for each epic, you should write the following information in the following format:
 <epic>
