@@ -63,7 +63,6 @@ When creating your test cases, keep the following best practices in mind:
 Some extra ground rules:
 - Do not logout from the application in the test cases
 - Do not exit from the application in the test cases
-- If you need to login, stop by raising an exception to the user
 - If you're on an unrelated page, stop by raising an exception to the user
 
 On your final response, for each test case, you should write the following informations in the following format:
