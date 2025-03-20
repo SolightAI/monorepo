@@ -93,6 +93,68 @@ The API provides the following endpoints:
   - Get aggregate statistics
   - Generate reports
 
+## Acceptance Criteria Generation API
+
+### Generate Acceptance Criteria
+
+```
+POST /acceptance-criteria-generation/{feature_id}
+```
+
+Generates acceptance criteria for a feature using AI.
+
+**Parameters:**
+- `feature_id` (path): UUID of the feature to generate acceptance criteria for
+
+**Authentication:**
+- Requires a valid session cookie from login
+
+**Response:**
+```json
+{
+  "task_id": "123e4567-e89b-12d3-a456-426614174000"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Request successful, generation started
+- `400 Bad Request`: Invalid input, missing user stories
+- `404 Not Found`: Feature, epic, or product not found
+- `500 Internal Server Error`: Server error during generation
+
+### Check Generation Status
+
+```
+GET /acceptance-criteria-generation/status/{task_id}
+```
+
+Checks the status of an acceptance criteria generation task.
+
+**Parameters:**
+- `task_id` (path): Task ID returned from the generation request
+
+**Authentication:**
+- Requires a valid session cookie from login
+
+**Response:**
+```json
+{
+  "status": "pending|completed|error",
+  "results": [
+    {
+      "title": "Acceptance Criteria Title",
+      "description": "Detailed description of the acceptance criteria"
+    }
+  ],
+  "error": "Error message if status is error"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Request successful
+- `404 Not Found`: Task not found
+- `500 Internal Server Error`: Server error during status check
+
 ## Authentication and Security
 
 The API uses JWT (JSON Web Tokens) for authentication with the following features:

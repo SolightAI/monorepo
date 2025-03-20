@@ -51,7 +51,6 @@ class UserStory(BaseModel):
 
 
 class AcceptanceCriteria(BaseModel):
-    id: str
     name: str
     description: str
 
