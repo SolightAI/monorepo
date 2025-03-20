@@ -37,10 +37,11 @@ Once done, write for each feature present inside the epic the name and the descr
 
 Some extra ground rules:
 - Note that a feature can be present on multiple part of the product, for each place where the feature is present, you should write the url of the page
+- You first need to locate the epic on the product, then you can start discovering the features
+- If you cannot locate the epic on the product, stop by raising an exception to the user
 - Do not logout from the application when generating the features
 - Do not exit from the application when generating the features
 - If you need to login, stop by raising an exception to the user
-- If you're on an unrelated page, stop by raising an exception to the user
 
 On your final response, for each feature, you should write the following informations in the following format:
 <feature>
