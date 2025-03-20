@@ -37,10 +37,7 @@ class CryptoService:
             logger.warning("TASK_MANAGER_URL is not set. Encryption to task-manager will not work.")
 
         # Fetch the public key on initialization
-        try:
-            self.refresh_public_key()
-        except Exception as e:
-            logger.error(f"Failed to fetch task-manager public key on initialization: {str(e)}")
+        self.refresh_public_key()
 
     def refresh_public_key(self) -> bool:
         """
@@ -50,9 +47,9 @@ class CryptoService:
             bool: True if the key was refreshed successfully, False otherwise
         """
         with self.lock:
-            # Skip if TASK_MANAGER_URL is missing
+
             if not self.task_manager_url:
-                return False
+                raise ValueError("TASK_MANAGER_URL is not set. Encryption to task-manager will not work.")
 
             # Skip if the key was refreshed recently
             current_time = time.time()
@@ -73,7 +70,7 @@ class CryptoService:
                 public_key_pem = data.get("public_key")
                 if not public_key_pem:
                     logger.error("Task-manager did not return a valid public key")
-                    return False
+                    raise ValueError("Task-manager did not return a valid public key")
 
                 # Load the public key
                 try:
@@ -87,11 +84,11 @@ class CryptoService:
                     return True
                 except (UnsupportedAlgorithm, ValueError, TypeError) as e:
                     logger.error(f"Failed to load task-manager public key: {str(e)}")
-                    return False
+                    raise ValueError(f"Failed to load task-manager public key: {str(e)}")
 
             except Exception as e:
                 logger.error(f"Error refreshing task-manager public key: {str(e)}")
-                return False
+                raise ValueError(f"Error refreshing task-manager public key: {str(e)}")
 
     def encrypt(self, value: str) -> Optional[str]:
         """
@@ -107,9 +104,7 @@ class CryptoService:
             return None
 
         # Refresh the key if needed
-        if not self.public_key:
-            if not self.refresh_public_key():
-                return None
+        self.refresh_public_key()
 
         try:
             # Encrypt the value with the public key
@@ -144,9 +139,7 @@ class CryptoService:
             return True, None
 
         # Verify we have the public key
-        if not self.public_key:
-            if not self.refresh_public_key():
-                return False, None
+        self.refresh_public_key()
 
         encrypted_secrets = {}
 
@@ -177,8 +170,7 @@ class CryptoService:
         if not self.task_manager_url:
             return False
 
-        if not self.public_key:
-            return self.refresh_public_key()
+        self.refresh_public_key()
 
         return True
 
