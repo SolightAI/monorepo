@@ -95,7 +95,7 @@ def _parse_features(features_text: str) -> list[dict[str, str]]:
 
         urls = match.group(3).strip()
         pattern = r'<url>(.*?)</url>'
-        urls = re.findall(pattern, urls)
+        urls = re.findall(pattern, urls, re.DOTALL)
 
         if not urls:
             raise Exception(f"No urls found for feature {match.group(3).strip()}")
