@@ -7,6 +7,7 @@ import TestGenerationStatusModal from '@/components/modals/TestGenerationStatusM
 import TestDetailsModal from '@/components/modals/TestDetailsModal';
 import AddUserStoryModal from '@/components/modals/AddUserStoryModal';
 import GenerateUserStoriesModal from '@/components/modals/GenerateUserStoriesModal';
+import GenerateAcceptanceCriteriaButton from '@/components/feature/GenerateAcceptanceCriteriaButton';
 import { triggerFeatureTestGeneration } from '@/services/testService';
 import { triggerUserStoriesGeneration } from '@/services/userStoryService';
 
@@ -242,6 +243,11 @@ const FeatureDetails = () => {
     fetchFeatureDetails();
   };
 
+  const handleAcceptanceCriteriaGenerationComplete = () => {
+    // Refresh the feature details to show the newly generated acceptance criteria
+    fetchFeatureDetails();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -363,13 +369,20 @@ const FeatureDetails = () => {
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">Acceptance Criteria</h2>
-                <button
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
-                  onClick={handleAddAcceptanceCriteria}
-                >
-                  <Plus size={18} className="mr-2" />
-                  Add Acceptance Criteria
-                </button>
+                <div className="flex space-x-2">
+                  <button
+                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
+                    onClick={handleAddAcceptanceCriteria}
+                  >
+                    <Plus size={18} className="mr-2" />
+                    Add Acceptance Criteria
+                  </button>
+                  <GenerateAcceptanceCriteriaButton
+                    featureId={featureId}
+                    onGenerationComplete={handleAcceptanceCriteriaGenerationComplete}
+                    hasUserStories={userStories.length > 0}
+                  />
+                </div>
               </div>
 
               {!acceptanceCriteria || acceptanceCriteria.length === 0 ? (

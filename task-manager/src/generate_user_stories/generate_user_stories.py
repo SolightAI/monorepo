@@ -11,7 +11,7 @@ from tempfile import NamedTemporaryFile
 from langchain_openai import AzureChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig
 from fixtures.generate_auth_session import generate_auth_session
-from generate_user_stories.dto import Product, Epic, Feature, UserStory
+from utils.dto import Product, Epic, Feature, UserStory
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service

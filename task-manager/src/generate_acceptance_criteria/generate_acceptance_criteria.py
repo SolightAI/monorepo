@@ -11,7 +11,7 @@ from tempfile import NamedTemporaryFile
 from langchain_openai import AzureChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig
 from fixtures.generate_auth_session import generate_auth_session
-from utils.dto import Product, Test, Epic, Feature, UserStory, AcceptanceCriteria, TestCategory
+from utils.dto import Product, Epic, Feature, UserStory, AcceptanceCriteria
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service
@@ -19,7 +19,7 @@ from utils.task_status import task_status_manager
 
 
 PROMPT = """
-You are an AI assistant acting as a test automation engineer. Your task is to generate a suite of automated tests based on the provided product information, epic, feature, user stories, and acceptance criteria. Follow these instructions carefully to create well-structured, maintainable, and easy-to-understand test cases.
+You are an AI assistant acting as a test automation engineer. Your task is to generate a suite of acceptance criteria based on the provided product information, epic, feature and user stories. Follow these instructions carefully to create well-structured, maintainable, and easy-to-understand acceptance criteria.
 
 First, review the following information:
 
@@ -40,41 +40,25 @@ URL: {url}
 == User Stories ==
 {user_stories_text}
 
-== Acceptance Criteria ==
-{acceptance_criteria_text}
+Analyze the provided information carefully.
 
-Analyze the provided information carefully. Pay special attention to the acceptance criteria, as this will be the primary basis for your test cases.
-
-Generate a suite of {category_of_test} test cases that thoroughly cover the acceptance criteria. Each test case should:
-1. Have a clear and descriptive title
-2. Include a detailed description of what the test is verifying
-3. List any preconditions or setup required
-4. Provide step-by-step instructions for test execution
-5. Specify the expected results for each step
-6. Include any necessary assertions or validation points
-
-When creating your test cases, keep the following best practices in mind:
-- Ensure tests are independent and can be run in any order
-- Use clear and consistent naming conventions
-- Keep tests focused on a single aspect of functionality
-- Consider both positive and negative test scenarios
-- Include edge cases and boundary conditions where applicable
+Generate a suite of acceptance criteria that thoroughly cover the feature. Each acceptance criteria should have a clear and descriptive name and description.
 
 Some extra ground rules:
-- Do not logout from the application in the test cases
-- Do not exit from the application in the test cases
+- Do not logout from the application when generating the acceptance criteria
+- Do not exit from the application when generating the acceptance criteria
 - If you need to login, stop by raising an exception to the user
 - If you're on an unrelated page, stop by raising an exception to the user
 
-On your final response, for each test case, you should write the following informations in the following format:
-<test_case>
-<name>Name of the test</name>
-<description>Description of the test</description>
-<preconditions>Preconditions or setup required</preconditions>
-<steps>Step-by-step instructions for test execution</steps>
-<expected_results>Expected results for each step</expected_results>
-<assertions>Assertions or validation points</assertions>
-</test_case>
+On your final response, for each acceptance criteria, you should write the following informations in the following format:
+<acceptance_criteria>
+<name>
+content of the name
+</name>
+<description>
+content of the description
+</description>
+</acceptance_criteria>
 ...
 """.strip()
 
@@ -95,72 +79,69 @@ LLM_CLIENT = AzureChatOpenAI(
 )
 
 
-router = APIRouter(prefix="/generate-tests")
+router = APIRouter(prefix="/generate-acceptance-criteria")
 logger = getLogger(__name__)
 
 
-def _parse_test_cases(test_case_text: str) -> list[dict[str, str]]:
-    """Parse the text returned from LLM into a list of test case dictionaries."""
-    # Use regex to extract test cases
-    test_cases = []
-    pattern = r'<test_case>\s*<name>(.*?)</name>\s*<description>(.*?)</description>\s*<preconditions>(.*?)</preconditions>\s*<steps>(.*?)</steps>\s*<expected_results>(.*?)</expected_results>\s*<assertions>(.*?)</assertions>\s*</test_case>'
+def _parse_acceptance_criteria(acceptance_criteria_text: str) -> list[dict[str, str]]:
+    """Parse the text returned from LLM into a list of acceptance criteria dictionaries."""
+    # Use regex to extract acceptance criteria
+    acceptance_criteria = []
+    pattern = r'<acceptance_criteria>\s*(.*?)</acceptance_criteria>'
+    name_pattern = r'<name>\s*(.*?)</name>'
+    description_pattern = r'<description>\s*(.*?)</description>'
 
-    matches = re.finditer(pattern, test_case_text, re.DOTALL)
+    matches = re.finditer(pattern, acceptance_criteria_text, re.DOTALL)
 
     for match in matches:
-        test_case = {
-            'name': match.group(1).strip(),
-            'description': match.group(2).strip(),
-            'preconditions': match.group(3).strip(),
-            'steps': match.group(4).strip(),
-            'expected_results': match.group(5).strip(),
-            'assertions': match.group(6).strip(),
-        }
-        test_cases.append(test_case)
+        criteria_content = match.group(1).strip()
 
-    return test_cases
+        # Extract name
+        name_match = re.search(name_pattern, criteria_content, re.DOTALL)
+
+        if not name_match:
+            raise Exception("No name found for acceptance criteria: %s", criteria_content)
+
+        name = name_match.group(1).strip()
+
+        # Extract description
+        description_match = re.search(description_pattern, criteria_content, re.DOTALL)
+        if not description_match:
+            raise Exception("No description found for acceptance criteria: %s", criteria_content)
+
+        description = description_match.group(1).strip()
+
+        acceptance_criteria.append({
+            "name": name,
+            "description": description
+        })
+
+    return acceptance_criteria
 
 
-async def _generate_test_category_for_feature(
+async def _generate_acceptance_criteria(
     product: Product,
     epic: Epic,
     feature: Feature,
     user_stories: list[UserStory],
-    acceptance_criteria_list: list[AcceptanceCriteria],
-    category_of_test: TestCategory,
     cookies_file: str | None = None,
     localStorage: str | None = None,
     gif_output_path: str | bool = False,
-) -> list[Test]:
+) -> list[AcceptanceCriteria]:
     """
-    Generate test cases for a specific category for a feature.
+    Generate acceptance criteria for a feature.
 
     Args:
         product: Product information
         epic: Epic information
         feature: Feature information
-        user_stories: List of user stories associated with the feature
-        acceptance_criteria_list: List of acceptance criteria associated with the feature
-        category_of_test: Category of tests to generate
         cookies_file: Path to cookies file for browser automation
         localStorage: Path to localStorage file for browser automation
         gif_output_path: Path to store GIF output of browser automation
 
     Returns:
-        List of generated tests
+        List of generated acceptance criteria
     """
-
-    # Format user stories and acceptance criteria for the prompt
-    user_stories_text = "\n\n".join([
-        f"User Story: {us.name}\nDescription: {us.description}"
-        for us in user_stories
-    ])
-
-    acceptance_criteria_text = "\n\n".join([
-        f"Name: {ac.name}\nDescription: {ac.description}"
-        for ac in acceptance_criteria_list
-    ])
-
 
     # Configure the browser session with cookies and localStorage
     browser_config = BrowserConfig(
@@ -192,6 +173,8 @@ async def _generate_test_category_for_feature(
     if gif_output_path:
         os.makedirs(os.path.dirname(gif_output_path), exist_ok=True)
 
+    user_stories_text = "\n".join([f"- User Story -n{us.name}\n{us.description}" for us in user_stories])
+
     # NOTE: we do not provide a controller as models tend to provide better results when not constrained by a controller output model
     agent = Agent(
         task=PROMPT.format(
@@ -199,9 +182,7 @@ async def _generate_test_category_for_feature(
             epic=epic,
             feature=feature,
             url=feature.urls[0],
-            user_stories_text=user_stories_text,
-            acceptance_criteria_text=acceptance_criteria_text,
-            category_of_test=category_of_test,
+            user_stories_text=user_stories_text
         ),
         llm=LLM_CLIENT,
         initial_actions=[{'go_to_url': {'url': feature.urls[0]}}, {'go_to_url': {'url': feature.urls[0]}}],
@@ -217,34 +198,17 @@ async def _generate_test_category_for_feature(
 
     result = history.final_result()
     if history.has_errors() or not history.is_done() or result is None or not history.is_successful():
-        raise Exception("Failed to generate tests for feature")
+        raise Exception("Failed to generate user stories for feature")
 
     if result is None:
-        logger.error("Couldn't generate tests for feature for %s", feature.name)
-        logger.debug("History of the agent when generating tests for feature for %s: %s", feature.name, history.action_results())
-        raise Exception("Failed to generate tests for feature, result is None")
+        logger.error("Couldn't generate acceptance criteria for feature for %s", feature.name)
+        logger.debug("History of the agent when generating acceptance criteria for feature for %s: %s", feature.name, history.action_results())
+        raise Exception("Failed to generate acceptance criteria for feature, result is None")
 
     # Parse the test cases from the LLM response
-    test_cases = _parse_test_cases(result)
+    acceptance_criteria = _parse_acceptance_criteria(result)
 
-    tests = []
-
-    # Convert parsed test cases to Test objects
-    for tc in test_cases:
-        test = Test(
-            name=tc['name'],
-            description=tc['description'],
-            url=feature.urls[0],
-            category=category_of_test,
-            preconditions=tc['preconditions'],
-            steps=tc['steps'],
-            expected_results=tc['expected_results'],
-            assertions=tc['assertions'],
-            feature_id=feature.id,
-        )
-        tests.append(test)
-
-    return tests
+    return [AcceptanceCriteria(name=ac["name"], description=ac["description"]) for ac in acceptance_criteria]
 
 
 def handle_background_task_errors(func):
@@ -268,33 +232,28 @@ def handle_background_task_errors(func):
 
 
 @handle_background_task_errors
-async def background_generate_tests_for_feature(
+async def background_generate_acceptance_criteria(
     task_id: str,
     product: Product,
     epic: Epic,
     feature: Feature,
     user_stories: list[UserStory],
-    acceptance_criteria_list: list[AcceptanceCriteria],
-    categories_of_test: list[TestCategory],
     secrets: dict[str, dict[str, str]],
     gif_output_path: str | bool = False,
-) -> list[Test]:
+) -> list[AcceptanceCriteria]:
     """
-    Background task to generate tests for a feature.
+    Background task to generate acceptance criteria for a feature.
 
     Args:
         task_id: Task ID for tracking
         product: Product information
         epic: Epic information
         feature: Feature information
-        user_stories: List of user stories associated with the feature
-        acceptance_criteria_list: List of acceptance criteria associated with the feature
-        categories_of_test: List of test categories to generate
         secrets: Dictionary of secrets for authentication
         gif_output_path: Path to store GIF output of browser automation
 
     Returns:
-        List of generated tests
+        List of generated acceptance criteria
     """
 
     auth_session = await generate_auth_session(
@@ -302,50 +261,41 @@ async def background_generate_tests_for_feature(
         secrets,
     )
 
-    tests = []
     with NamedTemporaryFile(suffix=".json", mode="w+") as cookies_file:
         cookies_file.write(json.dumps(auth_session['cookies']))
         cookies_file.flush()
         cookies_file.seek(0)
 
-        for category in categories_of_test:
-            category_tests = await _generate_test_category_for_feature(
-                product=product,
-                epic=epic,
-                feature=feature,
-                user_stories=user_stories,
-                acceptance_criteria_list=acceptance_criteria_list,
-                category_of_test=category,
-                cookies_file=cookies_file.name if auth_session.get('cookies') is not None else None,
-                localStorage=auth_session.get('localStorage'),
-                gif_output_path=gif_output_path,
-            )
-            tests.extend(category_tests)
+        acceptance_criteria = await _generate_acceptance_criteria(
+            product=product,
+            epic=epic,
+            feature=feature,
+            user_stories=user_stories,
+            cookies_file=cookies_file.name if auth_session.get('cookies') is not None else None,
+            localStorage=auth_session.get('localStorage'),
+            gif_output_path=gif_output_path,
+        )
 
-    return tests
+    return acceptance_criteria
 
 
-@router.post("/generate-tests-for-feature")
-async def generate_tests_for_feature(
+@router.post("/")
+async def generate_acceptance_criteria(
     product: Product,
     epic: Epic,
     feature: Feature,
     user_stories: list[UserStory],
-    acceptance_criteria: list[AcceptanceCriteria],
     background_task: BackgroundTasks,
     encrypted_secrets: Optional[dict[str, dict[str, str]]] = None,
 ) -> str:
     """
-    Endpoint to generate tests for a feature.
+    Endpoint to generate acceptance criteria for a feature.
 
     Args:
         product: Product information
         epic: Epic information
         feature: Feature information
-        user_stories: List of user stories associated with the feature
-        acceptance_criteria: List of acceptance criteria associated with the feature
         background_task: Background tasks handler
-        secrets: Dictionary of secrets for authentication
         encrypted_secrets: Dictionary of encrypted secrets for authentication
 
     Returns:
@@ -356,10 +306,6 @@ async def generate_tests_for_feature(
     if len(user_stories) == 0:
         raise HTTPException(status_code=400, detail="No user stories provided")
 
-    if len(acceptance_criteria) == 0:
-        raise HTTPException(status_code=400, detail="No acceptance criteria provided")
-
-    # Decrypt secrets if provided
     secrets_to_use = None
 
     if encrypted_secrets:
@@ -371,20 +317,13 @@ async def generate_tests_for_feature(
             logger.error(f"Failed to decrypt secrets: {str(e)}")
             raise HTTPException(status_code=400, detail=f"Failed to decrypt secrets: {str(e)}")
 
-    # List of test categories to generate
-    categories = [
-        TestCategory.SMOKE,
-    ]
-
     background_task.add_task(
-        background_generate_tests_for_feature,
+        background_generate_acceptance_criteria,
         task_id=task_id,
         product=product,
         epic=epic,
         feature=feature,
         user_stories=user_stories,
-        acceptance_criteria_list=acceptance_criteria,
-        categories_of_test=categories,
         secrets=secrets_to_use or {},
         gif_output_path="/tmp",
     )
@@ -392,12 +331,12 @@ async def generate_tests_for_feature(
     return task_id
 
 
-@router.get("/get-test-generation-status/{task_id}")
-async def get_test_generation_status(
+@router.get("/status/{task_id}")
+async def get_acceptance_criteria_generation_status(
     task_id: str,
 ) -> dict[str, Any]:
     """
-    Get the status of a test generation task.
+    Get the status of a acceptance criteria generation task.
 
     Args:
         task_id: Task ID to check
@@ -411,4 +350,3 @@ async def get_test_generation_status(
 
 # TODO: Test both w/ and w/o the browser-use to see what leads to better results
 # TODO: give access to doc RAD so the agent can ask questions about the product
-# TODO: give a Laneo doc for LLMs (super useful both for cursor and for the QA agent)
