@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Loader, X, Check, AlertTriangle } from 'lucide-react';
 import { generateFeatures, getFeatureGenerationStatus } from '@/api/featureGeneration';
 
@@ -8,10 +8,16 @@ const FeatureGenerationModal = ({ onClose, epicId, epicName, onComplete }) => {
   const [error, setError] = useState(null);
   const [generatedFeatures, setGeneratedFeatures] = useState([]);
   const [pollingInterval, setPollingInterval] = useState(null);
+  const hasStartedGeneration = useRef(false);
 
   // Start the generation process
   useEffect(() => {
     const startGeneration = async () => {
+      // Skip if we've already started generation (prevents double execution in StrictMode)
+      if (hasStartedGeneration.current) return;
+      
+      hasStartedGeneration.current = true;
+      
       try {
         const newTaskId = await generateFeatures(epicId);
         setTaskId(newTaskId);

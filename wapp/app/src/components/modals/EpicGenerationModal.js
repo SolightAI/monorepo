@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Loader, X, Check, AlertTriangle } from 'lucide-react';
 import { generateEpics, getEpicGenerationStatus } from '@/api/epicGeneration';
 
@@ -8,10 +8,16 @@ const EpicGenerationModal = ({ onClose, productId, productName, onComplete }) =>
   const [error, setError] = useState(null);
   const [generatedEpics, setGeneratedEpics] = useState([]);
   const [pollingInterval, setPollingInterval] = useState(null);
+  const hasStartedGeneration = useRef(false);
 
   // Start the generation process
   useEffect(() => {
     const startGeneration = async () => {
+      // Skip if we've already started generation (prevents double execution in StrictMode)
+      if (hasStartedGeneration.current) return;
+      
+      hasStartedGeneration.current = true;
+      
       try {
         const newTaskId = await generateEpics(productId);
         setTaskId(newTaskId);
