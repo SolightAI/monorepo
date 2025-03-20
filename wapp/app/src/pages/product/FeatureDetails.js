@@ -6,7 +6,9 @@ import AddTestModal from '@/components/modals/AddTestModal';
 import TestGenerationStatusModal from '@/components/modals/TestGenerationStatusModal';
 import TestDetailsModal from '@/components/modals/TestDetailsModal';
 import AddUserStoryModal from '@/components/modals/AddUserStoryModal';
+import GenerateUserStoriesModal from '@/components/modals/GenerateUserStoriesModal';
 import { triggerFeatureTestGeneration } from '@/services/testService';
+import { triggerUserStoriesGeneration } from '@/services/userStoryService';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -37,6 +39,10 @@ const FeatureDetails = () => {
   // State for Add Acceptance Criteria Modal
   const [isAddCriteriaModalOpen, setIsAddCriteriaModalOpen] = useState(false);
 
+  // Add these new state variables
+  const [isGenerateUserStoriesModalOpen, setIsGenerateUserStoriesModalOpen] = useState(false);
+  const [userStoriesGenerationTaskId, setUserStoriesGenerationTaskId] = useState(null);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -66,7 +72,7 @@ const FeatureDetails = () => {
       // Combine feature data with tests
       const featureData = featureResponse.data;
       featureData.tests = testsResponse.data;
-      
+
       // Set user stories from the feature data
       if (featureData.user_stories) {
         setUserStories(featureData.user_stories);
@@ -92,9 +98,9 @@ const FeatureDetails = () => {
       // Make API call to save the test
       const response = await axios.post(
         `${API_URL}/tests/`,
-        { 
+        {
           ...newTest,
-          feature_id: featureId 
+          feature_id: featureId
         },
         {
           withCredentials: true,
@@ -130,11 +136,11 @@ const FeatureDetails = () => {
   const handleCriteriaAdded = (newCriteria) => {
     // Update the acceptance criteria state with the new criteria
     setAcceptanceCriteria(prevCriteria => [...prevCriteria, newCriteria]);
-    
+
     // Also update the feature state if needed
     setFeature(prevFeature => {
       if (!prevFeature) return prevFeature;
-      
+
       const updatedFeature = {...prevFeature};
       if (!updatedFeature.acceptance_criteria) {
         updatedFeature.acceptance_criteria = [];
@@ -215,6 +221,27 @@ const FeatureDetails = () => {
     setIsAddCriteriaModalOpen(true);
   };
 
+  // Add this new function
+  const handleGenerateUserStories = async () => {
+    try {
+      setLoading(true);
+      const taskId = await triggerUserStoriesGeneration(featureId);
+      setUserStoriesGenerationTaskId(taskId);
+      setIsGenerateUserStoriesModalOpen(true);
+    } catch (err) {
+      console.error('Error triggering user stories generation:', err);
+      setError('Failed to trigger user stories generation. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add this new function
+  const handleUserStoriesGenerationComplete = () => {
+    // Refresh the feature details to show the newly generated user stories
+    fetchFeatureDetails();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -269,24 +296,45 @@ const FeatureDetails = () => {
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">User Stories</h2>
-                <button
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
-                  onClick={() => setIsAddUserStoryModalOpen(true)}
-                >
-                  <Plus size={18} className="mr-2" />
-                  Add User Story
-                </button>
+                <div className="flex space-x-2">
+                  <button
+                    className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                    onClick={handleGenerateUserStories}
+                    disabled={loading}
+                  >
+                    <Sparkles size={18} className="mr-2" />
+                    Generate User Stories
+                  </button>
+                  <button
+                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
+                    onClick={() => setIsAddUserStoryModalOpen(true)}
+                  >
+                    <Plus size={18} className="mr-2" />
+                    Add User Story
+                  </button>
+                </div>
               </div>
 
               {!userStories || userStories.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
                   <p className="text-gray-500 mb-4">No user stories found for this feature</p>
-                  <button
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
-                    onClick={() => setIsAddUserStoryModalOpen(true)}
-                  >
-                    Create your first user story
-                  </button>
+                  <div className="flex justify-center space-x-4">
+                    <button
+                      className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                      onClick={handleGenerateUserStories}
+                      disabled={loading}
+                    >
+                      <Sparkles size={18} className="mr-2" />
+                      Generate User Stories with AI
+                    </button>
+                    <button
+                      className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
+                      onClick={() => setIsAddUserStoryModalOpen(true)}
+                    >
+                      <Plus size={18} className="mr-2" />
+                      Create Manually
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -412,8 +460,8 @@ const FeatureDetails = () => {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {feature.tests.map((test) => (
-                        <tr 
-                          key={test.id} 
+                        <tr
+                          key={test.id}
                           className="hover:bg-gray-50 cursor-pointer"
                           onClick={() => handleTestClick(test)}
                         >
@@ -514,16 +562,16 @@ const FeatureDetails = () => {
 
               <form onSubmit={async (e) => {
                 e.preventDefault();
-                
+
                 const formData = new FormData(e.target);
                 const name = formData.get('name');
                 const description = formData.get('description');
-                
+
                 if (!name || !description) {
                   setError('Name and description are required');
                   return;
                 }
-                
+
                 try {
                   // Create the acceptance criteria via API
                   const response = await axios.post(
@@ -535,10 +583,10 @@ const FeatureDetails = () => {
                     },
                     { withCredentials: true }
                   );
-                  
+
                   // Update the state with the new criteria
                   handleCriteriaAdded(response.data);
-                  
+
                   // Close the modal
                   setIsAddCriteriaModalOpen(false);
                 } catch (err) {
@@ -599,6 +647,16 @@ const FeatureDetails = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Generate User Stories Modal */}
+      {isGenerateUserStoriesModalOpen && (
+        <GenerateUserStoriesModal
+          onClose={() => setIsGenerateUserStoriesModalOpen(false)}
+          taskId={userStoriesGenerationTaskId}
+          featureName={feature?.name || ''}
+          onComplete={handleUserStoriesGenerationComplete}
+        />
       )}
     </div>
   );
