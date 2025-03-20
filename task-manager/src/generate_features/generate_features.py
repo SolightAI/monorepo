@@ -92,12 +92,13 @@ def _parse_features(features_text: str) -> list[dict[str, str]]:
     matches = re.finditer(pattern, features_text, re.DOTALL)
 
     for match in matches:
+
         urls = match.group(3).strip()
         pattern = r'<url>(.*?)</url>'
         urls = re.findall(pattern, urls)
 
         if not urls:
-            raise Exception(f"No urls found for feature {match.group(1).strip()}")
+            raise Exception(f"No urls found for feature {match.group(3).strip()}")
 
         feature = {
             'name': match.group(1).strip(),
