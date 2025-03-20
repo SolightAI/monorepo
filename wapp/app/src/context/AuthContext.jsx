@@ -187,13 +187,80 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Keep track of redirect in progress to avoid loops
     let isRedirecting = false;
+    let isCheckingAuth = false;
 
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       async (error) => {
-        if (error.response && !isRedirecting) {
-          // Handle 401 Unauthorized errors
-          if (error.response.status === 401 && error.config && !error.config.__isRetryRequest) {
+        if (error.response && !isRedirecting && !isCheckingAuth) {
+          const status = error.response.status;
+          
+          // For any 4xx error, verify authentication status if user is supposedly logged in
+          if (status >= 400 && status < 500 && isAuthenticated && error.config && !error.config.__isRetryRequest) {
+            // Avoid redirect loops
+            const currentPath = window.location.pathname;
+            if (currentPath.includes('/login') ||
+                currentPath.includes('/register') ||
+                currentPath.includes('/auth/google/callback')) {
+              return Promise.reject(error);
+            }
+            
+            try {
+              // Set flag to prevent recursive auth checks
+              isCheckingAuth = true;
+              
+              console.log(`${status} error detected, performing hard-check on authentication status`);
+              
+              // Hard-check auth status with the server
+              const authCheckResponse = await axios.get(`${API_URL}/auth/check-auth`, {
+                withCredentials: true,
+                timeout: 5000
+              });
+              
+              // If server confirms authentication, just pass through the original error
+              if (authCheckResponse.data.authenticated) {
+                console.log('Authentication confirmed, original error is not auth-related');
+                isCheckingAuth = false;
+                return Promise.reject(error);
+              } else {
+                // User is not authenticated according to server
+                console.log('Authentication failed during hard-check, logging out');
+                isRedirecting = true;
+                
+                // Update authentication state
+                setIsAuthenticated(false);
+                setIsAdmin(false);
+                localStorage.removeItem('isAuthenticated');
+                localStorage.removeItem('isAdmin');
+                
+                // Use setTimeout to allow current execution to complete
+                setTimeout(() => {
+                  window.location.href = '/login';
+                  isRedirecting = false;
+                  isCheckingAuth = false;
+                }, 100);
+              }
+            } catch (authCheckError) {
+              // If the auth check itself fails, assume user is not authenticated
+              console.log('Hard-check failed, assuming user is not authenticated:', authCheckError);
+              isRedirecting = true;
+              
+              // Update authentication state
+              setIsAuthenticated(false);
+              setIsAdmin(false);
+              localStorage.removeItem('isAuthenticated');
+              localStorage.removeItem('isAdmin');
+              
+              // Use setTimeout to allow current execution to complete
+              setTimeout(() => {
+                window.location.href = '/login';
+                isRedirecting = false;
+                isCheckingAuth = false;
+              }, 100);
+            }
+          } 
+          // Keep the existing 401 handler for backward compatibility
+          else if (status === 401 && error.config && !error.config.__isRetryRequest) {
             // Avoid redirect loops
             const currentPath = window.location.pathname;
             if (currentPath.includes('/login') ||
@@ -226,7 +293,7 @@ export const AuthProvider = ({ children }) => {
     return () => {
       axios.interceptors.response.eject(interceptor);
     };
-  }, []);
+  }, [isAuthenticated]);
 
   // Google auth callback handler
   const handleGoogleCallback = useCallback((tokenOrUserData) => {
