@@ -91,3 +91,86 @@ This application uses:
 ## Development
 
 The test generation functionality is designed to be integrated with task management systems. It can generate test scripts based on product information, epics, features, user stories, and acceptance criteria.
+
+## Acceptance Criteria Generation API
+
+### Generate Acceptance Criteria
+
+```
+POST /generate-acceptance-criteria/
+```
+
+Triggers acceptance criteria generation for a feature.
+
+**Request Body:**
+```json
+{
+  "product": {
+    "url": "https://example.com",
+    "name": "Product Name",
+    "description": "Product Description",
+    "documentation": "Product Documentation",
+    "links_to_documentation": ["https://docs.example.com"]
+  },
+  "epic": {
+    "name": "Epic Name",
+    "description": "Epic Description"
+  },
+  "feature": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "urls": ["https://example.com/feature"],
+    "name": "Feature Name",
+    "description": "Feature Description",
+    "dependents": [],
+    "dependencies": []
+  },
+  "user_stories": [
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174001",
+      "name": "User Story Name",
+      "description": "User Story Description"
+    }
+  ],
+  "encrypted_secrets": {
+    "...": "..."
+  }
+}
+```
+
+**Response:**
+- Task ID (string)
+
+**Status Codes:**
+- `200 OK`: Request successful, generation started
+- `400 Bad Request`: Invalid input
+- `500 Internal Server Error`: Server error during generation
+
+### Check Generation Status
+
+```
+GET /generate-acceptance-criteria/status/{task_id}
+```
+
+Checks the status of an acceptance criteria generation task.
+
+**Parameters:**
+- `task_id` (path): Task ID returned from the generation request
+
+**Response:**
+```json
+{
+  "status": "pending|completed|error",
+  "results": [
+    {
+      "title": "Acceptance Criteria Title",
+      "description": "Detailed description of the acceptance criteria"
+    }
+  ],
+  "error": "Error message if status is error"
+}
+```
+
+**Status Codes:**
+- `200 OK`: Request successful
+- `404 Not Found`: Task not found
+- `500 Internal Server Error`: Server error during status check

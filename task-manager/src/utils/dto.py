@@ -35,7 +35,6 @@ class Epic(BaseModel):
 
 
 class Feature(BaseModel):
-    id: str  # Added id field to use for linking tests
     urls: list[str]  # where the feature is implemented
     name: str
     description: str

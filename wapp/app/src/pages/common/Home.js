@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Loader, AlertCircle, Plus, Sparkles, Building } from 'lucide-react';
+import { Loader, AlertCircle, Plus, Sparkles, Building, Zap } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import EpicCreationModal from '@/components/modals/EpicCreationModal';
+import EpicGenerationModal from '@/components/modals/EpicGenerationModal';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -16,6 +17,7 @@ const Home = () => {
   const [error, setError] = useState(null);
   const [epics, setEpics] = useState([]);
   const [showEpicModal, setShowEpicModal] = useState(false);
+  const [showEpicGenerationModal, setShowEpicGenerationModal] = useState(false);
 
   const navigate = useNavigate();
 
@@ -61,8 +63,20 @@ const Home = () => {
     await fetchEpics();
   };
 
+  const handleEpicGenerationComplete = async (generatedEpics) => {
+    // Hide the epic generation modal
+    setShowEpicGenerationModal(false);
+
+    // Refresh epics to show the newly generated epics
+    await fetchEpics();
+  };
+
   const handleManageEpics = () => {
     setShowEpicModal(true);
+  };
+
+  const handleGenerateEpics = () => {
+    setShowEpicGenerationModal(true);
   };
 
   // If we're loading organizations, show a loading indicator
@@ -127,13 +141,22 @@ const Home = () => {
                   <p className="text-gray-600 mt-2">{selectedProduct.description}</p>
                 )}
               </div>
-              <button
-                onClick={handleManageEpics}
-                className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
-              >
-                <Plus size={20} className="mr-2" />
-                {epics.length > 0 ? 'Manage Epics' : 'Add Epics'}
-              </button>
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleGenerateEpics}
+                  className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-150"
+                >
+                  <Zap size={20} className="mr-2" />
+                  Generate Epics
+                </button>
+                <button
+                  onClick={handleManageEpics}
+                  className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                >
+                  <Plus size={20} className="mr-2" />
+                  {epics.length > 0 ? 'Manage Epics' : 'Add Epics'}
+                </button>
+              </div>
             </div>
 
             {/* Error message */}
@@ -155,12 +178,22 @@ const Home = () => {
                 {epics.length === 0 ? (
                   <div className="text-center py-20 bg-white rounded-lg shadow">
                     <p className="text-gray-500 mb-4">No epics found for this product</p>
-                    <button
-                      onClick={handleManageEpics}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
-                    >
-                      Create your first epic
-                    </button>
+                    <div className="flex justify-center space-x-4">
+                      <button
+                        onClick={handleGenerateEpics}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-150 flex items-center"
+                      >
+                        <Zap size={18} className="mr-2" />
+                        Generate epics automatically
+                      </button>
+                      <button
+                        onClick={handleManageEpics}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150 flex items-center"
+                      >
+                        <Plus size={18} className="mr-2" />
+                        Create epics manually
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -212,6 +245,16 @@ const Home = () => {
             fetchEpics();
           }}
           onComplete={handleEpicCreationComplete}
+        />
+      )}
+
+      {/* Epic Generation Modal */}
+      {showEpicGenerationModal && selectedProduct && (
+        <EpicGenerationModal
+          onClose={() => setShowEpicGenerationModal(false)}
+          productId={selectedProduct.id}
+          productName={selectedProduct.name}
+          onComplete={handleEpicGenerationComplete}
         />
       )}
     </div>
