@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Loader, AlertCircle, Plus, ArrowLeft, Sparkles } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
 import AddFeatureModal from '@/components/modals/AddFeatureModal';
+import FeatureGenerationModal from '@/components/modals/FeatureGenerationModal';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -17,6 +18,8 @@ const EpicDetails = () => {
 
   // State for Add Feature Modal
   const [isAddFeatureModalOpen, setIsAddFeatureModalOpen] = useState(false);
+  // State for Feature Generation Modal
+  const [isGenerateFeatureModalOpen, setIsGenerateFeatureModalOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -51,6 +54,12 @@ const EpicDetails = () => {
       ...prevEpic,
       features: [...(prevEpic.features || []), newFeature]
     }));
+  };
+
+  // Handle feature generation completed
+  const handleFeatureGenerationComplete = (generatedFeatures) => {
+    // Refresh epic details to show the newly generated features
+    fetchEpicDetails();
   };
 
   return (
@@ -102,24 +111,42 @@ const EpicDetails = () => {
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">Features</h2>
-                <button
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
-                  onClick={() => setIsAddFeatureModalOpen(true)}
-                >
-                  <Plus size={18} className="mr-2" />
-                  Add Feature
-                </button>
+                <div className="flex space-x-3">
+                  <button
+                    className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                    onClick={() => setIsGenerateFeatureModalOpen(true)}
+                  >
+                    <Sparkles size={18} className="mr-2" />
+                    Generate Features
+                  </button>
+                  <button
+                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
+                    onClick={() => setIsAddFeatureModalOpen(true)}
+                  >
+                    <Plus size={18} className="mr-2" />
+                    Add Feature
+                  </button>
+                </div>
               </div>
 
               {!epic?.features || epic.features.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
                   <p className="text-gray-500 mb-4">No features found for this epic</p>
-                  <button
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
-                    onClick={() => setIsAddFeatureModalOpen(true)}
-                  >
-                    Create your first feature
-                  </button>
+                  <div className="flex justify-center space-x-4">
+                    <button
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                      onClick={() => setIsGenerateFeatureModalOpen(true)}
+                    >
+                      <Sparkles size={18} className="mr-2 inline-block" />
+                      Generate features automatically
+                    </button>
+                    <button
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
+                      onClick={() => setIsAddFeatureModalOpen(true)}
+                    >
+                      Create feature manually
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -184,6 +211,16 @@ const EpicDetails = () => {
           epicId={epicId}
           epicName={epic.name}
           onFeatureAdded={handleFeatureAdded}
+        />
+      )}
+
+      {/* Generate Features Modal */}
+      {isGenerateFeatureModalOpen && epic && (
+        <FeatureGenerationModal
+          onClose={() => setIsGenerateFeatureModalOpen(false)}
+          epicId={epicId}
+          epicName={epic.name}
+          onComplete={handleFeatureGenerationComplete}
         />
       )}
     </div>
