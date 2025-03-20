@@ -150,8 +150,8 @@ async def _generate_test_category_for_feature(
     """
 
     # Format user stories and acceptance criteria for the prompt
-    user_stories_text = "\n\n".join([
-        f"User Story: {us.name}\nDescription: {us.description}"
+    user_stories_text = "\n".join([
+        f"User Story: {us.name}"
         for us in user_stories
     ])
 

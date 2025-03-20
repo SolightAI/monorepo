@@ -173,7 +173,7 @@ async def _generate_acceptance_criteria(
     if gif_output_path:
         os.makedirs(os.path.dirname(gif_output_path), exist_ok=True)
 
-    user_stories_text = "\n".join([f"- User Story -n{us.name}\n{us.description}" for us in user_stories])
+    user_stories_text = "\n".join([f"User Story:{us.name}" for us in user_stories])
 
     # NOTE: we do not provide a controller as models tend to provide better results when not constrained by a controller output model
     agent = Agent(

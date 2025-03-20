@@ -35,6 +35,7 @@ class Epic(BaseModel):
 
 
 class Feature(BaseModel):
+    id: str | None = None  # Added id field for reference
     urls: list[str]  # where the feature is implemented
     name: str
     description: str
@@ -44,9 +45,7 @@ class Feature(BaseModel):
 
 
 class UserStory(BaseModel):
-    id: str  # Added id field for reference
     name: str
-    description: str
 
 
 class AcceptanceCriteria(BaseModel):
