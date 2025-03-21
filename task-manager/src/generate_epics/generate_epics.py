@@ -36,7 +36,6 @@ For each epic, provide a descriptive name and detailed description explaining wh
 Some extra ground rules:
 - Make sure each epic is distinct and focused on a specific area of functionality
 - Don't create epics that are too granular (those would be features)
-- Don't create epics that are too broad (those would be impossible to implement as a cohesive unit)
 - Do not logout from the application when exploring
 - Do not exit from the application when exploring
 
