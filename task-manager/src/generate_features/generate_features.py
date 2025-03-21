@@ -37,7 +37,8 @@ Once done, write for each feature present inside the epic the name and the descr
 
 Some extra ground rules:
 - Note that a feature can be present on multiple part of the product, for each place where the feature is present, you should write the url of the page
-- You first need to locate the epic on the product, then you can start discovering the features
+- You first need to locate the epic on the product, then you can start discovering the features.
+- While looking for the epic, make sure to not leave to the marketing website. Web app and marketing website can sometimes share the same domain, they remain nonetheless different.
 - If you cannot locate the epic on the product, stop by raising an exception to the user
 - Do not logout from the application when generating the features
 - Do not exit from the application when generating the features
