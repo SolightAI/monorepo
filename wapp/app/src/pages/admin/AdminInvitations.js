@@ -35,7 +35,7 @@ export default function AdminInvitations() {
       }
 
 
-      await axios.get(`${API_URL}/auth/is-admin/`, {
+      await axios.get(`${API_URL}/auth/is-admin`, {
         withCredentials: true,
         timeout: 5000 // 5 second timeout
       });  // waits for potential 4xx status code
@@ -88,7 +88,7 @@ export default function AdminInvitations() {
         payload.expires_at = new Date(newInvitation.expires_at).toISOString();
       }
 
-      const response = await axios.post(`${API_URL}/invitations/`, payload, {
+      const response = await axios.post(`${API_URL}/invitations`, payload, {
         withCredentials: true,
         timeout: 10000 // 10 second timeout
       });
@@ -166,7 +166,7 @@ export default function AdminInvitations() {
     setError('');
 
     try {
-      await axios.delete(`${API_URL}/invitations/${invitationId}/`, {
+      await axios.delete(`${API_URL}/invitations/${invitationId}`, {
         withCredentials: true,
         timeout: 10000
       });
