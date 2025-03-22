@@ -9,11 +9,7 @@ from services.epic_generation_service import (
 from services.auth_services import get_current_user
 
 # Centralize auth dependency at the router level
-router = APIRouter(
-    prefix="/epic-generation",
-    tags=["epic_generation"],
-    dependencies=[Depends(get_current_user)]
-)
+router = APIRouter(prefix="/epic-generation",tags=["epic_generation"],dependencies=[Depends(get_current_user)])
 
 
 @router.post("/{product_id}")

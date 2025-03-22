@@ -5,11 +5,7 @@ from pydantic import UUID4
 from dependencies import get_current_user
 
 # Router-level auth dependency
-router = APIRouter(
-    prefix="/epics",
-    tags=["epics"],
-    dependencies=[Depends(get_current_user)]
-)
+router = APIRouter(prefix="/epics",tags=["epics"],dependencies=[Depends(get_current_user)])
 
 
 @router.get("/{epic_id}")

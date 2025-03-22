@@ -7,11 +7,7 @@ from typing import Dict, Any
 from dependencies import get_current_user
 
 # Apply auth dependency once here
-router = APIRouter(
-    prefix="/user-stories",
-    tags=["user_stories"],
-    dependencies=[Depends(get_current_user)]
-)
+router = APIRouter(prefix="/user-stories",tags=["user_stories"],dependencies=[Depends(get_current_user)])
 
 
 @router.get("/{user_story_id}")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks,HTTPException,Depends
 from typing import Dict, Any
 from pydantic import UUID4
 
@@ -9,12 +9,7 @@ from services.acceptance_criteria_generation_service import (
 from services.auth_services import get_current_user
 
 #  Centralize auth dependency here
-router = APIRouter(
-    prefix="/acceptance-criteria-generation",
-    tags=["acceptance_criteria_generation"],
-    dependencies=[Depends(get_current_user)]
-)
-
+router = APIRouter(prefix="/acceptance-criteria-generation",tags=["acceptance_criteria_generation"],dependencies=[Depends(get_current_user)])
 
 @router.post("/{feature_id}")
 async def generate_acceptance_criteria_endpoint(
