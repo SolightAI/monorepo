@@ -8,14 +8,18 @@ from services.feature_generation_service import (
 )
 from services.auth_services import get_current_user
 
-router = APIRouter(prefix="/feature-generation", tags=["feature_generation"])
+# Moved authentication to router level
+router = APIRouter(
+    prefix="/feature-generation",
+    tags=["feature_generation"],
+    dependencies=[Depends(get_current_user)]
+)
 
 
 @router.post("/{epic_id}")
 async def generate_features_endpoint(
     epic_id: UUID4,
-    background_tasks: BackgroundTasks,
-    current_user=Depends(get_current_user)
+    background_tasks: BackgroundTasks
 ) -> Dict[str, str]:
     """
     Trigger feature generation for an epic.
@@ -33,8 +37,7 @@ async def generate_features_endpoint(
 
 @router.get("/status/{task_id}")
 async def get_feature_generation_status_endpoint(
-    task_id: str,
-    current_user=Depends(get_current_user)
+    task_id: str
 ) -> Dict[str, Any]:
     """
     Get the status of a feature generation task.

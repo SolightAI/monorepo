@@ -6,29 +6,36 @@ from pydantic import UUID4
 from typing import Dict, Any
 from dependencies import get_current_user
 
-
-router = APIRouter(prefix="/user-stories", tags=["user_stories"])
+# Apply auth dependency once here
+router = APIRouter(
+    prefix="/user-stories",
+    tags=["user_stories"],
+    dependencies=[Depends(get_current_user)]
+)
 
 
 @router.get("/{user_story_id}")
-async def get_user_story_endpoint(user_story_id: UUID4, current_user=Depends(get_current_user)) -> UserStorySchema:
+async def get_user_story_endpoint(user_story_id: UUID4) -> UserStorySchema:
     return await get_user_story(user_story_id)
 
 
 @router.post("/")
-async def create_user_story_endpoint(user_story: UserStoryCreateSchema, current_user=Depends(get_current_user)) -> UserStorySchema:
+async def create_user_story_endpoint(user_story: UserStoryCreateSchema) -> UserStorySchema:
     return await create_user_story(user_story)
 
 
 @router.delete("/{user_story_id}")
-async def delete_user_story_endpoint(user_story_id: UUID4, current_user=Depends(get_current_user)) -> dict:
+async def delete_user_story_endpoint(user_story_id: UUID4) -> dict:
     """Delete a user story and all its related acceptance criteria, tests, etc."""
     deleted = await delete_user_story(user_story_id)
     return {"success": deleted, "message": "User story and all related items deleted successfully"}
 
 
 @router.put("/{user_story_id}")
-async def update_user_story_endpoint(user_story_id: UUID4, user_story_update: UserStoryUpdateSchema, current_user=Depends(get_current_user)) -> UserStorySchema:
+async def update_user_story_endpoint(
+    user_story_id: UUID4,
+    user_story_update: UserStoryUpdateSchema
+) -> UserStorySchema:
     """Update a user story with the provided data."""
     return await update_user_story(user_story_id, user_story_update)
 
@@ -36,8 +43,7 @@ async def update_user_story_endpoint(user_story_id: UUID4, user_story_update: Us
 @router.post("/generate")
 async def generate_user_stories_endpoint(
     feature_id: UUID4,
-    background_tasks: BackgroundTasks,
-    current_user=Depends(get_current_user)
+    background_tasks: BackgroundTasks
 ) -> Dict[str, str]:
     """
     Generate user stories for a feature using AI.
@@ -54,7 +60,7 @@ async def generate_user_stories_endpoint(
 
 
 @router.get("/generate/status/{task_id}")
-async def get_user_stories_generation_status_endpoint(task_id: str, current_user=Depends(get_current_user)) -> Dict[str, Any]:
+async def get_user_stories_generation_status_endpoint(task_id: str) -> Dict[str, Any]:
     """
     Get the status of a user stories generation task.
 
