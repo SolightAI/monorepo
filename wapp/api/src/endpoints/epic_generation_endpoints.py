@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends
 from typing import Dict, Any
 from pydantic import UUID4
 
@@ -15,6 +15,7 @@ router = APIRouter(prefix="/epic-generation", tags=["epic_generation"])
 async def generate_epics_endpoint(
     product_id: UUID4,
     background_tasks: BackgroundTasks,
+    current_user=Depends(get_current_user)
 ) -> Dict[str, str]:
     """
     Trigger epic generation for a product.
@@ -33,6 +34,7 @@ async def generate_epics_endpoint(
 @router.get("/status/{task_id}")
 async def get_epic_generation_status_endpoint(
     task_id: str,
+    current_user=Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
     Get the status of an epic generation task.

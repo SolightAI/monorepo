@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from typing import Dict, Any
 from pydantic import UUID4
 
@@ -13,17 +13,18 @@ router = APIRouter(prefix="/acceptance-criteria-generation", tags=["acceptance_c
 
 @router.post("/{feature_id}")
 async def generate_acceptance_criteria_endpoint(
-    feature_id: UUID4, 
-    background_tasks: BackgroundTasks, 
+    feature_id: UUID4,
+    background_tasks: BackgroundTasks,
+    current_user=Depends(get_current_user)
 ) -> Dict[str, str]:
     """
     Trigger acceptance criteria generation for a feature.
-    
+
     Args:
         feature_id: UUID of the feature to generate acceptance criteria for
         background_tasks: FastAPI background tasks manager
         current_user: Current authenticated user
-        
+
     Returns:
         Dictionary with task ID for tracking the generation status
     """
@@ -34,16 +35,17 @@ async def generate_acceptance_criteria_endpoint(
 @router.get("/status/{task_id}")
 async def get_acceptance_criteria_generation_status_endpoint(
     task_id: str,
+    current_user=Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
     Get the status of an acceptance criteria generation task.
-    
+
     Args:
         task_id: Task ID returned from the generation endpoint
         current_user: Current authenticated user
-        
+
     Returns:
         Dictionary with task status information
     """
     status = await get_acceptance_criteria_generation_status(task_id)
-    return status 
+    return status
