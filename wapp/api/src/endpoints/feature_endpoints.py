@@ -1,10 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from dto.schemas import FeatureCreate as FeatureCreateSchema, Feature as FeatureSchema, FeatureUpdate as FeatureUpdateSchema
 from services.feature_services import get_feature, create_feature, delete_feature, update_feature
 from pydantic import UUID4
+from dependencies import get_current_user
 
-
-router = APIRouter(prefix="/features", tags=["features"])
+# Apply auth dependency at the router level
+router = APIRouter(prefix="/features",tags=["features"],dependencies=[Depends(get_current_user)])
 
 
 @router.get("/{feature_id}")
@@ -25,6 +26,6 @@ async def delete_feature_endpoint(feature_id: UUID4) -> dict:
 
 
 @router.put("/{feature_id}")
-async def update_feature_endpoint(feature_id: UUID4, feature_update: FeatureUpdateSchema) -> FeatureSchema:
+async def update_feature_endpoint(feature_id: UUID4,feature_update: FeatureUpdateSchema) -> FeatureSchema:
     """Update a feature with the provided data."""
     return await update_feature(feature_id, feature_update)

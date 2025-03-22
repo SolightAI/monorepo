@@ -1,12 +1,13 @@
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends
 from dto.schemas import UserStoryCreate as UserStoryCreateSchema, UserStory as UserStorySchema, UserStoryUpdate as UserStoryUpdateSchema
 from services.user_story_services import get_user_story, create_user_story, delete_user_story, update_user_story
 from services.user_stories_generation_service import generate_user_stories, get_user_stories_generation_status
 from pydantic import UUID4
 from typing import Dict, Any
+from dependencies import get_current_user
 
-
-router = APIRouter(prefix="/user-stories", tags=["user_stories"])
+# Apply auth dependency once here
+router = APIRouter(prefix="/user-stories",tags=["user_stories"],dependencies=[Depends(get_current_user)])
 
 
 @router.get("/{user_story_id}")
@@ -27,7 +28,10 @@ async def delete_user_story_endpoint(user_story_id: UUID4) -> dict:
 
 
 @router.put("/{user_story_id}")
-async def update_user_story_endpoint(user_story_id: UUID4, user_story_update: UserStoryUpdateSchema) -> UserStorySchema:
+async def update_user_story_endpoint(
+    user_story_id: UUID4,
+    user_story_update: UserStoryUpdateSchema
+) -> UserStorySchema:
     """Update a user story with the provided data."""
     return await update_user_story(user_story_id, user_story_update)
 
@@ -35,7 +39,7 @@ async def update_user_story_endpoint(user_story_id: UUID4, user_story_update: Us
 @router.post("/generate")
 async def generate_user_stories_endpoint(
     feature_id: UUID4,
-    background_tasks: BackgroundTasks,
+    background_tasks: BackgroundTasks
 ) -> Dict[str, str]:
     """
     Generate user stories for a feature using AI.

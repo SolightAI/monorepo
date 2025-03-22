@@ -1,11 +1,12 @@
-from fastapi import APIRouter
-from dto.schemas import AcceptanceCriteriaCreate as AcceptanceCriteriaCreateSchema, AcceptanceCriteria as AcceptanceCriteriaSchema, AcceptanceCriteriaUpdate as AcceptanceCriteriaUpdateSchema
-from services.acceptance_criteria_services import get_acceptance_criteria, create_acceptance_criteria, get_all_acceptance_criteria, delete_acceptance_criteria, update_acceptance_criteria, get_acceptance_criteria_by_feature
+from fastapi import APIRouter, Depends
+from dto.schemas import AcceptanceCriteriaCreate as AcceptanceCriteriaCreateSchema,AcceptanceCriteria as AcceptanceCriteriaSchema,AcceptanceCriteriaUpdate as AcceptanceCriteriaUpdateSchema
+from services.acceptance_criteria_services import get_acceptance_criteria,create_acceptance_criteria,get_all_acceptance_criteria,delete_acceptance_criteria,update_acceptance_criteria,get_acceptance_criteria_by_feature
 from pydantic import UUID4
 from typing import List
+from dependencies import get_current_user
 
-
-router = APIRouter(prefix="/acceptance-criteria", tags=["acceptance_criteria"])
+#  Apply authentication at the router level
+router = APIRouter(prefix="/acceptance-criteria",tags=["acceptance_criteria"],dependencies=[Depends(get_current_user)])
 
 
 @router.get("/")
@@ -37,6 +38,6 @@ async def delete_acceptance_criteria_endpoint(acceptance_criteria_id: UUID4) -> 
 
 
 @router.put("/{acceptance_criteria_id}")
-async def update_acceptance_criteria_endpoint(acceptance_criteria_id: UUID4, acceptance_criteria_update: AcceptanceCriteriaUpdateSchema) -> AcceptanceCriteriaSchema:
+async def update_acceptance_criteria_endpoint(acceptance_criteria_id: UUID4,acceptance_criteria_update: AcceptanceCriteriaUpdateSchema) -> AcceptanceCriteriaSchema:
     """Update acceptance criteria with the provided data."""
     return await update_acceptance_criteria(acceptance_criteria_id, acceptance_criteria_update)

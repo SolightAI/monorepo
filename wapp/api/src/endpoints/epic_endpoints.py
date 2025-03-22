@@ -1,10 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from dto.schemas import EpicCreate as EpicCreateSchema, Epic as EpicSchema, EpicUpdate as EpicUpdateSchema
 from services.epic_services import get_epic, create_epic, delete_epic, update_epic
 from pydantic import UUID4
+from dependencies import get_current_user
 
-
-router = APIRouter(prefix="/epics", tags=["epics"])
+# Router-level auth dependency
+router = APIRouter(prefix="/epics",tags=["epics"],dependencies=[Depends(get_current_user)])
 
 
 @router.get("/{epic_id}")
