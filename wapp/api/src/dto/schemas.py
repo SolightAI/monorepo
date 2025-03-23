@@ -531,6 +531,7 @@ class TestExecutionUpdate(BaseModel):
     notes: Optional[str] = None
     evidence: Optional[List[str]] = None
     metadata: Optional[Dict[str, Any]] = None
+    tracing: Optional[Dict[str, Any]] = None
 
 
 class TestExecution(BaseModel):
@@ -547,6 +548,7 @@ class TestExecution(BaseModel):
     notes: Optional[str] = None
     evidence: List[str] = []
     metadata: Dict[str, Any] = {}
-
+    tracing: Dict[str, Any] = {}
+    
     class Config:
         from_attributes = True
