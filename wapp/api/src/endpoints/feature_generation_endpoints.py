@@ -1,11 +1,11 @@
 from fastapi import APIRouter, BackgroundTasks, Depends
 from typing import Dict, Any
 from pydantic import UUID4
-from services.feature_generation_service import (generate_features,get_feature_generation_status)
-from services.auth_services import get_current_user
+from services.feature_generation_service import (generate_features, get_feature_generation_status)
+from dependencies import get_current_user_dependency
 
 # Moved authentication to router level
-router = APIRouter(prefix="/feature-generation",tags=["feature_generation"],dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="/feature-generation", tags=["feature_generation"], dependencies=[Depends(get_current_user_dependency)])
 
 
 @router.post("/{epic_id}")

@@ -15,7 +15,7 @@ from services.test_execution_services import (
     update_test_execution,
     finish_test_execution
 )
-from dependencies import get_current_user
+from dependencies import get_current_user_dependency
 from dto.models import User
 
 
@@ -26,7 +26,7 @@ router = APIRouter(prefix="/test-executions", tags=["test-executions"])
 async def create_test_execution_endpoint(
     test_execution: TestExecutionCreateSchema,
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> TestExecutionSchema:
     """
     Create a new test execution.
@@ -44,7 +44,7 @@ async def create_test_execution_endpoint(
 @router.get("/{test_execution_id}", response_model=TestExecutionSchema)
 async def get_test_execution_endpoint(
     test_execution_id: UUID4,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> TestExecutionSchema:
     """
     Get a specific test execution by ID.
@@ -55,7 +55,7 @@ async def get_test_execution_endpoint(
 @router.get("/by-test/{test_id}", response_model=List[TestExecutionSchema])
 async def get_test_executions_by_test_endpoint(
     test_id: UUID4,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> List[TestExecutionSchema]:
     """
     Get all executions for a specific test.
@@ -69,7 +69,7 @@ async def get_test_executions_by_test_endpoint(
 async def update_test_execution_endpoint(
     test_execution_id: UUID4,
     test_execution_update: TestExecutionUpdateSchema,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> TestExecutionSchema:
     """
     Update a test execution with new information.
@@ -83,7 +83,7 @@ async def finish_test_execution_endpoint(
     status: TestStatus = Body(..., embed=True),
     notes: str = Body(None, embed=True),
     evidence: List[str] = Body([], embed=True),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> TestExecutionSchema:
     """
     Mark a test execution as complete with a final status.

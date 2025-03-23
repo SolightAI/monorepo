@@ -18,7 +18,7 @@ from dto.schemas import (
     FeatureHealth,
     OrganizationHealth
 )
-from dependencies import get_current_user
+from dependencies import get_current_user_dependency
 
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -33,7 +33,7 @@ class TimeRange(str):
 
 @router.get("/metrics/summary")
 async def get_summary_metrics(
-    user: UserModel = Depends(get_current_user),
+    user: UserModel = Depends(get_current_user_dependency),
     product_id: Optional[UUID4] = None,
 ) -> MetricsSummary:
     """
@@ -56,7 +56,7 @@ async def get_summary_metrics(
 async def get_tests_trend(
     time_range: str = Query(TimeRange.THIRTY_DAYS, description="Time range for the trend data"),
     product_id: Optional[UUID4] = None,
-    user: UserModel = Depends(get_current_user),
+    user: UserModel = Depends(get_current_user_dependency),
 ) -> List[TrendDataPoint]:
     """
     Get test execution trend data for visualization.
@@ -76,7 +76,7 @@ async def get_tests_trend(
 async def get_bugs_trend(
     time_range: str = Query(TimeRange.THIRTY_DAYS, description="Time range for the trend data"),
     product_id: Optional[UUID4] = None,
-    user: UserModel = Depends(get_current_user),
+    user: UserModel = Depends(get_current_user_dependency),
 ) -> List[TrendDataPoint]:
     """
     Get bug creation trend data for visualization.
@@ -95,7 +95,7 @@ async def get_bugs_trend(
 @router.get("/metrics/features/health")
 async def get_features_health(
     product_id: UUID4,
-    user: UserModel = Depends(get_current_user),
+    user: UserModel = Depends(get_current_user_dependency),
 ) -> List[FeatureHealth]:
     """
     Get health metrics for features in a product.
@@ -112,7 +112,7 @@ async def get_features_health(
 
 @router.get("/metrics/organization/health")
 async def get_organization_health(
-    user: UserModel = Depends(get_current_user),
+    user: UserModel = Depends(get_current_user_dependency),
 ) -> OrganizationHealth:
     """
     Get health metrics for the current organization.
@@ -131,7 +131,7 @@ async def get_test_executions_trend(
     time_range: str = Query(TimeRange.THIRTY_DAYS, description="Time range for the trend data"),
     product_id: Optional[UUID4] = None,
     environment: Optional[str] = None,
-    user: UserModel = Depends(get_current_user),
+    user: UserModel = Depends(get_current_user_dependency),
 ) -> List[TrendDataPoint]:
     """
     Get test execution trend data for visualization.
@@ -155,7 +155,7 @@ async def get_test_executions_trend(
 async def get_environment_comparison(
     product_id: UUID4,
     time_range: str = Query(TimeRange.THIRTY_DAYS, description="Time range for the comparison data"),
-    user: UserModel = Depends(get_current_user),
+    user: UserModel = Depends(get_current_user_dependency),
 ) -> Dict[str, Dict[str, int]]:
     """
     Get test execution comparison across different environments.

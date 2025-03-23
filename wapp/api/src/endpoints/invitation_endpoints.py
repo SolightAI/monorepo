@@ -12,7 +12,7 @@ from services.invitation_services import (
 )
 from services import organization_services
 from services.auth_services import check_is_admin
-from dependencies import get_current_user
+from dependencies import get_current_user_dependency
 from dto.models import User
 
 
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/invitations", tags=["invitations"])
 @router.get("/")
 async def get_invitations_endpoint(
     organization_id: Optional[UUID] = Query(None, description="Filter invitations by organization ID"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> List[Invitation]:
     """
     Get all invitations.
@@ -50,7 +50,7 @@ async def get_invitations_endpoint(
 @router.post("/")
 async def create_invitation_endpoint(
     invitation: InvitationCreate,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> Invitation:
     """
     Create a new invitation.
@@ -94,7 +94,7 @@ async def validate_invitation_endpoint(
 @router.post("/mark-used/{code}")
 async def mark_invitation_used_endpoint(
     code: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> Invitation:
     """Mark an invitation as used by the current user."""
     return await mark_invitation_used(code, current_user.id)
@@ -103,7 +103,7 @@ async def mark_invitation_used_endpoint(
 @router.delete("/{invitation_id}")
 async def delete_invitation_endpoint(
     invitation_id: UUID,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> None:
     """
     Delete an invitation.

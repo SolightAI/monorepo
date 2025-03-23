@@ -6,13 +6,13 @@ from services.epic_generation_service import (
     generate_epics,
     get_epic_generation_status
 )
-from services.auth_services import get_current_user
+from dependencies import get_current_user_dependency
 
 # Centralize auth dependency at the router level
-router = APIRouter(prefix="/epic-generation",tags=["epic_generation"],dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="/epic-generation", tags=["epic_generation"], dependencies=[Depends(get_current_user_dependency)])
 
 
-@router.post("/{product_id}")
+@router.post("/{product_id}/")
 async def generate_epics_endpoint(
     product_id: UUID4,
     background_tasks: BackgroundTasks

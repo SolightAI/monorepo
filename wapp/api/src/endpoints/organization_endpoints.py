@@ -14,7 +14,7 @@ from dto.schemas import (
     OrganizationRole,
 )
 from services import organization_services
-from dependencies import get_current_user
+from dependencies import get_current_user_dependency
 
 router = APIRouter(
     prefix="/organizations",
@@ -25,7 +25,7 @@ router = APIRouter(
 
 @router.post("/", response_model=Organization, status_code=status.HTTP_201_CREATED)
 async def create_organization(
-    data: OrganizationCreate, current_user=Depends(get_current_user)
+    data: OrganizationCreate, current_user=Depends(get_current_user_dependency)
 ):
     """
     Create a new organization.
@@ -36,7 +36,7 @@ async def create_organization(
 
 
 @router.get("/", response_model=List[Organization])
-async def get_user_organizations(current_user=Depends(get_current_user)):
+async def get_user_organizations(current_user=Depends(get_current_user_dependency)):
     """
     Get all organizations the current user belongs to.
     """
@@ -45,7 +45,7 @@ async def get_user_organizations(current_user=Depends(get_current_user)):
 
 @router.get("/{organization_id}", response_model=Organization)
 async def get_organization(
-    organization_id: UUID, current_user=Depends(get_current_user)
+    organization_id: UUID, current_user=Depends(get_current_user_dependency)
 ):
     """
     Get an organization by ID.
@@ -74,7 +74,7 @@ async def get_organization(
 
 @router.get("/{organization_id}/members", response_model=OrganizationWithMembers)
 async def get_organization_with_members(
-    organization_id: UUID, current_user=Depends(get_current_user)
+    organization_id: UUID, current_user=Depends(get_current_user_dependency)
 ):
     """
     Get an organization with its members.
@@ -105,7 +105,7 @@ async def get_organization_with_members(
 async def update_organization(
     organization_id: UUID,
     data: OrganizationUpdate,
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_user_dependency),
 ):
     """
     Update an organization.
@@ -134,7 +134,7 @@ async def update_organization(
 
 @router.delete("/{organization_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_organization(
-    organization_id: UUID, current_user=Depends(get_current_user)
+    organization_id: UUID, current_user=Depends(get_current_user_dependency)
 ):
     """
     Delete an organization.
@@ -163,7 +163,7 @@ async def delete_organization(
 async def add_member(
     organization_id: UUID,
     data: OrganizationMemberCreate,
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_user_dependency),
 ):
     """
     Add a member to an organization.
@@ -201,7 +201,7 @@ async def update_member_role(
     organization_id: UUID,
     user_id: int,
     data: OrganizationMemberUpdate,
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_user_dependency),
 ):
     """
     Update a member's role in an organization.
@@ -234,7 +234,7 @@ async def update_member_role(
 async def remove_member(
     organization_id: UUID,
     user_id: int,
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_user_dependency),
 ):
     """
     Remove a member from an organization.
@@ -273,7 +273,7 @@ async def remove_member(
 
 @router.get("/{organization_id}/members", response_model=List[OrganizationMember])
 async def get_members(
-    organization_id: UUID, current_user=Depends(get_current_user)
+    organization_id: UUID, current_user=Depends(get_current_user_dependency)
 ):
     """
     Get all members of an organization.
@@ -297,7 +297,7 @@ async def get_members(
 async def get_member(
     organization_id: UUID,
     user_id: int,
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_user_dependency),
 ):
     """
     Get a specific member of an organization.
