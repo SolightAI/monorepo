@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader, AlertCircle, ArrowLeft, TestTube, Plus, CheckCircle, XCircle, Sparkles, CheckSquare, List } from 'lucide-react';
+import { Loader, AlertCircle, ArrowLeft, TestTube, Plus, CheckCircle, XCircle, Sparkles, CheckSquare, List, Edit } from 'lucide-react';
 import AddTestModal from '@/components/modals/AddTestModal';
 import TestGenerationStatusModal from '@/components/modals/TestGenerationStatusModal';
 import TestDetailsModal from '@/components/modals/TestDetailsModal';
@@ -10,6 +10,7 @@ import GenerateUserStoriesModal from '@/components/modals/GenerateUserStoriesMod
 import GenerateAcceptanceCriteriaButton from '@/components/feature/GenerateAcceptanceCriteriaButton';
 import { triggerFeatureTestGeneration } from '@/services/testService';
 import { triggerUserStoriesGeneration } from '@/services/userStoryService';
+import EditFeatureModal from '@/components/modals/EditFeatureModal';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -43,6 +44,9 @@ const FeatureDetails = () => {
   // Add these new state variables
   const [isGenerateUserStoriesModalOpen, setIsGenerateUserStoriesModalOpen] = useState(false);
   const [userStoriesGenerationTaskId, setUserStoriesGenerationTaskId] = useState(null);
+
+  // State for Edit Feature Modal
+  const [isEditFeatureModalOpen, setIsEditFeatureModalOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -248,6 +252,15 @@ const FeatureDetails = () => {
     fetchFeatureDetails();
   };
 
+  // Handle feature updated
+  const handleFeatureUpdated = (updatedFeature) => {
+    // Update the feature state with the updated feature
+    setFeature({
+      ...feature,
+      ...updatedFeature
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -278,9 +291,18 @@ const FeatureDetails = () => {
             {/* Feature header */}
             {feature && (
               <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <div className="flex items-center mb-4">
-                  <TestTube size={24} className="text-purple-500 mr-3" />
-                  <h1 className="text-3xl font-bold text-gray-800">{feature.name}</h1>
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center">
+                    <TestTube size={24} className="text-purple-500 mr-3" />
+                    <h1 className="text-3xl font-bold text-gray-800">{feature.name}</h1>
+                  </div>
+                  <button
+                    onClick={() => setIsEditFeatureModalOpen(true)}
+                    className="flex items-center px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-150"
+                  >
+                    <Edit size={16} className="mr-2" />
+                    Edit Feature
+                  </button>
                 </div>
                 <p className="text-gray-700 mb-4">{feature.description}</p>
                 {feature.urls && feature.urls.length > 0 && (
@@ -669,6 +691,15 @@ const FeatureDetails = () => {
           taskId={userStoriesGenerationTaskId}
           featureName={feature?.name || ''}
           onComplete={handleUserStoriesGenerationComplete}
+        />
+      )}
+
+      {/* Edit Feature Modal */}
+      {isEditFeatureModalOpen && feature && (
+        <EditFeatureModal
+          onClose={() => setIsEditFeatureModalOpen(false)}
+          feature={feature}
+          onFeatureUpdated={handleFeatureUpdated}
         />
       )}
     </div>

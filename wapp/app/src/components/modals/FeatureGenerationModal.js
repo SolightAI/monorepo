@@ -15,9 +15,9 @@ const FeatureGenerationModal = ({ onClose, epicId, epicName, onComplete }) => {
     const startGeneration = async () => {
       // Skip if we've already started generation (prevents double execution in StrictMode)
       if (hasStartedGeneration.current) return;
-      
+
       hasStartedGeneration.current = true;
-      
+
       try {
         const newTaskId = await generateFeatures(epicId);
         setTaskId(newTaskId);
@@ -25,9 +25,9 @@ const FeatureGenerationModal = ({ onClose, epicId, epicName, onComplete }) => {
       } catch (err) {
         console.error('Error starting feature generation:', err);
         // Handle error response properly to ensure it's a string
-        const errorMessage = err.response?.data?.detail 
-          ? (typeof err.response.data.detail === 'string' 
-             ? err.response.data.detail 
+        const errorMessage = err.response?.data?.detail
+          ? (typeof err.response.data.detail === 'string'
+             ? err.response.data.detail
              : JSON.stringify(err.response.data.detail))
           : 'Failed to start feature generation';
         setError(errorMessage);
@@ -52,9 +52,9 @@ const FeatureGenerationModal = ({ onClose, epicId, epicName, onComplete }) => {
             onComplete && onComplete(statusData.results);
           } else if (statusData.status === 'error') {
             // Ensure error is a string, handle potential object errors
-            const errorMessage = statusData.error 
-              ? (typeof statusData.error === 'string' 
-                 ? statusData.error 
+            const errorMessage = statusData.error
+              ? (typeof statusData.error === 'string'
+                 ? statusData.error
                  : JSON.stringify(statusData.error))
               : 'An error occurred during feature generation';
             setError(errorMessage);
@@ -192,14 +192,14 @@ const FeatureGenerationModal = ({ onClose, epicId, epicName, onComplete }) => {
             </button>
           )}
 
-          {(status === 'starting' || status === 'pending') && (
+          {/* {(status === 'starting' || status === 'pending') && (
             <button
               onClick={onClose}
               className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
             >
               Cancel
             </button>
-          )}
+          )} */}
         </div>
       </div>
     </div>

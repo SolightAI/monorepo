@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader, AlertCircle, Plus, ArrowLeft, Sparkles } from 'lucide-react';
+import { Loader, AlertCircle, Plus, ArrowLeft, Sparkles, Edit } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
 import AddFeatureModal from '@/components/modals/AddFeatureModal';
 import FeatureGenerationModal from '@/components/modals/FeatureGenerationModal';
+import EditFeatureModal from '@/components/modals/EditFeatureModal';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -20,6 +21,9 @@ const EpicDetails = () => {
   const [isAddFeatureModalOpen, setIsAddFeatureModalOpen] = useState(false);
   // State for Feature Generation Modal
   const [isGenerateFeatureModalOpen, setIsGenerateFeatureModalOpen] = useState(false);
+  // State for Edit Feature Modal
+  const [isEditFeatureModalOpen, setIsEditFeatureModalOpen] = useState(false);
+  const [selectedFeature, setSelectedFeature] = useState(null);
 
   const navigate = useNavigate();
 
@@ -60,6 +64,24 @@ const EpicDetails = () => {
   const handleFeatureGenerationComplete = (generatedFeatures) => {
     // Refresh epic details to show the newly generated features
     fetchEpicDetails();
+  };
+
+  // Handle feature updated
+  const handleFeatureUpdated = (updatedFeature) => {
+    // Update the epic state with the updated feature
+    setEpic(prevEpic => ({
+      ...prevEpic,
+      features: prevEpic.features.map(feature =>
+        feature.id === updatedFeature.id ? updatedFeature : feature
+      )
+    }));
+  };
+
+  // Handle feature edit
+  const handleEditFeature = (feature, e) => {
+    e.stopPropagation(); // Prevent row click from navigating
+    setSelectedFeature(feature);
+    setIsEditFeatureModalOpen(true);
   };
 
   return (
@@ -193,6 +215,15 @@ const EpicDetails = () => {
                               ))}
                             </div>
                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <button
+                              onClick={(e) => handleEditFeature(feature, e)}
+                              className="flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition duration-150"
+                            >
+                              <Edit size={14} className="mr-1" />
+                              Edit
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -224,6 +255,18 @@ const EpicDetails = () => {
           epicId={epicId}
           epicName={epic.name}
           onComplete={handleFeatureGenerationComplete}
+        />
+      )}
+
+      {/* Edit Feature Modal */}
+      {isEditFeatureModalOpen && selectedFeature && (
+        <EditFeatureModal
+          onClose={() => {
+            setIsEditFeatureModalOpen(false);
+            setSelectedFeature(null);
+          }}
+          feature={selectedFeature}
+          onFeatureUpdated={handleFeatureUpdated}
         />
       )}
     </div>
