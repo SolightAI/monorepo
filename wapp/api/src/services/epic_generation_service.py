@@ -7,10 +7,9 @@ from typing import List, Dict, Any, Optional
 from pydantic import UUID4
 
 from dto.models import Product as ProductModel, Epic as EpicModel
-from dto.schemas import EpicCreate as EpicCreateSchema, SecretType
+from dto.schemas import EpicCreate as EpicCreateSchema
 from services.epic_services import create_epic
-from services.secret_services import get_organization_secrets, get_secret_with_values
-from services.crypto_service import crypto_service
+from services.secret_services import get_encrypted_secrets
 
 
 TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
@@ -55,52 +54,9 @@ async def generate_epics(product_id: UUID4, background_tasks: Optional[Backgroun
         }
     }
 
-    # Build dictionary of all secrets with their decrypted values
-    all_secrets: Dict[str, Dict[str, str]] = {}
-
-    # Get the organization ID from the product (if available)
-    organization_id = product.organization_id
-    if organization_id:
-        # Get all secrets for this organization
-        org_secrets = await get_organization_secrets(organization_id)
-
-        # Add all organization secrets to the dictionary
-        for secret in org_secrets:
-            try:
-                # Get the secret with its values
-                secret_with_values = await get_secret_with_values(secret.id)
-
-                # Skip if no values
-                if not secret_with_values or not hasattr(secret_with_values, 'values'):
-                    continue
-
-                # If this is the first secret of this type, create a new entry
-                if secret_with_values.type not in all_secrets:
-                    all_secrets[secret_with_values.type] = {}
-
-                # Add values to the result
-                for key, value in secret_with_values.values.items():
-                    # For username_password type, store directly
-                    if secret_with_values.type == SecretType.USERNAME_PASSWORD:
-                        all_secrets[secret_with_values.type][key] = value
-                    else:
-                        # For other types, prefix with secret name to avoid conflicts
-                        prefixed_key = f"{secret_with_values.name}_{key}"
-                        all_secrets[secret_with_values.type][prefixed_key] = value
-            except Exception as e:
-                logger.warning(f"Failed to get secret {secret.id}: {str(e)}")
-
     # Add encrypted secrets to the payload if available
-    if all_secrets:
-        # Encrypt the secrets using the task-manager's public key
-        encryption_success, encrypted_secrets = crypto_service.encrypt_secrets(all_secrets)
-
-        if not (encryption_success and encrypted_secrets):
-            error_msg = "Encryption failed, aborting epic generation for security reasons"
-            logger.error(error_msg)
-            raise HTTPException(status_code=500, detail=error_msg)
-
-        # Add the encrypted secrets to the payload
+    encrypted_secrets = await get_encrypted_secrets(product.organization_id, product.id)
+    if encrypted_secrets:
         payload['encrypted_secrets'] = encrypted_secrets
         logger.info("Successfully encrypted secrets for epic generation")
 
@@ -173,7 +129,7 @@ async def get_epic_generation_status(task_id: str) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"Error connecting to task manager: {str(e)}")
 
 
-async def poll_task_manager_status(product_id: UUID4, task_id: str, max_attempts: int = 60, interval: int = 10) -> None:
+async def poll_task_manager_status(product_id: UUID4, task_id: str, max_attempts: int = 600, interval: int = 1) -> None:
     """
     Poll the task manager for status updates and save generated epics.
 
