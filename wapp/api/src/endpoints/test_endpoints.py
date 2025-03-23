@@ -20,7 +20,7 @@ from services.test_execution_services import get_test_executions_by_test
 from pydantic import UUID4
 from typing import List
 
-from dependencies import get_current_user
+from dependencies import get_current_user_dependency
 from dto.models import User
 from services import organization_services, secret_services
 from logging import getLogger
@@ -122,7 +122,7 @@ async def get_generate_test_status_endpoint(task_id: UUID4) -> dict:
 async def add_test_secret_endpoint(
     test_id: UUID4,
     data: TestSecretCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_dependency),
 ) -> TestSecret:
     """
     Add a secret to a test.
@@ -152,7 +152,7 @@ async def add_test_secret_endpoint(
 @router.get("/{test_id}/secrets", response_model=List[TestSecret])
 async def get_test_secrets_endpoint(
     test_id: UUID4,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_dependency),
 ) -> List[TestSecret]:
     """
     Get all secrets associated with a test.
@@ -186,8 +186,8 @@ async def get_test_secrets_endpoint(
 async def delete_test_secret_endpoint(
     test_id: UUID4,
     secret_id: UUID4,
-    current_user: User = Depends(get_current_user),
-):
+    current_user: User = Depends(get_current_user_dependency),
+) -> None:
     """
     Remove a secret from a test.
 

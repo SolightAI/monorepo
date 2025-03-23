@@ -3,9 +3,9 @@ import json
 import base64
 
 from services import auth_services
-from dependencies import get_current_user
+from dependencies import get_current_user_dependency
 from dto.models import User
-from fastapi import APIRouter, Depends, Response, Request
+from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel
 from typing import Optional
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/auth")
 
 
 @router.get("/login/google")
-async def login_google(invitation_code: Optional[str] = None):
+async def login_google(invitation_code: Optional[str] = None) -> dict:
     state = ""
     if invitation_code:
         # Encode the invitation code in a state parameter
@@ -31,7 +31,7 @@ class RefreshTokenRequest(BaseModel):
 
 
 @router.post("/refresh-google-token")
-async def refresh_google_token(params: RefreshTokenRequest):
+async def refresh_google_token(params: RefreshTokenRequest) -> dict:
     return await auth_services.refresh_google_token(refresh_token=params.refresh_token)
 
 
@@ -65,14 +65,13 @@ async def logout(response: Response) -> dict:
 
 
 @router.get("/is-admin")
-
-async def is_admin(current_user: User = Depends(get_current_user)) -> dict:
+async def is_admin(current_user: User = Depends(get_current_user_dependency)) -> dict:
     is_admin_result = await auth_services.check_is_admin(current_user)
     return {"is_admin": is_admin_result}
 
 
 @router.get("/check-auth")
-async def check_auth(current_user: User = Depends(get_current_user)) -> dict:
+async def check_auth(current_user: User = Depends(get_current_user_dependency)) -> dict:
     """Check if the user is authenticated and return user info"""
     return {
         "authenticated": True,

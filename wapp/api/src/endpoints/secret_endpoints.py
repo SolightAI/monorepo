@@ -2,7 +2,7 @@ from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import UUID4
 
-from dependencies import get_current_user
+from dependencies import get_current_user_dependency
 from dto.models import User
 from dto.schemas import (
     Secret,
@@ -23,7 +23,7 @@ router = APIRouter(
 @router.post("", response_model=SecretWithValues, status_code=status.HTTP_201_CREATED)
 async def create_secret(
     data: SecretCreate,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> SecretWithValues:
     """
     Create a new secret with values.
@@ -48,7 +48,7 @@ async def create_secret(
 async def get_secrets(
     organization_id: UUID4 = Query(..., description="Organization ID to filter secrets by"),
     product_id: Optional[UUID4] = Query(None, description="Optional Product ID to filter secrets by"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> List[Secret]:
     """
     Get all secrets for an organization, optionally filtered by product.
@@ -72,7 +72,7 @@ async def get_secrets(
 @router.get("/{secret_id}", response_model=Secret)
 async def get_secret(
     secret_id: UUID4,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> Secret:
     """
     Get a secret by ID without its values.
@@ -102,7 +102,7 @@ async def get_secret(
 @router.get("/{secret_id}/values", response_model=SecretWithValues)
 async def get_secret_values(
     secret_id: UUID4,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> SecretWithValues:
     """
     Get a secret by ID with its decrypted values.
@@ -140,7 +140,7 @@ async def get_secret_values(
 async def update_secret(
     secret_id: UUID4,
     data: SecretUpdate,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> Secret:
     """
     Update a secret's metadata.
@@ -168,7 +168,7 @@ async def update_secret(
 async def update_secret_values(
     secret_id: UUID4,
     values: Dict[str, str],
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> SecretWithValues:
     """
     Update a secret's values.
@@ -195,7 +195,7 @@ async def update_secret_values(
 @router.delete("/{secret_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_secret(
     secret_id: UUID4,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> Response:
     """
     Delete a secret and its values.
@@ -223,7 +223,7 @@ async def delete_secret(
 @router.get("/{secret_id}/access-logs", response_model=List[SecretAccess])
 async def get_secret_access_logs(
     secret_id: UUID4,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_dependency)
 ) -> List[SecretAccess]:
     """
     Get access logs for a secret.

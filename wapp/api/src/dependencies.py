@@ -5,7 +5,7 @@ from services import auth_services
 from fastapi import Cookie, HTTPException, status
 
 
-async def get_current_user(access_token: str = Cookie(None)) -> User:
+async def get_current_user_dependency(access_token: str = Cookie(None)) -> User:
 
     if not access_token:
         logging.info("User has no access_token, returning 401.")

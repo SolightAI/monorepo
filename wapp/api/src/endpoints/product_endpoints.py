@@ -5,7 +5,7 @@ from services import organization_services
 from pydantic import UUID4
 from typing import List, Optional
 from uuid import UUID
-from dependencies import get_current_user
+from dependencies import get_current_user_dependency
 
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/products", tags=["products"])
 @router.get("/")
 async def get_all_products_endpoint(
     organization_id: Optional[UUID] = Query(None, description="Filter products by organization ID"),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user_dependency)
 ) -> List[ProductSchema]:
     """
     Get all products, optionally filtered by organization.
@@ -39,7 +39,7 @@ async def get_all_products_endpoint(
 @router.get("/{product_id}")
 async def get_product_endpoint(
     product_id: UUID4,
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user_dependency)
 ) -> ProductSchema:
     """
     Get a product by ID.
@@ -66,7 +66,7 @@ async def get_product_endpoint(
 @router.post("/")
 async def create_product_endpoint(
     product: ProductCreateSchema,
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user_dependency)
 ) -> ProductSchema:
     """
     Create a new product.
@@ -92,7 +92,7 @@ async def create_product_endpoint(
 async def update_product_endpoint(
     product_id: UUID4,
     product_data: ProductUpdateSchema,
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user_dependency)
 ) -> ProductSchema:
     """
     Update an existing product.
@@ -124,7 +124,7 @@ async def update_product_endpoint(
 @router.delete("/{product_id}")
 async def delete_product_endpoint(
     product_id: UUID4,
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user_dependency)
 ) -> dict:
     """
     Delete a product and all its related epics, features, user stories, etc.
