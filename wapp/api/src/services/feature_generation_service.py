@@ -7,13 +7,21 @@ from typing import List, Dict, Any, Optional
 from pydantic import UUID4
 
 from dto.models import Epic as EpicModel, Product as ProductModel
-from dto.schemas import FeatureCreate as FeatureCreateSchema, SecretType
+from dto.schemas import FeatureCreate as FeatureCreateSchema
 from services.feature_services import create_feature
-from services.secret_services import get_organization_secrets, get_secret_with_values
-from services.crypto_service import crypto_service
+from services.secret_services import get_encrypted_secrets
+
+
+TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
+
+
+if not TASK_MANAGER_URL:
+    raise ValueError("TASK_MANAGER_URL is not set")
+
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
 
 async def generate_features(epic_id: UUID4, background_tasks: Optional[BackgroundTasks] = None) -> str:
     """
@@ -54,59 +62,16 @@ async def generate_features(epic_id: UUID4, background_tasks: Optional[Backgroun
         }
     }
 
-    # Build dictionary of all secrets with their decrypted values
-    all_secrets = {}
-
-    # Get the organization ID from the product (if available)
-    organization_id = product.organization_id
-    if organization_id:
-        # Get all secrets for this organization
-        org_secrets = await get_organization_secrets(organization_id)
-
-        # Add all organization secrets to the dictionary
-        for secret in org_secrets:
-            try:
-                # Get the secret with its values
-                secret_with_values = await get_secret_with_values(secret.id)
-
-                # Skip if no values
-                if not secret_with_values or not hasattr(secret_with_values, 'values'):
-                    continue
-
-                # If this is the first secret of this type, create a new entry
-                if secret_with_values.type not in all_secrets:
-                    all_secrets[secret_with_values.type] = {}
-
-                # Add values to the result
-                for key, value in secret_with_values.values.items():
-                    # For username_password type, store directly
-                    if secret_with_values.type == SecretType.USERNAME_PASSWORD:
-                        all_secrets[secret_with_values.type][key] = value
-                    else:
-                        # For other types, prefix with secret name to avoid conflicts
-                        prefixed_key = f"{secret_with_values.name}_{key}"
-                        all_secrets[secret_with_values.type][prefixed_key] = value
-            except Exception as e:
-                logger.warning(f"Failed to get secret {secret.id}: {str(e)}")
-
     # Add encrypted secrets to the payload if available
-    if all_secrets:
-        # Encrypt the secrets using the task-manager's public key
-        encryption_success, encrypted_secrets = crypto_service.encrypt_secrets(all_secrets)
-
-        if not (encryption_success and encrypted_secrets):
-            error_msg = "Encryption failed, aborting feature generation for security reasons"
-            logger.error(error_msg)
-            raise HTTPException(status_code=500, detail=error_msg)
-
-        # Add the encrypted secrets to the payload
+    encrypted_secrets = await get_encrypted_secrets(product.organization_id, product.id)
+    if encrypted_secrets:
         payload['encrypted_secrets'] = encrypted_secrets
         logger.info("Successfully encrypted secrets for feature generation")
 
     # Send request to task manager
     try:
         response = requests.post(
-            os.getenv("TASK_MANAGER_URL") + "/generate-features/",
+            TASK_MANAGER_URL + "/generate-features/",
             json=payload
         )
 
@@ -149,7 +114,7 @@ async def get_feature_generation_status(task_id: str) -> Dict[str, Any]:
     """
     try:
         response = requests.get(
-            os.getenv("TASK_MANAGER_URL") + f"/generate-features/status/{task_id}"
+            TASK_MANAGER_URL + f"/generate-features/status/{task_id}"
         )
 
         if response.status_code != 200:
@@ -160,7 +125,7 @@ async def get_feature_generation_status(task_id: str) -> Dict[str, Any]:
             )
 
         response_data = response.json()
-        
+
         # Ensure that error field is always a string if present
         if response_data.get("error") is not None and not isinstance(response_data["error"], str):
             response_data["error"] = str(response_data["error"])
@@ -233,11 +198,11 @@ async def process_generated_features(epic_id: UUID4, features_list: List[dict]) 
                 urls=feature["urls"],
                 epic_id=epic_id
             )
-            
+
             # Save to database
             await create_feature(feature_data)
             logger.info(f"Created feature: {feature['name']}")
-            
+
         except Exception as e:
             logger.error(f"Error creating feature '{feature.get('name', 'Unknown')}': {str(e)}")
-            continue 
+            continue

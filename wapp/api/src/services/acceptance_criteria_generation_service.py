@@ -7,13 +7,21 @@ from typing import List, Dict, Any, Optional
 from pydantic import UUID4
 
 from dto.models import Feature as FeatureModel, Product as ProductModel, UserStory as UserStoryModel
-from dto.schemas import AcceptanceCriteriaCreate as AcceptanceCriteriaCreateSchema, SecretType
+from dto.schemas import AcceptanceCriteriaCreate as AcceptanceCriteriaCreateSchema
 from services.acceptance_criteria_services import create_acceptance_criteria
-from services.secret_services import get_organization_secrets, get_secret_with_values
-from services.crypto_service import crypto_service
+from services.secret_services import get_encrypted_secrets
+
+
+TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
+
+
+if not TASK_MANAGER_URL:
+    raise ValueError("TASK_MANAGER_URL is not set")
+
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
 
 async def generate_acceptance_criteria(feature_id: UUID4, background_tasks: Optional[BackgroundTasks] = None) -> str:
     """
@@ -42,10 +50,10 @@ async def generate_acceptance_criteria(feature_id: UUID4, background_tasks: Opti
     product = await ProductModel.get_or_none(id=epic.product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found for the epic")
-    
+
     # Fetch user stories for this feature
     user_stories = await UserStoryModel.filter(feature_id=feature_id)
-    
+
     if not user_stories:
         raise HTTPException(status_code=400, detail="No user stories found for this feature. Generate user stories first.")
 
@@ -80,59 +88,16 @@ async def generate_acceptance_criteria(feature_id: UUID4, background_tasks: Opti
         ]
     }
 
-    # Build dictionary of all secrets with their decrypted values
-    all_secrets = {}
-
-    # Get the organization ID from the product (if available)
-    organization_id = product.organization_id
-    if organization_id:
-        # Get all secrets for this organization
-        org_secrets = await get_organization_secrets(organization_id)
-
-        # Add all organization secrets to the dictionary
-        for secret in org_secrets:
-            try:
-                # Get the secret with its values
-                secret_with_values = await get_secret_with_values(secret.id)
-
-                # Skip if no values
-                if not secret_with_values or not hasattr(secret_with_values, 'values'):
-                    continue
-
-                # If this is the first secret of this type, create a new entry
-                if secret_with_values.type not in all_secrets:
-                    all_secrets[secret_with_values.type] = {}
-
-                # Add values to the result
-                for key, value in secret_with_values.values.items():
-                    # For username_password type, store directly
-                    if secret_with_values.type == SecretType.USERNAME_PASSWORD:
-                        all_secrets[secret_with_values.type][key] = value
-                    else:
-                        # For other types, prefix with secret name to avoid conflicts
-                        prefixed_key = f"{secret_with_values.name}_{key}"
-                        all_secrets[secret_with_values.type][prefixed_key] = value
-            except Exception as e:
-                logger.warning(f"Failed to get secret {secret.id}: {str(e)}")
-
     # Add encrypted secrets to the payload if available
-    if all_secrets:
-        # Encrypt the secrets using the task-manager's public key
-        encryption_success, encrypted_secrets = crypto_service.encrypt_secrets(all_secrets)
-
-        if not (encryption_success and encrypted_secrets):
-            error_msg = "Encryption failed, aborting acceptance criteria generation for security reasons"
-            logger.error(error_msg)
-            raise HTTPException(status_code=500, detail=error_msg)
-
-        # Add the encrypted secrets to the payload
+    encrypted_secrets = await get_encrypted_secrets(product.organization_id, product.id)
+    if encrypted_secrets:
         payload['encrypted_secrets'] = encrypted_secrets
         logger.info("Successfully encrypted secrets for acceptance criteria generation")
 
     # Send request to task manager
     try:
         response = requests.post(
-            os.getenv("TASK_MANAGER_URL") + "/generate-acceptance-criteria/",
+            TASK_MANAGER_URL + "/generate-acceptance-criteria/",
             json=payload
         )
 
@@ -175,7 +140,7 @@ async def get_acceptance_criteria_generation_status(task_id: str) -> Dict[str, A
     """
     try:
         response = requests.get(
-            os.getenv("TASK_MANAGER_URL") + f"/generate-acceptance-criteria/status/{task_id}"
+            TASK_MANAGER_URL + f"/generate-acceptance-criteria/status/{task_id}"
         )
 
         if response.status_code != 200:
@@ -257,4 +222,4 @@ async def process_generated_acceptance_criteria(feature_id: UUID4, acceptance_cr
 
         except Exception as e:
             logger.error(f"Error creating acceptance criteria: {str(e)}")
-            raise e 
+            raise e
