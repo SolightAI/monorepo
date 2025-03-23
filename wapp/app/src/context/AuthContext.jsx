@@ -189,14 +189,72 @@ export const AuthProvider = ({ children }) => {
     let isRedirecting = false;
     let isCheckingAuth = false;
 
+    // Add a request interceptor to ensure credentials are always included
+    const requestInterceptor = axios.interceptors.request.use(
+      config => {
+        // Always include credentials with every request
+        config.withCredentials = true;
+        
+        // Check if user is authenticated but cookie is missing
+        // This could happen if cookie expires but local state hasn't been updated
+        const isAuthenticatedInState = localStorage.getItem('isAuthenticated') === 'true';
+        const hasCookie = document.cookie.includes('access_token=');
+        
+        if (isAuthenticatedInState && !hasCookie && !config.url.includes('/auth/check-auth')) {
+          console.log('Cookie missing but authenticated in state - forcing auth check');
+          // Force auth state update on next tick to avoid interrupting current request
+          setTimeout(() => {
+            setIsAuthenticated(false);
+            setIsAdmin(false);
+            localStorage.removeItem('isAuthenticated');
+            localStorage.removeItem('isAdmin');
+            window.location.href = '/login';
+          }, 0);
+        }
+        
+        return config;
+      },
+      error => Promise.reject(error)
+    );
+
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       async (error) => {
+        console.log('Axios error intercepted:', error.response?.status, error.config?.url);
+        
         if (error.response && !isRedirecting && !isCheckingAuth) {
           const status = error.response.status;
           
-          // For any 4xx error, verify authentication status if user is supposedly logged in
-          if (status >= 400 && status < 500 && isAuthenticated && error.config && !error.config.__isRetryRequest) {
+          // Handle 401 errors directly and immediately, regardless of authentication state
+          if (status === 401 && error.config && !error.config.__isRetryRequest) {
+            // Avoid redirect loops
+            const currentPath = window.location.pathname;
+            if (currentPath.includes('/login') ||
+                currentPath.includes('/register') ||
+                currentPath.includes('/auth/google/callback')) {
+              return Promise.reject(error);
+            }
+
+            isRedirecting = true;
+            console.log('401 Authentication error detected, logging out and redirecting');
+
+            // Update authentication state
+            setIsAuthenticated(false);
+            setIsAdmin(false);
+            localStorage.removeItem('isAuthenticated');
+            localStorage.removeItem('isAdmin');
+
+            // Use setTimeout to allow current execution to complete
+            setTimeout(() => {
+              window.location.href = '/login';
+              isRedirecting = false;
+            }, 100);
+            
+            return Promise.reject(error);
+          }
+          
+          // For other 4xx errors, verify authentication status if user is supposedly logged in
+          else if (status >= 400 && status < 500 && isAuthenticated && error.config && !error.config.__isRetryRequest) {
             // Avoid redirect loops
             const currentPath = window.location.pathname;
             if (currentPath.includes('/login') ||
@@ -258,31 +316,6 @@ export const AuthProvider = ({ children }) => {
                 isCheckingAuth = false;
               }, 100);
             }
-          } 
-          // Keep the existing 401 handler for backward compatibility
-          else if (status === 401 && error.config && !error.config.__isRetryRequest) {
-            // Avoid redirect loops
-            const currentPath = window.location.pathname;
-            if (currentPath.includes('/login') ||
-                currentPath.includes('/register') ||
-                currentPath.includes('/auth/google/callback')) {
-              return Promise.reject(error);
-            }
-
-            isRedirecting = true;
-            console.log('Authentication error detected, logging out');
-
-            // Update authentication state
-            setIsAuthenticated(false);
-            setIsAdmin(false);
-            localStorage.removeItem('isAuthenticated');
-            localStorage.removeItem('isAdmin');
-
-            // Use setTimeout to allow current execution to complete
-            setTimeout(() => {
-              window.location.href = '/login';
-              isRedirecting = false;
-            }, 100);
           }
         }
         return Promise.reject(error);
@@ -292,6 +325,7 @@ export const AuthProvider = ({ children }) => {
     // Cleanup interceptor on unmount
     return () => {
       axios.interceptors.response.eject(interceptor);
+      axios.interceptors.request.eject(requestInterceptor);
     };
   }, [isAuthenticated]);
 

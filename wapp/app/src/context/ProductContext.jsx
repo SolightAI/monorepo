@@ -52,6 +52,18 @@ export const ProductProvider = ({ children }) => {
         localStorage.removeItem('selectedProductId');
       }
     } catch (err) {
+      // Check if it's an authentication error (401)
+      if (err.response && err.response.status === 401) {
+        console.log('Authentication error detected in ProductContext');
+        // Clear authentication state
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('selectedProductId');
+        // Redirect to login page
+        window.location.href = '/login';
+        return;
+      }
+      
       setError('Failed to fetch products');
       console.error('Error fetching products:', err);
     } finally {
