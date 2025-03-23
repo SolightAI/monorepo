@@ -179,6 +179,7 @@ class TestExecution(models.Model):
     notes = fields.TextField(null=True)
     evidence = fields.JSONField(default=[])  # URLs to screenshots, logs, etc.
     metadata = fields.JSONField(default={})  # Any additional metadata about the execution
+    tracing = fields.JSONField(default={})  # Any additional tracing data about the execution
 
     # Relations
     test = fields.ForeignKeyField("models.Test", related_name="executions")

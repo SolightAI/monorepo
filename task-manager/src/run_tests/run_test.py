@@ -4,7 +4,7 @@ import functools
 import traceback
 
 from uuid import uuid4
-from typing import Any, Optional
+from typing import Any, Optional, Dict, List
 from pydantic import SecretStr
 from logging import getLogger
 from tempfile import NamedTemporaryFile
@@ -16,6 +16,9 @@ from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 import logging
 from utils.crypto import crypto_service
+
+# Import the tracing modules
+from run_tests.tracing import initialize, extend_agent_history
 
 
 # TODO: use Preconditions to let the agent know what fixture to run before running the test
@@ -75,6 +78,9 @@ async def _run_test(
     gif_output_path: str | bool = False,
 ) -> list[Test]:
 
+    # Initialize JavaScript logging
+    js_collector = initialize()
+    
     browser = Browser(
         config=BrowserConfig(
             headless=os.getenv("HEADLESS", "true").lower() == "true",
@@ -104,6 +110,9 @@ async def _run_test(
     if gif_output_path:
         os.makedirs(os.path.dirname(gif_output_path), exist_ok=True)
 
+    # Extend agent history with JS logging capabilities
+    extend_agent_history()
+    
     # NOTE: we do not provide a controller as models tend to provide better results when not constrained by a controller output model
     agent = Agent(
         task=PROMPT.format(test=test),
@@ -126,18 +135,30 @@ async def _run_test(
         create_history_gif(task=PROMPT.format(test=test), history=history, output_path=gif_output_path, show_goals=False, show_task=False, show_logo=False)
 
     logger.info(f"{history.has_errors()=} {history.is_done()=} {result is None=} {history.is_successful()=}")
+
     if history.has_errors() or not history.is_done() or result is None or not history.is_successful():
-        raise Exception("Failed to run test")
+        logger.error(f"Failed to run test: {history.final_result()}")
+        return {
+            "status": "error",
+            "results": None,
+            "tracing": history.get_logs(),
+            "error": "Failed to run test.",
+            "traceback": "",
+        }
 
     if result is None:
-        logger.error("Couldn't run test for %s", test.name)
-        logger.debug("History of the agent when running test for %s: %s", test.name, history.action_results())
-        raise Exception("Failed to run test, result is None")
+        logger.error(f"Couldn't run test for {test.name}: {history.final_result()}")
+        return {
+            "status": "error",
+            "results": None,
+            "tracing": history.get_logs(),
+            "error": "Failed to run test, result is None",
+            "traceback": "",
+        }
 
-    # result = _parse_test_cases(result)
-
-    # return [_test | {'url': test.url} for _test in result]
-    return result
+    # Don't attach JS logs directly to the result
+    # Instead include them as a separate key
+    return {"status": "completed", "results": result, "tracing": history.get_logs()}
 
 
 def handle_background_task_errors(func):
@@ -212,7 +233,7 @@ async def background_run_test(
 
         logger.info(f"Ran tests for {test.url}")
 
-    task_ids[task_id] = {"status": "completed", "results": result}
+    task_ids[task_id] = result
 
     return result
 

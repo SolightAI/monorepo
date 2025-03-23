@@ -84,29 +84,6 @@ export const updateTestExecution = async (executionId, updateData) => {
 };
 
 /**
- * Finish a test execution (mark as complete with final status)
- *
- * @param {string} executionId - The UUID of the test execution to finish
- * @param {string} status - The final status of the execution
- * @param {string} [notes] - Optional notes about the execution results
- * @param {Array} [evidence] - Optional list of evidence URLs
- * @returns {Promise<Object>} Promise with the updated test execution data
- */
-export const finishTestExecution = async (executionId, status, notes = null, evidence = []) => {
-  try {
-    const response = await axios.put(
-      `${API_URL}/test-executions/${executionId}/finish`,
-      { status, notes, evidence },
-      { withCredentials: true }
-    );
-    return response.data;
-  } catch (error) {
-    console.error(`Error finishing test execution ${executionId}:`, error);
-    throw error;
-  }
-};
-
-/**
  * Get bugs found during a specific test execution
  *
  * @param {string} executionId - The UUID of the test execution

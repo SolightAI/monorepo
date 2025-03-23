@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Clock, AlertCircle, SkipForward, Server, User, Calendar, File, Image, Link2, ArrowLeft } from 'lucide-react';
-import { getBugsByTestExecution } from '@/services/testExecutionService';
+import { getBugsByTestExecution, getTestExecution } from '@/services/testExecutionService';
 
 /**
  * Component to display detailed information about a test execution
  */
-const TestExecutionDetail = ({ execution, onBack }) => {
+const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
+  const [execution, setExecution] = useState(initialExecution);
   const [bugs, setBugs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -13,8 +14,19 @@ const TestExecutionDetail = ({ execution, onBack }) => {
   useEffect(() => {
     if (execution?.id) {
       fetchBugs();
+      
+      // If test is still running, set up auto-refresh
+      if (execution.status === 'PENDING') {
+        const interval = setInterval(refreshExecution, 5000); // Refresh every 5 seconds
+        return () => clearInterval(interval);
+      }
     }
-  }, [execution?.id]);
+  }, [execution?.id, execution?.status]);
+
+  // Update the execution if initial data changes
+  useEffect(() => {
+    setExecution(initialExecution);
+  }, [initialExecution]);
 
   const fetchBugs = async () => {
     try {
@@ -26,6 +38,16 @@ const TestExecutionDetail = ({ execution, onBack }) => {
       setError('Failed to load bugs for this execution.');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const refreshExecution = async () => {
+    try {
+      const updatedExecution = await getTestExecution(execution.id);
+      setExecution(updatedExecution);
+    } catch (err) {
+      console.error('Error refreshing execution data:', err);
+      // Don't set error state to avoid disrupting the UI
     }
   };
 
@@ -250,6 +272,134 @@ const TestExecutionDetail = ({ execution, onBack }) => {
         </div>
       )}
 
+      {/* Logs section */}
+      {(execution.tracing || execution.status === 'PENDING') && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-2 flex items-center">
+            <File size={18} className="mr-2" />
+            Logs
+          </h3>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
+            {/* Display console logs */}
+            {(() => {
+              // If test is still running but we don't have logs yet
+              if (execution.status === 'PENDING' && !execution.tracing) {
+                return (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900 mr-2"></div>
+                    <p>Collecting logs...</p>
+                  </div>
+                );
+              }
+
+              // Get logs from tracing
+              const logs = execution.tracing || {};
+              const consoleLogs = logs.console_logs || [];
+              const jsExceptions = logs.js_exceptions || [];
+
+              return (
+                <>
+                  {consoleLogs.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="font-medium mb-2">Console Logs</h4>
+                      <div className="overflow-x-auto max-h-80 overflow-y-auto">
+                        <table className="min-w-full table-auto">
+                          <thead>
+                            <tr className="bg-gray-100">
+                              <th className="px-4 py-2 text-left">Timestamp</th>
+                              <th className="px-4 py-2 text-left">Type</th>
+                              <th className="px-4 py-2 text-left">Message</th>
+                              <th className="px-4 py-2 text-left">Location</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {consoleLogs.map((log, index) => (
+                              <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                <td className="px-4 py-2 text-sm">
+                                  {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'N/A'}
+                                </td>
+                                <td className="px-4 py-2">
+                                  <span 
+                                    className={`px-2 py-1 rounded-full text-xs font-medium 
+                                      ${log.type === 'error' ? 'bg-red-100 text-red-800' : 
+                                      log.type === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                                      log.type === 'info' ? 'bg-blue-100 text-blue-800' :
+                                      'bg-gray-100 text-gray-800'}`}
+                                  >
+                                    {log.type}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-2 font-mono text-sm">{log.text}</td>
+                                <td className="px-4 py-2 text-xs text-gray-600">
+                                  {log.location ? (
+                                    <>
+                                      <div className="truncate max-w-[200px]" title={log.location.url}>
+                                        {log.location.url}
+                                      </div>
+                                      <div>
+                                        Line: {log.location.lineNumber}, Col: {log.location.columnNumber}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    'N/A'
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Display JavaScript exceptions */}
+                  {jsExceptions.length > 0 && (
+                    <div>
+                      <h4 className="font-medium mb-2">JavaScript Exceptions</h4>
+                      <div className="space-y-4">
+                        {jsExceptions.map((exception, index) => (
+                          <div key={index} className="bg-red-50 p-3 rounded border border-red-200">
+                            <div className="flex justify-between items-start mb-1">
+                              <div className="font-medium text-red-800">{exception.message}</div>
+                              <div className="text-xs text-gray-500">
+                                {exception.timestamp ? new Date(exception.timestamp).toLocaleTimeString() : 'N/A'}
+                              </div>
+                            </div>
+                            {exception.stack && (
+                              <pre className="mt-2 text-xs bg-red-100 p-2 rounded overflow-x-auto">
+                                {exception.stack}
+                              </pre>
+                            )}
+                            {exception.location && (
+                              <div className="mt-2 text-xs text-gray-600">
+                                Location: {exception.location.url} (Line: {exception.location.lineNumber}, Column: {exception.location.columnNumber})
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Empty state when no logs but test is complete */}
+                  {consoleLogs.length === 0 && jsExceptions.length === 0 && execution.status !== 'PENDING' && (
+                    <p className="text-gray-500 italic text-center py-4">No logs available</p>
+                  )}
+
+                  {/* "More logs coming" message when test is still running */}
+                  {consoleLogs.length > 0 && execution.status === 'PENDING' && (
+                    <div className="text-center py-2 text-sm text-blue-600 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      <span>More logs are being collected...</span>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
       {/* Bugs section */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-2">
@@ -265,9 +415,13 @@ const TestExecutionDetail = ({ execution, onBack }) => {
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
             <p>{error}</p>
           </div>
-        ) : bugs.length === 0 ? (
+        ) : bugs.length === 0 && execution.status !== 'PENDING' ? (
           <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
             <p>No bugs were found during this test execution.</p>
+          </div>
+        ) : execution.status === 'PENDING' ? (
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-700">
+            <p>Waiting for test execution to complete...</p>
           </div>
         ) : (
           <div className="space-y-4">

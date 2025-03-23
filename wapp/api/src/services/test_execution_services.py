@@ -147,8 +147,10 @@ async def create_test_execution(
         task_manager_payload = {
             "test": {
                 "name": test.name,
+                "category": test.category,
                 "description": test.description,
                 "url": test.url,
+                "feature_id": "random_id",
                 "preconditions": test.preconditions,
                 "steps": test.steps,
                 "expected_results": test.expected_results,
@@ -265,6 +267,8 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
 
             status_data = response.json()
 
+            tracing_data = status_data.get("tracing", {})
+
             # Update the test execution based on the task status
             if status_data["status"] == "completed":
                 # Task completed successfully
@@ -272,9 +276,10 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                     execution_id,
                     TestExecutionUpdateSchema(
                         status=TestStatus.PASSED,
-                        notes=status_data["results"],
+                        notes=str(status_data.get("results", "")),
                         ended_at=datetime.now(tzinfo),
-                        metadata={}
+                        metadata=test_execution.metadata,
+                        tracing=tracing_data,
                     )
                 )
                 break
@@ -285,9 +290,10 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                     execution_id,
                     TestExecutionUpdateSchema(
                         status=TestStatus.FAILED,
-                        notes=f"Test execution failed on task manager: {status_data.get('error', 'Unknown error')}",
+                        notes=f"{status_data.get('error', 'Unknown error')}",
                         ended_at=datetime.now(tzinfo),
-                        metadata={"error": status_data.get("error"), "traceback": status_data.get("traceback")}
+                        metadata=(test_execution.metadata or {}) | {"error": status_data.get("error"), "traceback": status_data.get("traceback")},
+                        tracing=tracing_data,
                     )
                 )
                 break
@@ -335,6 +341,7 @@ async def update_test_execution(
     Raises:
         HTTPException: If the test execution was not found
     """
+
     # Get the test execution
     test_execution = await get_test_execution(test_execution_id)
     tzinfo = test_execution.started_at.tzinfo if test_execution.started_at else None
@@ -363,38 +370,3 @@ async def update_test_execution(
         await test.save()
 
     return test_execution
-
-
-async def finish_test_execution(
-    test_execution_id: UUID4,
-    status: TestStatus,
-    notes: Optional[str] = None,
-    evidence: Optional[List[str]] = None
-) -> TestExecutionModel:
-    """
-    Mark a test execution as complete.
-
-    Args:
-        test_execution_id: UUID of the test execution to finish
-        status: The final status of the test execution
-        notes: Optional notes about the test execution
-        evidence: Optional list of evidence URLs
-
-    Returns:
-        The updated test execution
-
-    Raises:
-        HTTPException: If the test execution was not found
-    """
-    # Get the test execution to get its timezone info
-    test_execution = await get_test_execution(test_execution_id)
-    tzinfo = test_execution.started_at.tzinfo if test_execution.started_at else None
-
-    update_data = TestExecutionUpdateSchema(
-        status=status,
-        ended_at=datetime.now(tzinfo),
-        notes=notes,
-        evidence=evidence
-    )
-
-    return await update_test_execution(test_execution_id, update_data)
