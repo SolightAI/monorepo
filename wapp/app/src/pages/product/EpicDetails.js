@@ -217,7 +217,10 @@ const EpicDetails = () => {
       {/* Generate Features Modal */}
       {isGenerateFeatureModalOpen && epic && (
         <FeatureGenerationModal
-          onClose={() => setIsGenerateFeatureModalOpen(false)}
+          onClose={() => {
+            setIsGenerateFeatureModalOpen(false);
+            fetchEpicDetails();
+          }}
           epicId={epicId}
           epicName={epic.name}
           onComplete={handleFeatureGenerationComplete}
