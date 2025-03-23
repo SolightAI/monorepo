@@ -41,7 +41,7 @@ export default function Layout() {
                 </Link>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-12">
               <div className="hidden md:block">
                 <ProductSelector />
               </div>

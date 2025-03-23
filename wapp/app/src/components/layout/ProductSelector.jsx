@@ -229,7 +229,7 @@ const ProductSelector = ({ isMobile = false }) => {
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 mt-1 w-64 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+        <div className="absolute left-0 mt-1 w-60 bg-white rounded-md shadow-lg border border-gray-200 z-50">
           <div className="py-1 max-h-60 overflow-y-auto">
             {error && (
               <div className="px-4 py-2 text-sm text-red-600">
@@ -435,7 +435,7 @@ const ProductSelector = ({ isMobile = false }) => {
                   <button
                     type="submit"
                     className={`px-4 py-2 rounded-md ${
-                      !formData.name.trim() || !formData.url.trim() 
+                      !formData.name.trim() || !formData.url.trim()
                         ? 'bg-blue-300 cursor-not-allowed'
                         : 'bg-blue-600 hover:bg-blue-700'
                     } text-white`}
