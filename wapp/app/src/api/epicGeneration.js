@@ -9,7 +9,7 @@ const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
  */
 export const generateEpics = async (productId) => {
   const response = await axios.post(
-    `${API_URL}/epic-generation/${productId}`,
+    `${API_URL}/epic-generation/${productId}/`,
     {},
     {
       withCredentials: true,
