@@ -159,7 +159,13 @@ async def get_feature_generation_status(task_id: str) -> Dict[str, Any]:
                 detail=f"Failed to get task status: {response.text}"
             )
 
-        return response.json()
+        response_data = response.json()
+        
+        # Ensure that error field is always a string if present
+        if response_data.get("error") is not None and not isinstance(response_data["error"], str):
+            response_data["error"] = str(response_data["error"])
+
+        return response_data
 
     except requests.RequestException as e:
         logger.error(f"Error connecting to task manager: {str(e)}")

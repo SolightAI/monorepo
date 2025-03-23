@@ -24,7 +24,13 @@ const EpicGenerationModal = ({ onClose, productId, productName, onComplete }) =>
         setStatus('pending');
       } catch (err) {
         console.error('Error starting epic generation:', err);
-        setError(err.response?.data?.detail || 'Failed to start epic generation');
+        // Handle error response properly to ensure it's a string
+        const errorMessage = err.response?.data?.detail 
+          ? (typeof err.response.data.detail === 'string' 
+             ? err.response.data.detail 
+             : JSON.stringify(err.response.data.detail))
+          : 'Failed to start epic generation';
+        setError(errorMessage);
         setStatus('error');
       }
     };
@@ -45,14 +51,21 @@ const EpicGenerationModal = ({ onClose, productId, productName, onComplete }) =>
             clearInterval(interval);
             onComplete && onComplete(statusData.results);
           } else if (statusData.status === 'error') {
-            setError(statusData.error || 'An error occurred during epic generation');
+            // Ensure error is a string, handle potential object errors
+            const errorMessage = statusData.error 
+              ? (typeof statusData.error === 'string' 
+                 ? statusData.error 
+                 : JSON.stringify(statusData.error))
+              : 'An error occurred during epic generation';
+            setError(errorMessage);
             setStatus('error');
             clearInterval(interval);
           }
           // Continue polling if still pending
         } catch (err) {
           console.error('Error checking epic generation status:', err);
-          setError('Failed to check generation status');
+          // Ensure error is a string
+          setError(typeof err === 'string' ? err : 'Failed to check generation status');
           setStatus('error');
           clearInterval(interval);
         }
