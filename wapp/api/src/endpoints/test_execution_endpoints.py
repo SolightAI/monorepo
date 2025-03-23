@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, Depends, status, BackgroundTasks
+from fastapi import APIRouter, Depends, status, BackgroundTasks
 from typing import List
 from pydantic import UUID4
 
@@ -6,20 +6,19 @@ from dto.schemas import (
     TestExecution as TestExecutionSchema,
     TestExecutionCreate as TestExecutionCreateSchema,
     TestExecutionUpdate as TestExecutionUpdateSchema,
-    TestStatus, ExecutorType
+    ExecutorType,
 )
 from services.test_execution_services import (
     create_test_execution,
     get_test_execution,
     get_test_executions_by_test,
-    update_test_execution,
-    finish_test_execution
+    update_test_execution
 )
 from dependencies import get_current_user_dependency
 from dto.models import User
 
 
-router = APIRouter(prefix="/test-executions", tags=["test-executions"])
+router = APIRouter(prefix="/test-executions", tags=["test-executions"], dependencies=[Depends(get_current_user_dependency)])
 
 
 @router.post("/", response_model=TestExecutionSchema, status_code=status.HTTP_201_CREATED)
@@ -44,7 +43,6 @@ async def create_test_execution_endpoint(
 @router.get("/{test_execution_id}", response_model=TestExecutionSchema)
 async def get_test_execution_endpoint(
     test_execution_id: UUID4,
-    current_user: User = Depends(get_current_user_dependency)
 ) -> TestExecutionSchema:
     """
     Get a specific test execution by ID.
@@ -55,7 +53,6 @@ async def get_test_execution_endpoint(
 @router.get("/by-test/{test_id}", response_model=List[TestExecutionSchema])
 async def get_test_executions_by_test_endpoint(
     test_id: UUID4,
-    current_user: User = Depends(get_current_user_dependency)
 ) -> List[TestExecutionSchema]:
     """
     Get all executions for a specific test.
@@ -69,31 +66,8 @@ async def get_test_executions_by_test_endpoint(
 async def update_test_execution_endpoint(
     test_execution_id: UUID4,
     test_execution_update: TestExecutionUpdateSchema,
-    current_user: User = Depends(get_current_user_dependency)
 ) -> TestExecutionSchema:
     """
     Update a test execution with new information.
     """
     return await update_test_execution(test_execution_id, test_execution_update)
-
-
-@router.put("/{test_execution_id}/finish", response_model=TestExecutionSchema)
-async def finish_test_execution_endpoint(
-    test_execution_id: UUID4,
-    status: TestStatus = Body(..., embed=True),
-    notes: str = Body(None, embed=True),
-    evidence: List[str] = Body([], embed=True),
-    current_user: User = Depends(get_current_user_dependency)
-) -> TestExecutionSchema:
-    """
-    Mark a test execution as complete with a final status.
-
-    This endpoint finalizes a test execution by setting its status to the final result
-    and recording the completion time.
-    """
-    return await finish_test_execution(
-        test_execution_id=test_execution_id,
-        status=status,
-        notes=notes,
-        evidence=evidence
-    )
