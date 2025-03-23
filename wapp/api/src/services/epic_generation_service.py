@@ -12,8 +12,17 @@ from services.epic_services import create_epic
 from services.secret_services import get_organization_secrets, get_secret_with_values
 from services.crypto_service import crypto_service
 
+
+TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
+
+
+if not TASK_MANAGER_URL:
+    raise ValueError("TASK_MANAGER_URL is not set")
+
+
 # Configure logging
 logger = logging.getLogger(__name__)
+
 
 async def generate_epics(product_id: UUID4, background_tasks: Optional[BackgroundTasks] = None) -> str:
     """
@@ -47,7 +56,7 @@ async def generate_epics(product_id: UUID4, background_tasks: Optional[Backgroun
     }
 
     # Build dictionary of all secrets with their decrypted values
-    all_secrets = {}
+    all_secrets: Dict[str, Dict[str, str]] = {}
 
     # Get the organization ID from the product (if available)
     organization_id = product.organization_id
@@ -98,7 +107,7 @@ async def generate_epics(product_id: UUID4, background_tasks: Optional[Backgroun
     # Send request to task manager
     try:
         response = requests.post(
-            os.getenv("TASK_MANAGER_URL") + "/generate-epics/",
+            TASK_MANAGER_URL + "/generate-epics/",
             json=payload
         )
 
@@ -141,7 +150,7 @@ async def get_epic_generation_status(task_id: str) -> Dict[str, Any]:
     """
     try:
         response = requests.get(
-            os.getenv("TASK_MANAGER_URL") + f"/generate-epics/status/{task_id}"
+            TASK_MANAGER_URL + f"/generate-epics/status/{task_id}"
         )
 
         if response.status_code != 200:
@@ -151,7 +160,13 @@ async def get_epic_generation_status(task_id: str) -> Dict[str, Any]:
                 detail=f"Failed to get task status: {response.text}"
             )
 
-        return response.json()
+        response_data = response.json()
+
+        # Ensure that error field is always a string if present
+        if response_data.get("error") is not None and not isinstance(response_data["error"], str):
+            response_data["error"] = str(response_data["error"])
+
+        return response_data
 
     except requests.RequestException as e:
         logger.error(f"Error connecting to task manager: {str(e)}")

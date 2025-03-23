@@ -251,9 +251,12 @@ const Home = () => {
       {/* Epic Generation Modal */}
       {showEpicGenerationModal && selectedProduct && (
         <EpicGenerationModal
-          onClose={() => setShowEpicGenerationModal(false)}
           productId={selectedProduct.id}
           productName={selectedProduct.name}
+          onClose={() => {
+            setShowEpicGenerationModal(false);
+            fetchEpics();
+          }}
           onComplete={handleEpicGenerationComplete}
         />
       )}
