@@ -20,6 +20,8 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const AUTH_ROUTES = ['/login', '/register', '/auth/google/callback'];
+
   // Initialize auth state from localStorage on mount
   useEffect(() => {
     const storedAuthState = localStorage.getItem('isAuthenticated') === 'true';
@@ -193,25 +195,46 @@ export const AuthProvider = ({ children }) => {
     const requestInterceptor = axios.interceptors.request.use(
       config => {
         // Always include credentials with every request
-        config.withCredentials = true;
-        
+        try {
+          const backendOrigin = new URL(API_URL, window.location.origin).origin;
+          const requestOrigin = new URL(config.url, window.location.origin).origin;
+          if (requestOrigin === backendOrigin) {
+            config.withCredentials = true;
+          }
+        } catch (e) {
+          console.warn('Could not safely determine origin for credentials:', e);
+        }
+
         // Check if user is authenticated but cookie is missing
         // This could happen if cookie expires but local state hasn't been updated
         const isAuthenticatedInState = localStorage.getItem('isAuthenticated') === 'true';
-        const hasCookie = document.cookie.includes('access_token=');
-        
-        if (isAuthenticatedInState && !hasCookie && !config.url.includes('/auth/check-auth')) {
-          console.log('Cookie missing but authenticated in state - forcing auth check');
-          // Force auth state update on next tick to avoid interrupting current request
-          setTimeout(() => {
-            setIsAuthenticated(false);
-            setIsAdmin(false);
-            localStorage.removeItem('isAuthenticated');
-            localStorage.removeItem('isAdmin');
-            window.location.href = '/login';
-          }, 0);
+        if (isAuthenticatedInState && !config.url.includes('/auth/check-auth')) {
+          try {
+            const backendOrigin = new URL(API_URL, window.location.origin).origin;
+            const requestOrigin = new URL(config.url, window.location.origin).origin;
+
+            if (requestOrigin === backendOrigin) {
+              axios.get(`${API_URL}/auth/check-auth`, {
+                withCredentials: true,
+                timeout: 5000,
+              }).then((res) => {
+                if (!res.data.authenticated) {
+                  console.log('Auth check failed - session expired');
+                  setIsAuthenticated(false);
+                  setIsAdmin(false);
+                  localStorage.removeItem('isAuthenticated');
+                  localStorage.removeItem('isAdmin');
+                  window.location.href = '/login';
+                }
+              }).catch(() => {
+                console.log('Silent check-auth failed');
+              });
+            }
+          } catch (e) {
+            console.warn('Auth origin check failed:', e);
+          }
         }
-        
+
         return config;
       },
       error => Promise.reject(error)
@@ -221,17 +244,15 @@ export const AuthProvider = ({ children }) => {
       (response) => response,
       async (error) => {
         console.log('Axios error intercepted:', error.response?.status, error.config?.url);
-        
+
         if (error.response && !isRedirecting && !isCheckingAuth) {
           const status = error.response.status;
-          
+
           // Handle 401 errors directly and immediately, regardless of authentication state
           if (status === 401 && error.config && !error.config.__isRetryRequest) {
             // Avoid redirect loops
             const currentPath = window.location.pathname;
-            if (currentPath.includes('/login') ||
-                currentPath.includes('/register') ||
-                currentPath.includes('/auth/google/callback')) {
+            if (AUTH_ROUTES.some(route => currentPath.includes(route))) {
               return Promise.reject(error);
             }
 
@@ -249,32 +270,30 @@ export const AuthProvider = ({ children }) => {
               window.location.href = '/login';
               isRedirecting = false;
             }, 100);
-            
+
             return Promise.reject(error);
           }
-          
+
           // For other 4xx errors, verify authentication status if user is supposedly logged in
           else if (status >= 400 && status < 500 && isAuthenticated && error.config && !error.config.__isRetryRequest) {
             // Avoid redirect loops
             const currentPath = window.location.pathname;
-            if (currentPath.includes('/login') ||
-                currentPath.includes('/register') ||
-                currentPath.includes('/auth/google/callback')) {
+            if (AUTH_ROUTES.some(route => currentPath.includes(route))) {
               return Promise.reject(error);
             }
-            
+
             try {
               // Set flag to prevent recursive auth checks
               isCheckingAuth = true;
-              
+
               console.log(`${status} error detected, performing hard-check on authentication status`);
-              
+
               // Hard-check auth status with the server
               const authCheckResponse = await axios.get(`${API_URL}/auth/check-auth`, {
                 withCredentials: true,
                 timeout: 5000
               });
-              
+
               // If server confirms authentication, just pass through the original error
               if (authCheckResponse.data.authenticated) {
                 console.log('Authentication confirmed, original error is not auth-related');
@@ -284,13 +303,13 @@ export const AuthProvider = ({ children }) => {
                 // User is not authenticated according to server
                 console.log('Authentication failed during hard-check, logging out');
                 isRedirecting = true;
-                
+
                 // Update authentication state
                 setIsAuthenticated(false);
                 setIsAdmin(false);
                 localStorage.removeItem('isAuthenticated');
                 localStorage.removeItem('isAdmin');
-                
+
                 // Use setTimeout to allow current execution to complete
                 setTimeout(() => {
                   window.location.href = '/login';
@@ -302,13 +321,13 @@ export const AuthProvider = ({ children }) => {
               // If the auth check itself fails, assume user is not authenticated
               console.log('Hard-check failed, assuming user is not authenticated:', authCheckError);
               isRedirecting = true;
-              
+
               // Update authentication state
               setIsAuthenticated(false);
               setIsAdmin(false);
               localStorage.removeItem('isAuthenticated');
               localStorage.removeItem('isAdmin');
-              
+
               // Use setTimeout to allow current execution to complete
               setTimeout(() => {
                 window.location.href = '/login';
