@@ -196,7 +196,7 @@ export const AuthProvider = ({ children }) => {
       config => {
         // Always include credentials with every request
         try {
-          const backendOrigin = new URL(API_URL, window.location.origin).origin;
+          const backendOrigin = new URL(API_URL).origin;
           const requestOrigin = new URL(config.url, window.location.origin).origin;
           if (requestOrigin === backendOrigin) {
             config.withCredentials = true;
@@ -210,7 +210,7 @@ export const AuthProvider = ({ children }) => {
         const isAuthenticatedInState = localStorage.getItem('isAuthenticated') === 'true';
         if (isAuthenticatedInState && !config.url.includes('/auth/check-auth')) {
           try {
-            const backendOrigin = new URL(API_URL, window.location.origin).origin;
+            const backendOrigin = new URL(API_URL).origin;
             const requestOrigin = new URL(config.url, window.location.origin).origin;
 
             if (requestOrigin === backendOrigin) {
