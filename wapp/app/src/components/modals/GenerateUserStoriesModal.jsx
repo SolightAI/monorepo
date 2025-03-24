@@ -108,10 +108,6 @@ const GenerateUserStoriesModal = ({ onClose, taskId, featureName, onComplete }) 
     }
   };
 
-  const refreshStatus = () => {
-    fetchStatus();
-  };
-
   const handleClose = () => {
     // Clear polling interval
     if (pollingInterval) {
@@ -197,15 +193,7 @@ const GenerateUserStoriesModal = ({ onClose, taskId, featureName, onComplete }) 
             )}
           </div>
 
-          <div className="flex justify-between">
-            <button
-              onClick={refreshStatus}
-              className="flex items-center px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-              disabled={loading}
-            >
-              <RefreshCw size={18} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
+          <div className="flex justify-end">
             <button
               onClick={handleClose}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
