@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Loader, AlertCircle, Plus, Sparkles, Building, Zap } from 'lucide-react';
+import { Loader, AlertCircle, Plus, Sparkles, Building, Zap, Rocket } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import EpicCreationModal from '@/components/modals/EpicCreationModal';
 import EpicGenerationModal from '@/components/modals/EpicGenerationModal';
+import ComprehensiveGenerationModal from '@/components/modals/ComprehensiveGenerationModal';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -18,6 +19,7 @@ const Home = () => {
   const [epics, setEpics] = useState([]);
   const [showEpicModal, setShowEpicModal] = useState(false);
   const [showEpicGenerationModal, setShowEpicGenerationModal] = useState(false);
+  const [showComprehensiveGenerationModal, setShowComprehensiveGenerationModal] = useState(false);
 
   const navigate = useNavigate();
 
@@ -71,12 +73,24 @@ const Home = () => {
     await fetchEpics();
   };
 
+  const handleComprehensiveGenerationComplete = async () => {
+    // Hide the comprehensive generation modal
+    setShowComprehensiveGenerationModal(false);
+
+    // Refresh epics to show all the newly generated data
+    await fetchEpics();
+  };
+
   const handleManageEpics = () => {
     setShowEpicModal(true);
   };
 
   const handleGenerateEpics = () => {
     setShowEpicGenerationModal(true);
+  };
+
+  const handleGenerateEverything = () => {
+    setShowComprehensiveGenerationModal(true);
   };
 
   // If we're loading organizations, show a loading indicator
@@ -143,6 +157,13 @@ const Home = () => {
               </div>
               <div className="flex space-x-3">
                 <button
+                  onClick={handleGenerateEverything}
+                  className="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg shadow hover:from-green-700 hover:to-blue-700 transition duration-150"
+                >
+                  <Rocket size={20} className="mr-2" />
+                  Generate Everything
+                </button>
+                <button
                   onClick={handleGenerateEpics}
                   className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-150"
                 >
@@ -180,11 +201,18 @@ const Home = () => {
                     <p className="text-gray-500 mb-4">No epics found for this product</p>
                     <div className="flex justify-center space-x-4">
                       <button
+                        onClick={handleGenerateEverything}
+                        className="px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg shadow hover:from-green-700 hover:to-blue-700 transition duration-150 flex items-center"
+                      >
+                        <Rocket size={18} className="mr-2" />
+                        Generate everything
+                      </button>
+                      <button
                         onClick={handleGenerateEpics}
                         className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-150 flex items-center"
                       >
                         <Zap size={18} className="mr-2" />
-                        Generate epics automatically
+                        Generate epics
                       </button>
                       <button
                         onClick={handleManageEpics}
@@ -258,6 +286,19 @@ const Home = () => {
             fetchEpics();
           }}
           onComplete={handleEpicGenerationComplete}
+        />
+      )}
+
+      {/* Comprehensive Generation Modal */}
+      {showComprehensiveGenerationModal && selectedProduct && (
+        <ComprehensiveGenerationModal
+          productId={selectedProduct.id}
+          productName={selectedProduct.name}
+          onClose={() => {
+            setShowComprehensiveGenerationModal(false);
+            fetchEpics();
+          }}
+          onComplete={handleComprehensiveGenerationComplete}
         />
       )}
     </div>
