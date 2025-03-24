@@ -5,6 +5,8 @@ from pydantic import SecretStr
 from langchain_openai import AzureChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
+from typing import Optional
+from utils.session_manager import get_cached_session, cache_session, update_session_timestamp
 
 
 PROMPT = """
@@ -16,6 +18,14 @@ If the email/password login is not available, you should use the google oauth lo
 If the provided credentials are invalid, you should raise an error message that must include "[AN ERROR OCCURED]".
 In case of invalid credentials, you will probably see an error message on screen.
 However, if the credentials are valid, you will not see any message on screen confirming the login. It's up to you to detect if the login was successful.
+""".strip()
+
+CHECK_LOGIN_PROMPT = """
+You are an AI assistant acting as a test automation engineer. Your task is to check if the user is logged in to the application.
+
+Look at the current page and determine if the user is logged in.
+If the user is logged in, say "User is logged in".
+If the user is not logged in, say "User is not logged in".
 """.strip()
 
 
@@ -38,28 +48,114 @@ CLIENT = AzureChatOpenAI(
 logger = getLogger(__name__)
 
 
+async def check_is_logged_in(
+    url: str,
+    existing_session: Optional[dict[str, dict[str, str]]] = None,
+    user_id: str = "anonymous",
+) -> bool:
+    """
+    Check if the user is still logged in to the webapp
+
+    Args:
+        url: The website URL
+        existing_session: The session data to check
+        user_id: Identifier for the user (for logging purposes)
+
+    Returns:
+        True if logged in, False otherwise
+    """
+    browser = Browser(
+        config=BrowserConfig(
+            headless=os.getenv("HEADLESS", "true").lower() == "true",
+            chrome_instance_path=os.getenv("CHROME_INSTANCE_PATH", None)
+        )
+    )
+
+    context = BrowserContext(browser=browser, config=BrowserContextConfig(
+        cookies_file=os.getenv("COOKIES_FILE", None),
+        minimum_wait_page_load_time=1,
+        viewport_expansion=0,
+    ))
+
+    # First navigate to the URL to initialize the session
+    await context.navigate_to(url)
+
+    # Apply existing session data if available
+    if existing_session is not None:
+        # Set cookies
+        if "cookies" in existing_session:
+            await context.session.context.add_cookies(existing_session["cookies"])
+            # Navigate again to apply cookies
+            await context.navigate_to(url)
+
+        # Set localStorage
+        if "localStorage" in existing_session:
+            load_script = """
+            (storage => {
+                Object.keys(storage).forEach(key => {
+                    localStorage.setItem(key, storage[key]);
+                });
+                return localStorage.length;
+            })(%s)
+            """ % str(existing_session["localStorage"]).replace("'", '"')
+            await context.execute_javascript(load_script)
+
+    agent = Agent(
+        task=CHECK_LOGIN_PROMPT,
+        llm=CLIENT,
+        initial_actions=[{'go_to_url': {'url': url}}],
+        browser_context=context,
+    )
+
+    try:
+        history = await agent.run(max_steps=5)
+        result = history.final_result()
+
+        is_logged_in = result is not None and "User is logged in".lower() in result.lower()
+        logger.info(f"Login check result for user {user_id}: {'Logged in' if is_logged_in else 'Not logged in'}")
+        return is_logged_in
+    finally:
+        await context.close()
+        await browser.close()
+
+
 async def generate_auth_session(
     url: str,
     secrets: dict[str, dict[str, str]],
     gif_output_path: str | bool = False,
+    reuse_session: bool = True,
 ) -> dict[str, dict[str, str]]:
 
     """
-    Login to the webapp and return the generated cookies
+    Login to the webapp and return the generated cookies.
+    If reuse_session is True, will attempt to reuse cached sessions if they're still valid.
     """
+
+    # Extract user_id from secrets
+    user_id = None
+    if "username_password" in secrets and "username" in secrets["username_password"]:
+        user_id = secrets["username_password"]["username"]
+
+    if not user_id:
+        logger.warning("No username found in secrets, using 'anonymous' as user_id")
+        user_id = "anonymous"
+
+    # First check if we can reuse a cached session
+    if reuse_session:
+        cached_session = await get_cached_session(url, user_id)
+        if cached_session:
+            logger.info(f"Found cached session for {url} (user: {user_id}), checking if still valid...")
+            if await check_is_logged_in(url, cached_session, user_id):
+                logger.info(f"Cached session for user {user_id} is still valid, reusing it")
+                await update_session_timestamp(url, user_id)
+                return cached_session
+            else:
+                logger.info(f"Cached session for user {user_id} is no longer valid, generating a new one")
 
     if 'username_password' not in secrets:
         raise ValueError('No username or password found in secrets')
 
     sensitive_data = {f"{_sec_category}:{_sec_name}": _sec_value for _sec_category, _secrets in secrets.items() for _sec_name, _sec_value in _secrets.items()}
-
-    # if (
-    #     username.get_secret_value() is None or len(username.get_secret_value()) == 0
-    #     or password.get_secret_value() is None or len(password.get_secret_value()) == 0
-    # ):
-    #     raise ValueError('Username or password is empty')
-
-    # logger.info(f"Generating cookies for {url} with username {username.get_secret_value()} and password {password.get_secret_value()}")
 
     browser = Browser(
         config=BrowserConfig(
@@ -108,4 +204,9 @@ async def generate_auth_session(
     if history.has_errors() or not history.is_done() or result is None or not history.is_successful() or "[AN ERROR OCCURED]" in result:
         raise Exception(f"Failed to login to {url}, result is None")
 
-    return {"cookies": cookies, "localStorage": localStorage_data}
+    session_data = {"cookies": cookies, "localStorage": localStorage_data}
+
+    # Cache the new session for future use
+    await cache_session(url, user_id, session_data)
+
+    return session_data
