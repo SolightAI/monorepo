@@ -13,12 +13,16 @@ from services.product_services import get_product_by_url_path
 from services.feature_services import get_feature
 from services.epic_services import get_epic
 from services.product_services import get_product
-from services.secret_services import get_secret_with_values, get_organization_secrets
+from services.secret_services import get_secret_with_values
 from services.acceptance_criteria_services import get_acceptance_criteria_by_feature
-from services.user_story_services import get_user_story
+from services.secret_services import get_encrypted_secrets
 from pydantic import UUID4
 
-from services.crypto_service import crypto_service
+
+TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
+
+if not TASK_MANAGER_URL:
+    raise ValueError("TASK_MANAGER_URL is not set")
 
 
 logger = logging.getLogger(__name__)
@@ -74,10 +78,10 @@ async def get_tests_by_product_path(url_path: str) -> List[TestModel]:
 async def get_tests_by_feature(feature_id: UUID) -> List[TestModel]:
     """
     Get all tests for a feature.
-    
+
     Args:
         feature_id: UUID of the feature
-        
+
     Returns:
         List of tests for the feature
     """
@@ -200,7 +204,7 @@ async def get_test_secrets_with_values(test_id: UUID4) -> Dict[str, Dict[str, st
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
 
-    result = {}
+    result: Dict[str, Dict[str, str]] = {}
 
     # Process each test secret
     for test_secret in test.test_secrets:
@@ -238,46 +242,9 @@ async def trigger_test_generation(feature_id: UUID4) -> str:
     epic = await get_epic(feature.epic_id)
     product = await get_product(epic.product_id)
 
-    # Build dictionary of all secrets with their decrypted values
-    all_secrets = {}
-
-    # Get the organization ID from the product (if available)
-    organization_id = product.organization_id
-    if organization_id:
-        # Get all secrets for this organization
-        org_secrets = await get_organization_secrets(organization_id)
-
-        # Add all organization secrets to the dictionary
-        for secret in org_secrets:
-            # Get the secret with its values
-            try:
-                secret_with_values = await get_secret_with_values(secret.id)
-
-                # Skip if no values
-                if not secret_with_values or not hasattr(secret_with_values, 'values'):
-                    continue
-
-                # If this is the first secret of this type, create a new entry
-                if secret_with_values.type not in all_secrets:
-                    all_secrets[secret_with_values.type] = {}
-
-                # Add values to the result
-                for key, value in secret_with_values.values.items():
-                    # For username_password type, store directly
-                    if secret_with_values.type == SecretType.USERNAME_PASSWORD:
-                        all_secrets[secret_with_values.type][key] = value
-                    else:
-                        # For other types, prefix with secret name to avoid conflicts
-                        prefixed_key = f"{secret_with_values.name}_{key}"
-                        all_secrets[secret_with_values.type][prefixed_key] = value
-            except Exception as e:
-                # Log the error but continue processing other secrets
-                logger.error(f"Error processing secret {secret.id}: {str(e)}")
-                continue
-
     # Get acceptance criteria for this feature
     acceptance_criteria_list = await get_acceptance_criteria_by_feature(feature_id)
-    
+
     # Get user stories for this feature
     await feature.fetch_related("user_stories")
     user_stories = feature.user_stories
@@ -318,24 +285,16 @@ async def trigger_test_generation(feature_id: UUID4) -> str:
         },
     }
 
-    # Add all organization secrets to the payload
-    if all_secrets:
-        # Encrypt the secrets using the task-manager's public key
-        encryption_success, encrypted_secrets = crypto_service.encrypt_secrets(all_secrets)
+    # Get organization ID from the product (if available)
+    encrypted_secrets = await get_encrypted_secrets(organization_id=product.organization_id, product_id=product.id)
 
-        if not (encryption_success and encrypted_secrets):
-            # Don't proceed with the operation if encryption fails
-            error_msg = "Encryption failed, aborting test generation for security reasons"
-            logger.error(error_msg)
-            # Raise an exception to abort the operation
-            raise HTTPException(status_code=500, detail=error_msg)
-
-        # Add the encrypted secrets to the payload
+    # Add the encrypted secrets to the payload if any were found
+    if encrypted_secrets:
         payload['encrypted_secrets'] = encrypted_secrets
-        logger.info("Successfully encrypted secrets for test generation")
+        logger.info("Successfully included encrypted secrets for test generation")
 
     response = requests.post(
-        os.getenv("TASK_MANAGER_URL") + "/generate-tests/generate-tests-for-feature",
+        TASK_MANAGER_URL + "/generate-tests/generate-tests-for-feature",
         json=payload
     )
 
@@ -348,7 +307,7 @@ async def trigger_test_generation(feature_id: UUID4) -> str:
 
 async def get_test_generation_status(test_id: UUID4) -> dict:
     response = requests.get(
-        os.getenv("TASK_MANAGER_URL") + f"/generate-tests/get-test-generation-status/{test_id}"
+        TASK_MANAGER_URL + f"/generate-tests/get-test-generation-status/{test_id}"
     )
 
     if response.status_code != 200:

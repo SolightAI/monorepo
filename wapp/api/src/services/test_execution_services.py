@@ -14,11 +14,16 @@ from dto.schemas import (
     TestExecutionCreate as TestExecutionCreateSchema,
     TestExecutionUpdate as TestExecutionUpdateSchema,
     TestStatus,
-    SecretType
 )
-from services.test_services import get_test, get_organization_secrets
-from services.secret_services import get_secret_with_values
-from services.crypto_service import crypto_service
+from services.test_services import get_test
+from services.secret_services import get_encrypted_secrets
+
+
+TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
+
+if not TASK_MANAGER_URL:
+    raise ValueError("TASK_MANAGER_URL is not set")
+
 
 logger = logging.getLogger(__name__)
 
@@ -106,43 +111,6 @@ async def create_test_execution(
         await test.fetch_related("feature__epic__product")
         product = test.feature.epic.product
 
-        # Build dictionary of all secrets with their decrypted values
-        all_secrets = {}
-
-        # Get the organization ID from the product (if available)
-        organization_id = product.organization_id
-        if organization_id:
-            # Get all secrets for this organization
-            org_secrets = await get_organization_secrets(organization_id)
-
-            # Add all organization secrets to the dictionary
-            for secret in org_secrets:
-                # Get the secret with its values
-                try:
-                    secret_with_values = await get_secret_with_values(secret.id)
-
-                    # Skip if no values
-                    if not secret_with_values or not hasattr(secret_with_values, 'values'):
-                        continue
-
-                    # If this is the first secret of this type, create a new entry
-                    if secret_with_values.type not in all_secrets:
-                        all_secrets[secret_with_values.type] = {}
-
-                    # Add values to the result
-                    for key, value in secret_with_values.values.items():
-                        # For username_password type, store directly
-                        if secret_with_values.type == SecretType.USERNAME_PASSWORD:
-                            all_secrets[secret_with_values.type][key] = value
-                        else:
-                            # For other types, prefix with secret name to avoid conflicts
-                            prefixed_key = f"{secret_with_values.name}_{key}"
-                            all_secrets[secret_with_values.type][prefixed_key] = value
-                except Exception as e:
-                    # Log the error but continue processing other secrets
-                    logger.error(f"Error processing secret {secret.id}: {str(e)}")
-                    continue
-
         # Create payload for task manager
         task_manager_payload = {
             "test": {
@@ -158,33 +126,14 @@ async def create_test_execution(
             }
         }
 
-        # Add secrets to the payload if available
-        if all_secrets:
-            # Encrypt the secrets using the task-manager's public key
-            encryption_success, encrypted_secrets = crypto_service.encrypt_secrets(all_secrets)
-
-            if not (encryption_success and encrypted_secrets):
-                # Don't proceed with the operation if encryption fails
-                logger.error("Encryption failed, aborting test execution for security reasons")
-                # Update the execution with an error status
-                await update_test_execution(
-                    test_execution_model.id,
-                    TestExecutionUpdateSchema(
-                        status=TestStatus.ERROR,
-                        notes="Failed to encrypt secrets. Test execution aborted for security reasons.",
-                        ended_at=datetime.now(test_execution_model.started_at.tzinfo if test_execution_model.started_at else None)
-                    )
-                )
-                # Return early without sending any secrets to the task manager
-                return await get_test_execution(test_execution_model.id)
-
-            # Add the encrypted secrets to the payload
+        # Get encrypted secrets for this organization and product
+        encrypted_secrets = await get_encrypted_secrets(organization_id=product.organization_id, product_id=product.id)
+        if encrypted_secrets:
             task_manager_payload["encrypted_secrets"] = encrypted_secrets
-            logger.info("Successfully encrypted secrets for task manager")
 
         # Send request to task manager
         response = requests.post(
-            os.getenv("TASK_MANAGER_URL") + "/run-test/run-test",
+            TASK_MANAGER_URL + "/run-test/run-test",
             json=task_manager_payload
         )
 
@@ -257,7 +206,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
 
             # Check task status
             response = requests.get(
-                os.getenv("TASK_MANAGER_URL") + f"/run-test/status/{task_id}"
+                TASK_MANAGER_URL + f"/run-test/status/{task_id}"
             )
 
             if response.status_code != 200:
