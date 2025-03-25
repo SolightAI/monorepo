@@ -127,13 +127,26 @@ async def _generate_epics(
     if localStorage is not None:
         load_script = """
         (storage => {
+            let errors = [];
             Object.keys(storage).forEach(key => {
-                localStorage.setItem(key, storage[key]);
+                try {
+                    localStorage.setItem(key, storage[key]);
+                } catch (error) {
+                    errors.push(`Error setting localStorage key ${key}: ${error.message}`);
+                    // Continue with the next key
+                }
             });
-            return localStorage.length;
+            return {
+                length: localStorage.length,
+                errors: errors
+            };
         })(%s)
-        """.strip() % str(localStorage).replace("'", '"')
-        await context.execute_javascript(load_script)
+        """.strip() % json.dumps(localStorage)
+        result = await context.execute_javascript(load_script)
+        
+        # Log any errors in Python
+        for error in result['errors']:
+            logger.error(error)
 
     if gif_output_path:
         os.makedirs(os.path.dirname(gif_output_path), exist_ok=True)

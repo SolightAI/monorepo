@@ -52,6 +52,10 @@ export const ProductProvider = ({ children }) => {
         localStorage.removeItem('selectedProductId');
       }
     } catch (err) {
+      // Let global interceptor handle authentication errors (401)
+      if (err.response && err.response.status === 401) {
+        console.warn('401 error encountered while fetching products');
+      }
       setError('Failed to fetch products');
       console.error('Error fetching products:', err);
     } finally {
