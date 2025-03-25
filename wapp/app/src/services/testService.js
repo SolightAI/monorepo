@@ -4,6 +4,71 @@ import axios from 'axios';
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 /**
+ * Get all tests
+ * @returns {Promise<Array>} Promise with all tests data
+ */
+export const getAllTests = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/tests/`, {
+      withCredentials: true
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching all tests:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get tests by feature ID
+ * @param {string} featureId - The UUID of the feature
+ * @returns {Promise<Array>} Promise with tests data for the feature
+ */
+export const getTestsByFeature = async (featureId) => {
+  try {
+    const response = await axios.get(`${API_URL}/tests/by-feature/${featureId}`, {
+      withCredentials: true
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching tests for feature ${featureId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Get tests by epic ID
+ * @param {string} epicId - The UUID of the epic
+ * @returns {Promise<Array>} Promise with tests data for all features in the epic
+ */
+export const getTestsByEpic = async (epicId) => {
+  try {
+    // Get the epic with its features
+    const epicResponse = await axios.get(`${API_URL}/epics/${epicId}`, {
+      withCredentials: true
+    });
+
+    // If there are no features, return empty array
+    if (!epicResponse.data.features || epicResponse.data.features.length === 0) {
+      return [];
+    }
+
+    // Get tests for each feature in the epic and combine them
+    const featurePromises = epicResponse.data.features.map(feature =>
+      getTestsByFeature(feature.id)
+    );
+
+    const featuresTestsArrays = await Promise.all(featurePromises);
+
+    // Flatten the array of arrays into a single array of tests
+    return featuresTestsArrays.flat();
+  } catch (error) {
+    console.error(`Error fetching tests for epic ${epicId}:`, error);
+    throw error;
+  }
+};
+
+/**
  * Trigger test generation for an acceptance criteria
  * @param {string} acceptanceCriteriaId - The UUID of the acceptance criteria
  * @returns {Promise<string>} Promise with the task ID (UUID)

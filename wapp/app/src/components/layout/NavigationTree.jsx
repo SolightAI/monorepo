@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useLocation, useParams, Link } from 'react-router-dom';
-import { ChevronRight, ChevronDown, Sparkles, Layers, FileText, CheckSquare, Beaker, AlertTriangle, Building, Users, Home, BarChart2, Key } from 'lucide-react';
+import { ChevronRight, ChevronDown, Sparkles, Layers, FileText, CheckSquare, Beaker, AlertTriangle, Building, Users, Home, BarChart2, Key, Bug } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import axios from 'axios';
@@ -22,7 +22,9 @@ const getIconForType = (type) => {
     case 'criteria':
       return <CheckSquare size={16} className="text-orange-500" />;
     case 'test':
-      return <Beaker size={16} className="text-red-500" />;
+      return <Beaker size={16} className="text-green-500" />;
+    case 'bug':
+      return <Bug size={16} className="text-red-500" />;
     case 'error':
       return <AlertTriangle size={16} className="text-red-500" />;
     case 'organization':
@@ -370,6 +372,40 @@ const NavigationTree = () => {
           >
             {getIconForType('secrets')}
             <span className="ml-2">Secrets</span>
+          </Link>
+        </div>
+      )}
+
+      {/* Tests Table Link */}
+      {selectedOrganization && (
+        <div className="pt-2">
+          <Link
+            to="/tests"
+            className={`flex items-center text-sm px-3 py-2 rounded-md ${
+              location.pathname.startsWith('/tests')
+                ? 'bg-blue-50 text-blue-600 font-medium'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            {getIconForType('test')}
+            <span className="ml-2">Tests</span>
+          </Link>
+        </div>
+      )}
+
+      {/* Bugs Table Link */}
+      {selectedOrganization && (
+        <div className="pt-2">
+          <Link
+            to="/bugs"
+            className={`flex items-center text-sm px-3 py-2 rounded-md ${
+              location.pathname.startsWith('/bugs')
+                ? 'bg-blue-50 text-blue-600 font-medium'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            {getIconForType('bug')}
+            <span className="ml-2">Bugs</span>
           </Link>
         </div>
       )}
