@@ -37,6 +37,27 @@ function TestDetails({ test, onClose }) {
       return typeMap[type] || type;
     }
 
+    // Function to parse steps either as an array or a string
+    const parseSteps = (steps) => {
+      if (!steps) return [];
+      
+      // If steps is already an array, return it
+      if (Array.isArray(steps)) return steps;
+      
+      try {
+        // Try to parse it as JSON
+        const parsedSteps = JSON.parse(steps);
+        if (Array.isArray(parsedSteps)) return parsedSteps;
+        return [steps]; // If parsed but not an array, wrap in array
+      } catch (e) {
+        // If not JSON, split by newlines or just return as a single item
+        if (steps.includes('\n')) {
+          return steps.split('\n').filter(step => step.trim() !== '');
+        }
+        return [steps];
+      }
+    };
+
     return (
       <div>
         <div className="flex justify-between items-start mb-6">
@@ -110,11 +131,11 @@ function TestDetails({ test, onClose }) {
           </div>
         )}
 
-        {test.steps && test.steps.length > 0 && (
+        {test.steps && (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Test Steps</h3>
             <ol className="list-decimal pl-5 space-y-2">
-              {test.steps.map((step, index) => (
+              {parseSteps(test.steps).map((step, index) => (
                 <li key={index} className="text-gray-700">
                   {step}
                 </li>
