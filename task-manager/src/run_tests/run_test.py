@@ -80,11 +80,10 @@ async def _run_test(
 
     # Initialize JavaScript logging
     js_collector = initialize()
-    
+
     browser = Browser(
         config=BrowserConfig(
             headless=os.getenv("HEADLESS", "true").lower() == "true",
-            chrome_instance_path=os.getenv("CHROME_INSTANCE_PATH", None)
         )
     )
 

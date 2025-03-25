@@ -67,7 +67,6 @@ async def check_is_logged_in(
     browser = Browser(
         config=BrowserConfig(
             headless=os.getenv("HEADLESS", "true").lower() == "true",
-            chrome_instance_path=os.getenv("CHROME_INSTANCE_PATH", None)
         )
     )
 
@@ -160,7 +159,6 @@ async def generate_auth_session(
     browser = Browser(
         config=BrowserConfig(
             headless=os.getenv("HEADLESS", "true").lower() == "true",
-            chrome_instance_path=os.getenv("CHROME_INSTANCE_PATH", None)
         )
     )
 

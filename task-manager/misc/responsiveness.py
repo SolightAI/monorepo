@@ -189,7 +189,6 @@ async def _take_screenshot_of_issue(website_url: str, issue: str, output_folder:
     browser = Browser(
         config=BrowserConfig(
             headless=True,
-            chrome_instance_path=os.getenv("CHROME_INSTANCE_PATH", None)
         )
     )
 

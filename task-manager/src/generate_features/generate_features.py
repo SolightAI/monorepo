@@ -135,7 +135,6 @@ async def _generate_features(
     # Configure the browser session with cookies and localStorage
     browser_config = BrowserConfig(
         headless=os.getenv("HEADLESS", "true").lower() == "true",
-        chrome_instance_path=os.getenv("CHROME_INSTANCE_PATH", None)
     )
 
     browser = Browser(browser_config)
