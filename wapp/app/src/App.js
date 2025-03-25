@@ -14,18 +14,20 @@ import OrganizationDashboard from './pages/organization/OrganizationDashboard';
 import OrganizationMembers from './pages/organization/OrganizationMembers';
 import JoinOrganization from './pages/organization/JoinOrganization';
 import Dashboard from './pages/Dashboard';
-import { isAdmin } from './utils/auth';
 import Home from './pages/common/Home';
 import EpicDetails from './pages/product/EpicDetails';
 import FeatureDetails from './pages/product/FeatureDetails';
 import UserStoryDetails from './pages/product/UserStoryDetails';
 import AcceptanceCriteriaDetails from './pages/product/AcceptanceCriteriaDetails';
 import Secrets from './pages/product/Secrets';
+import TestsTable from './pages/product/TestsTable';
+import BugsTable from './pages/product/BugsTable';
 import { ProductProvider } from './context/ProductContext';
 import { OrganizationProvider } from './context/OrganizationContext';
 import { DashboardProvider } from './context/DashboardContext';
 import { SecretProvider } from './context/SecretContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+
 
 // Remove the local isAuthenticated function and use the one from AuthContext instead
 const ProtectedRoute = ({ children }) => {
@@ -144,6 +146,10 @@ function AppContent() {
                 <Route path="/acceptance-criteria/:criteriaId" element={<AcceptanceCriteriaDetails />} />
                 {/* Secrets Management page */}
                 <Route path="/secrets" element={<Secrets />} />
+                {/* Tests Table page */}
+                <Route path="/tests" element={<TestsTable />} />
+                {/* Bugs Table page */}
+                <Route path="/bugs" element={<BugsTable />} />
                 {/* Organization routes */}
                 <Route path="/organizations/dashboard" element={<OrganizationDashboard />} />
                 <Route path="/organizations/members" element={<OrganizationMembers />} />
