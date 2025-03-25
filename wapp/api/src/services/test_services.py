@@ -38,7 +38,7 @@ async def get_test(test_id: UUID) -> TestModel:
 
 
 async def get_all_tests() -> List[TestModel]:
-    tests = await TestModel.all().prefetch_related("bugs", "secret")
+    tests = await TestModel.all().prefetch_related("bugs", "test_secrets__secret", "executions")
     return tests
 
 
@@ -431,3 +431,32 @@ async def delete_test_secret(test_id: UUID4, secret_id: UUID4) -> None:
     # Check if the relationship existed
     if deleted_count == 0:
         raise HTTPException(status_code=404, detail="Secret not associated with this test")
+
+
+async def get_tests_by_product_id(product_id: UUID4) -> List[TestModel]:
+    """
+    Get all tests related to a product by its ID.
+
+    Args:
+        product_id: The UUID of the product
+
+    Returns:
+        A list of tests for the product, or an empty list if no product found
+    """
+    product = await get_product(product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    tests = []
+    # Traverse hierarchy: Product -> Epics -> Features -> Tests
+    await product.fetch_related("epics")
+    for epic in product.epics:
+        await epic.fetch_related("features")
+        for feature in epic.features:
+            await feature.fetch_related("tests")
+            # Fetch test secrets relation for each test
+            for test in feature.tests:
+                await test.fetch_related("test_secrets__secret", "bugs", "executions")
+            tests.extend(feature.tests)
+
+    return tests

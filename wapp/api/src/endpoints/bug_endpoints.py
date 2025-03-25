@@ -6,7 +6,8 @@ from services.bug_services import (
     get_all_bugs,
     get_bugs_by_product_path,
     delete_bug,
-    get_bugs_by_test_execution
+    get_bugs_by_test_execution,
+    get_bugs_by_product_id
 )
 from pydantic import UUID4
 from typing import List
@@ -18,6 +19,20 @@ router = APIRouter(prefix="/bugs", tags=["bugs"])
 @router.get("/")
 async def get_all_bugs_endpoint() -> List[BugSchema]:
     return await get_all_bugs()
+
+
+@router.get("/by-product/{product_id}")
+async def get_bugs_by_product_id_endpoint(product_id: UUID4) -> List[BugSchema]:
+    """
+    Get all bugs related to a product with the given ID.
+
+    Args:
+        product_id: The UUID of the product
+
+    Returns:
+        A list of bugs for the specified product, or an empty list if no product matches
+    """
+    return await get_bugs_by_product_id(product_id)
 
 
 @router.get("/by-product-path/{url_path}")

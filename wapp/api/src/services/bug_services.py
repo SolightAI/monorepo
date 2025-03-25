@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from dto.models import Bug as BugModel
+from dto.models import Bug as BugModel, Test as TestModel
 from dto.schemas import BugCreate as BugCreateSchema
 from typing import List, Optional
 from uuid import UUID
@@ -18,6 +18,33 @@ async def get_bug(bug_id: str | UUID) -> BugModel:
 
 async def get_all_bugs() -> List[BugModel]:
     bugs = await BugModel.all().prefetch_related("test", "test_execution")
+    return bugs
+
+
+async def get_bugs_by_product_id(product_id: UUID4) -> List[BugModel]:
+    """
+    Get bugs related to a product with the given ID.
+
+    This uses the test-product relationship via feature:
+    Tests by product ID -> Bugs by tests
+
+    Args:
+        product_id: The UUID of the product
+
+    Returns:
+        A list of bugs related to the product, or an empty list if no product matches
+    """
+    # Get all tests related to features in the product
+    tests = await TestModel.filter(feature__epic__product_id=product_id).prefetch_related("bugs")
+
+    if not tests:
+        return []
+
+    # Collect all bugs from these tests
+    bugs = []
+    for test in tests:
+        bugs.extend(test.bugs)
+
     return bugs
 
 
