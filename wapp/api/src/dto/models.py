@@ -21,7 +21,7 @@ class User(models.Model):
 
 class Organization(models.Model):
     id = fields.UUIDField(pk=True)
-    name = fields.CharField(max_length=255, unique=True)
+    name = fields.CharField(max_length=255)
     description = fields.TextField(null=True)
     logo_url = fields.CharField(max_length=255, null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
