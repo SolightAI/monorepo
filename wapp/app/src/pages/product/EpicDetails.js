@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader, AlertCircle, Plus, ArrowLeft, Sparkles, Edit } from 'lucide-react';
+import { Loader, AlertCircle, Plus, ArrowLeft, Sparkles, Edit, Zap } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
 import AddFeatureModal from '@/components/modals/AddFeatureModal';
 import FeatureGenerationModal from '@/components/modals/FeatureGenerationModal';
 import EditFeatureModal from '@/components/modals/EditFeatureModal';
+import GenerationProgressModal from '@/components/modals/GenerationProgressModal';
+import { triggerFullGeneration } from '@/services/generationService';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -24,6 +26,10 @@ const EpicDetails = () => {
   // State for Edit Feature Modal
   const [isEditFeatureModalOpen, setIsEditFeatureModalOpen] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState(null);
+
+  // State for "Generate All" functionality
+  const [isGenerateAllModalOpen, setIsGenerateAllModalOpen] = useState(false);
+  const [generateAllTaskId, setGenerateAllTaskId] = useState(null);
 
   const navigate = useNavigate();
 
@@ -84,6 +90,40 @@ const EpicDetails = () => {
     setIsEditFeatureModalOpen(true);
   };
 
+  // Handle "Generate All" button click
+  const handleGenerateAll = async () => {
+    if (!epic || !epic.features || epic.features.length === 0) {
+      setError('No features found. Please add or generate features first.');
+      return;
+    }
+
+    try {
+      setError(null);
+
+      // Call the unified generation endpoint
+      const response = await triggerFullGeneration('epic', epicId);
+
+      // Store the task ID for tracking
+      setGenerateAllTaskId(response.task_id);
+
+      // Show the progress modal
+      setIsGenerateAllModalOpen(true);
+    } catch (err) {
+      console.error('Error starting generation:', err);
+      setError('Failed to start generation. Please try again.');
+    }
+  };
+
+  // Handle generation completion
+  const handleGenerationComplete = () => {
+    // Refresh epic details to show updated features
+    fetchEpicDetails();
+
+    // Reset state
+    setIsGenerateAllModalOpen(false);
+    setGenerateAllTaskId(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -134,6 +174,16 @@ const EpicDetails = () => {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">Features</h2>
                 <div className="flex space-x-3">
+                  {/* Generate All button - only show if features exist */}
+                  {epic?.features && epic.features.length > 0 && (
+                    <button
+                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150"
+                      onClick={handleGenerateAll}
+                    >
+                      <Zap size={18} className="mr-2" />
+                      Generate All
+                    </button>
+                  )}
                   <button
                     className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
                     onClick={() => setIsGenerateFeatureModalOpen(true)}
@@ -267,6 +317,18 @@ const EpicDetails = () => {
           }}
           feature={selectedFeature}
           onFeatureUpdated={handleFeatureUpdated}
+        />
+      )}
+
+      {/* Generate All Progress Modal */}
+      {isGenerateAllModalOpen && generateAllTaskId && (
+        <GenerationProgressModal
+          taskId={generateAllTaskId}
+          scope="epic"
+          onClose={() => {
+            setIsGenerateAllModalOpen(false);
+            fetchEpicDetails();
+          }}
         />
       )}
     </div>

@@ -154,6 +154,12 @@ const Home = () => {
                 {selectedProduct.description && (
                   <p className="text-gray-600 mt-2">{selectedProduct.description}</p>
                 )}
+                <button
+                  onClick={() => navigate(`/products/${selectedProduct.id}`)}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium mt-2 flex items-center"
+                >
+                  View Product Details
+                </button>
               </div>
               <div className="flex space-x-3">
                 <button
