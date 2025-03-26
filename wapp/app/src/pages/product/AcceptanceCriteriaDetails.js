@@ -3,8 +3,8 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader, AlertCircle, ArrowLeft, TestTube, Plus, CheckCircle, XCircle, Sparkles } from 'lucide-react';
 import AddTestModal from '@/components/modals/AddTestModal';
-import TestGenerationStatusModal from '@/components/modals/TestGenerationStatusModal';
 import TestDetailsModal from '@/components/modals/TestDetailsModal';
+import GenerationModal from '@/components/modals/GenerationModal';
 import { triggerFeatureTestGeneration } from '@/services/testService';
 
 // Base API URL
@@ -16,6 +16,7 @@ const AcceptanceCriteriaDetails = () => {
   const [error, setError] = useState(null);
   const [criteria, setCriteria] = useState(null);
   const [generatingTest, setGeneratingTest] = useState(false);
+  const [pollingInterval, setPollingInterval] = useState(null);
 
   // State for Add Test Modal
   const [isAddTestModalOpen, setIsAddTestModalOpen] = useState(false);
@@ -32,7 +33,48 @@ const AcceptanceCriteriaDetails = () => {
 
   useEffect(() => {
     fetchCriteriaDetails();
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
   }, [criteriaId]);
+
+  // Add polling effect for test generation status
+  useEffect(() => {
+    if (isTestGenerationModalOpen && testGenerationTaskId) {
+      const interval = setInterval(async () => {
+        try {
+          const response = await axios.get(`${API_URL}/tests/generation/status/${testGenerationTaskId}`, {
+            withCredentials: true
+          });
+
+          if (response.data.status === 'completed') {
+            // Add a delay before fetching the updated data
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            await fetchCriteriaDetails();
+            setIsTestGenerationModalOpen(false);
+            setTestGenerationTaskId(null);
+            clearInterval(interval);
+          } else if (response.data.status === 'error') {
+            setError('Test generation failed. Please try again.');
+            setIsTestGenerationModalOpen(false);
+            setTestGenerationTaskId(null);
+            clearInterval(interval);
+          }
+        } catch (err) {
+          console.error('Error checking test generation status:', err);
+          setError('Failed to check test generation status.');
+          setIsTestGenerationModalOpen(false);
+          setTestGenerationTaskId(null);
+          clearInterval(interval);
+        }
+      }, 3000); // Poll every 3 seconds
+
+      setPollingInterval(interval);
+      return () => clearInterval(interval);
+    }
+  }, [isTestGenerationModalOpen, testGenerationTaskId]);
 
   const fetchCriteriaDetails = async () => {
     setLoading(true);
@@ -276,8 +318,8 @@ const AcceptanceCriteriaDetails = () => {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {criteria.tests.map((test) => (
-                        <tr 
-                          key={test.id} 
+                        <tr
+                          key={test.id}
                           className="hover:bg-gray-50 cursor-pointer"
                           onClick={() => handleTestClick(test)}
                         >
@@ -320,9 +362,10 @@ const AcceptanceCriteriaDetails = () => {
 
       {/* Test Generation Status Modal */}
       {isTestGenerationModalOpen && (
-        <TestGenerationStatusModal
+        <GenerationModal
           onClose={handleGenerationComplete}
-          taskId={testGenerationTaskId}
+          type="tests"
+          featureName={criteria?.name || ''}
         />
       )}
 

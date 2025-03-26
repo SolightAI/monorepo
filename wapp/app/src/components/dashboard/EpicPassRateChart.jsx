@@ -42,10 +42,7 @@ function EpicPassRateChart({ productId }) {
         const epicData = await Promise.all(
           epicsResponse.data.map(async (epic) => {
             try {
-              // This would usually be a dedicated endpoint, but for now we'll use test-by-product-path
-              // and filter for the specific epic
-              const testsResponse = await axios.get(`${API_URL}/tests/by-product-path`, {
-                params: { product_path: epic.product_path },
+              const testsResponse = await axios.get(`${API_URL}/tests/by-product/${productId}`, {
                 withCredentials: true
               });
 

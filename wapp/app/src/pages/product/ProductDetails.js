@@ -20,12 +20,12 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [epics, setEpics] = useState([]);
-  
+
   // State for modals
   const [showEpicModal, setShowEpicModal] = useState(false);
   const [showEpicGenerationModal, setShowEpicGenerationModal] = useState(false);
   const [showComprehensiveGenerationModal, setShowComprehensiveGenerationModal] = useState(false);
-  
+
   // State for "Generate All" functionality
   const [isGenerateAllModalOpen, setIsGenerateAllModalOpen] = useState(false);
   const [generateAllTaskId, setGenerateAllTaskId] = useState(null);
@@ -35,7 +35,7 @@ const ProductDetails = () => {
   // Fetch product details and epics
   const fetchProductDetails = useCallback(async () => {
     if (!productId) return;
-    
+
     setLoading(true);
     setError(null);
 
@@ -46,7 +46,7 @@ const ProductDetails = () => {
       });
 
       setSelectedProduct(productResponse.data);
-      
+
       // Set epics from the product data
       if (productResponse.data.epics && productResponse.data.epics.length > 0) {
         setEpics(productResponse.data.epics);
@@ -101,28 +101,28 @@ const ProductDetails = () => {
   const handleGenerateEverything = () => {
     setShowComprehensiveGenerationModal(true);
   };
-  
+
   // Handle "Generate All" button click
   const handleGenerateAll = async () => {
     if (!selectedProduct) {
       setError('No product selected. Please try again.');
       return;
     }
-    
+
     if (!epics || epics.length === 0) {
       setError('No epics found. Please add or generate epics first.');
       return;
     }
-    
+
     try {
       setError(null);
-      
+
       // Call the unified generation endpoint for the product
       const response = await triggerFullGeneration('product', selectedProduct.id);
-      
+
       // Store the task ID for tracking
       setGenerateAllTaskId(response.task_id);
-      
+
       // Show the progress modal
       setIsGenerateAllModalOpen(true);
     } catch (err) {
@@ -130,12 +130,12 @@ const ProductDetails = () => {
       setError('Failed to start generation. Please try again.');
     }
   };
-  
+
   // Handle generation completion
   const handleGenerationComplete = () => {
     // Refresh product details to show updated content
     fetchProductDetails();
-    
+
     // Reset state
     setIsGenerateAllModalOpen(false);
     setGenerateAllTaskId(null);
@@ -308,7 +308,7 @@ const ProductDetails = () => {
                         {epic.description && (
                           <p className="text-gray-700 line-clamp-2 mb-4">{epic.description}</p>
                         )}
-                        
+
                         <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
                           <span className="text-sm text-gray-500">
                             {epic.features?.length || 0} features
@@ -374,7 +374,7 @@ const ProductDetails = () => {
           onComplete={handleComprehensiveGenerationComplete}
         />
       )}
-      
+
       {/* Generate All Progress Modal */}
       {isGenerateAllModalOpen && generateAllTaskId && (
         <GenerationProgressModal
@@ -389,4 +389,4 @@ const ProductDetails = () => {
   );
 };
 
-export default ProductDetails; 
+export default ProductDetails;

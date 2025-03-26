@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader, AlertCircle, ArrowLeft, TestTube, Plus, CheckCircle, XCircle, Sparkles, CheckSquare, List, Edit } from 'lucide-react';
+import { Loader, AlertCircle, ArrowLeft, TestTube, Plus, CheckCircle, XCircle, Sparkles, CheckSquare, Edit, Zap } from 'lucide-react';
 import AddTestModal from '@/components/modals/AddTestModal';
-import TestGenerationStatusModal from '@/components/modals/TestGenerationStatusModal';
 import TestDetailsModal from '@/components/modals/TestDetailsModal';
 import AddUserStoryModal from '@/components/modals/AddUserStoryModal';
-import GenerateUserStoriesModal from '@/components/modals/GenerateUserStoriesModal';
-import GenerateAcceptanceCriteriaButton from '@/components/feature/GenerateAcceptanceCriteriaButton';
-import { triggerFeatureTestGeneration } from '@/services/testService';
-import { triggerUserStoriesGeneration } from '@/services/userStoryService';
+import { triggerFeatureTestGeneration, getTestGenerationStatus } from '@/services/testService';
+import { triggerUserStoriesGeneration, getUserStoriesGenerationStatus } from '@/services/userStoryService';
+import { generateAcceptanceCriteria, getAcceptanceCriteriaGenerationStatus } from '@/api/acceptanceCriteriaGeneration';
 import EditFeatureModal from '@/components/modals/EditFeatureModal';
 
 // Base API URL
@@ -20,33 +18,33 @@ const FeatureDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [feature, setFeature] = useState(null);
-  const [generatingTest, setGeneratingTest] = useState(false);
   const [userStories, setUserStories] = useState([]);
   const [acceptanceCriteria, setAcceptanceCriteria] = useState([]);
 
   // State for Add Test Modal
   const [isAddTestModalOpen, setIsAddTestModalOpen] = useState(false);
-
-  // State for Test Generation Status Modal
-  const [isTestGenerationModalOpen, setIsTestGenerationModalOpen] = useState(false);
-  const [testGenerationTaskId, setTestGenerationTaskId] = useState(null);
-
-  // State for Test Details Modal
   const [isTestDetailsModalOpen, setIsTestDetailsModalOpen] = useState(false);
   const [selectedTest, setSelectedTest] = useState(null);
-
-  // State for Add User Story Modal
   const [isAddUserStoryModalOpen, setIsAddUserStoryModalOpen] = useState(false);
-
-  // State for Add Acceptance Criteria Modal
-  const [isAddCriteriaModalOpen, setIsAddCriteriaModalOpen] = useState(false);
-
-  // Add these new state variables
-  const [isGenerateUserStoriesModalOpen, setIsGenerateUserStoriesModalOpen] = useState(false);
-  const [userStoriesGenerationTaskId, setUserStoriesGenerationTaskId] = useState(null);
-
-  // State for Edit Feature Modal
   const [isEditFeatureModalOpen, setIsEditFeatureModalOpen] = useState(false);
+
+  // Sequential generation states
+  const [isGeneratingSequential, setIsGeneratingSequential] = useState(false);
+  const [sequentialGenerationMessage, setSequentialGenerationMessage] = useState(null);
+
+  // Simplified generation state
+  const [generationState, setGenerationState] = useState({
+    isGenerating: false,
+    type: null, // 'user-stories', 'acceptance-criteria', 'tests'
+    taskId: null,
+    message: null
+  });
+
+  // Simplified modal state
+  const [modalState, setModalState] = useState({
+    type: null,
+    isOpen: false
+  });
 
   const navigate = useNavigate();
 
@@ -78,9 +76,21 @@ const FeatureDetails = () => {
       const featureData = featureResponse.data;
       featureData.tests = testsResponse.data;
 
-      // Set user stories from the feature data
+      // IMPORTANT: Set user stories from the feature data
       if (featureData.user_stories) {
         setUserStories(featureData.user_stories);
+      } else {
+        // Make a dedicated request to get user stories
+        try {
+          const userStoriesResponse = await axios.get(`${API_URL}/user-stories/by-feature/${featureId}`, {
+            withCredentials: true
+          });
+          if (userStoriesResponse.data && userStoriesResponse.data.length > 0) {
+            setUserStories(userStoriesResponse.data);
+          }
+        } catch (userStoriesErr) {
+          console.error('Error fetching user stories directly:', userStoriesErr);
+        }
       }
 
       // Set acceptance criteria
@@ -138,41 +148,361 @@ const FeatureDetails = () => {
   };
 
   // Handle acceptance criteria added
-  const handleCriteriaAdded = (newCriteria) => {
-    // Update the acceptance criteria state with the new criteria
-    setAcceptanceCriteria(prevCriteria => [...prevCriteria, newCriteria]);
-
-    // Also update the feature state if needed
-    setFeature(prevFeature => {
-      if (!prevFeature) return prevFeature;
-
-      const updatedFeature = {...prevFeature};
-      if (!updatedFeature.acceptance_criteria) {
-        updatedFeature.acceptance_criteria = [];
-      }
-      updatedFeature.acceptance_criteria.push(newCriteria);
-      return updatedFeature;
-    });
+  const handleAddAcceptanceCriteria = () => {
+    // Implement the logic for adding acceptance criteria manually
+    console.log('Add acceptance criteria clicked');
   };
 
-  // Handle AI test generation
+  // Handle feature updated
+  const handleFeatureUpdated = (updatedFeature) => {
+    setFeature(updatedFeature);
+    fetchFeatureDetails();
+  };
+
+  // Simplified generation handlers
+  const handleGenerateUserStories = async () => {
+    try {
+      setGenerationState({
+        isGenerating: true,
+        type: 'user-stories',
+        taskId: null,
+        message: 'Generating user stories...'
+      });
+
+      const taskId = await triggerUserStoriesGeneration(featureId);
+
+      setGenerationState({
+        isGenerating: true,
+        type: 'user-stories',
+        taskId: taskId,
+        message: 'Generating user stories...'
+      });
+
+      setModalState({
+        type: 'user-stories',
+        isOpen: true
+      });
+    } catch (err) {
+      console.error('Error triggering user stories generation:', err);
+      setError('Failed to trigger user stories generation. Please try again.');
+      setGenerationState({
+        isGenerating: false,
+        type: null,
+        taskId: null,
+        message: null
+      });
+    }
+  };
+
+  const handleGenerateAcceptanceCriteria = async () => {
+    try {
+      // First set loading state
+      setGenerationState({
+        isGenerating: true,
+        type: 'acceptance-criteria',
+        taskId: null,
+        message: 'Generating acceptance criteria...'
+      });
+
+      // Get the task ID
+      const taskId = await generateAcceptanceCriteria(featureId);
+
+      // Update state with taskId in a single update
+      setGenerationState({
+        isGenerating: true,
+        type: 'acceptance-criteria',
+        taskId: taskId,
+        message: 'Generating acceptance criteria...'
+      });
+
+      setModalState({
+        type: 'acceptance-criteria',
+        isOpen: true
+      });
+    } catch (err) {
+      console.error('Error triggering acceptance criteria generation:', err);
+      setError('Failed to trigger acceptance criteria generation. Please try again.');
+      setGenerationState({
+        isGenerating: false,
+        type: null,
+        taskId: null,
+        message: null
+      });
+    }
+  };
+
   const handleGenerateTest = async () => {
     try {
-      setGeneratingTest(true);
-      setError(null);
+      console.log("Starting test generation process...");
 
-      // Call the test generation API for the feature
-      const taskId = await triggerFeatureTestGeneration(featureId);
+      // Set initial generation state
+      setGenerationState({
+        isGenerating: true,
+        type: 'tests',
+        taskId: null,
+        message: 'Generating tests...'
+      });
 
-      // Set the task ID and open the status modal
-      setTestGenerationTaskId(taskId);
-      setIsTestGenerationModalOpen(true);
+      console.log("Calling triggerFeatureTestGeneration...");
+      const response = await triggerFeatureTestGeneration(featureId);
+      console.log("Received test generation response:", response);
+
+      // Handle different possible response formats
+      let taskId;
+      if (response && typeof response === 'object') {
+        // If response is an object, try to extract taskId from common properties
+        taskId = response.taskId || response.task_id || response.id;
+        console.log("Extracted taskId from object:", taskId);
+      } else if (response) {
+        // If response is not an object but truthy, use it directly
+        taskId = response;
+        console.log("Using response directly as taskId:", taskId);
+      }
+
+      // Even if taskId is not what we expected, proceed anyway since the test appears to be starting
+      console.log("Setting generationState with taskId/response:", taskId || response);
+
+      // if taskid is null, console log the error
+      if (!taskId) {
+        console.error("No taskId received from triggerFeatureTestGeneration");
+        setError('Failed to start test generation: No task ID received');
+        return;
+      }
+
+      // Always proceed with polling, even without a specific taskId
+      setGenerationState({
+        isGenerating: true,
+        type: 'tests',
+        taskId: taskId, // Use 'polling' as a fallback
+        message: 'Generating tests...'
+      });
+
+      // Set modal state
+      setModalState({
+        type: 'tests',
+        isOpen: true
+      });
+
+      console.log("Test generation initiated");
     } catch (err) {
       console.error('Error triggering test generation:', err);
       setError('Failed to trigger test generation. Please try again.');
-    } finally {
-      setGeneratingTest(false);
+      setGenerationState({
+        isGenerating: false,
+        type: null,
+        taskId: null,
+        message: null
+      });
     }
+  };
+
+  // Add polling effect for generation status
+  useEffect(() => {
+    if (generationState.isGenerating && generationState.taskId) {
+      console.log(`Starting polling for ${generationState.type} generation with task ID: ${generationState.taskId}`);
+
+      const interval = setInterval(async () => {
+        try {
+          console.log(`Checking status for ${generationState.type} generation...`);
+          let statusResponse;
+
+          switch (generationState.type) {
+            case 'user-stories':
+              statusResponse = await getUserStoriesGenerationStatus(generationState.taskId);
+              break;
+            case 'acceptance-criteria':
+              statusResponse = await getAcceptanceCriteriaGenerationStatus(generationState.taskId);
+              break;
+            case 'tests':
+              statusResponse = await getTestGenerationStatus(generationState.taskId);
+              break;
+            default:
+              return;
+          }
+
+          console.log(`Status response for ${generationState.type}:`, statusResponse);
+
+          if (statusResponse && statusResponse.status === 'completed') {
+            console.log(`${generationState.type} generation completed!`);
+
+            // Store the results for direct use
+            const generatedResults = statusResponse.results || [];
+            console.log(`Generated results:`, generatedResults);
+
+            // Clear the interval immediately to prevent multiple calls
+            clearInterval(interval);
+
+            // Add a delay before fetching the updated data
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            await fetchFeatureDetails();
+
+            // Call handleGenerationComplete with the actual results
+            handleGenerationComplete(generatedResults);
+          } else if (statusResponse && statusResponse.status === 'error') {
+            console.error('Generation error:', statusResponse);
+            setError(`${generationState.type} generation failed. Please try again.`);
+
+            // Clear the interval immediately
+            clearInterval(interval);
+
+            setGenerationState({
+              isGenerating: false,
+              type: null,
+              taskId: null,
+              message: null
+            });
+            setModalState({
+              type: null,
+              isOpen: false
+            });
+            if (isGeneratingSequential) {
+              setIsGeneratingSequential(false);
+              setSequentialGenerationMessage(null);
+            }
+          } else {
+            console.log(`${generationState.type} generation still in progress...`);
+          }
+        } catch (err) {
+          console.error('Error checking generation status:', err);
+          setError('Failed to check generation status.');
+
+          // Clear the interval immediately
+          clearInterval(interval);
+
+          setGenerationState({
+            isGenerating: false,
+            type: null,
+            taskId: null,
+            message: null
+          });
+          setModalState({
+            type: null,
+            isOpen: false
+          });
+          if (isGeneratingSequential) {
+            setIsGeneratingSequential(false);
+            setSequentialGenerationMessage(null);
+          }
+        }
+      }, 3000); // Poll every 3 seconds
+
+      return () => {
+        console.log(`Cleaning up polling for ${generationState.type}`);
+        clearInterval(interval);
+      };
+    }
+  }, [generationState.isGenerating, generationState.taskId, generationState.type]);
+
+  const handleGenerationComplete = async (generatedResults = []) => {
+    console.log(`Generation complete for ${generationState.type} with results:`, generatedResults);
+
+    // First fetch updated data
+    await fetchFeatureDetails();
+
+    // Then close the modal
+    setModalState({
+      type: null,
+      isOpen: false
+    });
+
+    if (generationState.type === 'tests') {
+      // If this was the final step in sequential generation
+      if (isGeneratingSequential) {
+        console.log("All sequential generation complete!");
+        setIsGeneratingSequential(false);
+        setSequentialGenerationMessage(null);
+        setError(null);
+      }
+    } else if (isGeneratingSequential) {
+      // Continue with the next step in the sequence
+      if (generationState.type === 'user-stories') {
+        console.log("User stories generation complete, processing results...");
+
+        // Use the generated results directly if the API didn't return them
+        if ((!userStories || userStories.length === 0) && generatedResults && generatedResults.length > 0) {
+          console.log("Setting user stories directly from generated results:", generatedResults);
+          // Ensure each story has a unique ID
+          const storiesWithIds = generatedResults.map((story, index) =>
+            story.id ? story : { ...story, id: `temp-${Date.now()}-${index}` }
+          );
+          setUserStories(storiesWithIds);
+        }
+
+        // Add a longer delay and fetch fresh data AGAIN before continuing
+        setTimeout(async () => {
+          console.log("Fetching updated data before continuing to acceptance criteria...");
+          await fetchFeatureDetails();
+
+          // Check if user stories are in the API response
+          let currentUserStories = userStories;
+          console.log("Current user stories after refresh:", currentUserStories);
+
+          // If API still doesn't have user stories, use our generated ones
+          if ((!currentUserStories || currentUserStories.length === 0) && generatedResults && generatedResults.length > 0) {
+            console.log("API still doesn't have user stories, using generated ones");
+            // Ensure each story has a unique ID
+            const storiesWithIds = generatedResults.map((story, index) =>
+              story.id ? story : { ...story, id: `temp-${Date.now()}-${index}` }
+            );
+            currentUserStories = storiesWithIds;
+            setUserStories(storiesWithIds);
+          }
+
+          // Additional delay to ensure data is updated
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          // Only continue if we actually have user stories (either from API or generated)
+          if (currentUserStories && currentUserStories.length > 0) {
+            console.log("Continuing to acceptance criteria generation with user stories:", currentUserStories);
+            continueWithAcceptanceCriteriaGeneration(currentUserStories);
+          } else {
+            console.error("No user stories available after generation");
+            setError('User stories were generated but could not be loaded. Please try again or continue manually.');
+            setIsGeneratingSequential(false);
+          }
+        }, 5000); // Increased delay
+      } else if (generationState.type === 'acceptance-criteria') {
+        // Use the generated results directly if the API didn't return them
+        if ((!acceptanceCriteria || acceptanceCriteria.length === 0) && generatedResults && generatedResults.length > 0) {
+          setAcceptanceCriteria(generatedResults);
+        }
+
+        // Add a longer delay and fetch fresh data AGAIN before continuing
+        setTimeout(async () => {
+          await fetchFeatureDetails();
+
+          // Check if acceptance criteria are in the API response
+          let currentAcceptanceCriteria = acceptanceCriteria;
+
+          // If API still doesn't have acceptance criteria, use our generated ones
+          if ((!currentAcceptanceCriteria || currentAcceptanceCriteria.length === 0) && generatedResults && generatedResults.length > 0) {
+            currentAcceptanceCriteria = generatedResults;
+            setAcceptanceCriteria(generatedResults);
+          }
+
+          // Additional delay to ensure data is updated
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          // Only continue if we actually have acceptance criteria (either from API or generated)
+          if (currentAcceptanceCriteria && currentAcceptanceCriteria.length > 0) {
+            continueWithTestGeneration(currentAcceptanceCriteria);
+          } else {
+            setError('Acceptance criteria were generated but could not be loaded. Please try again or continue manually.');
+            setIsGeneratingSequential(false);
+          }
+        }, 5000); // Increased delay
+      } else {
+        console.error('Unknown generation step:', generationState.type);
+      }
+    }
+
+    // Always reset the generation state at the end
+    setGenerationState({
+      isGenerating: false,
+      type: null,
+      taskId: null,
+      message: null
+    });
   };
 
   const getTestStatusIcon = (status) => {
@@ -215,50 +545,182 @@ const FeatureDetails = () => {
     setIsTestDetailsModalOpen(true);
   };
 
-  const handleGenerationComplete = () => {
-    // Refresh feature data to get the newly generated tests
-    fetchFeatureDetails();
-    setIsTestGenerationModalOpen(false);
-  };
-
-  // Create a function to add an acceptance criteria to the feature
-  const handleAddAcceptanceCriteria = async () => {
-    setIsAddCriteriaModalOpen(true);
-  };
-
-  // Add this new function
-  const handleGenerateUserStories = async () => {
+  // Handle sequential generation
+  const handleSequentialGeneration = async () => {
     try {
-      setLoading(true);
-      const taskId = await triggerUserStoriesGeneration(featureId);
-      setUserStoriesGenerationTaskId(taskId);
-      setIsGenerateUserStoriesModalOpen(true);
+      setIsGeneratingSequential(true);
+      setError(null);
+
+      // Check if user stories already exist
+      if (userStories && userStories.length > 0) {
+        setSequentialGenerationMessage('User stories already exist, continuing with acceptance criteria...');
+
+        // Add a small delay before starting the next step
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continueWithAcceptanceCriteriaGeneration();
+      } else {
+        setSequentialGenerationMessage('Generating user stories...');
+
+        try {
+          // Trigger user stories generation
+          const userStoriesTaskId = await triggerUserStoriesGeneration(featureId);
+
+          // IMPORTANT: Set the generation state to trigger polling
+          setGenerationState({
+            isGenerating: true,
+            type: 'user-stories',
+            taskId: userStoriesTaskId,
+            message: 'Generating user stories...'
+          });
+
+        } catch (err) {
+          console.error('Error triggering user stories generation:', err);
+          setError('Failed to trigger user stories generation. Sequential generation stopped.');
+          setIsGeneratingSequential(false);
+          return;
+        }
+      }
     } catch (err) {
-      console.error('Error triggering user stories generation:', err);
-      setError('Failed to trigger user stories generation. Please try again.');
-    } finally {
-      setLoading(false);
+      console.error('Error in sequential generation:', err);
+      setError('Failed to complete sequential generation. Please try again.');
+      setIsGeneratingSequential(false);
     }
   };
 
-  // Add this new function
-  const handleUserStoriesGenerationComplete = () => {
-    // Refresh the feature details to show the newly generated user stories
-    fetchFeatureDetails();
+  // Add new function to continue with acceptance criteria generation
+  const continueWithAcceptanceCriteriaGeneration = async (providedUserStories = null) => {
+    try {
+
+      // First fetch fresh data to ensure we have the latest user stories and acceptance criteria
+      await fetchFeatureDetails();
+
+      // Use provided user stories if they exist, otherwise use state
+      const effectiveUserStories = providedUserStories || userStories;
+
+      // Add a delay to ensure database is fully updated
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Check if acceptance criteria already exist
+      if (acceptanceCriteria && acceptanceCriteria.length > 0) {
+        setSequentialGenerationMessage('Acceptance criteria already exist, continuing with test generation...');
+
+        // Add a small delay before starting the next step
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continueWithTestGeneration(acceptanceCriteria);
+        return;
+      }
+
+      setSequentialGenerationMessage('Generating acceptance criteria...');
+
+      // Double-check if we have user stories before proceeding
+      if (!effectiveUserStories || effectiveUserStories.length === 0) {
+        setError('No user stories found. Cannot generate acceptance criteria.');
+        setIsGeneratingSequential(false);
+        return;
+      }
+
+      try {
+        // Generate acceptance criteria
+        const taskId = await generateAcceptanceCriteria(featureId);
+
+        // Set the generation state to trigger polling
+        setGenerationState({
+          isGenerating: true,
+          type: 'acceptance-criteria',
+          taskId: taskId,
+          message: 'Generating acceptance criteria...'
+        });
+
+        // Set modal state to show progress
+        setModalState({
+          type: 'acceptance-criteria',
+          isOpen: true
+        });
+
+      } catch (err) {
+        console.error('Error generating acceptance criteria:', err);
+        setError('Failed to generate acceptance criteria. Sequential generation stopped.');
+        setIsGeneratingSequential(false);
+        return;
+      }
+    } catch (err) {
+      console.error('Error continuing with acceptance criteria generation:', err);
+      setError('Failed to generate acceptance criteria. Sequential generation stopped.');
+      setIsGeneratingSequential(false);
+    }
   };
 
-  const handleAcceptanceCriteriaGenerationComplete = () => {
-    // Refresh the feature details to show the newly generated acceptance criteria
-    fetchFeatureDetails();
-  };
+  // Add new function to continue with test generation
+  const continueWithTestGeneration = async (providedAcceptanceCriteria = null) => {
+    try {
+      console.log("Starting sequential test generation...");
+      setSequentialGenerationMessage('Generating tests...');
 
-  // Handle feature updated
-  const handleFeatureUpdated = (updatedFeature) => {
-    // Update the feature state with the updated feature
-    setFeature({
-      ...feature,
-      ...updatedFeature
-    });
+      // Fetch fresh data to ensure we have the latest acceptance criteria
+      await fetchFeatureDetails();
+
+      // Use provided acceptance criteria if they exist, otherwise use state
+      const effectiveAcceptanceCriteria = providedAcceptanceCriteria || acceptanceCriteria;
+      console.log("Effective acceptance criteria for test generation:", effectiveAcceptanceCriteria);
+
+      // Add a delay to ensure database is fully updated
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Check if we have acceptance criteria before proceeding
+      if (!effectiveAcceptanceCriteria || effectiveAcceptanceCriteria.length === 0) {
+        console.error("No acceptance criteria found for test generation");
+        setError('No acceptance criteria found. Cannot generate tests.');
+        setIsGeneratingSequential(false);
+        return;
+      }
+
+      try {
+        // Generate tests
+        console.log("Triggering test generation with featureId:", featureId);
+        const response = await triggerFeatureTestGeneration(featureId);
+        console.log("Received test generation response:", response);
+
+        // Handle different possible response formats
+        let taskId;
+        if (response && typeof response === 'object') {
+          // If response is an object, try to extract taskId from common properties
+          taskId = response.taskId || response.task_id || response.id;
+          console.log("Extracted taskId from object:", taskId);
+        } else if (response) {
+          // If response is not an object but truthy, use it directly
+          taskId = response;
+          console.log("Using response directly as taskId:", taskId);
+        }
+
+        // Even if we don't have a task ID, continue anyway since the generation appears to work
+        console.log("Setting generationState with taskId/response:", taskId || response);
+
+        // Set the generation state to trigger polling
+        setGenerationState({
+          isGenerating: true,
+          type: 'tests',
+          taskId: taskId || 'polling', // Use 'polling' as a fallback
+          message: 'Generating tests...'
+        });
+
+        // Set modal state to show progress
+        setModalState({
+          type: 'tests',
+          isOpen: true
+        });
+
+        console.log("Sequential test generation initiated");
+      } catch (err) {
+        console.error('Error triggering test generation:', err);
+        setError('Failed to trigger test generation. Sequential generation stopped.');
+        setIsGeneratingSequential(false);
+        return;
+      }
+    } catch (err) {
+      console.error('Error continuing with test generation:', err);
+      setError('Failed to generate tests. Sequential generation stopped.');
+      setIsGeneratingSequential(false);
+    }
   };
 
   return (
@@ -281,6 +743,14 @@ const FeatureDetails = () => {
           </div>
         )}
 
+        {/* Sequential generation status message */}
+        {isGeneratingSequential && (
+          <div className="mb-6 p-4 bg-blue-100 border border-blue-200 text-blue-700 rounded-lg flex items-start">
+            <Loader size={20} className="mr-2 flex-shrink-0 mt-1 animate-spin" />
+            <p>{sequentialGenerationMessage || 'Generating content...'}</p>
+          </div>
+        )}
+
         {/* Loading indicator */}
         {loading ? (
           <div className="flex justify-center items-center py-20">
@@ -296,13 +766,24 @@ const FeatureDetails = () => {
                     <TestTube size={24} className="text-purple-500 mr-3" />
                     <h1 className="text-3xl font-bold text-gray-800">{feature.name}</h1>
                   </div>
-                  <button
-                    onClick={() => setIsEditFeatureModalOpen(true)}
-                    className="flex items-center px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-150"
-                  >
-                    <Edit size={16} className="mr-2" />
-                    Edit Feature
-                  </button>
+                  <div className="flex items-center space-x-3">
+                    {/* Add Generate All button */}
+                    <button
+                      onClick={handleSequentialGeneration}
+                      disabled={isGeneratingSequential || loading}
+                      className={`flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150 ${(isGeneratingSequential || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <Zap size={18} className="mr-2" />
+                      {isGeneratingSequential ? 'Generating...' : 'Generate All'}
+                    </button>
+                    <button
+                      onClick={() => setIsEditFeatureModalOpen(true)}
+                      className="flex items-center px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-150"
+                    >
+                      <Edit size={16} className="mr-2" />
+                      Edit Feature
+                    </button>
+                  </div>
                 </div>
                 <p className="text-gray-700 mb-4">{feature.description}</p>
                 {feature.urls && feature.urls.length > 0 && (
@@ -366,9 +847,9 @@ const FeatureDetails = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {userStories.map((story) => (
+                  {userStories.map((story, index) => (
                     <div
-                      key={story.id}
+                      key={story.id || `temp-${index}`}
                       className="p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer"
                       onClick={() => navigate(`/user-stories/${story.id}`)}
                     >
@@ -399,11 +880,14 @@ const FeatureDetails = () => {
                     <Plus size={18} className="mr-2" />
                     Add Acceptance Criteria
                   </button>
-                  <GenerateAcceptanceCriteriaButton
-                    featureId={featureId}
-                    onGenerationComplete={handleAcceptanceCriteriaGenerationComplete}
-                    hasUserStories={userStories.length > 0}
-                  />
+                  <button
+                    className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                    onClick={handleGenerateAcceptanceCriteria}
+                    disabled={!userStories || userStories.length === 0 || generationState.isGenerating}
+                  >
+                    <Sparkles size={18} className="mr-2" />
+                    Generate Acceptance Criteria
+                  </button>
                 </div>
               </div>
 
@@ -446,10 +930,10 @@ const FeatureDetails = () => {
                   <button
                     className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
                     onClick={handleGenerateTest}
-                    disabled={generatingTest}
+                    disabled={generationState.isGenerating}
                   >
                     <Sparkles size={18} className="mr-2" />
-                    {generatingTest ? 'Generating...' : 'Generate Tests with AI'}
+                    {generationState.isGenerating ? 'Generating...' : 'Generate Tests with AI'}
                   </button>
                   <button
                     className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
@@ -468,10 +952,10 @@ const FeatureDetails = () => {
                     <button
                       className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
                       onClick={handleGenerateTest}
-                      disabled={generatingTest}
+                      disabled={generationState.isGenerating}
                     >
                       <Sparkles size={18} className="mr-2" />
-                      {generatingTest ? 'Generating...' : 'Generate Tests with AI'}
+                      {generationState.isGenerating ? 'Generating...' : 'Generate Tests with AI'}
                     </button>
                     <button
                       className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
@@ -528,7 +1012,7 @@ const FeatureDetails = () => {
         )}
       </div>
 
-      {/* Add Test Modal */}
+      {/* Other modals */}
       {isAddTestModalOpen && (
         <AddTestModal
           onClose={() => setIsAddTestModalOpen(false)}
@@ -537,15 +1021,6 @@ const FeatureDetails = () => {
         />
       )}
 
-      {/* Test Generation Status Modal */}
-      {isTestGenerationModalOpen && (
-        <TestGenerationStatusModal
-          onClose={handleGenerationComplete}
-          taskId={testGenerationTaskId}
-        />
-      )}
-
-      {/* Test Details Modal */}
       {isTestDetailsModalOpen && selectedTest && (
         <TestDetailsModal
           onClose={() => setIsTestDetailsModalOpen(false)}
@@ -554,7 +1029,6 @@ const FeatureDetails = () => {
         />
       )}
 
-      {/* Add User Story Modal */}
       {isAddUserStoryModalOpen && feature && (
         <AddUserStoryModal
           onClose={() => setIsAddUserStoryModalOpen(false)}
@@ -564,137 +1038,6 @@ const FeatureDetails = () => {
         />
       )}
 
-      {/* Add Acceptance Criteria Modal */}
-      {isAddCriteriaModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">
-                  Add Acceptance Criteria
-                </h2>
-                <button
-                  onClick={() => setIsAddCriteriaModalOpen(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <XCircle size={24} />
-                </button>
-              </div>
-
-              <p className="text-gray-600 mb-2">
-                For feature:
-              </p>
-              <p className="font-medium text-gray-800 mb-6">
-                {feature?.name}
-              </p>
-
-              {error && (
-                <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start">
-                  <AlertCircle size={20} className="mr-2 flex-shrink-0 mt-1" />
-                  <p>{error}</p>
-                </div>
-              )}
-
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-
-                const formData = new FormData(e.target);
-                const name = formData.get('name');
-                const description = formData.get('description');
-
-                if (!name || !description) {
-                  setError('Name and description are required');
-                  return;
-                }
-
-                try {
-                  // Create the acceptance criteria via API
-                  const response = await axios.post(
-                    `${API_URL}/acceptance-criteria/`,
-                    {
-                      name,
-                      description,
-                      feature_id: featureId
-                    },
-                    { withCredentials: true }
-                  );
-
-                  // Update the state with the new criteria
-                  handleCriteriaAdded(response.data);
-
-                  // Close the modal
-                  setIsAddCriteriaModalOpen(false);
-                } catch (err) {
-                  console.error('Error creating acceptance criteria:', err);
-                  setError('Failed to create acceptance criteria. Please try again.');
-                }
-              }}>
-                <div className="mb-4">
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                    Title *
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter a concise name for this criteria"
-                    required
-                  />
-                  <p className="mt-1 text-sm text-gray-500">
-                    Example: "Email Confirmation"
-                  </p>
-                </div>
-
-                <div className="mb-6">
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                    Description *
-                  </label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    rows="4"
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Describe a specific condition that must be met for the feature to be considered complete"
-                    required
-                  ></textarea>
-                  <p className="mt-2 text-sm text-gray-500">
-                    Good example: "User receives an email confirmation after successful registration"
-                  </p>
-                </div>
-
-                <div className="flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddCriteriaModalOpen(false)}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  >
-                    Create Acceptance Criteria
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Generate User Stories Modal */}
-      {isGenerateUserStoriesModalOpen && (
-        <GenerateUserStoriesModal
-          onClose={() => setIsGenerateUserStoriesModalOpen(false)}
-          taskId={userStoriesGenerationTaskId}
-          featureName={feature?.name || ''}
-          onComplete={handleUserStoriesGenerationComplete}
-        />
-      )}
-
-      {/* Edit Feature Modal */}
       {isEditFeatureModalOpen && feature && (
         <EditFeatureModal
           onClose={() => setIsEditFeatureModalOpen(false)}

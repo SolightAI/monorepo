@@ -139,7 +139,7 @@ function AppContent() {
 
                 {/* Product details page */}
                 <Route path="/products/:productId" element={<ProductDetails />} />
-                
+
                 {/* Epic details page */}
                 <Route path="/epics/:epicId" element={<EpicDetails />} />
                 {/* Feature details page */}

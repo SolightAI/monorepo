@@ -34,4 +34,4 @@ export const getGenerationStatus = async (taskId) => {
   );
 
   return response.data;
-}; 
+};
