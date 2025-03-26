@@ -99,7 +99,7 @@ export const triggerFeatureTestGeneration = async (featureId) => {
       {},
       { withCredentials: true }
     );
-    return response.data;
+    return response.data.task_id;
   } catch (error) {
     console.error(`Error triggering test generation for feature ${featureId}:`, error);
     throw error;
@@ -119,6 +119,23 @@ export const getTestGenerationStatus = async (taskId) => {
     return response.data;
   } catch (error) {
     console.error(`Error checking test generation status for task ${taskId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Get tests by product ID
+ * @param {string} productId - The UUID of the product
+ * @returns {Promise<Array>} Promise with tests data for the product
+ */
+export const getTestsByProduct = async (productId) => {
+  try {
+    const response = await axios.get(`${API_URL}/tests/by-product/${productId}`, {
+      withCredentials: true
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching tests for product ${productId}:`, error);
     throw error;
   }
 };

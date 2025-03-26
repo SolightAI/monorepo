@@ -5,7 +5,6 @@ from services.test_services import (
     create_test,
     get_all_tests,
     update_test_status,
-    get_tests_by_product_path,
     get_tests_by_feature,
     delete_test,
     update_test,
@@ -15,6 +14,7 @@ from services.test_services import (
     add_test_secret,
     get_test_secrets,
     delete_test_secret,
+    get_tests_by_product_id,
 )
 from services.test_execution_services import get_test_executions_by_test
 from pydantic import UUID4
@@ -35,18 +35,18 @@ async def get_all_tests_endpoint() -> List[TestSchema]:
     return await get_all_tests()
 
 
-@router.get("/by-product-path/{url_path}")
-async def get_tests_by_product_path_endpoint(url_path: str) -> List[TestSchema]:
+@router.get("/by-product/{product_id}")
+async def get_tests_by_product_id_endpoint(product_id: UUID4) -> List[TestSchema]:
     """
-    Get all tests related to a product that matches the given URL path.
+    Get all tests related to a product by its ID.
 
     Args:
-        url_path: The URL path segment to match against product URLs
+        product_id: The UUID of the product
 
     Returns:
-        A list of tests for the matched product, or an empty list if no product matches
+        A list of tests for the product, or an empty list if no product found
     """
-    return await get_tests_by_product_path(url_path)
+    return await get_tests_by_product_id(product_id)
 
 
 @router.get("/by-feature/{feature_id}")

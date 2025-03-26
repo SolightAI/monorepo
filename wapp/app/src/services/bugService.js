@@ -64,22 +64,6 @@ export const getBugsByProductId = async (productId) => {
 };
 
 /**
- * Get bugs for a specific product by path
- * @param {string} productPath - The product path
- * @returns {Promise} Promise with the bugs data
- * @deprecated Use getBugsByProductId instead
- */
-export const getBugsByProductPath = async (productPath) => {
-  try {
-    const response = await axios.get(`${API_URL}/bugs/by-product-path/${productPath}`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching bugs for product ${productPath}:`, error);
-    throw error;
-  }
-};
-
-/**
  * Create a new bug
  * @param {Object} bugData - The bug data
  * @param {string} bugData.test_id - ID of the test this bug is associated with

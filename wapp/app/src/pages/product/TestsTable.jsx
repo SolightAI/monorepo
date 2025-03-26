@@ -14,8 +14,8 @@ import {
   Layers,
   FileText
 } from 'lucide-react';
-import { getAllTests, getTestsByFeature, getTestsByEpic } from '@/services/testService';
-import { getAllEpics, getAllFeatures, getFeaturesByEpic } from '@/services/productService';
+import { getAllTests, getTestsByFeature, getTestsByEpic, getTestsByProduct } from '@/services/testService';
+import { getAllEpics, getFeaturesByEpic } from '@/services/productService';
 import { useProduct } from '@/context/ProductContext';
 import TestDetails from '@/components/test/TestDetails';
 
@@ -43,8 +43,8 @@ const TestsTable = () => {
   const { selectedProduct } = useProduct();
 
   useEffect(() => {
-    fetchTests('all', 'all');
     if (selectedProduct) {
+      fetchTestsByProduct(selectedProduct.id);
       fetchEpicsAndFeatures();
     }
   }, [selectedProduct]);
@@ -116,30 +116,12 @@ const TestsTable = () => {
     }
   };
 
-  const fetchTests = async (epicIdOverride = null, featureIdOverride = null) => {
+  const fetchTestsByProduct = async (productId) => {
     try {
       setLoading(true);
       setError(null);
-
-      let testsData;
-
-      // Use override values if provided, otherwise use state values
-      const currentFeature = featureIdOverride !== null ? featureIdOverride : selectedFeature;
-      const currentEpic = epicIdOverride !== null ? epicIdOverride : selectedEpic;
-
-      if (currentFeature !== 'all') {
-        // If a feature is selected, get tests for that feature
-        testsData = await getTestsByFeature(currentFeature);
-      } else if (currentEpic !== 'all') {
-        // If only an epic is selected, get tests for all features in that epic
-        testsData = await getTestsByEpic(currentEpic);
-      } else {
-        // Otherwise, get all tests
-        testsData = await getAllTests();
-      }
-
+      const testsData = await getTestsByProduct(productId);
       setTests(testsData);
-      // Apply filters to the new data immediately
       applyFilters(testsData, selectedStatus, searchQuery);
     } catch (err) {
       console.error('Error fetching tests:', err);
@@ -227,18 +209,49 @@ const TestsTable = () => {
     setSelectedEpic(epicId);
     if (epicId === 'all') {
       setSelectedFeature('all');
-      // Refresh tests with epicId = 'all'
-      fetchTests('all', 'all');
+      // Refresh tests with product ID
+      fetchTestsByProduct(selectedProduct.id);
     } else {
-      // Refresh tests with the new epicId
-      fetchTests(epicId, 'all');
+      // Get tests for the epic
+      getTestsByEpic(epicId).then(testsData => {
+        setTests(testsData);
+        applyFilters(testsData, selectedStatus, searchQuery);
+      }).catch(err => {
+        console.error('Error fetching tests:', err);
+        setError('Failed to load tests data. Please try again later.');
+        setFilteredTests([]);
+      });
     }
   };
 
   const handleFeatureChange = (featureId) => {
     setSelectedFeature(featureId);
-    // Re-fetch tests with the new featureId
-    fetchTests(selectedEpic, featureId);
+    if (featureId === 'all') {
+      // If feature is 'all', get tests for the epic
+      if (selectedEpic !== 'all') {
+        getTestsByEpic(selectedEpic).then(testsData => {
+          setTests(testsData);
+          applyFilters(testsData, selectedStatus, searchQuery);
+        }).catch(err => {
+          console.error('Error fetching tests:', err);
+          setError('Failed to load tests data. Please try again later.');
+          setFilteredTests([]);
+        });
+      } else {
+        // If no epic selected, get all tests for the product
+        fetchTestsByProduct(selectedProduct.id);
+      }
+    } else {
+      // Get tests for the specific feature
+      getTestsByFeature(featureId).then(testsData => {
+        setTests(testsData);
+        applyFilters(testsData, selectedStatus, searchQuery);
+      }).catch(err => {
+        console.error('Error fetching tests:', err);
+        setError('Failed to load tests data. Please try again later.');
+        setFilteredTests([]);
+      });
+    }
   };
 
   const getSortIcon = (key) => {
@@ -280,7 +293,27 @@ const TestsTable = () => {
   const handleTestClose = () => {
     setSelectedTest(null);
     // Refresh tests list after viewing test details with current filters
-    fetchTests(selectedEpic, selectedFeature);
+    if (selectedFeature !== 'all') {
+      getTestsByFeature(selectedFeature).then(testsData => {
+        setTests(testsData);
+        applyFilters(testsData, selectedStatus, searchQuery);
+      }).catch(err => {
+        console.error('Error fetching tests:', err);
+        setError('Failed to load tests data. Please try again later.');
+        setFilteredTests([]);
+      });
+    } else if (selectedEpic !== 'all') {
+      getTestsByEpic(selectedEpic).then(testsData => {
+        setTests(testsData);
+        applyFilters(testsData, selectedStatus, searchQuery);
+      }).catch(err => {
+        console.error('Error fetching tests:', err);
+        setError('Failed to load tests data. Please try again later.');
+        setFilteredTests([]);
+      });
+    } else {
+      fetchTestsByProduct(selectedProduct.id);
+    }
   };
 
   if (loading) {
@@ -298,7 +331,7 @@ const TestsTable = () => {
         <h2 className="text-xl font-semibold mb-2">Error</h2>
         <p>{error}</p>
         <button
-          onClick={() => fetchTests(selectedEpic, selectedFeature)}
+          onClick={() => fetchTestsByProduct(selectedProduct.id)}
           className="mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 rounded-md text-red-800"
         >
           Try Again
@@ -512,7 +545,7 @@ const TestsTable = () => {
                                   setSelectedStatus('all');
                                   setSelectedEpic('all');
                                   setSelectedFeature('all');
-                                  fetchTests('all', 'all');
+                                  fetchTestsByProduct(selectedProduct.id);
                                 }}
                                 className="text-blue-600 underline mt-2"
                               >
