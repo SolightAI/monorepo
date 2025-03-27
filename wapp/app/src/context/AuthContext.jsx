@@ -22,6 +22,17 @@ export const AuthProvider = ({ children }) => {
 
   const AUTH_ROUTES = ['/login', '/register', '/auth/google/callback'];
 
+  // Validate invitation code
+  const validateInvitationCode = async (code, email) => {
+    try {
+      const url = `${API_URL}/invitations/validate/${code}` + (email ? `?email=${email}` : '');
+      const response = await axios.get(url);
+      return { valid: true, data: response.data };
+    } catch (error) {
+      return { valid: false, error: error.response?.data?.detail || 'Invalid code' };
+    }
+  };
+
   // Initialize auth state from localStorage on mount
   useEffect(() => {
     const storedAuthState = localStorage.getItem('isAuthenticated') === 'true';
@@ -385,7 +396,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     checkAdminStatus,
     handleGoogleCallback,
-    checkAuthStatus
+    checkAuthStatus,
+    validateInvitationCode
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

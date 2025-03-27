@@ -1,12 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader, AlertCircle, Plus, ArrowLeft, Sparkles, Edit, Zap, Building } from 'lucide-react';
+import { Loader, AlertCircle, ArrowLeft, Building, Zap } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
-import EpicCreationModal from '@/components/modals/EpicCreationModal';
-import EpicGenerationModal from '@/components/modals/EpicGenerationModal';
-import ComprehensiveGenerationModal from '@/components/modals/ComprehensiveGenerationModal';
 import GenerationProgressModal from '@/components/modals/GenerationProgressModal';
 import { triggerFullGeneration } from '@/services/generationService';
 
@@ -20,12 +17,7 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [epics, setEpics] = useState([]);
-
-  // State for modals
-  const [showEpicModal, setShowEpicModal] = useState(false);
-  const [showEpicGenerationModal, setShowEpicGenerationModal] = useState(false);
-  const [showComprehensiveGenerationModal, setShowComprehensiveGenerationModal] = useState(false);
-
+  
   // State for "Generate All" functionality
   const [isGenerateAllModalOpen, setIsGenerateAllModalOpen] = useState(false);
   const [generateAllTaskId, setGenerateAllTaskId] = useState(null);
@@ -35,7 +27,7 @@ const ProductDetails = () => {
   // Fetch product details and epics
   const fetchProductDetails = useCallback(async () => {
     if (!productId) return;
-
+    
     setLoading(true);
     setError(null);
 
@@ -46,7 +38,7 @@ const ProductDetails = () => {
       });
 
       setSelectedProduct(productResponse.data);
-
+      
       // Set epics from the product data
       if (productResponse.data.epics && productResponse.data.epics.length > 0) {
         setEpics(productResponse.data.epics);
@@ -65,64 +57,28 @@ const ProductDetails = () => {
   useEffect(() => {
     fetchProductDetails();
   }, [fetchProductDetails, productId]);
-
-  const handleEpicCreationComplete = async (createdEpics) => {
-    // Hide the epic creation modal
-    setShowEpicModal(false);
-
-    // Refresh product details to show the updated data
-    await fetchProductDetails();
-  };
-
-  const handleEpicGenerationComplete = async (generatedEpics) => {
-    // Hide the epic generation modal
-    setShowEpicGenerationModal(false);
-
-    // Refresh product details to show the newly generated epics
-    await fetchProductDetails();
-  };
-
-  const handleComprehensiveGenerationComplete = async () => {
-    // Hide the comprehensive generation modal
-    setShowComprehensiveGenerationModal(false);
-
-    // Refresh product details to show all the newly generated data
-    await fetchProductDetails();
-  };
-
-  const handleManageEpics = () => {
-    setShowEpicModal(true);
-  };
-
-  const handleGenerateEpics = () => {
-    setShowEpicGenerationModal(true);
-  };
-
-  const handleGenerateEverything = () => {
-    setShowComprehensiveGenerationModal(true);
-  };
-
+  
   // Handle "Generate All" button click
   const handleGenerateAll = async () => {
     if (!selectedProduct) {
       setError('No product selected. Please try again.');
       return;
     }
-
+    
     if (!epics || epics.length === 0) {
       setError('No epics found. Please add or generate epics first.');
       return;
     }
-
+    
     try {
       setError(null);
-
+      
       // Call the unified generation endpoint for the product
       const response = await triggerFullGeneration('product', selectedProduct.id);
-
+      
       // Store the task ID for tracking
       setGenerateAllTaskId(response.task_id);
-
+      
       // Show the progress modal
       setIsGenerateAllModalOpen(true);
     } catch (err) {
@@ -130,12 +86,12 @@ const ProductDetails = () => {
       setError('Failed to start generation. Please try again.');
     }
   };
-
+  
   // Handle generation completion
   const handleGenerationComplete = () => {
     // Refresh product details to show updated content
     fetchProductDetails();
-
+    
     // Reset state
     setIsGenerateAllModalOpen(false);
     setGenerateAllTaskId(null);
@@ -179,13 +135,13 @@ const ProductDetails = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Back button to return to organizations */}
+        {/* Back button to return to home */}
         <button
-          onClick={() => navigate('/organizations')}
+          onClick={() => navigate('/')}
           className="flex items-center mb-6 text-gray-600 hover:text-blue-600 transition-colors"
         >
           <ArrowLeft size={20} className="mr-2" />
-          Back to Organizations
+          Back to Product Home
         </button>
 
         {/* Error message */}
@@ -232,6 +188,13 @@ const ProductDetails = () => {
                     Organization: {selectedOrganization.name}
                   </div>
                 )}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <h2 className="text-lg font-semibold mb-2">About This Page</h2>
+                  <p className="text-gray-600">
+                    This page provides a streamlined way to generate all content for this product using our unified generation API. 
+                    The "Generate All" button will create content for all epics, features, user stories, acceptance criteria, and tests.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -239,58 +202,15 @@ const ProductDetails = () => {
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">Epics</h2>
-                <div className="flex space-x-3">
-                  <button
-                    className="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg shadow hover:from-green-700 hover:to-blue-700 transition duration-150"
-                    onClick={handleGenerateEverything}
-                  >
-                    <Sparkles size={18} className="mr-2" />
-                    Generate Everything
-                  </button>
-                  <button
-                    className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-150"
-                    onClick={handleGenerateEpics}
-                  >
-                    <Zap size={18} className="mr-2" />
-                    Generate Epics
-                  </button>
-                  <button
-                    className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
-                    onClick={handleManageEpics}
-                  >
-                    <Plus size={18} className="mr-2" />
-                    {epics.length > 0 ? 'Manage Epics' : 'Add Epics'}
-                  </button>
-                </div>
               </div>
 
               {/* Epic cards or empty state */}
               {!epics || epics.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
                   <p className="text-gray-500 mb-4">No epics found for this product</p>
-                  <div className="flex justify-center space-x-4">
-                    <button
-                      onClick={handleGenerateEverything}
-                      className="px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg shadow hover:from-green-700 hover:to-blue-700 transition duration-150 flex items-center"
-                    >
-                      <Sparkles size={18} className="mr-2" />
-                      Generate everything
-                    </button>
-                    <button
-                      onClick={handleGenerateEpics}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-150 flex items-center"
-                    >
-                      <Zap size={18} className="mr-2" />
-                      Generate epics
-                    </button>
-                    <button
-                      onClick={handleManageEpics}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150 flex items-center"
-                    >
-                      <Plus size={18} className="mr-2" />
-                      Create epics manually
-                    </button>
-                  </div>
+                  <p className="text-sm text-gray-600">
+                    Return to the product home page to add or generate epics.
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -302,13 +222,12 @@ const ProductDetails = () => {
                     >
                       <div className="p-6">
                         <div className="flex items-center mb-3">
-                          <Sparkles size={18} className="text-purple-500 mr-2" />
                           <h3 className="text-xl font-semibold text-gray-800 truncate">{epic.name}</h3>
                         </div>
                         {epic.description && (
                           <p className="text-gray-700 line-clamp-2 mb-4">{epic.description}</p>
                         )}
-
+                        
                         <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
                           <span className="text-sm text-gray-500">
                             {epic.features?.length || 0} features
@@ -332,49 +251,7 @@ const ProductDetails = () => {
           </>
         )}
       </div>
-
-      {/* Epic Creation Modal */}
-      {showEpicModal && selectedProduct && (
-        <EpicCreationModal
-          productId={selectedProduct.id}
-          productName={selectedProduct.name}
-          productLinks={selectedProduct.links_to_documentation}
-          existingEpics={epics}
-          isEditing={epics.length > 0}
-          onClose={() => {
-            setShowEpicModal(false);
-            fetchProductDetails();
-          }}
-          onComplete={handleEpicCreationComplete}
-        />
-      )}
-
-      {/* Epic Generation Modal */}
-      {showEpicGenerationModal && selectedProduct && (
-        <EpicGenerationModal
-          productId={selectedProduct.id}
-          productName={selectedProduct.name}
-          onClose={() => {
-            setShowEpicGenerationModal(false);
-            fetchProductDetails();
-          }}
-          onComplete={handleEpicGenerationComplete}
-        />
-      )}
-
-      {/* Comprehensive Generation Modal */}
-      {showComprehensiveGenerationModal && selectedProduct && (
-        <ComprehensiveGenerationModal
-          productId={selectedProduct.id}
-          productName={selectedProduct.name}
-          onClose={() => {
-            setShowComprehensiveGenerationModal(false);
-            fetchProductDetails();
-          }}
-          onComplete={handleComprehensiveGenerationComplete}
-        />
-      )}
-
+      
       {/* Generate All Progress Modal */}
       {isGenerateAllModalOpen && generateAllTaskId && (
         <GenerationProgressModal

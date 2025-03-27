@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, AlertCircle, CheckCircle, Clock, Loader } from 'lucide-react';
 import useGenerationStatus from '@/hooks/useGenerationStatus';
+import { getFeatureGenerationStatus } from '@/api/featureGeneration';
+import { getGenerationStatus } from '@/services/generationService';
 
-const GenerationProgressModal = ({ taskId, scope, onClose }) => {
+// Adding taskType parameter to distinguish between feature generation and full generation
+const GenerationProgressModal = ({ taskId, scope, taskType = 'general', onClose }) => {
+  // Custom hook for status tracking
   const {
     status,
     progress,
@@ -11,59 +15,97 @@ const GenerationProgressModal = ({ taskId, scope, onClose }) => {
     isComplete,
     hasErrors,
     errors
-  } = useGenerationStatus(taskId, scope);
+  } = useGenerationStatus(taskId, scope, taskType);
+
+  useEffect(() => {
+    console.log('GenerationProgressModal rendered with:', {
+      taskId,
+      scope,
+      taskType,
+      status: status?.status,
+      progress,
+      isLoading,
+      error,
+      isComplete,
+      hasErrors,
+      errorCount: errors?.length,
+    });
+  }, [taskId, scope, taskType, status, progress, isLoading, error, isComplete, hasErrors, errors]);
 
   // Get appropriate title based on scope
   const getTitle = () => {
     if (!status) return 'Generating...';
 
-    switch (status.scope) {
-      case 'feature':
-        return 'Generating Content for Feature';
-      case 'epic':
-        return 'Generating Content for Epic';
-      case 'product':
-        return 'Generating Content for Product';
-      default:
-        return 'Generating...';
-    }
+    const title = (() => {
+      switch (status.scope) {
+        case 'feature':
+          return 'Generating Content for Feature';
+        case 'epic':
+          return 'Generating Content for Epic';
+        case 'product':
+          return 'Generating Content for Product';
+        default:
+          return 'Generating...';
+      }
+    })();
+    
+    console.log('Modal title:', title);
+    return title;
   };
 
   // Get subtitle based on current state
   const getSubtitle = () => {
-    if (error) return 'Error occurred during generation';
-    if (isComplete) return 'Generation completed successfully';
-    if (hasErrors) return 'Generation completed with some errors';
-    if (!status?.current_item) return 'Preparing...';
-
-    // For feature-level generation
-    if (status.scope === 'feature') {
+    let subtitle;
+    
+    if (error) {
+      subtitle = 'Error occurred during generation';
+    } else if (isComplete) {
+      subtitle = 'Generation completed successfully';
+    } else if (hasErrors) {
+      subtitle = 'Generation completed with some errors';
+    } else if (!status?.current_item) {
+      // Different message based on task type
+      subtitle = taskType === 'feature' ? 'Generating features...' : 'Preparing...';
+    } else if (status.scope === 'feature') {
       switch (status.current_item.stage) {
         case 'user_stories':
-          return 'Generating user stories';
+          subtitle = 'Generating user stories';
+          break;
         case 'acceptance_criteria':
-          return 'Generating acceptance criteria';
+          subtitle = 'Generating acceptance criteria';
+          break;
         case 'tests':
-          return 'Generating tests';
+          subtitle = 'Generating tests';
+          break;
         default:
-          return 'Processing...';
+          subtitle = 'Processing...';
       }
+    } else if (status.current_item) {
+      subtitle = `Processing ${status.current_item.name} (${status.current_item.index} of ${status.current_item.total})`;
+    } else {
+      subtitle = 'Processing items...';
     }
-
-    // For epic/product levels
-    if (status.current_item) {
-      return `Processing ${status.current_item.name} (${status.current_item.index} of ${status.current_item.total})`;
-    }
-
-    return 'Processing items...';
+    
+    console.log('Modal subtitle:', subtitle, { error, isComplete, hasErrors });
+    return subtitle;
   };
 
   // Get appropriate icon for current status
   const getStatusIcon = () => {
-    if (error) return <AlertCircle className="text-red-500" size={24} />;
-    if (isComplete) return <CheckCircle className="text-green-500" size={24} />;
-    if (hasErrors) return <AlertCircle className="text-orange-500" size={24} />;
+    if (error) {
+      console.log('Showing error icon due to error:', error);
+      return <AlertCircle className="text-red-500" size={24} />;
+    }
+    if (isComplete) {
+      console.log('Showing complete icon - generation completed');
+      return <CheckCircle className="text-green-500" size={24} />;
+    }
+    if (hasErrors) {
+      console.log('Showing warning icon - generation has errors');
+      return <AlertCircle className="text-orange-500" size={24} />;
+    }
 
+    console.log('Showing loading spinner - generation in progress');
     return <Loader className="text-blue-500 animate-spin" size={24} />;
   };
 
@@ -77,7 +119,10 @@ const GenerationProgressModal = ({ taskId, scope, onClose }) => {
             <h2 className="text-lg font-semibold ml-2">{getTitle()}</h2>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => {
+              console.log('Modal close button clicked');
+              onClose();
+            }}
             className="text-gray-500 hover:text-gray-700"
           >
             <X size={20} />
@@ -135,14 +180,20 @@ const GenerationProgressModal = ({ taskId, scope, onClose }) => {
         <div className="flex justify-end p-4 border-t">
           {(isComplete || hasErrors) ? (
             <button
-              onClick={onClose}
+              onClick={() => {
+                console.log('Close button clicked (complete/errors)');
+                onClose();
+              }}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               Close
             </button>
           ) : (
             <button
-              onClick={onClose}
+              onClick={() => {
+                console.log('Continue in background button clicked');
+                onClose();
+              }}
               className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
             >
               Continue in background

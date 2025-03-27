@@ -8,15 +8,26 @@ const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
  * @returns {Promise<string>} The task ID for tracking the generation
  */
 export const generateFeatures = async (epicId) => {
-  const response = await axios.post(
-    `${API_URL}/feature-generation/${epicId}`,
-    {},
-    {
-      withCredentials: true,
-    }
-  );
+  console.log(`Starting feature generation for epic: ${epicId}`);
+  try {
+    const url = `${API_URL}/feature-generation/${epicId}`;
+    console.log(`Making POST request to: ${url}`);
 
-  return response.data.task_id;
+    const response = await axios.post(
+      url,
+      {},
+      {
+        withCredentials: true,
+      }
+    );
+
+    console.log('Feature generation initiated successfully:', response.data);
+    return response.data.task_id;
+  } catch (error) {
+    console.error('Error starting feature generation:', error);
+    console.error('Error details:', error.response?.data || error.message);
+    throw error;
+  }
 };
 
 /**
@@ -25,12 +36,23 @@ export const generateFeatures = async (epicId) => {
  * @returns {Promise<Object>} The current status of the generation task
  */
 export const getFeatureGenerationStatus = async (taskId) => {
-  const response = await axios.get(
-    `${API_URL}/feature-generation/status/${taskId}`,
-    {
-      withCredentials: true,
-    }
-  );
+  console.log(`Checking feature generation status for task: ${taskId}`);
+  try {
+    const url = `${API_URL}/feature-generation/status/${taskId}`;
+    console.log(`Making GET request to: ${url}`);
 
-  return response.data;
+    const response = await axios.get(
+      url,
+      {
+        withCredentials: true,
+      }
+    );
+
+    console.log('Feature generation status response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error checking feature generation status:', error);
+    console.error('Error details:', error.response?.data || error.message);
+    throw error;
+  }
 };

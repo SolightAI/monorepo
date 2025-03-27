@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { getFeatureGenerationStatus } from '@/api/featureGeneration';
+import { getGenerationStatus } from '@/services/generationService';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -9,48 +11,64 @@ const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
  *
  * @param {string} taskId - The task ID to track
  * @param {string} scope - The scope of generation ('feature', 'epic', 'product')
+ * @param {string} taskType - The type of task ('general' or 'feature')
  * @returns {Object} Status information and loading state
  */
-const useGenerationStatus = (taskId, scope) => {
+const useGenerationStatus = (taskId, scope, taskType = 'general') => {
   const [status, setStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pollInterval, setPollInterval] = useState(null);
 
   useEffect(() => {
+    console.log('useGenerationStatus hook initialized with:', { taskId, scope, taskType });
+    
     if (!taskId) {
+      console.warn('No taskId provided to useGenerationStatus hook');
       setIsLoading(false);
       return;
     }
 
     const fetchStatus = async () => {
       try {
-        const response = await axios.get(
-          `${API_URL}/generation/status/${taskId}`,
-          { withCredentials: true }
-        );
+        console.log(`Fetching ${taskType} generation status for taskId: ${taskId}`);
+        
+        let response;
+        // Choose the correct API endpoint based on task type
+        if (taskType === 'feature') {
+          // Feature generation status endpoint
+          response = await getFeatureGenerationStatus(taskId);
+        } else {
+          // General generation status endpoint
+          response = await getGenerationStatus(taskId);
+        }
 
-        setStatus(response.data);
+        console.log(`${taskType.charAt(0).toUpperCase() + taskType.slice(1)} generation status response:`, response);
+        setStatus(response);
         setIsLoading(false);
 
         // Stop polling if generation is complete or failed
         if (
-          response.data.status === 'completed' ||
-          response.data.status === 'completed_with_errors' ||
-          response.data.status === 'failed'
+          response.status === 'completed' ||
+          response.status === 'completed_with_errors' ||
+          response.status === 'failed'
         ) {
+          console.log(`Generation process finished with status: ${response.status}`);
           if (pollInterval) {
+            console.log('Stopping status polling - generation process has ended');
             clearInterval(pollInterval);
             setPollInterval(null);
           }
         }
       } catch (err) {
-        console.error('Error fetching generation status:', err);
-        setError(err.message || 'Failed to fetch generation status');
+        console.error(`Error fetching ${taskType} generation status:`, err);
+        console.error('Error details:', err.response?.data || err.message);
+        setError(err.message || `Failed to fetch ${taskType} generation status`);
         setIsLoading(false);
 
         // Stop polling on error
         if (pollInterval) {
+          console.log('Stopping status polling due to error');
           clearInterval(pollInterval);
           setPollInterval(null);
         }
@@ -58,10 +76,12 @@ const useGenerationStatus = (taskId, scope) => {
     };
 
     // Fetch initial status
+    console.log(`Performing initial ${taskType} status fetch`);
     fetchStatus();
 
     // Set up polling interval
     if (!pollInterval) {
+      console.log(`Setting up polling interval for ${taskType} status updates (every 3s)`);
       const interval = setInterval(fetchStatus, 3000); // Poll every 3 seconds
       setPollInterval(interval);
     }
@@ -69,10 +89,11 @@ const useGenerationStatus = (taskId, scope) => {
     // Clean up on unmount
     return () => {
       if (pollInterval) {
+        console.log('Cleaning up polling interval on hook unmount');
         clearInterval(pollInterval);
       }
     };
-  }, [taskId]);
+  }, [taskId, taskType]);
 
   // Helper function to calculate overall progress percentage
   const calculateProgress = () => {
@@ -81,6 +102,12 @@ const useGenerationStatus = (taskId, scope) => {
     // If we have specific progress information
     if (status.current_item?.progress) {
       return status.current_item.progress;
+    }
+
+    // Feature generation has a simpler progress model
+    if (taskType === 'feature') {
+      // Return progress directly if available, otherwise default to 0
+      return status.progress || 0;
     }
 
     // Calculate based on completed items
@@ -99,24 +126,55 @@ const useGenerationStatus = (taskId, scope) => {
       const index = status.current_item?.index || 0;
       const stageProgress = status.current_item?.progress || 0;
 
+      console.log('Calculating progress:', { 
+        total, 
+        completed, 
+        index, 
+        stageProgress 
+      });
+
       // Calculate progress as a combination of completed items and current progress
       if (completed === total) return 100;
 
       const baseProgress = (completed / total) * 100;
       const currentItemProgress = (stageProgress / 100) * (1 / total) * 100;
+      const calculatedProgress = Math.floor(baseProgress + currentItemProgress);
 
-      return Math.floor(baseProgress + currentItemProgress);
+      console.log('Progress calculation details:', {
+        baseProgress,
+        currentItemProgress,
+        calculatedProgress
+      });
+
+      return calculatedProgress;
     }
   };
 
+  const progress = calculateProgress();
+  const isComplete = status?.status === 'completed';
+  const hasErrors = status?.status === 'completed_with_errors' || status?.status === 'failed';
+  const errors = status?.errors || [];
+
+  console.log('useGenerationStatus hook returning:', {
+    taskType,
+    statusState: status?.status,
+    progress,
+    isLoading,
+    hasError: !!error,
+    errorMessage: error,
+    isComplete,
+    hasErrors,
+    errorCount: errors.length
+  });
+
   return {
     status,
-    progress: calculateProgress(),
+    progress,
     isLoading,
     error,
-    isComplete: status?.status === 'completed',
-    hasErrors: status?.status === 'completed_with_errors' || status?.status === 'failed',
-    errors: status?.errors || [],
+    isComplete,
+    hasErrors,
+    errors,
   };
 };
 
