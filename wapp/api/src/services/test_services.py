@@ -316,14 +316,17 @@ async def get_test_generation_status(test_id: UUID4) -> dict:
     return response.json()
 
 
-async def poll_test_generation_status(test_id: UUID4) -> None:
-    while True:
+async def poll_test_generation_status(test_id: UUID4, max_attempts: int = 60, interval: int = 1) -> None:
+    attempts = 0
+
+    while attempts < max_attempts:
+        attempts += 1
 
         response = await get_test_generation_status(test_id)
         status = response["status"]
 
         if status == "pending":
-            await asyncio.sleep(1)
+            await asyncio.sleep(interval)
             continue
 
         elif status == "error":
@@ -351,6 +354,10 @@ async def poll_test_generation_status(test_id: UUID4) -> None:
         else:
             logger.error(f"Unknown test generation status: {status}")
             return
+
+    # If we've exhausted attempts, log a timeout error
+    logger.error(f"Timed out waiting for test generation to complete for test {test_id}")
+    return
 
 
 async def get_test_secrets(test_id: UUID4) -> List[TestSecretModel]:
