@@ -129,7 +129,7 @@ async def get_epic_generation_status(task_id: str) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"Error connecting to task manager: {str(e)}")
 
 
-async def poll_task_manager_status(product_id: UUID4, task_id: str, max_attempts: int = 600, interval: int = 1) -> None:
+async def poll_task_manager_status(product_id: UUID4, task_id: str, max_attempts: int = 120, interval: int = 5) -> None:
     """
     Poll the task manager for status updates and save generated epics.
 

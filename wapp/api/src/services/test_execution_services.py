@@ -182,7 +182,7 @@ async def create_test_execution(
     return await get_test_execution(test_execution_model.id)
 
 
-async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attempts: int = 60, interval: int = 10):
+async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attempts: int = 120, interval: int = 5):
     """
     Poll the task manager for status updates and update the test execution accordingly.
     This is a non-async function for use with FastAPI BackgroundTasks.
