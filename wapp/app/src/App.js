@@ -19,6 +19,7 @@ import EpicDetails from './pages/product/EpicDetails';
 import FeatureDetails from './pages/product/FeatureDetails';
 import UserStoryDetails from './pages/product/UserStoryDetails';
 import AcceptanceCriteriaDetails from './pages/product/AcceptanceCriteriaDetails';
+import ProductDetails from './pages/product/ProductDetails';
 import Secrets from './pages/product/Secrets';
 import TestsTable from './pages/product/TestsTable';
 import BugsTable from './pages/product/BugsTable';
@@ -135,6 +136,9 @@ function AppContent() {
                     <Dashboard />
                   </DashboardProvider>
                 } />
+
+                {/* Product details page */}
+                <Route path="/products/:productId" element={<ProductDetails />} />
 
                 {/* Epic details page */}
                 <Route path="/epics/:epicId" element={<EpicDetails />} />

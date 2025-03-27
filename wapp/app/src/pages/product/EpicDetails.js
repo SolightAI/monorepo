@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader, AlertCircle, Plus, ArrowLeft, Sparkles, Edit } from 'lucide-react';
+import { Loader, AlertCircle, Plus, ArrowLeft, Sparkles, Edit, Zap, Trash2 } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
 import AddFeatureModal from '@/components/modals/AddFeatureModal';
 import FeatureGenerationModal from '@/components/modals/FeatureGenerationModal';
 import EditFeatureModal from '@/components/modals/EditFeatureModal';
+import GenerationProgressModal from '@/components/modals/GenerationProgressModal';
+import { triggerFullGeneration } from '@/services/generationService';
+import { generateFeatures, getFeatureGenerationStatus } from '@/api/featureGeneration';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -24,6 +27,14 @@ const EpicDetails = () => {
   // State for Edit Feature Modal
   const [isEditFeatureModalOpen, setIsEditFeatureModalOpen] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState(null);
+
+  // State for "Generate All" functionality
+  const [isGenerateAllModalOpen, setIsGenerateAllModalOpen] = useState(false);
+  const [generateAllTaskId, setGenerateAllTaskId] = useState(null);
+
+  // State for delete confirmation
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [featureToDelete, setFeatureToDelete] = useState(null);
 
   const navigate = useNavigate();
 
@@ -84,6 +95,160 @@ const EpicDetails = () => {
     setIsEditFeatureModalOpen(true);
   };
 
+  // Handle feature delete
+  const handleDeleteFeature = (feature, e) => {
+    e.stopPropagation(); // Prevent row click from navigating
+    setFeatureToDelete(feature);
+    setShowDeleteConfirm(true);
+  };
+
+  // Confirm feature deletion
+  const confirmDeleteFeature = async () => {
+    if (!featureToDelete) return;
+    
+    try {
+      await axios.delete(`${API_URL}/features/${featureToDelete.id}`, {
+        withCredentials: true
+      });
+      
+      // Update the epic state by removing the deleted feature
+      setEpic(prevEpic => ({
+        ...prevEpic,
+        features: prevEpic.features.filter(f => f.id !== featureToDelete.id)
+      }));
+      
+      // Reset state
+      setFeatureToDelete(null);
+      setShowDeleteConfirm(false);
+    } catch (err) {
+      console.error('Error deleting feature:', err);
+      setError('Failed to delete feature. Please try again.');
+    }
+  };
+
+  // Handle "Generate All" button click
+  const handleGenerateAll = async () => {
+    try {
+      setError(null);
+      console.log('Starting Generate All process', { epicId, hasFeatures: !!(epic?.features?.length) });
+
+      // Check if there are any features
+      if (!epic?.features || epic.features.length === 0) {
+        console.log('No features found, initiating feature generation first');
+        // No features exist, trigger feature generation first
+        const featureTaskId = await generateFeatures(epicId);
+        console.log('Feature generation initiated with taskId:', featureTaskId);
+        
+        // Show the generation progress modal with the feature generation task
+        setGenerateAllTaskId(featureTaskId);
+        // Set specific task type for feature generation
+        setIsGenerateAllModalOpen(true);
+        
+        // Poll the feature generation task status
+        let isCompleted = false;
+        let attempts = 0;
+        const maxAttempts = 60; // 10 minutes (10s intervals)
+        
+        console.log('Starting polling loop for feature generation status');
+        while (!isCompleted && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 10000)); // 10-second polling
+          attempts++;
+          console.log(`Polling attempt ${attempts}/${maxAttempts} for taskId: ${featureTaskId}`);
+          
+          try {
+            const status = await getFeatureGenerationStatus(featureTaskId);
+            console.log('Feature generation status:', status);
+            
+            if (status.status === 'completed') {
+              console.log('Feature generation completed successfully');
+              isCompleted = true;
+              
+              // Refresh epic details to get the new features
+              console.log('Refreshing epic details to get newly generated features');
+              // Get fresh data directly from the API response
+              try {
+                const epicResponse = await axios.get(`${API_URL}/epics/${epicId}`, {
+                  withCredentials: true
+                });
+                
+                const freshEpicData = epicResponse.data;
+                console.log('Epic details refreshed directly', { 
+                  featureCount: freshEpicData?.features?.length 
+                });
+                
+                // Update state (though we won't rely on it immediately)
+                setEpic(freshEpicData);
+                
+                // Now that features exist, trigger full generation - using the fresh data
+                if (freshEpicData?.features && freshEpicData.features.length > 0) {
+                  console.log('Features found after refresh, triggering full generation');
+                  const response = await triggerFullGeneration('epic', epicId);
+                  console.log('Full generation triggered with taskId:', response.task_id);
+                  setGenerateAllTaskId(response.task_id);
+                  // Reset modal with new task ID and general type
+                  setIsGenerateAllModalOpen(false);
+                  setTimeout(() => setIsGenerateAllModalOpen(true), 100);
+                } else {
+                  // Still no features, show error
+                  console.error('Feature generation completed but no features were created');
+                  setError('Feature generation completed but no features were created.');
+                  setIsGenerateAllModalOpen(false);
+                }
+              } catch (fetchError) {
+                console.error('Error fetching refreshed epic details:', fetchError);
+                console.error('Error details:', fetchError.response?.data || fetchError.message);
+                setError('Error fetching updated epic data. Please try again.');
+                setIsGenerateAllModalOpen(false);
+              }
+            } else if (status.status === 'error') {
+              // Feature generation failed
+              console.error('Feature generation failed with error:', status.error);
+              setError(`Feature generation failed: ${status.error || 'Unknown error'}`);
+              setIsGenerateAllModalOpen(false);
+              break;
+            } else if (status.status === 'in_progress') {
+              console.log(`Feature generation in progress: ${status.progress || 0}%`);
+            } else {
+              console.log(`Feature generation status: ${status.status}`);
+            }
+          } catch (err) {
+            console.error('Error checking feature generation status:', err);
+            console.error('Error details:', err.response?.data || err.message);
+            attempts++;
+          }
+        }
+        
+        if (!isCompleted && attempts >= maxAttempts) {
+          console.error('Feature generation timed out after maximum attempts');
+          setError('Feature generation timed out. Please try again.');
+          setIsGenerateAllModalOpen(false);
+        }
+      } else {
+        console.log('Features already exist, triggering full generation directly');
+        // Features already exist, trigger full generation directly
+        const response = await triggerFullGeneration('epic', epicId);
+        console.log('Full generation triggered with taskId:', response.task_id);
+        setGenerateAllTaskId(response.task_id);
+        setIsGenerateAllModalOpen(true);
+      }
+    } catch (err) {
+      console.error('Error in handleGenerateAll:', err);
+      console.error('Error details:', err.response?.data || err.message);
+      setError('Failed to start generation. Please try again.');
+      setIsGenerateAllModalOpen(false);
+    }
+  };
+
+  // Handle generation completion
+  const handleGenerationComplete = () => {
+    // Refresh epic details to show updated features
+    fetchEpicDetails();
+
+    // Reset state
+    setIsGenerateAllModalOpen(false);
+    setGenerateAllTaskId(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -134,6 +299,14 @@ const EpicDetails = () => {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">Features</h2>
                 <div className="flex space-x-3">
+                  {/* Generate All button - show regardless of feature count */}
+                  <button
+                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150"
+                    onClick={handleGenerateAll}
+                  >
+                    <Zap size={18} className="mr-2" />
+                    Generate All
+                  </button>
                   <button
                     className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
                     onClick={() => setIsGenerateFeatureModalOpen(true)}
@@ -216,13 +389,22 @@ const EpicDetails = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <button
-                              onClick={(e) => handleEditFeature(feature, e)}
-                              className="flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition duration-150"
-                            >
-                              <Edit size={14} className="mr-1" />
-                              Edit
-                            </button>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={(e) => handleEditFeature(feature, e)}
+                                className="flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition duration-150"
+                              >
+                                <Edit size={14} className="mr-1" />
+                                Edit
+                              </button>
+                              <button
+                                onClick={(e) => handleDeleteFeature(feature, e)}
+                                className="flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition duration-150"
+                              >
+                                <Trash2 size={14} className="mr-1" />
+                                Delete
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -268,6 +450,46 @@ const EpicDetails = () => {
           feature={selectedFeature}
           onFeatureUpdated={handleFeatureUpdated}
         />
+      )}
+
+      {/* Generate All Progress Modal */}
+      {isGenerateAllModalOpen && generateAllTaskId && (
+        <GenerationProgressModal
+          taskId={generateAllTaskId}
+          scope="epic"
+          taskType={!epic?.features || epic.features.length === 0 ? 'feature' : 'general'}
+          onClose={() => {
+            setIsGenerateAllModalOpen(false);
+            fetchEpicDetails();
+          }}
+        />
+      )}
+
+      {/* Delete Feature Confirmation */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-xl font-semibold mb-4">Delete Feature</h3>
+            <p className="mb-6">Are you sure you want to delete "{featureToDelete?.name}"? This action cannot be undone.</p>
+            <div className="flex justify-end space-x-3">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition duration-150"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setFeatureToDelete(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-150"
+                onClick={confirmDeleteFeature}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

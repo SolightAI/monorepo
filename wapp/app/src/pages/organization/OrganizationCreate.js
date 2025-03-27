@@ -33,10 +33,12 @@ const OrganizationCreate = () => {
       // Redirect to the home page after successful creation
       navigate('/');
     } catch (err) {
-      setError(
-        err.response?.data?.detail ||
-        'An error occurred while creating the organization. Please try again.'
-      );
+      // Extract error message from the API response
+      const errorMessage = err.response?.data?.detail ||
+                          err.response?.data?.msg ||
+                          err.message ||
+                          'An error occurred while creating the organization. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

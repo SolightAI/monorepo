@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { validateInvitationCode } from '@/utils/auth';
 import { HelpCircle, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -17,7 +16,7 @@ export default function Register() {
   const [validatingCode, setValidatingCode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { register: authRegister, error: authError } = useAuth();
+  const { register: authRegister, error: authError, validateInvitationCode } = useAuth();
 
   // Extract invitation code from URL if present
   useEffect(() => {
