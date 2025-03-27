@@ -15,14 +15,14 @@ router = APIRouter(prefix="/auth")
 
 @router.get("/login/google")
 async def login_google(invitation_code: Optional[str] = None) -> dict:
-    state = ""
+    state = {}
     if invitation_code:
-        # Encode the invitation code in a state parameter
-        state_data = {"invitation_code": invitation_code}
-        state = f"&state={base64.urlsafe_b64encode(json.dumps(state_data).encode()).decode()}"
+        state["invitation_code"] = invitation_code
+
+    state_param = f"&state={base64.urlsafe_b64encode(json.dumps(state).encode()).decode()}" if state else ""
 
     return {
-        "url": f"https://accounts.google.com/o/oauth2/auth?response_type=code&client_id={os.getenv('GOOGLE_CLIENT_ID')}&redirect_uri={os.getenv('GOOGLE_REDIRECT_URI')}&scope=openid%20profile%20email&access_type=offline{state}"
+        "url": f"https://accounts.google.com/o/oauth2/auth?response_type=code&client_id={os.getenv('GOOGLE_CLIENT_ID')}&redirect_uri={os.getenv('GOOGLE_REDIRECT_URI')}&scope=openid%20profile%20email&access_type=offline{state_param}"
     }
 
 

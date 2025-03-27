@@ -20,6 +20,7 @@ export default function Login() {
   const [invitationCode, setInvitationCode] = useState('');
   const [highlightInvitationCode, setHighlightInvitationCode] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
+  const [showInviteCode, setShowInviteCode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { login: authLogin, error: authError, isAuthenticated, handleGoogleCallback, logout } = useAuth();
@@ -96,7 +97,7 @@ export default function Login() {
       controller.abort();
     };
   }, [navigate, location.state?.from, isAuthenticated, handleGoogleCallback]);
-  
+
   const fetchGoogleAuthUrl = useCallback(async (codeOverride = null) => {
     console.log(`Fetching Google auth URL from ${API_URL}/auth/login/google`);
 
@@ -290,65 +291,6 @@ export default function Login() {
                   </div>
                 </>
               )}
-
-              {(highlightInvitationCode || invitationCode) && <div className={`mt-4 pt-2`}>
-                <label htmlFor="invitationCode" className="block text-sm font-medium text-gray-700">
-                  Invitation Code {highlightInvitationCode && <span className="text-red-500">*</span>}
-                </label>
-                <input
-                  id="invitationCode"
-                  name="invitationCode"
-                  type="text"
-                  value={invitationCode}
-                  onChange={(e) => {
-                    setInvitationCode(e.target.value);
-                    setHighlightInvitationCode(false);
-                  }}
-                  className={`mt-1 block w-full px-3 py-2 border ${
-                    highlightInvitationCode
-                      ? 'border-red-500 ring-1 ring-red-500'
-                      : 'border-gray-300'
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
-                  placeholder="Enter invitation code if you have one"
-                />
-              </div>}
-
-              {(highlightInvitationCode || invitationCode) && (
-                <div className="py-2 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        // Reset local state first
-                        setError('');
-                        setInvitationCode('');
-                        setHighlightInvitationCode(false);
-                        setIsLoading(false);
-
-                        // Reset Google auth URL to trigger re-fetching
-                        setGoogleAuthUrl('');
-
-                        // Reset auth checked flag to re-check auth status
-                        authChecked.current = false;
-
-                        // Then logout
-                        await logout();
-
-                        // Trigger re-fetching of Google Auth URL
-                        fetchGoogleAuthUrl();
-
-                        // Replace current location with clean state
-                        navigate('/login', { replace: true, state: {} });
-                      } catch (error) {
-                        console.error('Logout failed:', error);
-                      }
-                    }}
-                    className="text-sm font-medium text-gray-500 hover:text-gray-700"
-                  >
-                    Log out and use different account
-                  </button>
-                </div>
-              )}
             </div>
 
             {error && (
@@ -357,29 +299,29 @@ export default function Login() {
 
             {ALLOW_EMAIL_LOGIN && (
               <>
-              <div className="flex items-center justify-between">
-              <div className="text-sm">
-                <button
-                  type="button"
-                  onClick={() => setShowForgotPassword(true)}
-                  className="font-medium text-blue-600 hover:text-blue-500"
-                >
-                  Forgot your password?
-                </button>
-              </div>
-            </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm">
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="font-medium text-blue-600 hover:text-blue-500"
+                    >
+                      Forgot your password?
+                    </button>
+                  </div>
+                </div>
 
-            <div>
-              <button
-                type="submit"
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Signing in...' : 'Sign in'}
-              </button>
-            </div>
-            </>
-          )}
+                <div>
+                  <button
+                    type="submit"
+                    className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Signing in...' : 'Sign in'}
+                  </button>
+                </div>
+              </>
+            )}
 
             {googleAuthUrl && (
               <div>
@@ -400,6 +342,75 @@ export default function Login() {
                 </a>
               </div>
             )}
+
+            <div className="mt-4">
+              {!showInviteCode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowInviteCode(!showInviteCode);
+                    if (!showInviteCode) {
+                      setHighlightInvitationCode(false);
+                    }
+                  }}
+                  className="w-full text-sm text-gray-600 hover:text-gray-900 focus:outline-none"
+                >
+                  {showInviteCode ? "Hide invitation code" : "I have an invitation code"}
+                </button>
+              )}
+
+              {showInviteCode && (
+                <div className="mt-2">
+                  <label htmlFor="invitationCode" className="block text-sm font-medium text-gray-700">
+                    Invitation Code {highlightInvitationCode && <span className="text-red-500">*</span>}
+                  </label>
+                  <input
+                    id="invitationCode"
+                    name="invitationCode"
+                    type="text"
+                    value={invitationCode}
+                    onChange={(e) => {
+                      const newCode = e.target.value;
+                      setInvitationCode(newCode);
+                      setHighlightInvitationCode(false);
+                      // Fetch new Google auth URL when invitation code changes
+                      fetchGoogleAuthUrl(newCode);
+                    }}
+                    className={`mt-1 block w-full px-3 py-2 border ${
+                      highlightInvitationCode
+                        ? 'border-red-500 ring-1 ring-red-500'
+                        : 'border-gray-300'
+                    } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                    placeholder="Enter your invitation code"
+                  />
+                  {invitationCode && (
+                    <div className="mt-2 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            setError('');
+                            setInvitationCode('');
+                            setHighlightInvitationCode(false);
+                            setIsLoading(false);
+                            setGoogleAuthUrl('');
+                            authChecked.current = false;
+                            await logout();
+                            fetchGoogleAuthUrl();
+                            navigate('/login', { replace: true, state: {} });
+                          } catch (error) {
+                            console.error('Logout failed:', error);
+                          }
+                        }}
+                        className="text-sm font-medium text-gray-500 hover:text-gray-700"
+                      >
+                        Clear invitation code
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </form>
         ) : (
           <form className="mt-8 space-y-6" onSubmit={handleForgotPassword}>

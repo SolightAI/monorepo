@@ -145,7 +145,7 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
     user = await get_user(email=user_info["email"])
 
     if user is None:
-
+        # For new users, we need a valid invitation code
         if _should_be_admin(user_info["email"]):
             from services.invitation_services import create_invitation  # avoid circular import
             invitation_code = (await create_invitation(
@@ -181,7 +181,7 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
         )
 
         # Mark the invitation as used
-        await mark_invitation_used(invitation, user.id)
+        await mark_invitation_used(invitation.code, user.id)
 
         # If the invitation has an organization, add the user to it
         if invitation.organization_id and invitation.role:
