@@ -105,49 +105,71 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
       try {
         // Step 1: Generate Epics
         setStatus('generating-epics');
-        setMessage('Step 1/5: Generating epics...');
+        setMessage('Step 1/5: Checking for existing epics...');
         setProgress(10);
 
-        addStatusLog(`Starting epic generation for product: ${productName}`);
-        const epicTaskId = await generateEpics(productId);
-        let epicsCompleted = false;
+        // Check if epics already exist
         let epicResults = [];
-        let epicPollCounter = 0;
+        try {
+          const epicsResponse = await axios.get(
+            `${API_URL}/products/${productId}`,
+            { withCredentials: true }
+          );
+          epicResults = epicsResponse.data.epics || [];
+          console.log(`Retrieved ${epicResults.length} existing epics for product ${productId}`);
+        } catch (err) {
+          addErrorLog(`Error fetching existing epics: ${err.message}`);
+          // Continue with empty epicResults
+        }
 
-        // Poll for epic generation completion
-        while (!epicsCompleted) {
-          await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds between polls
-          epicPollCounter++;
-          setDetailedProgress(`Waiting for epics to be generated (poll #${epicPollCounter})`);
+        if (epicResults.length === 0) {
+          // Only generate epics if none exist
+          setMessage('Step 1/5: Generating epics...');
+          addStatusLog(`Starting epic generation for product: ${productName}`);
+          const epicTaskId = await generateEpics(productId);
+          let epicsCompleted = false;
+          let epicPollCounter = 0;
 
-          const epicStatus = await getEpicGenerationStatus(epicTaskId);
+          // Poll for epic generation completion
+          while (!epicsCompleted) {
+            await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds between polls
+            epicPollCounter++;
+            setDetailedProgress(`Waiting for epics to be generated (poll #${epicPollCounter})`);
 
-          if (epicStatus.status === 'completed' && epicStatus.results) {
-            // Epic generation is complete, but we need to fetch the epics with their IDs
-            // because the task manager just returns epics without IDs (they're saved to DB separately)
-            const epicsResponse = await axios.get(
-              `${API_URL}/products/${productId}`,
-              { withCredentials: true }
-            );
-            epicResults = epicsResponse.data.epics || [];
-            console.log(`Retrieved ${epicResults.length} epics for product ${productId}`);
-            setGeneratedEpics(epicResults);
-            epicsCompleted = true;
-            setProgress(20);
-            setDetailedProgress('');
-            addStatusLog(`Successfully generated ${epicResults.length} epics`);
-          } else if (epicStatus.status === 'error') {
-            addErrorLog(`Error generating epics: ${epicStatus.error || 'Unknown error'}`);
-            // Instead of throwing an error, we'll set epicsCompleted to true to exit the loop
-            // and continue with an empty epicResults array
-            epicsCompleted = true;
-            epicResults = [];
-          } else {
-            // Still in progress
-            if (epicPollCounter % 2 === 0) { // Only log every 6 seconds to avoid spam
-              addStatusLog(`Still waiting for epics (${epicPollCounter * 3}s elapsed)`);
+            const epicStatus = await getEpicGenerationStatus(epicTaskId);
+
+            if (epicStatus.status === 'completed' && epicStatus.results) {
+              // Epic generation is complete, but we need to fetch the epics with their IDs
+              // because the task manager just returns epics without IDs (they're saved to DB separately)
+              const epicsResponse = await axios.get(
+                `${API_URL}/products/${productId}`,
+                { withCredentials: true }
+              );
+              epicResults = epicsResponse.data.epics || [];
+              console.log(`Retrieved ${epicResults.length} epics for product ${productId}`);
+              setGeneratedEpics(epicResults);
+              epicsCompleted = true;
+              setProgress(20);
+              setDetailedProgress('');
+              addStatusLog(`Successfully generated ${epicResults.length} epics`);
+            } else if (epicStatus.status === 'error') {
+              addErrorLog(`Error generating epics: ${epicStatus.error || 'Unknown error'}`);
+              // Instead of throwing an error, we'll set epicsCompleted to true to exit the loop
+              // and continue with an empty epicResults array
+              epicsCompleted = true;
+              epicResults = [];
+            } else {
+              // Still in progress
+              if (epicPollCounter % 2 === 0) { // Only log every 6 seconds to avoid spam
+                addStatusLog(`Still waiting for epics (${epicPollCounter * 3}s elapsed)`);
+              }
             }
           }
+        } else {
+          // Use existing epics
+          setGeneratedEpics(epicResults);
+          setProgress(20);
+          addStatusLog(`Using ${epicResults.length} existing epics`);
         }
 
         // Step 2: Generate Features for each Epic that doesn't already have features
@@ -209,6 +231,10 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
                       const featureStatus = await getFeatureGenerationStatus(featureTaskId);
 
                       if (featureStatus.status === 'completed' && featureStatus.results) {
+
+                        // wait 5.1s before fetching features to give the DB time to update
+                        await new Promise(resolve => setTimeout(resolve, 5100));
+
                         // Fetch features from database to get their IDs
                         try {
                           const featuresResponse = await axios.get(
