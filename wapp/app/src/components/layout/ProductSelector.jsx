@@ -166,7 +166,7 @@ const ProductSelector = ({ isMobile = false }) => {
       }
 
       // Refresh products list and close modal
-      await refreshProducts();
+      await refreshProducts(selectedOrganization.id);
       handleModalClose();
     } catch (err) {
       const errorMessage = err.response?.data?.detail
@@ -198,7 +198,7 @@ const ProductSelector = ({ isMobile = false }) => {
       });
 
       // Refresh products
-      await refreshProducts();
+      await refreshProducts(selectedOrganization.id);
       setIsOpen(false);
     } catch (err) {
       console.error('Error deleting product:', err);
