@@ -193,11 +193,20 @@ const ProductSelector = ({ isMobile = false }) => {
     }
 
     try {
+      // Delete the product
       await axios.delete(`${API_URL}/products/${productId}`, {
         withCredentials: true
       });
 
-      // Refresh products
+      // Clear selected product from local storage
+      localStorage.removeItem('selectedProductId');
+
+      // If we're deleting the currently selected product, clear it from state
+      if (selectedProduct?.id === productId) {
+        selectProduct(null);
+      }
+
+      // Refresh products - this will handle selecting a new product if available
       await refreshProducts(selectedOrganization.id);
       setIsOpen(false);
     } catch (err) {
