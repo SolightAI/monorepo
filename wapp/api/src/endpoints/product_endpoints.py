@@ -13,25 +13,22 @@ router = APIRouter(prefix="/products", tags=["products"])
 
 @router.get("/")
 async def get_all_products_endpoint(
-    organization_id: Optional[UUID] = Query(None, description="Filter products by organization ID"),
+    organization_id: UUID = Query(..., description="Organization ID to filter products by"),
     current_user=Depends(get_current_user_dependency)
 ) -> List[ProductSchema]:
     """
-    Get all products, optionally filtered by organization.
-
-    If organization_id is provided, only products belonging to that organization will be returned.
+    Get all products for a specific organization.
     The user must be a member of the organization to access its products.
     """
-    if organization_id:
-        # Check if user is a member of the organization
-        member = await organization_services.get_organization_member(
-            organization_id, current_user.id
+    # Check if user is a member of the organization
+    member = await organization_services.get_organization_member(
+        organization_id, current_user.id
+    )
+    if not member:
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to access products in this organization"
         )
-        if not member:
-            raise HTTPException(
-                status_code=403,
-                detail="You do not have permission to access products in this organization"
-            )
 
     return await get_products_list(organization_id)
 
@@ -39,28 +36,24 @@ async def get_all_products_endpoint(
 @router.get("/{product_id}")
 async def get_product_endpoint(
     product_id: UUID4,
+    organization_id: UUID = Query(..., description="Organization ID the product belongs to"),
     current_user=Depends(get_current_user_dependency)
 ) -> ProductSchema:
     """
     Get a product by ID.
-
     The user must be a member of the organization that owns the product.
     """
-    # First get the product to check its organization
-    product = await get_product(product_id)
-
-    # If the product belongs to an organization, check if the user is a member
-    if product.organization_id:
-        member = await organization_services.get_organization_member(
-            product.organization_id, current_user.id
+    # Check if user is a member of the organization
+    member = await organization_services.get_organization_member(
+        organization_id, current_user.id
+    )
+    if not member:
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to access this product"
         )
-        if not member:
-            raise HTTPException(
-                status_code=403,
-                detail="You do not have permission to access this product"
-            )
 
-    return product
+    return await get_product(product_id)
 
 
 @router.post("/")

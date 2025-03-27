@@ -15,16 +15,18 @@ export const ProductProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   // Memoize fetchProducts to avoid unnecessary re-renders
-  const fetchProducts = useCallback(async (organizationId = null) => {
+  const fetchProducts = useCallback(async (organizationId) => {
+    if (!organizationId) {
+      setError('Organization ID is required to fetch products');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      // Construct the URL with organization filter if provided
-      const url = organizationId
-        ? `${API_URL}/products/?organization_id=${organizationId}`
-        : `${API_URL}/products/`;
-
+      const url = `${API_URL}/products/?organization_id=${organizationId}`;
       const response = await axios.get(url, {
         withCredentials: true
       });
@@ -38,35 +40,29 @@ export const ProductProvider = ({ children }) => {
         if (foundProduct) {
           setSelectedProduct(foundProduct);
         } else {
-          // If stored product not found in results, use first product
           setSelectedProduct(response.data[0]);
           localStorage.setItem('selectedProductId', response.data[0].id);
         }
       } else if (response.data.length > 0) {
-        // Default to first product if none stored
         setSelectedProduct(response.data[0]);
         localStorage.setItem('selectedProductId', response.data[0].id);
       } else {
-        // If no products after filtering by organization, clear selected product
         setSelectedProduct(null);
         localStorage.removeItem('selectedProductId');
       }
     } catch (err) {
-      // Let global interceptor handle authentication errors (401)
-      if (err.response && err.response.status === 401) {
+      if (err.response?.status === 403) {
+        setError('You do not have permission to access products in this organization');
+      } else if (err.response?.status === 401) {
         console.warn('401 error encountered while fetching products');
+      } else {
+        setError('Failed to fetch products');
       }
-      setError('Failed to fetch products');
       console.error('Error fetching products:', err);
     } finally {
       setLoading(false);
     }
   }, []);
-
-  // Fetch products on component mount
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
 
   // Function to select a product
   const selectProduct = useCallback((product) => {
@@ -75,7 +71,7 @@ export const ProductProvider = ({ children }) => {
   }, []);
 
   // Force refresh of products data - memoized to maintain stable reference
-  const refreshProducts = useCallback((organizationId = null) => {
+  const refreshProducts = useCallback((organizationId) => {
     fetchProducts(organizationId);
   }, [fetchProducts]);
 

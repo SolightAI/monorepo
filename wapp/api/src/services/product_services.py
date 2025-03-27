@@ -11,13 +11,13 @@ from uuid import UUID
 logger = getLogger(__name__)
 
 
-async def get_product(product_id: UUID4, organization_id: Optional[UUID] = None) -> ProductModel:
+async def get_product(product_id: UUID4) -> ProductModel:
     """
-    Get a product by ID, optionally filtering by organization.
+    Get a product by ID for a specific organization.
 
     Args:
         product_id: The UUID of the product to retrieve
-        organization_id: Optional organization ID to filter by
+        organization_id: The organization ID to filter by
 
     Returns:
         The product if found
@@ -26,10 +26,6 @@ async def get_product(product_id: UUID4, organization_id: Optional[UUID] = None)
         HTTPException: If the product is not found or doesn't belong to the specified organization
     """
     query = ProductModel.filter(id=product_id)
-
-    if organization_id:
-        query = query.filter(organization_id=organization_id)
-
     product = await query.prefetch_related("epics").first()
 
     if not product:
@@ -75,21 +71,17 @@ async def get_product_by_url_path(url_path: str, organization_id: Optional[UUID]
     return None
 
 
-async def get_products_list(organization_id: Optional[UUID] = None) -> List[ProductModel]:
+async def get_products_list(organization_id: UUID) -> List[ProductModel]:
     """
-    Get a list of all products, optionally filtered by organization.
+    Get a list of all products for a specific organization.
 
     Args:
-        organization_id: Optional organization ID to filter by
+        organization_id: The organization ID to filter products by
 
     Returns:
-        List of products
+        List of products belonging to the organization
     """
-    query = ProductModel.all()
-
-    if organization_id:
-        query = query.filter(organization_id=organization_id)
-
+    query = ProductModel.filter(organization_id=organization_id)
     return await query.prefetch_related("epics")
 
 

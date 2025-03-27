@@ -17,7 +17,7 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [epics, setEpics] = useState([]);
-  
+
   // State for "Generate All" functionality
   const [isGenerateAllModalOpen, setIsGenerateAllModalOpen] = useState(false);
   const [generateAllTaskId, setGenerateAllTaskId] = useState(null);
@@ -26,19 +26,22 @@ const ProductDetails = () => {
 
   // Fetch product details and epics
   const fetchProductDetails = useCallback(async () => {
-    if (!productId) return;
-    
+    if (!productId || !selectedOrganization?.id) return;
+
     setLoading(true);
     setError(null);
 
     try {
       // Get the product details
-      const productResponse = await axios.get(`${API_URL}/products/${productId}`, {
-        withCredentials: true
-      });
+      const productResponse = await axios.get(
+        `${API_URL}/products/${productId}?organization_id=${selectedOrganization.id}`,
+        {
+          withCredentials: true
+        }
+      );
 
       setSelectedProduct(productResponse.data);
-      
+
       // Set epics from the product data
       if (productResponse.data.epics && productResponse.data.epics.length > 0) {
         setEpics(productResponse.data.epics);
@@ -51,34 +54,34 @@ const ProductDetails = () => {
     } finally {
       setLoading(false);
     }
-  }, [productId, setSelectedProduct]);
+  }, [productId, selectedOrganization?.id, setSelectedProduct]);
 
   // Fetch product on mount or when product ID changes
   useEffect(() => {
     fetchProductDetails();
   }, [fetchProductDetails, productId]);
-  
+
   // Handle "Generate All" button click
   const handleGenerateAll = async () => {
     if (!selectedProduct) {
       setError('No product selected. Please try again.');
       return;
     }
-    
+
     if (!epics || epics.length === 0) {
       setError('No epics found. Please add or generate epics first.');
       return;
     }
-    
+
     try {
       setError(null);
-      
+
       // Call the unified generation endpoint for the product
       const response = await triggerFullGeneration('product', selectedProduct.id);
-      
+
       // Store the task ID for tracking
       setGenerateAllTaskId(response.task_id);
-      
+
       // Show the progress modal
       setIsGenerateAllModalOpen(true);
     } catch (err) {
@@ -86,12 +89,12 @@ const ProductDetails = () => {
       setError('Failed to start generation. Please try again.');
     }
   };
-  
+
   // Handle generation completion
   const handleGenerationComplete = () => {
     // Refresh product details to show updated content
     fetchProductDetails();
-    
+
     // Reset state
     setIsGenerateAllModalOpen(false);
     setGenerateAllTaskId(null);
@@ -191,7 +194,7 @@ const ProductDetails = () => {
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <h2 className="text-lg font-semibold mb-2">About This Page</h2>
                   <p className="text-gray-600">
-                    This page provides a streamlined way to generate all content for this product using our unified generation API. 
+                    This page provides a streamlined way to generate all content for this product using our unified generation API.
                     The "Generate All" button will create content for all epics, features, user stories, acceptance criteria, and tests.
                   </p>
                 </div>
@@ -227,7 +230,7 @@ const ProductDetails = () => {
                         {epic.description && (
                           <p className="text-gray-700 line-clamp-2 mb-4">{epic.description}</p>
                         )}
-                        
+
                         <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
                           <span className="text-sm text-gray-500">
                             {epic.features?.length || 0} features
@@ -251,7 +254,7 @@ const ProductDetails = () => {
           </>
         )}
       </div>
-      
+
       {/* Generate All Progress Modal */}
       {isGenerateAllModalOpen && generateAllTaskId && (
         <GenerationProgressModal

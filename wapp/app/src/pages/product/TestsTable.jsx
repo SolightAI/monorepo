@@ -40,7 +40,7 @@ const TestsTable = () => {
   const [loadingFeatures, setLoadingFeatures] = useState(false);
 
   const navigate = useNavigate();
-  const { selectedProduct } = useProduct();
+  const { selectedProduct, selectedOrganization } = useProduct();
 
   useEffect(() => {
     if (selectedProduct) {
@@ -64,8 +64,8 @@ const TestsTable = () => {
       setLoadingEpics(true);
       setLoadingFeatures(true);
 
-      if (!selectedProduct) {
-        console.error('No product selected');
+      if (!selectedProduct || !selectedOrganization?.id) {
+        console.error('No product or organization selected');
         setEpics([]);
         setFeatures([]);
         setLoadingEpics(false);
@@ -74,7 +74,7 @@ const TestsTable = () => {
       }
 
       // Fetch epics for the current product
-      const epicsData = await getAllEpics(selectedProduct.id);
+      const epicsData = await getAllEpics(selectedProduct.id, selectedOrganization.id);
       setEpics(epicsData);
 
       // Create a mapping of epic ID to features

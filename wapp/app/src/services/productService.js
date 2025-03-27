@@ -22,23 +22,27 @@ export const getAllFeatures = async () => {
 /**
  * Get epics for a specific product
  * @param {string} productId - The UUID of the product
+ * @param {string} organizationId - The UUID of the organization
  * @returns {Promise<Array>} Promise with epics data for the specified product
  */
-export const getAllEpics = async (productId) => {
+export const getAllEpics = async (productId, organizationId) => {
   try {
-    if (!productId) {
-      console.error('No product ID provided');
+    if (!productId || !organizationId) {
+      console.error('Product ID and Organization ID are required');
       return [];
     }
-    
+
     // Get the specific product by ID, which includes its epics
-    const response = await axios.get(`${API_URL}/products/${productId}`, {
-      withCredentials: true
-    });
-    
+    const response = await axios.get(
+      `${API_URL}/products/${productId}?organization_id=${organizationId}`,
+      {
+        withCredentials: true
+      }
+    );
+
     // Extract and format epics from the product
     const epics = response.data.epics || [];
-    
+
     // Add product reference to each epic for context
     return epics.map(epic => ({
       ...epic,
@@ -61,11 +65,11 @@ export const getFeaturesByEpic = async (epicId) => {
     const response = await axios.get(`${API_URL}/epics/${epicId}`, {
       withCredentials: true
     });
-    
+
     // Return the features from the epic
     return response.data.features || [];
   } catch (error) {
     console.error(`Error fetching features for epic ${epicId}:`, error);
     throw error;
   }
-}; 
+};

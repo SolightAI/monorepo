@@ -35,9 +35,12 @@ const Home = () => {
 
     try {
       // Get the product with its epics
-      const productResponse = await axios.get(`${API_URL}/products/${selectedProduct.id}`, {
-        withCredentials: true
-      });
+      const productResponse = await axios.get(
+        `${API_URL}/products/${selectedProduct.id}?organization_id=${selectedOrganization.id}`,
+        {
+          withCredentials: true
+        }
+      );
 
       if (productResponse.data.epics && productResponse.data.epics.length > 0) {
         setEpics(productResponse.data.epics);
@@ -50,7 +53,7 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedProduct?.id]);
+  }, [selectedProduct?.id, selectedOrganization?.id]);
 
   // Fetch epics for the selected product
   useEffect(() => {
