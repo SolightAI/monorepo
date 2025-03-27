@@ -4,20 +4,23 @@ import { X, AlertCircle, Loader } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
-const EpicCreationModal = ({
-  productId,
+const EditEpicModal = ({
+  epic,
   productName,
   onClose,
   onComplete
 }) => {
-  const [epic, setEpic] = useState({ name: '', description: '' });
+  const [editedEpic, setEditedEpic] = useState({
+    name: epic.name,
+    description: epic.description
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!epic.name.trim()) {
+    if (!editedEpic.name.trim()) {
       setError('Please provide an epic name.');
       return;
     }
@@ -27,27 +30,26 @@ const EpicCreationModal = ({
 
     try {
       const epicData = {
-        name: epic.name.trim(),
-        description: epic.description.trim(),
-        product_id: productId
+        name: editedEpic.name.trim(),
+        description: editedEpic.description.trim()
       };
 
-      const response = await axios.post(
-        `${API_URL}/epics/`,
+      const response = await axios.put(
+        `${API_URL}/epics/${epic.id}`,
         epicData,
         { withCredentials: true }
       );
 
-      onComplete([response.data]);
+      onComplete(response.data);
     } catch (err) {
       const errorMessage = err.response?.data?.detail
         ? (typeof err.response.data.detail === 'string'
            ? err.response.data.detail
            : JSON.stringify(err.response.data.detail))
-        : 'Failed to create epic. Please try again.';
+        : 'Failed to update epic. Please try again.';
 
       setError(errorMessage);
-      console.error('Error creating epic:', err);
+      console.error('Error updating epic:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -59,7 +61,7 @@ const EpicCreationModal = ({
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold">
-              Add Epic to "{productName}"
+              Edit Epic in "{productName}"
             </h2>
             <button
               onClick={onClose}
@@ -68,10 +70,6 @@ const EpicCreationModal = ({
               <X size={24} />
             </button>
           </div>
-
-          <p className="text-gray-600 mb-6">
-            Epics are large bodies of work that can be broken down into smaller features and tasks.
-          </p>
 
           {error && (
             <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start">
@@ -88,8 +86,8 @@ const EpicCreationModal = ({
               <input
                 type="text"
                 id="epic-name"
-                value={epic.name}
-                onChange={(e) => setEpic({ ...epic, name: e.target.value })}
+                value={editedEpic.name}
+                onChange={(e) => setEditedEpic({ ...editedEpic, name: e.target.value })}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 placeholder="E.g., User Authentication, Payment Processing"
               />
@@ -101,8 +99,8 @@ const EpicCreationModal = ({
               </label>
               <textarea
                 id="epic-description"
-                value={epic.description}
-                onChange={(e) => setEpic({ ...epic, description: e.target.value })}
+                value={editedEpic.description}
+                onChange={(e) => setEditedEpic({ ...editedEpic, description: e.target.value })}
                 rows="3"
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Describe the purpose of this epic"
@@ -127,10 +125,10 @@ const EpicCreationModal = ({
                 {isSubmitting ? (
                   <span className="flex items-center">
                     <Loader size={16} className="mr-2 animate-spin" />
-                    Creating Epic...
+                    Updating Epic...
                   </span>
                 ) : (
-                  'Create Epic'
+                  'Update Epic'
                 )}
               </button>
             </div>
@@ -141,4 +139,4 @@ const EpicCreationModal = ({
   );
 };
 
-export default EpicCreationModal;
+export default EditEpicModal;

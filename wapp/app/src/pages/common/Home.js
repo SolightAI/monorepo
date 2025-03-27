@@ -7,6 +7,7 @@ import { useOrganization } from '@/context/OrganizationContext';
 import EpicCreationModal from '@/components/modals/EpicCreationModal';
 import EpicGenerationModal from '@/components/modals/EpicGenerationModal';
 import ComprehensiveGenerationModal from '@/components/modals/ComprehensiveGenerationModal';
+import EditEpicModal from '@/components/modals/EditEpicModal';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -20,6 +21,10 @@ const Home = () => {
   const [showEpicModal, setShowEpicModal] = useState(false);
   const [showEpicGenerationModal, setShowEpicGenerationModal] = useState(false);
   const [showComprehensiveGenerationModal, setShowComprehensiveGenerationModal] = useState(false);
+  const [showEditEpicModal, setShowEditEpicModal] = useState(false);
+  const [selectedEpic, setSelectedEpic] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [epicToDelete, setEpicToDelete] = useState(null);
 
   const navigate = useNavigate();
 
@@ -58,31 +63,18 @@ const Home = () => {
   }, [selectedProduct, productLoading, fetchEpics]);
 
   const handleEpicCreationComplete = async (createdEpics) => {
-    // Hide the epic creation modal
     setShowEpicModal(false);
-
-    // Refresh epics to show the updated data
     await fetchEpics();
   };
 
   const handleEpicGenerationComplete = async (generatedEpics) => {
-    // Hide the epic generation modal
     setShowEpicGenerationModal(false);
-
-    // Refresh epics to show the newly generated epics
     await fetchEpics();
   };
 
   const handleComprehensiveGenerationComplete = async () => {
-    // Hide the comprehensive generation modal
     setShowComprehensiveGenerationModal(false);
-
-    // Refresh epics to show all the newly generated data
     await fetchEpics();
-  };
-
-  const handleManageEpics = () => {
-    setShowEpicModal(true);
   };
 
   const handleGenerateEpics = () => {
@@ -91,6 +83,39 @@ const Home = () => {
 
   const handleGenerateEverything = () => {
     setShowComprehensiveGenerationModal(true);
+  };
+
+  const handleEditEpic = (epic) => {
+    setSelectedEpic(epic);
+    setShowEditEpicModal(true);
+  };
+
+  const handleEditEpicComplete = async (updatedEpic) => {
+    setShowEditEpicModal(false);
+    setSelectedEpic(null);
+    await fetchEpics();
+  };
+
+  const handleDeleteEpic = (epic) => {
+    setEpicToDelete(epic);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteEpic = async () => {
+    if (!epicToDelete) return;
+
+    try {
+      await axios.delete(
+        `${API_URL}/epics/${epicToDelete.id}`,
+        { withCredentials: true }
+      );
+      setShowDeleteConfirm(false);
+      setEpicToDelete(null);
+      await fetchEpics();
+    } catch (err) {
+      console.error('Error deleting epic:', err);
+      setError('Failed to delete epic. Please try again.');
+    }
   };
 
   // If we're loading organizations, show a loading indicator
@@ -177,11 +202,11 @@ const Home = () => {
                   Generate Epics
                 </button>
                 <button
-                  onClick={handleManageEpics}
+                  onClick={() => setShowEpicModal(true)}
                   className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
                 >
                   <Plus size={20} className="mr-2" />
-                  {epics.length > 0 ? 'Manage Epics' : 'Add Epics'}
+                  Add Epic
                 </button>
               </div>
             </div>
@@ -221,7 +246,7 @@ const Home = () => {
                         Generate epics
                       </button>
                       <button
-                        onClick={handleManageEpics}
+                        onClick={() => setShowEpicModal(true)}
                         className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150 flex items-center"
                       >
                         <Plus size={18} className="mr-2" />
@@ -234,8 +259,7 @@ const Home = () => {
                     {epics.map(epic => (
                       <div
                         key={epic.id}
-                        className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => navigate(`/epics/${epic.id}`)}
+                        className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow"
                       >
                         <div className="p-6">
                           <div className="flex items-center mb-3">
@@ -244,16 +268,33 @@ const Home = () => {
                           </div>
                           <p className="text-gray-700">{epic.description}</p>
 
-                          <div className="mt-4 pt-3 border-t border-gray-100">
+                          <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation(); // Prevent triggering the parent div's onClick
-                                navigate(`/epics/${epic.id}`);
-                              }}
+                              onClick={() => navigate(`/epics/${epic.id}`)}
                               className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                             >
                               View Features
                             </button>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditEpic(epic);
+                                }}
+                                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteEpic(epic);
+                                }}
+                                className="text-red-600 hover:text-red-800 text-sm font-medium"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -306,6 +347,46 @@ const Home = () => {
           }}
           onComplete={handleComprehensiveGenerationComplete}
         />
+      )}
+
+      {/* Edit Epic Modal */}
+      {showEditEpicModal && selectedEpic && selectedProduct && (
+        <EditEpicModal
+          epic={selectedEpic}
+          productName={selectedProduct.name}
+          onClose={() => {
+            setShowEditEpicModal(false);
+            setSelectedEpic(null);
+          }}
+          onComplete={handleEditEpicComplete}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && epicToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-xl font-semibold mb-4">Delete Epic</h3>
+            <p className="mb-6">Are you sure you want to delete "{epicToDelete.name}"? This action cannot be undone.</p>
+            <div className="flex justify-end space-x-3">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition duration-150"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setEpicToDelete(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-150"
+                onClick={confirmDeleteEpic}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
