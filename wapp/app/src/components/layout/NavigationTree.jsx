@@ -411,7 +411,7 @@ const NavigationTree = () => {
 
       {/* Vertical Navigation Tree */}
       {breadcrumbs.length > 0 && (
-        <ul className="space-y-1">
+        <ul className="space-y-1 pt-2">
           {breadcrumbs.map((crumb, index) => (
             <li
               key={index}
