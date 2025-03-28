@@ -75,6 +75,19 @@ export const OrganizationProvider = ({ children }) => {
       if (err.response && err.response.status === 401) {
         console.log('Authentication error when fetching organizations');
         // Don't set error here, let the axios interceptor handle the redirect
+
+        // Add a fallback redirect mechanism in case the interceptor fails
+        setTimeout(() => {
+          // Check if we're still on the same page after a delay (interceptor didn't redirect)
+          const isAuthenticatedInState = localStorage.getItem('isAuthenticated') === 'true';
+          if (isAuthenticatedInState) {
+            console.log('Interceptor did not redirect, manually redirecting to login');
+            localStorage.removeItem('isAuthenticated');
+            localStorage.removeItem('isAdmin');
+            localStorage.removeItem('selectedOrganizationId');
+            navigate('/login');
+          }
+        }, 300);
       } else {
         setError('Failed to fetch organizations');
         console.error('Error fetching organizations:', err);
