@@ -36,7 +36,7 @@ Analyze the provided information carefully and explore the product to find all t
 Once done, write for each feature present inside the epic the name and the description of the feature.
 
 Some extra ground rules:
-- Note that a feature can be present on multiple part of the product, for each place where the feature is present, you should write the url of the page
+- Note that a feature can be present on multiple part of the product, for each place where the feature is present, you should write the url of the page (the full url, not just the path)
 - You first need to locate the epic on the product, then you can start discovering the features.
 - While looking for the epic, make sure to not leave to the marketing website. Web app and marketing website can sometimes share the same domain, they remain nonetheless different.
 - If you cannot locate the epic on the product, stop by raising an exception to the user
@@ -197,7 +197,7 @@ async def _generate_features(
 def handle_background_task_errors(func):
     """Decorator to handle background task errors."""
     @functools.wraps(func)
-    async def wrapper(task_id: str, *args, **kwargs):
+    async def wrapper(task_id: str, *args, **kwargs):  # type: ignore
         try:
             task_status_manager.set_status(task_id, "pending")
             results = await func(task_id, *args, **kwargs)
