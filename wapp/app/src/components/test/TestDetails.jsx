@@ -1,3 +1,5 @@
+import { createTestExecution } from '@/services/testExecutionService';
+
 function TestDetails({ test, onClose }) {
     const getStatusColor = (status) => {
       switch (status) {
@@ -55,6 +57,28 @@ function TestDetails({ test, onClose }) {
           return steps.split('\n').filter(step => step.trim() !== '');
         }
         return [steps];
+      }
+    };
+
+    // Add function to run the test again
+    const handleRunTest = async () => {
+      try {
+        const executionData = {
+          test_id: test.id,
+          status: 'PENDING',
+          environment: 'development',
+          executor_type: 'MANUAL',
+          notes: null
+        };
+
+        // Import this at the top of your file
+        await createTestExecution(executionData);
+
+        // Close the modal and trigger a refresh
+        onClose();
+      } catch (err) {
+        console.error('Error running test:', err);
+        // You could add error state and show a message here
       }
     };
 
@@ -184,7 +208,12 @@ function TestDetails({ test, onClose }) {
           <button className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg" onClick={onClose}>
             Close
           </button>
-          <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">Run Test Again</button>
+          <button
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+            onClick={handleRunTest}
+          >
+            Run Test Again
+          </button>
         </div>
       </div>
     )
