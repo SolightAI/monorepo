@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, XCircle, Loader, TestTube, AlertCircle, Play } from 'lucide-react';
 import TestExecutionHistory from '../test/TestExecutionHistory';
 import TestExecutionDetail from '../test/TestExecutionDetail';
-import RunTestModal from './RunTestModal';
-import { getTestExecutions } from '@/services/testExecutionService';
+import { getTestExecutions, createTestExecution } from '@/services/testExecutionService';
 
 /**
  * Modal component for displaying detailed test information
@@ -11,9 +10,9 @@ import { getTestExecutions } from '@/services/testExecutionService';
 const TestDetailsModal = ({ test, onClose }) => {
   const [activeTab, setActiveTab] = useState('details');
   const [selectedExecution, setSelectedExecution] = useState(null);
-  const [isRunTestModalOpen, setIsRunTestModalOpen] = useState(false);
   const [executions, setExecutions] = useState([]);
   const [loadingExecutions, setLoadingExecutions] = useState(false);
+  const [runningTest, setRunningTest] = useState(false);
 
   useEffect(() => {
     // Load test executions when the modal opens or when a new execution is created
@@ -109,6 +108,31 @@ const TestDetailsModal = ({ test, onClose }) => {
     setExecutions([execution, ...executions]);
     // Switch to the history tab
     setActiveTab('history');
+    // Automatically select the new execution to show its details
+    setSelectedExecution(execution);
+  };
+
+  // New function to directly run the test
+  const handleRunTest = async () => {
+    try {
+      setRunningTest(true);
+
+      const executionData = {
+        test_id: test.id,
+        status: 'PENDING',
+        environment: 'development', // Default to development environment
+        executor_type: 'MANUAL',
+        notes: null
+      };
+
+      const execution = await createTestExecution(executionData);
+      handleTestExecutionCreated(execution);
+
+    } catch (err) {
+      console.error('Error starting test execution:', err);
+    } finally {
+      setRunningTest(false);
+    }
   };
 
   // Handle execution selection
@@ -282,23 +306,24 @@ const TestDetailsModal = ({ test, onClose }) => {
           </button>
 
           <button
-            onClick={() => setIsRunTestModalOpen(true)}
+            onClick={handleRunTest}
+            disabled={runningTest}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
           >
-            <Play size={18} className="mr-2" />
-            Run Test
+            {runningTest ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Running...
+              </>
+            ) : (
+              <>
+                <Play size={18} className="mr-2" />
+                Run Test
+              </>
+            )}
           </button>
         </div>
       </div>
-
-      {/* Run Test Modal */}
-      {isRunTestModalOpen && (
-        <RunTestModal
-          test={test}
-          onClose={() => setIsRunTestModalOpen(false)}
-          onTestExecutionCreated={handleTestExecutionCreated}
-        />
-      )}
     </div>
   );
 };
