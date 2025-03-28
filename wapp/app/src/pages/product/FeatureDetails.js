@@ -9,6 +9,8 @@ import { triggerFeatureTestGeneration, getTestGenerationStatus } from '@/service
 import { triggerUserStoriesGeneration, getUserStoriesGenerationStatus } from '@/services/userStoryService';
 import { generateAcceptanceCriteria, getAcceptanceCriteriaGenerationStatus } from '@/api/acceptanceCriteriaGeneration';
 import EditFeatureModal from '@/components/modals/EditFeatureModal';
+import EditUserStoryModal from '@/components/modals/EditUserStoryModal';
+import EditAcceptanceCriteriaModal from '@/components/modals/EditAcceptanceCriteriaModal';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -27,6 +29,12 @@ const FeatureDetails = () => {
   const [selectedTest, setSelectedTest] = useState(null);
   const [isAddUserStoryModalOpen, setIsAddUserStoryModalOpen] = useState(false);
   const [isEditFeatureModalOpen, setIsEditFeatureModalOpen] = useState(false);
+
+  // Edit states for user stories and acceptance criteria
+  const [isEditUserStoryModalOpen, setIsEditUserStoryModalOpen] = useState(false);
+  const [selectedUserStory, setSelectedUserStory] = useState(null);
+  const [isEditAcceptanceCriteriaModalOpen, setIsEditAcceptanceCriteriaModalOpen] = useState(false);
+  const [selectedAcceptanceCriteria, setSelectedAcceptanceCriteria] = useState(null);
 
   // Sequential generation states
   const [isGeneratingSequential, setIsGeneratingSequential] = useState(false);
@@ -157,6 +165,38 @@ const FeatureDetails = () => {
   const handleFeatureUpdated = (updatedFeature) => {
     setFeature(updatedFeature);
     fetchFeatureDetails();
+  };
+
+  // Handle user story updated
+  const handleUserStoryUpdated = (updatedUserStory) => {
+    setUserStories(prevUserStories =>
+      prevUserStories.map(story =>
+        story.id === updatedUserStory.id ? updatedUserStory : story
+      )
+    );
+    fetchFeatureDetails();
+  };
+
+  // Handle acceptance criteria updated
+  const handleAcceptanceCriteriaUpdated = (updatedCriteria) => {
+    setAcceptanceCriteria(prevCriteria =>
+      prevCriteria.map(criteria =>
+        criteria.id === updatedCriteria.id ? updatedCriteria : criteria
+      )
+    );
+    fetchFeatureDetails();
+  };
+
+  // Handle edit user story click
+  const handleEditUserStory = (userStory) => {
+    setSelectedUserStory(userStory);
+    setIsEditUserStoryModalOpen(true);
+  };
+
+  // Handle edit acceptance criteria click
+  const handleEditAcceptanceCriteria = (criteria) => {
+    setSelectedAcceptanceCriteria(criteria);
+    setIsEditAcceptanceCriteriaModalOpen(true);
   };
 
   // Simplified generation handlers
@@ -768,14 +808,18 @@ const FeatureDetails = () => {
                   </div>
                   <div className="flex items-center space-x-3">
                     {/* Add Generate All button */}
-                    <button
-                      onClick={handleSequentialGeneration}
-                      disabled={isGeneratingSequential || loading}
-                      className={`flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150 ${(isGeneratingSequential || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      <Zap size={18} className="mr-2" />
-                      {isGeneratingSequential ? 'Generating...' : 'Generate All'}
-                    </button>
+                    {((!userStories || userStories.length === 0) ||
+                      (!acceptanceCriteria || acceptanceCriteria.length === 0) ||
+                      (!feature?.tests || feature.tests.length === 0)) && (
+                      <button
+                        onClick={handleSequentialGeneration}
+                        disabled={isGeneratingSequential || loading}
+                        className={`flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150 ${(isGeneratingSequential || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        <Zap size={18} className="mr-2" />
+                        {isGeneratingSequential ? 'Generating...' : 'Generate All'}
+                      </button>
+                    )}
                     <button
                       onClick={() => setIsEditFeatureModalOpen(true)}
                       className="flex items-center px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-150"
@@ -806,14 +850,16 @@ const FeatureDetails = () => {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">User Stories</h2>
                 <div className="flex space-x-2">
-                  <button
-                    className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
-                    onClick={handleGenerateUserStories}
-                    disabled={loading}
-                  >
-                    <Sparkles size={18} className="mr-2" />
-                    Generate User Stories
-                  </button>
+                  {(!userStories || userStories.length === 0) && (
+                    <button
+                      className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                      onClick={handleGenerateUserStories}
+                      disabled={loading}
+                    >
+                      <Sparkles size={18} className="mr-2" />
+                      Generate User Stories
+                    </button>
+                  )}
                   <button
                     className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
                     onClick={() => setIsAddUserStoryModalOpen(true)}
@@ -850,17 +896,24 @@ const FeatureDetails = () => {
                   {userStories.map((story, index) => (
                     <div
                       key={story.id || `temp-${index}`}
-                      className="p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer"
-                      onClick={() => navigate(`/user-stories/${story.id}`)}
+                      className="p-4 border border-gray-200 rounded-lg"
                     >
-                      <div className="flex items-start">
-                        <CheckSquare size={20} className="text-green-500 mr-3 mt-1 flex-shrink-0" />
-                        <div>
-                          <h3 className="text-lg font-medium text-gray-800 mb-1">{story.name}</h3>
-                          {story.description && (
-                            <p className="text-gray-600 mb-2">{story.description}</p>
-                          )}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start">
+                          <CheckSquare size={20} className="text-green-500 mr-3 mt-1 flex-shrink-0" />
+                          <div>
+                            <h3 className="text-lg font-medium text-gray-800 mb-1">{story.name}</h3>
+                            {story.description && (
+                              <p className="text-gray-600 mb-2">{story.description}</p>
+                            )}
+                          </div>
                         </div>
+                        <button
+                          onClick={() => handleEditUserStory(story)}
+                          className="p-1 text-gray-500 hover:text-blue-600 transition-colors"
+                        >
+                          <Edit size={16} />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -880,14 +933,16 @@ const FeatureDetails = () => {
                     <Plus size={18} className="mr-2" />
                     Add Acceptance Criteria
                   </button>
-                  <button
-                    className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
-                    onClick={handleGenerateAcceptanceCriteria}
-                    disabled={!userStories || userStories.length === 0 || generationState.isGenerating}
-                  >
-                    <Sparkles size={18} className="mr-2" />
-                    Generate Acceptance Criteria
-                  </button>
+                  {userStories && userStories.length > 0 && (!acceptanceCriteria || acceptanceCriteria.length === 0) && (
+                    <button
+                      className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                      onClick={handleGenerateAcceptanceCriteria}
+                      disabled={generationState.isGenerating}
+                    >
+                      <Sparkles size={18} className="mr-2" />
+                      Generate Acceptance Criteria
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -906,15 +961,22 @@ const FeatureDetails = () => {
                   {acceptanceCriteria.map((criteria) => (
                     <div
                       key={criteria.id}
-                      onClick={() => navigate(`/acceptance-criteria/${criteria.id}`)}
-                      className="p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer"
+                      className="p-4 border border-gray-200 rounded-lg"
                     >
-                      <div className="flex items-start">
-                        <CheckSquare size={20} className="text-green-500 mr-3 mt-1 flex-shrink-0" />
-                        <div>
-                          <h3 className="text-lg font-medium text-gray-800 mb-1">{criteria.name}</h3>
-                          <p className="text-gray-600 mb-2">{criteria.description}</p>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start">
+                          <CheckSquare size={20} className="text-green-500 mr-3 mt-1 flex-shrink-0" />
+                          <div>
+                            <h3 className="text-lg font-medium text-gray-800 mb-1">{criteria.name}</h3>
+                            <p className="text-gray-600 mb-2">{criteria.description}</p>
+                          </div>
                         </div>
+                        <button
+                          onClick={() => handleEditAcceptanceCriteria(criteria)}
+                          className="p-1 text-gray-500 hover:text-blue-600 transition-colors"
+                        >
+                          <Edit size={16} />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -927,14 +989,16 @@ const FeatureDetails = () => {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">Tests</h2>
                 <div className="flex space-x-3">
-                  <button
-                    className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
-                    onClick={handleGenerateTest}
-                    disabled={generationState.isGenerating}
-                  >
-                    <Sparkles size={18} className="mr-2" />
-                    {generationState.isGenerating ? 'Generating...' : 'Generate Tests with AI'}
-                  </button>
+                  {acceptanceCriteria && acceptanceCriteria.length > 0 && (!feature?.tests || feature.tests.length === 0) && (
+                    <button
+                      className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                      onClick={handleGenerateTest}
+                      disabled={generationState.isGenerating}
+                    >
+                      <Sparkles size={18} className="mr-2" />
+                      {generationState.isGenerating ? 'Generating...' : 'Generate Tests with AI'}
+                    </button>
+                  )}
                   <button
                     className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
                     onClick={() => setIsAddTestModalOpen(true)}
@@ -949,14 +1013,16 @@ const FeatureDetails = () => {
                 <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
                   <p className="text-gray-500 mb-4">No tests found for this feature</p>
                   <div className="flex justify-center space-x-4">
-                    <button
-                      className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
-                      onClick={handleGenerateTest}
-                      disabled={generationState.isGenerating}
-                    >
-                      <Sparkles size={18} className="mr-2" />
-                      {generationState.isGenerating ? 'Generating...' : 'Generate Tests with AI'}
-                    </button>
+                    {acceptanceCriteria && acceptanceCriteria.length > 0 && (!feature?.tests || feature.tests.length === 0) && (
+                      <button
+                        className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                        onClick={handleGenerateTest}
+                        disabled={generationState.isGenerating}
+                      >
+                        <Sparkles size={18} className="mr-2" />
+                        {generationState.isGenerating ? 'Generating...' : 'Generate Tests with AI'}
+                      </button>
+                    )}
                     <button
                       className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
                       onClick={() => setIsAddTestModalOpen(true)}
@@ -1043,6 +1109,22 @@ const FeatureDetails = () => {
           onClose={() => setIsEditFeatureModalOpen(false)}
           feature={feature}
           onFeatureUpdated={handleFeatureUpdated}
+        />
+      )}
+
+      {isEditUserStoryModalOpen && selectedUserStory && (
+        <EditUserStoryModal
+          onClose={() => setIsEditUserStoryModalOpen(false)}
+          userStory={selectedUserStory}
+          onUserStoryUpdated={handleUserStoryUpdated}
+        />
+      )}
+
+      {isEditAcceptanceCriteriaModalOpen && selectedAcceptanceCriteria && (
+        <EditAcceptanceCriteriaModal
+          onClose={() => setIsEditAcceptanceCriteriaModalOpen(false)}
+          criteria={selectedAcceptanceCriteria}
+          onCriteriaUpdated={handleAcceptanceCriteriaUpdated}
         />
       )}
     </div>
