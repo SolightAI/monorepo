@@ -4,8 +4,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    volumes:
-      - ./src/:/app/src
     expose:
       - "9000"
     environment:
