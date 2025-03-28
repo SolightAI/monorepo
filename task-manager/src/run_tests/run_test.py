@@ -4,7 +4,7 @@ import functools
 import traceback
 
 from uuid import uuid4
-from typing import Any, Optional, Dict, List
+from typing import Any, Optional
 from pydantic import SecretStr
 from logging import getLogger
 from tempfile import NamedTemporaryFile
@@ -19,6 +19,12 @@ from utils.crypto import crypto_service
 
 # Import the tracing modules
 from run_tests.tracing import initialize, extend_agent_history
+
+
+TEST_SUCCESS_MESSAGE = "[TEST SUCCESSFUL]"
+TEST_FAILED_MESSAGE = "[TEST FAILED]"
+AN_ERROR_OCCURED_MESSAGE = "[AN ERROR OCCURED]"
+PRECONDITION_NOT_MET_MESSAGE = "[PRECONDITION NOT MET]"
 
 
 # TODO: use Preconditions to let the agent know what fixture to run before running the test
@@ -43,8 +49,12 @@ Expected Results:
 Assertions: {test.assertions}
 
 Additional instructions:
-- If a precondition is not met, stop the test, report the error, and include "[AN ERROR OCCURED]" in our final response.
-- After each step, always verify that you successfully completed the step.
+- If an error occurs, prepend your final output by "{an_error_occured_message}", and then explain the error.
+- If a precondition is not met, prepend your final output by "{precondition_not_met_message}", and then explain why.
+- If one of the step fails, try it 2 times, and if it still fails, stop what you are doing and prepend your final output by "{test_failed_message}", and then explain what failed.
+- If one of the assertions failed, stop what you are doing and prepend your final output by "{test_failed_message}", and then explain what failed.
+- If the test is successful, prepend your final output by "{test_successful_message}", and then explain why.
+- After each step, check if the step was successful. If yes, continue to the next step. If not, refer to the previous instructions.
 
 Now, run the test.
 """.strip()
@@ -76,10 +86,10 @@ async def _run_test(
     cookies_file: str | None = None,
     localStorage: str | None = None,
     gif_output_path: str | bool = False,
-) -> list[Test]:
+) -> dict[str, Any]:
 
     # Initialize JavaScript logging
-    js_collector = initialize()
+    initialize()
 
     browser = Browser(
         config=BrowserConfig(
@@ -91,6 +101,7 @@ async def _run_test(
         cookies_file=cookies_file,
         minimum_wait_page_load_time=1,
         viewport_expansion=0,
+        browser_window_size={'width': 1920, 'height': 1080},
     ))
 
     await context.navigate_to(test.url)  # allowing us to load the localStorage
@@ -111,10 +122,16 @@ async def _run_test(
 
     # Extend agent history with JS logging capabilities
     extend_agent_history()
-    
+
     # NOTE: we do not provide a controller as models tend to provide better results when not constrained by a controller output model
     agent = Agent(
-        task=PROMPT.format(test=test),
+        task=PROMPT.format(
+            test=test,
+            test_failed_message=TEST_FAILED_MESSAGE,
+            test_successful_message=TEST_SUCCESS_MESSAGE,
+            an_error_occured_message=AN_ERROR_OCCURED_MESSAGE,
+            precondition_not_met_message=PRECONDITION_NOT_MET_MESSAGE,
+        ),
         llm=LLM_CLIENT,
         initial_actions=[{'go_to_url': {'url': test.url}}, {'go_to_url': {'url': test.url}}],
         browser_context=context,
@@ -131,19 +148,9 @@ async def _run_test(
 
     from browser_use.agent.gif import create_history_gif  # NOTE: importing after agent.run() to avoid thread blocking
     if gif_output_path:
-        create_history_gif(task=PROMPT.format(test=test), history=history, output_path=gif_output_path, show_goals=False, show_task=False, show_logo=False)
+        create_history_gif(task=PROMPT, history=history, output_path=gif_output_path, show_goals=False, show_task=False, show_logo=False)
 
     logger.info(f"{history.has_errors()=} {history.is_done()=} {result is None=} {history.is_successful()=}")
-
-    if history.has_errors() or not history.is_done() or result is None or not history.is_successful():
-        logger.error(f"Failed to run test: {history.final_result()}")
-        return {
-            "status": "error",
-            "results": None,
-            "tracing": history.get_logs(),
-            "error": "Failed to run test.",
-            "traceback": "",
-        }
 
     if result is None:
         logger.error(f"Couldn't run test for {test.name}: {history.final_result()}")
@@ -155,9 +162,68 @@ async def _run_test(
             "traceback": "",
         }
 
-    # Don't attach JS logs directly to the result
-    # Instead include them as a separate key
-    return {"status": "completed", "results": result, "tracing": history.get_logs()}
+    if AN_ERROR_OCCURED_MESSAGE in result:
+        logger.error(f"An error occurred during the test: {result}")
+        return {
+            "status": "error",
+            "results": result.replace(AN_ERROR_OCCURED_MESSAGE, "").strip(),
+            "tracing": history.get_logs(),
+            "error": "An error occurred during the test.",
+            "traceback": "",
+        }
+
+    if PRECONDITION_NOT_MET_MESSAGE in result:
+        logger.info(f"Precondition not met: {result}")
+        return {
+            "status": "error",
+            "results": result.replace(PRECONDITION_NOT_MET_MESSAGE, "").strip(),
+            "tracing": history.get_logs(),
+            "error": "Precondition not met.",
+            "traceback": "",
+        }
+
+    if TEST_FAILED_MESSAGE in result:
+        logger.info(f"Test failed: {result}")
+        return {
+            "status": "failed",
+            "results": result.replace(TEST_FAILED_MESSAGE, "").strip(),
+            "tracing": history.get_logs(),
+            "error": "",
+            "traceback": "",
+        }
+
+    if TEST_SUCCESS_MESSAGE in result:
+        logger.info(f"Test successful: {result}")
+        return {
+            "status": "completed",
+            "results": result.replace(TEST_SUCCESS_MESSAGE, "").strip(),
+            "tracing": history.get_logs(),
+            "error": "",
+            "traceback": "",
+        }
+
+    logger.error(f"Unknown status of test run: {result}")
+    return {
+        "status": "error",
+        "results": None,
+        "tracing": history.get_logs(),
+        "error": "Unknown status of test run.",
+        "traceback": "",
+    }
+
+    # if history.has_errors() or not history.is_done() or result is None or not history.is_successful():
+    #     logger.error(f"Failed to run test: {history.final_result()}")
+    #     return {
+    #         "status": "error",
+    #         "results": None,
+    #         "tracing": history.get_logs(),
+    #         "error": "Failed to run test.",
+    #         "traceback": "",
+    #     }
+
+    # # Don't attach JS logs directly to the result
+    # # Instead include them as a separate key
+    # return {"status": "completed", "results": result, "tracing": history.get_logs()}
 
 
 def handle_background_task_errors(func):
@@ -199,7 +265,7 @@ async def background_run_test(
     test: Test,
     secrets: dict[str, dict[str, str]],
     gif_output_path: str | bool = False,
-) -> list[Test]:
+) -> dict[str, Any]:
 
     logger.info(f"Generating cookies for {test.url}")
 
@@ -256,7 +322,6 @@ async def run_test(
         except Exception as e:
             logging.error(f"Failed to decrypt secrets: {str(e)}")
             raise HTTPException(status_code=400, detail="Failed to decrypt secrets")
-
 
     background_task.add_task(
         background_run_test,

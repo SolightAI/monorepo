@@ -2,7 +2,7 @@ from __future__ import annotations
 import uuid
 import asyncio
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 from fastapi import HTTPException, BackgroundTasks
 from pydantic import UUID4
 import requests
@@ -209,6 +209,20 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                 TASK_MANAGER_URL + f"/run-test/status/{task_id}"
             )
 
+            if response.status_code == 404:
+                logger.error(f"Failed to get task status: {task_id}")
+                await update_test_execution(
+                    execution_id,
+                    TestExecutionUpdateSchema(
+                        status=TestStatus.FAILED,
+                        notes="Failed to get task status.",
+                        ended_at=datetime.now(tzinfo),
+                        metadata={"error": "Failed to get task status."},
+                        tracing={},
+                    )
+                )
+                break
+
             if response.status_code != 200:
                 logger.error(f"Failed to get task status ({response.status_code}): {response.text}")
                 attempts += 1
@@ -247,8 +261,25 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                 )
                 break
 
-            # If still pending, continue polling
-            attempts += 1
+            elif status_data["status"] == "pending":
+                attempts += 1
+
+            elif status_data["status"] == "failed":
+                await update_test_execution(
+                    execution_id,
+                    TestExecutionUpdateSchema(
+                        status=TestStatus.FAILED,
+                        notes=f"{status_data.get('results', 'Unknown error')}",
+                        ended_at=datetime.now(tzinfo),
+                        metadata=test_execution.metadata or {},
+                        tracing=tracing_data,
+                    )
+                )
+                break
+
+            else:
+                logger.error(f"Unknown status of test run: {status_data}")
+                break
 
         except Exception as e:
             logger.error(f"Error polling task manager status: {str(e)}")
