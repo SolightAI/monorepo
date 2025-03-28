@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader, AlertCircle, ArrowLeft, TestTube, Plus, CheckCircle, XCircle, Sparkles, CheckSquare, Edit, Zap } from 'lucide-react';
+import {
+  Loader, AlertCircle, ArrowLeft, TestTube, Plus,
+  CheckCircle, XCircle, Sparkles, CheckSquare, Edit, Zap, Play
+} from 'lucide-react';
 import AddTestModal from '@/components/modals/AddTestModal';
 import TestDetailsModal from '@/components/modals/TestDetailsModal';
 import AddUserStoryModal from '@/components/modals/AddUserStoryModal';
 import { triggerFeatureTestGeneration, getTestGenerationStatus } from '@/services/testService';
 import { triggerUserStoriesGeneration, getUserStoriesGenerationStatus } from '@/services/userStoryService';
 import { generateAcceptanceCriteria, getAcceptanceCriteriaGenerationStatus } from '@/api/acceptanceCriteriaGeneration';
+import { createTestExecution } from '@/services/testExecutionService';
 import EditFeatureModal from '@/components/modals/EditFeatureModal';
 import EditUserStoryModal from '@/components/modals/EditUserStoryModal';
 import EditAcceptanceCriteriaModal from '@/components/modals/EditAcceptanceCriteriaModal';
@@ -763,6 +767,26 @@ const FeatureDetails = () => {
     }
   };
 
+  const handleRunSingleTest = async (test) => {
+    try {
+      const executionData = {
+        test_id: test.id,
+        status: 'PENDING',
+        environment: 'development',
+        executor_type: 'MANUAL',
+        notes: null
+      };
+
+      await createTestExecution(executionData);
+
+      // Refresh the feature details to update the test status
+      await fetchFeatureDetails();
+    } catch (err) {
+      console.error('Error running test:', err);
+      setError('Failed to run test. Please try again.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -1041,6 +1065,7 @@ const FeatureDetails = () => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Run</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -1066,6 +1091,18 @@ const FeatureDetails = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {formatDateTime(test.ended_at) || 'Never run'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent row click event
+                                handleRunSingleTest(test);
+                              }}
+                              className="text-blue-600 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded-md flex items-center"
+                            >
+                              <Play size={16} className="mr-1" />
+                              Run
+                            </button>
                           </td>
                         </tr>
                       ))}

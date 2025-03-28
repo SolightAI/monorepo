@@ -14,7 +14,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
   useEffect(() => {
     if (execution?.id) {
       fetchBugs();
-      
+
       // If test is still running, set up auto-refresh
       if (execution.status === 'PENDING') {
         const interval = setInterval(refreshExecution, 5000); // Refresh every 5 seconds
@@ -40,7 +40,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
       setLoading(false);
     }
   };
-  
+
   const refreshExecution = async () => {
     try {
       const updatedExecution = await getTestExecution(execution.id);
@@ -141,7 +141,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
           onClick={onBack}
           className="flex items-center text-blue-600 hover:text-blue-800"
         >
-          <ArrowLeft size={16} className="mr-1" />
+          <ArrowLeft size={24} className="mr-1" />
           Back to history
         </button>
       </div>
@@ -319,9 +319,9 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
                                   {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'N/A'}
                                 </td>
                                 <td className="px-4 py-2">
-                                  <span 
-                                    className={`px-2 py-1 rounded-full text-xs font-medium 
-                                      ${log.type === 'error' ? 'bg-red-100 text-red-800' : 
+                                  <span
+                                    className={`px-2 py-1 rounded-full text-xs font-medium
+                                      ${log.type === 'error' ? 'bg-red-100 text-red-800' :
                                       log.type === 'warning' ? 'bg-yellow-100 text-yellow-800' :
                                       log.type === 'info' ? 'bg-blue-100 text-blue-800' :
                                       'bg-gray-100 text-gray-800'}`}
@@ -416,7 +416,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
             <p>{error}</p>
           </div>
         ) : bugs.length === 0 && execution.status !== 'PENDING' ? (
-          <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-gray-700">
             <p>No bugs were found during this test execution.</p>
           </div>
         ) : execution.status === 'PENDING' ? (

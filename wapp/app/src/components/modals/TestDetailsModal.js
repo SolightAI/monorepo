@@ -7,7 +7,7 @@ import { getTestExecutions, createTestExecution } from '@/services/testExecution
 /**
  * Modal component for displaying detailed test information
  */
-const TestDetailsModal = ({ test, onClose }) => {
+const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
   const [activeTab, setActiveTab] = useState('details');
   const [selectedExecution, setSelectedExecution] = useState(null);
   const [executions, setExecutions] = useState([]);
@@ -128,6 +128,10 @@ const TestDetailsModal = ({ test, onClose }) => {
       const execution = await createTestExecution(executionData);
       handleTestExecutionCreated(execution);
 
+      // Add this to notify the parent component that a test was run
+      if (typeof onTestUpdated === 'function') {
+        onTestUpdated();
+      }
     } catch (err) {
       console.error('Error starting test execution:', err);
     } finally {
@@ -297,7 +301,7 @@ const TestDetailsModal = ({ test, onClose }) => {
         </div>
 
         {/* Modal footer with action buttons */}
-        <div className="border-t border-gray-200 px-6 py-4 flex justify-end">
+        {!(activeTab === 'history' && selectedExecution) && <div className="border-t border-gray-200 px-6 py-4 flex justify-end">
           <button
             onClick={onClose}
             className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 mr-3"
@@ -322,7 +326,7 @@ const TestDetailsModal = ({ test, onClose }) => {
               </>
             )}
           </button>
-        </div>
+        </div>}
       </div>
     </div>
   );
