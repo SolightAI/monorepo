@@ -17,6 +17,7 @@ import {
 import { getAllTests, getTestsByFeature, getTestsByEpic, getTestsByProduct } from '@/services/testService';
 import { getAllEpics, getFeaturesByEpic } from '@/services/productService';
 import { useProduct } from '@/context/ProductContext';
+import { useOrganization } from '@/context/OrganizationContext';
 import TestDetails from '@/components/test/TestDetails';
 
 /**
@@ -40,14 +41,26 @@ const TestsTable = () => {
   const [loadingFeatures, setLoadingFeatures] = useState(false);
 
   const navigate = useNavigate();
-  const { selectedProduct, selectedOrganization } = useProduct();
+  const { selectedProduct } = useProduct();
+  const { selectedOrganization } = useOrganization();
 
   useEffect(() => {
-    if (selectedProduct) {
+    if (selectedProduct && selectedOrganization) {
+      console.log('Selected product:', selectedProduct);
+      console.log('Selected organization:', selectedOrganization);
       fetchTestsByProduct(selectedProduct.id);
       fetchEpicsAndFeatures();
     }
-  }, [selectedProduct]);
+  }, [selectedProduct, selectedOrganization]);
+
+  // Add console logs for epics and features state changes
+  useEffect(() => {
+    console.log('Epics updated:', epics);
+  }, [epics]);
+
+  useEffect(() => {
+    console.log('Features updated:', features);
+  }, [features]);
 
   // Fetch epic-specific features when an epic is selected
   useEffect(() => {
@@ -65,7 +78,12 @@ const TestsTable = () => {
       setLoadingFeatures(true);
 
       if (!selectedProduct || !selectedOrganization?.id) {
-        console.error('No product or organization selected');
+        console.error('No product or organization selected:', { 
+          selectedProduct, 
+          selectedOrganization,
+          productId: selectedProduct?.id,
+          orgId: selectedOrganization?.id 
+        });
         setEpics([]);
         setFeatures([]);
         setLoadingEpics(false);
@@ -73,25 +91,51 @@ const TestsTable = () => {
         return;
       }
 
+      console.log('Fetching epics for:', { 
+        productId: selectedProduct.id, 
+        orgId: selectedOrganization.id 
+      });
+      
       // Fetch epics for the current product
       const epicsData = await getAllEpics(selectedProduct.id, selectedOrganization.id);
-      setEpics(epicsData);
+      console.log('Fetched epics data:', epicsData);
+      
+      if (!Array.isArray(epicsData) || epicsData.length === 0) {
+        console.warn('No epics data returned or empty array');
+        setEpics([]);
+      } else {
+        setEpics(epicsData);
+      }
 
       // Create a mapping of epic ID to features
       const featuresMap = {};
       const fetchPromises = epicsData.map(async (epic) => {
+        if (!epic.id) {
+          console.error('Epic missing ID:', epic);
+          return [];
+        }
+        console.log('Fetching features for epic:', epic.id);
         const epicFeatures = await getFeaturesByEpic(epic.id);
+        console.log('Features for epic', epic.id, ':', epicFeatures);
         featuresMap[epic.id] = epicFeatures;
         return epicFeatures;
       });
 
       const allFeaturesArrays = await Promise.all(fetchPromises);
       const allFeatures = allFeaturesArrays.flat();
+      console.log('All features:', allFeatures);
 
       setEpicFeaturesMap(featuresMap);
       setFeatures(allFeatures);
     } catch (err) {
       console.error('Error fetching epics and features:', err);
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+      setEpics([]);
+      setFeatures([]);
     } finally {
       setLoadingEpics(false);
       setLoadingFeatures(false);
@@ -412,9 +456,18 @@ const TestsTable = () => {
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
               >
                 <option value="all">All Epics</option>
-                {epics.map(epic => (
-                  <option key={epic.id} value={epic.id}>{epic.name}</option>
-                ))}
+                {Array.isArray(epics) && epics.length > 0 ? (
+                  epics.map(epic => {
+                    console.log('Rendering epic option:', epic);
+                    return (
+                      <option key={epic.id} value={epic.id}>
+                        {epic.name || 'Unnamed Epic'}
+                      </option>
+                    );
+                  })
+                ) : (
+                  <option value="" disabled>No epics available</option>
+                )}
               </select>
             </div>
 
@@ -430,9 +483,18 @@ const TestsTable = () => {
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
               >
                 <option value="all">All Features</option>
-                {features.map(feature => (
-                  <option key={feature.id} value={feature.id}>{feature.name}</option>
-                ))}
+                {Array.isArray(features) && features.length > 0 ? (
+                  features.map(feature => {
+                    console.log('Rendering feature option:', feature);
+                    return (
+                      <option key={feature.id} value={feature.id}>
+                        {feature.name || 'Unnamed Feature'}
+                      </option>
+                    );
+                  })
+                ) : (
+                  <option value="" disabled>No features available</option>
+                )}
               </select>
             </div>
           </div>
