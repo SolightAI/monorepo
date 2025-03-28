@@ -93,7 +93,6 @@ async def get_current_user(token: str) -> UserModel:
 
 async def check_is_admin(user: UserModel) -> bool:
     """Check if a user is an admin, raise exception if not."""
-    print("USER IS ADMIN: ", user.is_admin)
     if not user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
