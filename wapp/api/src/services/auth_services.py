@@ -29,7 +29,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class CredentialsException(HTTPException):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -38,7 +38,7 @@ class CredentialsException(HTTPException):
 
 
 class HTTPInvalidTokenError(HTTPException):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
@@ -46,25 +46,22 @@ class HTTPInvalidTokenError(HTTPException):
         )
 
 
-def _should_be_admin(email: str):
-    print("ADMIN EMAIL: ", os.getenv("ADMIN_EMAIL", "@laneo.io"))
-    print("EMAIL: ", email)
-    print("ENDING WITH: ", email.endswith(os.getenv("ADMIN_EMAIL", "@laneo.io")))
+def _should_be_admin(email: str) -> bool:
     return email.endswith(os.getenv("ADMIN_EMAIL", "@laneo.io"))
 
 
-def get_hash(password):
+def get_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=ALGORITHM)
 
 
-def set_auth_cookie(response: Response, token: str):
+def set_auth_cookie(response: Response, token: str) -> None:
     response.set_cookie(
         key="access_token",
         value=f"Bearer {token}",
@@ -105,7 +102,7 @@ async def check_is_admin(user: UserModel) -> bool:
     return True
 
 
-def get_google_userinfo(google_access_token: str):
+def get_google_userinfo(google_access_token: str) -> dict:
     response = requests.get(
         "https://www.googleapis.com/oauth2/v1/userinfo",
         headers={"Authorization": f"Bearer {google_access_token}"},
@@ -119,7 +116,7 @@ def get_google_userinfo(google_access_token: str):
     return response.json()
 
 
-async def auth_google_callback(code: str, response: Response, invitation_code: Optional[str] = None):
+async def auth_google_callback(code: str, response: Response, invitation_code: Optional[str] = None) -> RedirectResponse:
     token_url = "https://accounts.google.com/o/oauth2/token"
 
     data = {
@@ -211,7 +208,7 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
     return redirect_response
 
 
-async def refresh_google_token(refresh_token):
+async def refresh_google_token(refresh_token: str) -> dict:
     token_url = "https://accounts.google.com/o/oauth2/token"
 
     data = {
@@ -235,6 +232,6 @@ async def refresh_google_token(refresh_token):
     }
 
 
-async def logout(response: Response):
+async def logout(response: Response) -> dict:
     response.delete_cookie(key="access_token")
     return {"message": "Successfully logged out"}
