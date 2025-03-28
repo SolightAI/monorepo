@@ -2,7 +2,7 @@ fastapi
 uvicorn
 pydantic
 requests
-git+https://github.com/browser-use/browser-use.git@main
+git+https://github.com/browser-use/browser-use.git@5964bdeeed67ec3748f9e9acb90920d980a0c36c
 retry
 pydantic
 pyperclip==1.9.0
