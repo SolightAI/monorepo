@@ -40,10 +40,10 @@ function TestDetails({ test, onClose }) {
     // Function to parse steps either as an array or a string
     const parseSteps = (steps) => {
       if (!steps) return [];
-      
+
       // If steps is already an array, return it
       if (Array.isArray(steps)) return steps;
-      
+
       try {
         // Try to parse it as JSON
         const parsedSteps = JSON.parse(steps);
@@ -134,13 +134,13 @@ function TestDetails({ test, onClose }) {
         {test.steps && (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Test Steps</h3>
-            <ol className="list-decimal pl-5 space-y-2">
+            <div className="space-y-2">
               {parseSteps(test.steps).map((step, index) => (
-                <li key={index} className="text-gray-700">
+                <div key={index} className="text-gray-700">
                   {step}
-                </li>
+                </div>
               ))}
-            </ol>
+            </div>
           </div>
         )}
 
