@@ -65,7 +65,7 @@ const ProductSelector = ({ isMobile = false }) => {
       description: '',
       documentation: '',
       links_to_documentation: [],
-      organization_id: selectedOrganization?.id || null
+      organization_id: selectedOrganization.id
     });
     setFormError('');
     setIsEditing(false);

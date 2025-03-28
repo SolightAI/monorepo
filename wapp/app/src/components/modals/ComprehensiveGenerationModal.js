@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useOrganization } from '@/context/OrganizationContext';
 import { Loader, X, Check, AlertTriangle, Clock, Zap } from 'lucide-react';
 import { generateEpics, getEpicGenerationStatus } from '@/api/epicGeneration';
 import { generateFeatures, getFeatureGenerationStatus } from '@/api/featureGeneration';
@@ -66,6 +67,7 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
   const [currentTask, setCurrentTask] = useState(null);
   const [message, setMessage] = useState('Preparing to generate everything...');
   const hasStartedGeneration = useRef(false);
+  const { selectedOrganization, loading: organizationLoading } = useOrganization();
 
   // Add state for detailed status tracking
   const [statusLogs, setStatusLogs] = useState([]);
@@ -112,7 +114,7 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
         let epicResults = [];
         try {
           const epicsResponse = await axios.get(
-            `${API_URL}/products/${productId}`,
+            `${API_URL}/products/${productId}?organization_id=${selectedOrganization.id}`,
             { withCredentials: true }
           );
           epicResults = epicsResponse.data.epics || [];
@@ -142,7 +144,7 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
               // Epic generation is complete, but we need to fetch the epics with their IDs
               // because the task manager just returns epics without IDs (they're saved to DB separately)
               const epicsResponse = await axios.get(
-                `${API_URL}/products/${productId}`,
+                `${API_URL}/products/${productId}?organization_id=${selectedOrganization.id}`,
                 { withCredentials: true }
               );
               epicResults = epicsResponse.data.epics || [];
