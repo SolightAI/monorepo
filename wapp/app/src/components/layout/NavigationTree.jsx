@@ -261,7 +261,6 @@ const NavigationTree = () => {
         orderedBreadcrumbs.push(testCrumb);
       }
 
-      console.log('Final breadcrumbs:', orderedBreadcrumbs); // Debug final breadcrumbs
       setBreadcrumbs(orderedBreadcrumbs);
     } catch (err) {
       console.error('Error building navigation breadcrumbs:', err);
