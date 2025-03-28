@@ -50,8 +50,8 @@ logger = getLogger(__name__)
 
 async def check_is_logged_in(
     url: str,
-    existing_session: Optional[dict[str, dict[str, str]]] = None,
-    user_id: str = "anonymous",
+    existing_session: Optional[dict[str, dict[str, str]]],
+    user_id: str,
 ) -> bool:
     """
     Check if the user is still logged in to the webapp
@@ -136,8 +136,7 @@ async def generate_auth_session(
         user_id = secrets["username_password"]["username"]
 
     if not user_id:
-        logger.warning("No username found in secrets, using 'anonymous' as user_id")
-        user_id = "anonymous"
+        raise RuntimeError("No Username/Password found. Stopping here.")
 
     # First check if we can reuse a cached session
     if reuse_session:
