@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import Login from './pages/auth/Login';
@@ -25,6 +25,8 @@ import { OrganizationProvider } from './context/OrganizationContext';
 import { DashboardProvider } from './context/DashboardContext';
 import { SecretProvider } from './context/SecretContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { OnboardingProvider } from './context/OnboardingContext';
+import OnboardingModal from './components/onboarding/OnboardingModal';
 
 
 // Remove the local isAuthenticated function and use the one from AuthContext instead
@@ -68,100 +70,83 @@ const AdminRoute = ({ children }) => {
 };
 
 function AppContent() {
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const { isAuthenticated } = useAuth();
-
-  useEffect(() => {
-    // Check if the user has completed onboarding before
-    const hasCompletedOnboarding = localStorage.getItem('onboardingCompleted');
-    if (isAuthenticated && !hasCompletedOnboarding) {
-      // Show onboarding for new users
-      setShowOnboarding(true);
-    }
-  }, [isAuthenticated]);
-
-  const handleOnboardingComplete = (userData) => {
-    // Save onboarding completion status
-    localStorage.setItem('onboardingCompleted', 'true');
-
-    // If userData was provided, save it
-    if (userData) {
-      localStorage.setItem('userData', JSON.stringify(userData));
-    }
-
-    // Hide the onboarding flow
-    setShowOnboarding(false);
-  };
+  // OnboardingProvider now manages the onboarding state
+  // We can still access onboarding state from Auth context, but it's mainly handled by OnboardingProvider
 
   return (
-    <OrganizationProvider>
-      <ProductProvider>
-        <SecretProvider>
-          <div className="min-h-screen bg-gray-50">
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/reset-password/:token" element={<ResetPassword />} />
-              <Route path="/auth/google/callback" element={<GoogleCallback />} />
-              <Route path="/join-organization/:code" element={<JoinOrganization />} />
+    <OnboardingProvider>
+      <OrganizationProvider>
+        <ProductProvider>
+          <SecretProvider>
+            {/* Render OnboardingModal at the top level */}
+            <OnboardingModal />
 
-              {/* Organization Setup Route */}
-              <Route path="/organizations/create" element={
-                <ProtectedRoute>
-                  <OrganizationCreate />
-                </ProtectedRoute>
-              } />
-              <Route path="/organization/create" element={
-                <ProtectedRoute>
-                  <OrganizationCreate />
-                </ProtectedRoute>
-              } />
+            <div className="min-h-screen bg-gray-50">
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route path="/auth/google/callback" element={<GoogleCallback />} />
+                <Route path="/join-organization/:code" element={<JoinOrganization />} />
 
-              {/* Protected routes with Layout */}
-              <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                {/* Home page showing epics of selected product */}
-                <Route path="/" element={<Home />} />
-
-                {/* Dashboard Routes */}
-                <Route path="/dashboard" element={
-                  <DashboardProvider>
-                    <Dashboard />
-                  </DashboardProvider>
+                {/* Organization Setup Route */}
+                <Route path="/organizations/create" element={
+                  <ProtectedRoute>
+                    <OrganizationCreate />
+                  </ProtectedRoute>
                 } />
-                <Route path="/dashboard/product/:productId" element={
-                  <DashboardProvider>
-                    <Dashboard />
-                  </DashboardProvider>
+                <Route path="/organization/create" element={
+                  <ProtectedRoute>
+                    <OrganizationCreate />
+                  </ProtectedRoute>
                 } />
 
-                {/* Epic details page */}
-                <Route path="/epics/:epicId" element={<EpicDetails />} />
-                {/* Feature details page */}
-                <Route path="/features/:featureId" element={<FeatureDetails />} />
-                {/* Secrets Management page */}
-                <Route path="/secrets" element={<Secrets />} />
-                {/* Tests Table page */}
-                <Route path="/tests" element={<TestsTable />} />
-                {/* Bugs Table page */}
-                <Route path="/bugs" element={<BugsTable />} />
-                {/* Organization routes */}
-                <Route path="/organizations/dashboard" element={<OrganizationDashboard />} />
-                <Route path="/organizations/members" element={<OrganizationMembers />} />
-                {/* Other protected routes */}
-                <Route path="/settings" element={<Settings />} />
-              </Route>
+                {/* Protected routes with Layout */}
+                <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                  {/* Home page showing epics of selected product */}
+                  <Route path="/" element={<Home />} />
 
-              {/* Admin routes with Layout */}
-              <Route element={<AdminRoute><Layout /></AdminRoute>}>
-                <Route path="/admin/invitations" element={<AdminInvitations />} />
-              </Route>
+                  {/* Dashboard Routes */}
+                  <Route path="/dashboard" element={
+                    <DashboardProvider>
+                      <Dashboard />
+                    </DashboardProvider>
+                  } />
+                  <Route path="/dashboard/product/:productId" element={
+                    <DashboardProvider>
+                      <Dashboard />
+                    </DashboardProvider>
+                  } />
 
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </div>
-        </SecretProvider>
-      </ProductProvider>
-    </OrganizationProvider>
+                  {/* Epic details page */}
+                  <Route path="/epics/:epicId" element={<EpicDetails />} />
+                  {/* Feature details page */}
+                  <Route path="/features/:featureId" element={<FeatureDetails />} />
+                  {/* Secrets Management page */}
+                  <Route path="/secrets" element={<Secrets />} />
+                  {/* Tests Table page */}
+                  <Route path="/tests" element={<TestsTable />} />
+                  {/* Bugs Table page */}
+                  <Route path="/bugs" element={<BugsTable />} />
+                  {/* Organization routes */}
+                  <Route path="/organizations/dashboard" element={<OrganizationDashboard />} />
+                  <Route path="/organizations/members" element={<OrganizationMembers />} />
+                  {/* Other protected routes */}
+                  <Route path="/settings" element={<Settings />} />
+                </Route>
+
+                {/* Admin routes with Layout */}
+                <Route element={<AdminRoute><Layout /></AdminRoute>}>
+                  <Route path="/admin/invitations" element={<AdminInvitations />} />
+                </Route>
+
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
+          </SecretProvider>
+        </ProductProvider>
+      </OrganizationProvider>
+    </OnboardingProvider>
   );
 }
 

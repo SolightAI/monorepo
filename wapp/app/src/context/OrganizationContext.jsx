@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from './AuthContext';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL;
@@ -16,6 +17,7 @@ export const OrganizationProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   // Memoize fetchOrganizations to prevent re-renders
   const fetchOrganizations = useCallback(async () => {
@@ -43,11 +45,17 @@ export const OrganizationProvider = ({ children }) => {
 
       // Handle case where user has no organizations
       if (response.data.length === 0) {
-        console.log('User has no organizations, redirecting to create page');
+        console.log('User has no organizations');
 
-        // Only redirect if we're not already on the create page to avoid loops
-        if (!location.pathname.includes('/organization/create')) {
+        // Check if user should complete onboarding first
+        // Only redirect to create organization if onboarding is completed or not needed
+        const onboardingCompleted = user?.onboarding_completed || localStorage.getItem('onboardingCompleted') === 'true';
+
+        if (onboardingCompleted && !location.pathname.includes('/organization/create')) {
+          console.log('Onboarding completed, redirecting to create organization page');
           navigate('/organization/create');
+        } else {
+          console.log('Onboarding not completed, skipping redirect to create organization');
         }
 
         setLoading(false);
@@ -95,7 +103,7 @@ export const OrganizationProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [location.pathname, navigate]);
+  }, [location.pathname, navigate, user]);
 
   // Fetch organizations on component mount
   useEffect(() => {
