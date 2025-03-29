@@ -70,6 +70,8 @@ const OrganizationDashboard = () => {
     try {
       await deleteOrganization(selectedOrganization.id);
       setIsDeleting(false);
+      // Reload the page after successful deletion
+      window.location.reload();
     } catch (err) {
       setDeleteError(
         err.response?.data?.detail ||
