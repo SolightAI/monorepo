@@ -12,7 +12,17 @@ const ProductHierarchy = ({ onNext, onPrev, onSkip }) => {
         </p>
       </div>
 
-      <div className="flex justify-center mb-8">
+
+      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 max-w-3xl mx-auto">
+        <h3 className="text-lg font-medium text-blue-800 mb-2">Why This Structure Matters</h3>
+        <p className="text-blue-700">
+          This ensures that all tests are tied to specific features and requirements.
+          It makes tracking test coverage easier and helps identify which features need more testing.
+          During onboarding, we'll help you set up your first organization and product to get started.
+        </p>
+      </div>
+
+      <div className="flex justify-center pb-5 pt-5">
         <div className="relative w-full max-w-3xl">
           {/* Hierarchy Diagram */}
           <div className="flex flex-col items-center">
@@ -61,15 +71,6 @@ const ProductHierarchy = ({ onNext, onPrev, onSkip }) => {
             />
           </div>
         </div>
-      </div>
-
-      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 max-w-3xl mx-auto">
-        <h3 className="text-lg font-medium text-blue-800 mb-2">Why This Structure Matters</h3>
-        <p className="text-blue-700">
-          This hierarchical approach ensures that all tests are tied to specific features and requirements.
-          It makes tracking test coverage easier and helps identify which features need more testing.
-          During onboarding, we'll help you set up your first organization and product to get started.
-        </p>
       </div>
 
       <div className="flex justify-between mt-8">
