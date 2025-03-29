@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
@@ -14,6 +14,7 @@ export default function Layout() {
   const { selectedOrganization } = useOrganization();
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -81,7 +82,7 @@ export default function Layout() {
               <div className="px-4 mb-4">
                 <ProductSelector isMobile={true} />
               </div>
-              {selectedProduct && (
+              {(selectedProduct || location.pathname.startsWith('/organizations/')) && (
                 <div className="flex-1 h-0 overflow-y-auto bg-white">
                   <NavigationTree />
                 </div>
@@ -110,6 +111,13 @@ export default function Layout() {
               </div>
             </div>
           </>
+        ) : location.pathname.startsWith('/organizations/') ? (
+          // Show organization dashboard when on organization routes
+          <div className="flex-1 overflow-auto">
+            <div className="py-6 px-4 sm:px-6 lg:px-8">
+              <Outlet />
+            </div>
+          </div>
         ) : !selectedOrganization ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center relative">
