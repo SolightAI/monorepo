@@ -12,8 +12,10 @@ import {
   Calendar,
   Beaker,
   Layers,
-  FileText
+  FileText,
+  Play
 } from 'lucide-react';
+import axios from 'axios';
 import { getAllTests, getTestsByFeature, getTestsByEpic, getTestsByProduct } from '@/services/testService';
 import { getAllEpics, getFeaturesByEpic } from '@/services/productService';
 import { useProduct } from '@/context/ProductContext';
@@ -24,6 +26,8 @@ import TestDetails from '@/components/test/TestDetails';
  * Displays all tests in a tabular format with sorting and filtering capabilities
  */
 const TestsTable = () => {
+  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+
   const [tests, setTests] = useState([]);
   const [filteredTests, setFilteredTests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +43,7 @@ const TestsTable = () => {
   const [epicFeaturesMap, setEpicFeaturesMap] = useState({});
   const [loadingEpics, setLoadingEpics] = useState(false);
   const [loadingFeatures, setLoadingFeatures] = useState(false);
+  const [successMessage, setSuccessMessage] = useState(null);
 
   const navigate = useNavigate();
   const { selectedProduct } = useProduct();
@@ -78,11 +83,11 @@ const TestsTable = () => {
       setLoadingFeatures(true);
 
       if (!selectedProduct || !selectedOrganization?.id) {
-        console.error('No product or organization selected:', { 
-          selectedProduct, 
+        console.error('No product or organization selected:', {
+          selectedProduct,
           selectedOrganization,
           productId: selectedProduct?.id,
-          orgId: selectedOrganization?.id 
+          orgId: selectedOrganization?.id
         });
         setEpics([]);
         setFeatures([]);
@@ -91,15 +96,15 @@ const TestsTable = () => {
         return;
       }
 
-      console.log('Fetching epics for:', { 
-        productId: selectedProduct.id, 
-        orgId: selectedOrganization.id 
+      console.log('Fetching epics for:', {
+        productId: selectedProduct.id,
+        orgId: selectedOrganization.id
       });
-      
+
       // Fetch epics for the current product
       const epicsData = await getAllEpics(selectedProduct.id, selectedOrganization.id);
       console.log('Fetched epics data:', epicsData);
-      
+
       if (!Array.isArray(epicsData) || epicsData.length === 0) {
         console.warn('No epics data returned or empty array');
         setEpics([]);
@@ -360,6 +365,85 @@ const TestsTable = () => {
     }
   };
 
+  // Handle running selected tests (filtered tests)
+  const handleRunSelectedTests = async () => {
+    try {
+      if (filteredTests.length === 0) {
+        setError('No tests selected to run. Try adjusting your filters.');
+        setSuccessMessage(null);
+        return;
+      }
+
+      setError(null);
+      setSuccessMessage(null);
+      setLoading(true);
+
+      let testCount = 0;
+
+      // Run each filtered test
+      for (const test of filteredTests) {
+        try {
+          const executionData = {
+            test_id: test.id,
+            status: 'PENDING',
+            environment: 'development',
+            executor_type: 'MANUAL',
+            notes: null
+          };
+
+          await axios.post(`${API_URL}/test-executions/`, executionData, {
+            withCredentials: true
+          });
+
+          testCount++;
+        } catch (testErr) {
+          console.error(`Error running test ${test.id}:`, testErr);
+          // Continue with other tests
+        }
+      }
+
+      // Show appropriate message based on results
+      if (testCount > 0) {
+        setSuccessMessage(`Successfully started ${testCount} tests.`);
+        setError(null);
+      } else {
+        setError('Failed to start any tests. Please try again.');
+        setSuccessMessage(null);
+      }
+
+      // Refresh the tests list while maintaining the current filters
+      await refreshTestsWithCurrentFilters();
+
+    } catch (err) {
+      console.error('Error running selected tests:', err);
+      setError('Failed to run selected tests. Please try again.');
+      setSuccessMessage(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to refresh tests while maintaining current filters
+  const refreshTestsWithCurrentFilters = async () => {
+    try {
+      // Re-fetch tests based on the current filter selections
+      if (selectedFeature !== 'all') {
+        const testsData = await getTestsByFeature(selectedFeature);
+        setTests(testsData);
+        applyFilters(testsData, selectedStatus, searchQuery);
+      } else if (selectedEpic !== 'all') {
+        const testsData = await getTestsByEpic(selectedEpic);
+        setTests(testsData);
+        applyFilters(testsData, selectedStatus, searchQuery);
+      } else {
+        await fetchTestsByProduct(selectedProduct.id);
+      }
+    } catch (err) {
+      console.error('Error refreshing tests:', err);
+      // Don't show error as this is just a refresh, and the main action (running tests) was successful
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center p-12">
@@ -398,6 +482,13 @@ const TestsTable = () => {
               All Tests
             </h1>
           </div>
+
+          {/* Add success message display */}
+          {successMessage && (
+            <div className="mb-6 p-4 bg-green-100 border border-green-200 text-green-700 rounded-lg flex items-start">
+              <p>{successMessage}</p>
+            </div>
+          )}
 
           {/* All filters in one row */}
           <div className="flex flex-col sm:flex-row gap-3 mb-6 items-center">
@@ -500,6 +591,21 @@ const TestsTable = () => {
           </div>
 
           <div className="bg-white rounded-lg shadow overflow-hidden">
+            {/* Add "Run Selected Tests" button above the table */}
+            <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+              <div className="text-sm text-gray-500">
+                {filteredTests.length} tests selected
+              </div>
+              <button
+                onClick={handleRunSelectedTests}
+                disabled={filteredTests.length === 0}
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150 disabled:bg-green-300 disabled:cursor-not-allowed"
+              >
+                <Play size={18} className="mr-2" />
+                Run Tests
+              </button>
+            </div>
+
             <div className="overflow-x-auto">
               <div className="max-h-[calc(100vh-320px)] overflow-y-auto">
                 <table className="min-w-full divide-y divide-gray-200">
