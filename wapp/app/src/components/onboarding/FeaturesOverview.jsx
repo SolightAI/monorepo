@@ -1,6 +1,7 @@
 import React from 'react';
-import { ArrowRight, ArrowLeft, Check, Play, BugPlay, Key, Link, BarChart } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Check, Play, BugPlay, Key, Link as LinkIcon, BarChart } from 'lucide-react';
 import { useOnboarding } from '@/context/OnboardingContext';
+import { Link } from 'react-router-dom';
 
 const FeaturesOverview = ({ onNext, onPrev, onSkip }) => {
   const { completeOnboarding } = useOnboarding();
@@ -48,7 +49,7 @@ const FeaturesOverview = ({ onNext, onPrev, onSkip }) => {
 
         <FeatureCard
           title="Organization Management"
-          icon={<Link className="h-6 w-6 text-indigo-500" />}
+          icon={<LinkIcon className="h-6 w-6 text-indigo-500" />}
           description="Organize testing by products, epics, features, and acceptance criteria. Create clear hierarchies for all your test assets."
           links={[
             { label: "Organization Dashboard", path: "/organizations/dashboard" }
@@ -87,14 +88,14 @@ const FeatureCard = ({ title, icon, description, links = [] }) => {
       {links.length > 0 && (
         <div className="mt-auto pt-2 border-t border-gray-100">
           {links.map((link, index) => (
-            <a
+            <Link
               key={index}
-              href={link.path}
+              to={link.path}
               className="text-sm text-blue-600 hover:text-blue-800 flex items-center mt-2"
             >
               {link.label}
               <ArrowRight className="ml-1 h-3 w-3" />
-            </a>
+            </Link>
           ))}
         </div>
       )}
