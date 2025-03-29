@@ -45,19 +45,6 @@ export const OrganizationProvider = ({ children }) => {
 
       // Handle case where user has no organizations
       if (response.data.length === 0) {
-        console.log('User has no organizations');
-
-        // Check if user should complete onboarding first
-        // Only redirect to create organization if onboarding is completed or not needed
-        const onboardingCompleted = user?.onboarding_completed || localStorage.getItem('onboardingCompleted') === 'true';
-
-        if (onboardingCompleted && !location.pathname.includes('/organization/create')) {
-          console.log('Onboarding completed, redirecting to create organization page');
-          navigate('/organization/create');
-        } else {
-          console.log('Onboarding not completed, skipping redirect to create organization');
-        }
-
         setLoading(false);
         return;
       }
