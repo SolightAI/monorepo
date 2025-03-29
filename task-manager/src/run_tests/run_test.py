@@ -152,9 +152,14 @@ async def _run_test(
 
     logger.info(f"{history.has_errors()=} {history.is_done()=} {result is None=} {history.is_successful()=}")
 
+    base_ouput = {
+        "agent_thoughts": history.model_thoughts(),
+        "agent_actions": history.model_actions(),
+    }
+
     if result is None:
         logger.error(f"Couldn't run test for {test.name}: {history.final_result()}")
-        return {
+        return base_ouput | {
             "status": "error",
             "results": None,
             "tracing": history.get_logs(),
@@ -164,7 +169,7 @@ async def _run_test(
 
     if AN_ERROR_OCCURED_MESSAGE in result:
         logger.error(f"An error occurred during the test: {result}")
-        return {
+        return base_ouput | {
             "status": "error",
             "results": result.replace(AN_ERROR_OCCURED_MESSAGE, "").strip(),
             "tracing": history.get_logs(),
@@ -174,7 +179,7 @@ async def _run_test(
 
     if PRECONDITION_NOT_MET_MESSAGE in result:
         logger.info(f"Precondition not met: {result}")
-        return {
+        return base_ouput | {
             "status": "error",
             "results": result.replace(PRECONDITION_NOT_MET_MESSAGE, "").strip(),
             "tracing": history.get_logs(),
@@ -184,7 +189,7 @@ async def _run_test(
 
     if TEST_FAILED_MESSAGE in result:
         logger.info(f"Test failed: {result}")
-        return {
+        return base_ouput | {
             "status": "failed",
             "results": result.replace(TEST_FAILED_MESSAGE, "").strip(),
             "tracing": history.get_logs(),
@@ -194,7 +199,7 @@ async def _run_test(
 
     if TEST_SUCCESS_MESSAGE in result:
         logger.info(f"Test successful: {result}")
-        return {
+        return base_ouput | {
             "status": "completed",
             "results": result.replace(TEST_SUCCESS_MESSAGE, "").strip(),
             "tracing": history.get_logs(),
@@ -203,27 +208,13 @@ async def _run_test(
         }
 
     logger.error(f"Unknown status of test run: {result}")
-    return {
+    return base_ouput | {
         "status": "error",
         "results": None,
         "tracing": history.get_logs(),
         "error": "Unknown status of test run.",
         "traceback": "",
     }
-
-    # if history.has_errors() or not history.is_done() or result is None or not history.is_successful():
-    #     logger.error(f"Failed to run test: {history.final_result()}")
-    #     return {
-    #         "status": "error",
-    #         "results": None,
-    #         "tracing": history.get_logs(),
-    #         "error": "Failed to run test.",
-    #         "traceback": "",
-    #     }
-
-    # # Don't attach JS logs directly to the result
-    # # Instead include them as a separate key
-    # return {"status": "completed", "results": result, "tracing": history.get_logs()}
 
 
 def handle_background_task_errors(func):

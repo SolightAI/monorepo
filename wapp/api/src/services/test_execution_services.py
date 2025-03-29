@@ -232,6 +232,16 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
 
             tracing_data = status_data.get("tracing", {})
 
+            # Extract agent thoughts and actions from the response
+            agent_thoughts = status_data.get("agent_thoughts", {})
+            agent_actions = status_data.get("agent_actions", [])
+
+            # Prepare metadata with agent data
+            updated_metadata = (test_execution.metadata or {}) | {
+                "agent_thoughts": agent_thoughts,
+                "agent_actions": agent_actions
+            }
+
             # Update the test execution based on the task status
             if status_data["status"] == "completed":
                 # Task completed successfully
@@ -241,7 +251,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                         status=TestStatus.PASSED,
                         notes=str(status_data.get("results", "")),
                         ended_at=datetime.now(tzinfo),
-                        metadata=test_execution.metadata,
+                        metadata=updated_metadata,
                         tracing=tracing_data,
                     )
                 )
@@ -255,7 +265,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                         status=TestStatus.FAILED,
                         notes=f"{status_data.get('error', 'Unknown error')}",
                         ended_at=datetime.now(tzinfo),
-                        metadata=(test_execution.metadata or {}) | {"error": status_data.get("error"), "traceback": status_data.get("traceback")},
+                        metadata=updated_metadata | {"error": status_data.get("error"), "traceback": status_data.get("traceback")},
                         tracing=tracing_data,
                     )
                 )
@@ -271,7 +281,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                         status=TestStatus.FAILED,
                         notes=f"{status_data.get('results', 'Unknown error')}",
                         ended_at=datetime.now(tzinfo),
-                        metadata=test_execution.metadata or {},
+                        metadata=updated_metadata,
                         tracing=tracing_data,
                     )
                 )

@@ -215,12 +215,14 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
           <div className="p-3 bg-gray-50 rounded-lg">
             <span className="text-sm text-gray-500">Metadata</span>
             <div className="font-medium">
-              {Object.entries(execution.metadata).map(([key, value]) => (
-                <div key={key} className="text-sm">
-                  <span className="font-medium">{key}: </span>
-                  <span>{typeof value === 'object' ? JSON.stringify(value) : value}</span>
-                </div>
-              ))}
+              {Object.entries(execution.metadata)
+                .filter(([key]) => key !== 'agent_thoughts' && key !== 'agent_actions')
+                .map(([key, value]) => (
+                  <div key={key} className="text-sm">
+                    <span className="font-medium">{key}: </span>
+                    <span>{typeof value === 'object' ? JSON.stringify(value) : value}</span>
+                  </div>
+                ))}
             </div>
           </div>
         )}
@@ -239,38 +241,64 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
         </div>
       )}
 
-      {/* Evidence section */}
-      {execution.evidence && execution.evidence.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-2 flex items-center">
-            <Image size={18} className="mr-2" />
-            Evidence
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {execution.evidence.map((item, index) => (
-              <div key={index} className="p-2 border border-gray-200 rounded-lg">
-                {item.endsWith('.jpg') || item.endsWith('.png') || item.endsWith('.gif') ? (
-                  <img
-                    src={item}
-                    alt={`Evidence ${index + 1}`}
-                    className="w-full h-auto rounded"
-                  />
-                ) : (
-                  <a
-                    href={item}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center text-blue-600 hover:text-blue-800"
-                  >
-                    <Link2 size={14} className="mr-1" />
-                    {item.split('/').pop() || `Evidence ${index + 1}`}
-                  </a>
+      {/* Bugs section */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-2">
+          Bugs Found ({bugs.length})
+        </h3>
+
+        {loading ? (
+          <div className="flex justify-center items-center p-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+            <span className="ml-2">Loading bugs...</span>
+          </div>
+        ) : error ? (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            <p>{error}</p>
+          </div>
+        ) : bugs.length === 0 && execution.status !== 'PENDING' ? (
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-gray-700">
+            <p>No bugs were found during this test execution.</p>
+          </div>
+        ) : execution.status === 'PENDING' ? (
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-700">
+            <p>Waiting for test execution to complete...</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {bugs.map((bug) => (
+              <div key={bug.id} className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex justify-between">
+                  <h4 className="font-semibold text-red-800">{bug.name}</h4>
+                  <span className="px-2 py-0.5 bg-red-100 text-red-800 rounded-full text-xs">
+                    {bug.severity}
+                  </span>
+                </div>
+                <p className="mt-2 text-gray-700">{bug.description}</p>
+                {bug.screenshots && bug.screenshots.length > 0 && (
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {bug.screenshots.map((screenshot, idx) => (
+                      <a
+                        key={idx}
+                        href={screenshot}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block"
+                      >
+                        <img
+                          src={screenshot}
+                          alt={`Bug ${bug.id} screenshot ${idx}`}
+                          className="border border-red-200 rounded w-full h-auto"
+                        />
+                      </a>
+                    ))}
+                  </div>
                 )}
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Logs section */}
       {(execution.tracing || execution.status === 'PENDING') && (
@@ -400,64 +428,85 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
         </div>
       )}
 
-      {/* Bugs section */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">
-          Bugs Found ({bugs.length})
-        </h3>
+      {/* Agent Thoughts and Actions section */}
+      {execution.metadata?.agent_thoughts && execution.metadata?.agent_actions && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-2 flex items-center">
+            <File size={18} className="mr-2" />
+            Agent Execution Details
+          </h3>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 overflow-x-auto">
+            <pre className="whitespace-pre-wrap text-sm font-mono">
+              {Object.entries(execution.metadata.agent_thoughts || {}).map(([stepIndex, step], index) => {
+                // Get the corresponding action
+                const action = execution.metadata.agent_actions?.[parseInt(stepIndex)] || {};
 
-        {loading ? (
-          <div className="flex justify-center items-center p-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
-            <span className="ml-2">Loading bugs...</span>
-          </div>
-        ) : error ? (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-            <p>{error}</p>
-          </div>
-        ) : bugs.length === 0 && execution.status !== 'PENDING' ? (
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-gray-700">
-            <p>No bugs were found during this test execution.</p>
-          </div>
-        ) : execution.status === 'PENDING' ? (
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-700">
-            <p>Waiting for test execution to complete...</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {bugs.map((bug) => (
-              <div key={bug.id} className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex justify-between">
-                  <h4 className="font-semibold text-red-800">{bug.name}</h4>
-                  <span className="px-2 py-0.5 bg-red-100 text-red-800 rounded-full text-xs">
-                    {bug.severity}
-                  </span>
-                </div>
-                <p className="mt-2 text-gray-700">{bug.description}</p>
-                {bug.screenshots && bug.screenshots.length > 0 && (
-                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {bug.screenshots.map((screenshot, idx) => (
-                      <a
-                        key={idx}
-                        href={screenshot}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block"
-                      >
-                        <img
-                          src={screenshot}
-                          alt={`Bug ${bug.id} screenshot ${idx}`}
-                          className="border border-red-200 rounded w-full h-auto"
-                        />
-                      </a>
-                    ))}
+                // Format the output
+                return (
+                  <div key={index} className="mb-4 pb-4 border-b border-gray-200">
+                    <div className="font-bold">📍 Step {parseInt(stepIndex) + 1}</div>
+                    {step.evaluation_previous_goal && (
+                      <div className="mt-2">
+                        <div className="bg-blue-50 p-2 rounded mt-1">🤷 Eval: {step.evaluation_previous_goal}</div>
+                      </div>
+                    )}
+                    {step.memory && (
+                      <div className="mt-2">
+                        <div className="bg-purple-50 p-2 rounded mt-1">🧠 Memory: {step.memory}</div>
+                      </div>
+                    )}
+                    {step.next_goal && (
+                      <div className="mt-2">
+                        <div className="bg-green-50 p-2 rounded mt-1">🎯 Next Goal: {step.next_goal}</div>
+                      </div>
+                    )}
+                    {action && Object.keys(action).length > 0 && (
+                      <div className="mt-2">
+                        <div className="bg-yellow-50 p-2 rounded mt-1">
+                          🛠️  Action: {JSON.stringify(action, null, 2)}
+                        </div>
+                      </div>
+                    )}
                   </div>
+                );
+              })}
+            </pre>
+          </div>
+        </div>
+      )}
+
+      {/* Evidence section */}
+      {execution.evidence && execution.evidence.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-2 flex items-center">
+            <Image size={18} className="mr-2" />
+            Evidence
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {execution.evidence.map((item, index) => (
+              <div key={index} className="p-2 border border-gray-200 rounded-lg">
+                {item.endsWith('.jpg') || item.endsWith('.png') || item.endsWith('.gif') ? (
+                  <img
+                    src={item}
+                    alt={`Evidence ${index + 1}`}
+                    className="w-full h-auto rounded"
+                  />
+                ) : (
+                  <a
+                    href={item}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center text-blue-600 hover:text-blue-800"
+                  >
+                    <Link2 size={14} className="mr-1" />
+                    {item.split('/').pop() || `Evidence ${index + 1}`}
+                  </a>
                 )}
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
