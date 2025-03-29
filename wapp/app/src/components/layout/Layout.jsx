@@ -67,29 +67,31 @@ export default function Layout() {
       </nav>
 
       <div className="flex-grow flex">
+        {/* Mobile sidebar - shown when sidebar is open */}
+        {isSidebarOpen && (
+          <div className="fixed inset-0 flex z-40 md:hidden">
+            <div
+              className="fixed inset-0 bg-gray-600 bg-opacity-75"
+              onClick={toggleSidebar}
+            ></div>
+            <div className="relative flex-1 flex flex-col max-w-xs w-full pt-5 pb-4 bg-white">
+              <div className="px-4 mb-2">
+                <OrganizationSelector isMobile={true} />
+              </div>
+              <div className="px-4 mb-4">
+                <ProductSelector isMobile={true} />
+              </div>
+              {selectedProduct && (
+                <div className="flex-1 h-0 overflow-y-auto bg-white">
+                  <NavigationTree />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {selectedProduct ? (
           <>
-            {/* Mobile sidebar - shown when sidebar is open */}
-            {isSidebarOpen && (
-              <div className="fixed inset-0 flex z-40 md:hidden">
-                <div
-                  className="fixed inset-0 bg-gray-600 bg-opacity-75"
-                  onClick={toggleSidebar}
-                ></div>
-                <div className="relative flex-1 flex flex-col max-w-xs w-full pt-5 pb-4 bg-white">
-                  <div className="px-4 mb-2">
-                    <OrganizationSelector isMobile={true} />
-                  </div>
-                  <div className="px-4 mb-4">
-                    <ProductSelector isMobile={true} />
-                  </div>
-                  <div className="flex-1 h-0 overflow-y-auto bg-white">
-                    <NavigationTree />
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Desktop sidebar */}
             <div className="hidden md:flex md:flex-shrink-0">
               <div className="flex flex-col w-64">
