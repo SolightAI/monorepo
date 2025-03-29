@@ -388,21 +388,26 @@ const EpicDetails = () => {
                       Run All Tests
                     </button>
                   )}
-                  {/* Generate All button - show regardless of feature count */}
-                  <button
-                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150"
-                    onClick={handleGenerateAll}
-                  >
-                    <Zap size={18} className="mr-2" />
-                    Generate All
-                  </button>
-                  <button
-                    className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
-                    onClick={() => setIsGenerateFeatureModalOpen(true)}
-                  >
-                    <Sparkles size={18} className="mr-2" />
-                    Generate Features
-                  </button>
+                  {/* Generate All button - only show if NO features exist */}
+                  {(!epic?.features || epic.features.length === 0) && (
+                    <button
+                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150"
+                      onClick={handleGenerateAll}
+                    >
+                      <Zap size={18} className="mr-2" />
+                      Generate All
+                    </button>
+                  )}
+                  {/* Generate Features button - only show if NO features exist */}
+                  {(!epic?.features || epic.features.length === 0) && (
+                    <button
+                      className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                      onClick={() => setIsGenerateFeatureModalOpen(true)}
+                    >
+                      <Sparkles size={18} className="mr-2" />
+                      Generate Features
+                    </button>
+                  )}
                   <button
                     className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
                     onClick={() => setIsAddFeatureModalOpen(true)}

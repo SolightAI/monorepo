@@ -190,20 +190,25 @@ const Home = () => {
                 </button>
               </div>
               <div className="flex space-x-3">
-                <button
-                  onClick={handleGenerateEverything}
-                  className="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg shadow hover:from-green-700 hover:to-blue-700 transition duration-150"
-                >
-                  <Rocket size={20} className="mr-2" />
-                  Generate Everything
-                </button>
-                <button
-                  onClick={handleGenerateEpics}
-                  className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-150"
-                >
-                  <Zap size={20} className="mr-2" />
-                  Generate Epics
-                </button>
+                {/* Only show generate buttons when no epics exist */}
+                {epics.length === 0 && (
+                  <>
+                    <button
+                      onClick={handleGenerateEverything}
+                      className="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg shadow hover:from-green-700 hover:to-blue-700 transition duration-150"
+                    >
+                      <Rocket size={20} className="mr-2" />
+                      Generate Everything
+                    </button>
+                    <button
+                      onClick={handleGenerateEpics}
+                      className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-150"
+                    >
+                      <Zap size={20} className="mr-2" />
+                      Generate Epics
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={() => setShowEpicModal(true)}
                   className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
