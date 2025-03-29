@@ -49,6 +49,8 @@ const EpicGenerationModal = ({ onClose, productId, productName, onComplete }) =>
             setGeneratedEpics(statusData.results);
             setStatus('completed');
             clearInterval(interval);
+            // Wait a moment for the backend to process
+            await new Promise(resolve => setTimeout(resolve, 2000));
             onComplete && onComplete(statusData.results);
           } else if (statusData.status === 'error') {
             // Ensure error is a string, handle potential object errors
