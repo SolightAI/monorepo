@@ -787,6 +787,40 @@ const FeatureDetails = () => {
     }
   };
 
+  const handleRunAllTests = async () => {
+    try {
+      if (!feature || !feature.tests || feature.tests.length === 0) {
+        setError('No tests available to run.');
+        return;
+      }
+
+      // Show a loading indicator or message
+      setError(null);
+
+      // Run all tests sequentially
+      for (const test of feature.tests) {
+        const executionData = {
+          test_id: test.id,
+          status: 'PENDING',
+          environment: 'development',
+          executor_type: 'MANUAL',
+          notes: null
+        };
+
+        await createTestExecution(executionData);
+      }
+
+      // Refresh the feature details to update the test statuses
+      await fetchFeatureDetails();
+
+      // Optional: Show success message
+      setError(null);
+    } catch (err) {
+      console.error('Error running all tests:', err);
+      setError('Failed to run all tests. Please try again.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -1021,6 +1055,16 @@ const FeatureDetails = () => {
                     >
                       <Sparkles size={18} className="mr-2" />
                       {generationState.isGenerating ? 'Generating...' : 'Generate Tests with AI'}
+                    </button>
+                  )}
+                  {/* Add Run All Tests button */}
+                  {feature?.tests && feature.tests.length > 0 && (
+                    <button
+                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150"
+                      onClick={handleRunAllTests}
+                    >
+                      <Play size={18} className="mr-2" />
+                      Run All Tests
                     </button>
                   )}
                   <button
