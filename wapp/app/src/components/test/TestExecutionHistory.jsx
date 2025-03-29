@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle, XCircle, Clock, AlertCircle, SkipForward, Server, User, Calendar, RefreshCw } from 'lucide-react';
 import { getTestExecutions } from '@/services/testExecutionService';
+import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
 
 /**
  * Component to display a history of test executions
@@ -11,15 +12,22 @@ const TestExecutionHistory = ({ testId, onExecutionSelect }) => {
   const [error, setError] = useState(null);
   const [selectedEnvironment, setSelectedEnvironment] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const fetchingRef = useRef(false);
 
-  useEffect(() => {
-    fetchTestExecutions();
-  }, [testId]);
+  // Memoize fetch function to avoid dependency issues
+  const fetchTestExecutions = useCallback(async () => {
+    // Prevent concurrent fetch calls
+    if (fetchingRef.current) return;
 
-  const fetchTestExecutions = async () => {
     try {
-      setLoading(true);
+      fetchingRef.current = true;
       setError(null);
+
+      // Only show loading indicator on initial load, not during polling
+      if (!executions.length) {
+        setLoading(true);
+      }
+
       const data = await getTestExecutions(testId);
       // Sort executions by date, newest first
       const sortedExecutions = data.sort((a, b) =>
@@ -31,8 +39,26 @@ const TestExecutionHistory = ({ testId, onExecutionSelect }) => {
       setError('Failed to load test execution history.');
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
-  };
+  }, [testId, executions.length]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchTestExecutions();
+  }, [fetchTestExecutions]);
+
+  // Check for pending executions
+  const hasPendingExecutions = useCallback(() => {
+    return executions.some(execution => execution.status?.toUpperCase() === 'PENDING');
+  }, [executions]);
+
+  // Use our custom hook for polling
+  usePendingStatusPolling(
+    fetchTestExecutions,
+    hasPendingExecutions,
+    [executions, testId]
+  );
 
   // Get icon and color based on execution status
   const getStatusInfo = (status) => {

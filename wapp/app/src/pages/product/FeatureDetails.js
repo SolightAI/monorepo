@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -15,6 +15,7 @@ import { createTestExecution } from '@/services/testExecutionService';
 import EditFeatureModal from '@/components/modals/EditFeatureModal';
 import EditUserStoryModal from '@/components/modals/EditUserStoryModal';
 import EditAcceptanceCriteriaModal from '@/components/modals/EditAcceptanceCriteriaModal';
+import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -26,6 +27,7 @@ const FeatureDetails = () => {
   const [feature, setFeature] = useState(null);
   const [userStories, setUserStories] = useState([]);
   const [acceptanceCriteria, setAcceptanceCriteria] = useState([]);
+  const fetchingRef = useRef(false);
 
   // State for Add Test Modal
   const [isAddTestModalOpen, setIsAddTestModalOpen] = useState(false);
@@ -64,9 +66,19 @@ const FeatureDetails = () => {
     fetchFeatureDetails();
   }, [featureId]);
 
-  const fetchFeatureDetails = async () => {
-    setLoading(true);
+  // Memoize fetch function and check for pending tests
+  const fetchFeatureDetails = useCallback(async () => {
+    // Prevent concurrent fetch calls
+    if (fetchingRef.current) return;
+
     setError(null);
+    // Only show full loading indicator on initial fetch
+    const shouldShowLoading = !feature;
+    if (shouldShowLoading) {
+      setLoading(true);
+    }
+
+    fetchingRef.current = true;
 
     try {
       // Fetch feature details
@@ -113,9 +125,27 @@ const FeatureDetails = () => {
       console.error('Error fetching feature details:', err);
       setError('Failed to fetch feature details. Please try again.');
     } finally {
-      setLoading(false);
+      if (shouldShowLoading) {
+        setLoading(false);
+      }
+      fetchingRef.current = false;
     }
-  };
+  }, [featureId]);
+
+  // Check for pending tests
+  const hasPendingTests = useCallback(() => {
+    if (!feature || !feature.tests || feature.tests.length === 0) {
+      return false;
+    }
+    return feature.tests.some(test => test.status?.toUpperCase() === 'PENDING');
+  }, [feature]);
+
+  // Use our custom hook for polling
+  usePendingStatusPolling(
+    fetchFeatureDetails,
+    hasPendingTests,
+    [feature?.tests, featureId]
+  );
 
   // Handle test added
   const handleTestAdded = async (newTest) => {
@@ -556,7 +586,7 @@ const FeatureDetails = () => {
       case 'FAILED':
         return <XCircle size={20} className="text-red-500" />;
       case 'PENDING':
-        return <Loader size={20} className="text-yellow-500" />;
+        return <Loader size={20} className="text-yellow-500 animate-spin" />;
       case 'NOT_STARTED':
         return <TestTube size={20} className="text-gray-400" />;
       default:
@@ -777,6 +807,17 @@ const FeatureDetails = () => {
         notes: null
       };
 
+      // Immediately update the UI to show PENDING status
+      setFeature(prevFeature => ({
+        ...prevFeature,
+        tests: prevFeature.tests.map(t =>
+          t.id === test.id
+            ? { ...t, status: 'PENDING' }  // Update the status to PENDING
+            : t
+        )
+      }));
+
+      // Create the test execution
       await createTestExecution(executionData);
 
       // Refresh the feature details to update the test status
@@ -784,6 +825,9 @@ const FeatureDetails = () => {
     } catch (err) {
       console.error('Error running test:', err);
       setError('Failed to run test. Please try again.');
+
+      // If there was an error, revert the status update
+      fetchFeatureDetails();
     }
   };
 
@@ -796,6 +840,15 @@ const FeatureDetails = () => {
 
       // Show a loading indicator or message
       setError(null);
+
+      // Immediately update all tests in the UI to show PENDING status
+      setFeature(prevFeature => ({
+        ...prevFeature,
+        tests: prevFeature.tests.map(test => ({
+          ...test,
+          status: 'PENDING'
+        }))
+      }));
 
       // Run all tests sequentially
       for (const test of feature.tests) {
@@ -818,6 +871,9 @@ const FeatureDetails = () => {
     } catch (err) {
       console.error('Error running all tests:', err);
       setError('Failed to run all tests. Please try again.');
+
+      // If there was an error, revert the status updates
+      fetchFeatureDetails();
     }
   };
 
