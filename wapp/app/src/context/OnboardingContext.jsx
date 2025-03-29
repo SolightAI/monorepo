@@ -94,7 +94,7 @@ export const OnboardingProvider = ({ children }) => {
     } else {
       setLoading(false);
     }
-  }, [isAuthenticated, user, checkOnboardingStatus]);
+  }, [isAuthenticated, checkOnboardingStatus]);
 
   // Update onboarding status on the server
   const updateOnboardingStatus = useCallback(async (completed) => {
