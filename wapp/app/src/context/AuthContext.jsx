@@ -19,6 +19,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
 
   const AUTH_ROUTES = ['/login', '/register', '/auth/google/callback'];
 
@@ -155,6 +156,7 @@ export const AuthProvider = ({ children }) => {
   const checkAuthStatus = useCallback(async () => {
     setError(null);
     try {
+      console.log('Checking auth status');
       const response = await axios.get(`${API_URL}/auth/check-auth`, {
         withCredentials: true,
         timeout: 5000
@@ -174,6 +176,13 @@ export const AuthProvider = ({ children }) => {
             timestamp: Date.now()
           }));
         }
+
+        // Check onboarding status if it exists in the response
+        if (response.data.user.onboarding_completed !== undefined) {
+          console.log('Setting onboarding status from auth check:', response.data.user.onboarding_completed);
+          setOnboardingCompleted(response.data.user.onboarding_completed);
+          localStorage.setItem('onboardingCompleted', response.data.user.onboarding_completed.toString());
+        }
       }
 
       return response.data;
@@ -189,6 +198,7 @@ export const AuthProvider = ({ children }) => {
       setIsAdmin(false);
       localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('isAdmin');
+      localStorage.removeItem('onboardingCompleted');
 
       return { authenticated: false };
     } finally {
@@ -378,12 +388,51 @@ export const AuthProvider = ({ children }) => {
             timestamp: Date.now()
           }));
         }
+
+        // Set onboarding status if provided
+        if (tokenOrUserData.user.onboarding_completed !== undefined) {
+          console.log('Setting onboarding status from Google callback:', tokenOrUserData.user.onboarding_completed);
+          setOnboardingCompleted(tokenOrUserData.user.onboarding_completed);
+          localStorage.setItem('onboardingCompleted', tokenOrUserData.user.onboarding_completed.toString());
+        }
       } else {
-        // Just a token, check admin status
+        // Just a token, check admin status and authenticate
         checkAdminStatus();
+
+        // Also check auth status to get full user data including onboarding status
+        checkAuthStatus();
       }
     }
-  }, [checkAdminStatus]);
+  }, [checkAdminStatus, checkAuthStatus]);
+
+  // Update onboarding status
+  const updateOnboardingStatus = async (completed) => {
+    try {
+      const response = await axios.post(
+        `${API_URL}/users/onboarding/completed`,
+        { completed },
+        { withCredentials: true }
+      );
+
+      if (response.data.success) {
+        setOnboardingCompleted(completed);
+        localStorage.setItem('onboardingCompleted', completed.toString());
+
+        // Update user object with new onboarding status
+        if (user) {
+          setUser({
+            ...user,
+            onboarding_completed: completed
+          });
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating onboarding status:', error);
+      return false;
+    }
+  };
 
   const value = {
     isAuthenticated,
@@ -391,13 +440,15 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     error,
+    onboardingCompleted,
     login,
     register,
     logout,
     checkAdminStatus,
     handleGoogleCallback,
     checkAuthStatus,
-    validateInvitationCode
+    validateInvitationCode,
+    updateOnboardingStatus,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

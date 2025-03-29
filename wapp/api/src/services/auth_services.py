@@ -174,6 +174,7 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
             username=user_info["name"],
             email=user_info["email"],
             is_admin=_should_be_admin(user_info["email"]),
+            onboarding_completed=False,  # Explicitly set onboarding to not completed for new users
         )
 
         # Mark the invitation as used

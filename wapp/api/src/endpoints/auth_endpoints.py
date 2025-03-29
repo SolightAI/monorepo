@@ -79,6 +79,7 @@ async def check_auth(current_user: User = Depends(get_current_user_dependency)) 
             "id": str(current_user.id),
             "email": current_user.email,
             "username": current_user.username,
-            "is_admin": current_user.is_admin
+            "is_admin": current_user.is_admin,
+            "onboarding_completed": current_user.onboarding_completed
         }
     }

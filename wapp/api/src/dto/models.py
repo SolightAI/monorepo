@@ -9,6 +9,7 @@ class User(models.Model):
     email = fields.CharField(max_length=255, unique=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     is_admin = fields.BooleanField(default=False)
+    onboarding_completed = fields.BooleanField(default=False)
 
     # Relations
     created_invitations = fields.ReverseRelation["Invitation"]
