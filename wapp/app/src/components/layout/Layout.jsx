@@ -136,22 +136,6 @@ export default function Layout() {
           </div>
         )}
       </div>
-
-      <style>
-        {`
-          @keyframes spiral {
-            0% {
-              transform: translate(0, 0) rotate(0deg);
-            }
-            50% {
-              transform: translate(20px, -20px) rotate(180deg);
-            }
-            100% {
-              transform: translate(0, 0) rotate(360deg);
-            }
-          }
-        `}
-      </style>
     </div>
   );
 }
