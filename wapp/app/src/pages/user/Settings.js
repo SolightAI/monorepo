@@ -262,54 +262,6 @@ const Notifications = () => {
   );
 };
 
-// Help & Tutorials section
-const HelpAndTutorials = () => {
-  const { startOnboarding } = useOnboarding();
-
-  const handleRestartOnboarding = () => {
-    startOnboarding();
-  };
-
-  return (
-    <div className="bg-white shadow-md rounded-lg p-6 mb-6">
-      <h2 className="text-xl font-semibold mb-4">Help & Tutorials</h2>
-
-      <div className="mb-6">
-        <h3 className="font-medium text-gray-800 mb-2">Application Guide</h3>
-        <p className="text-sm text-gray-600 mb-4">
-          Need a refresher on how to use Test Manager? Restart the onboarding process to get a guided tour of the main features.
-        </p>
-        <button
-          onClick={handleRestartOnboarding}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline flex items-center"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
-          </svg>
-          Restart Onboarding
-        </button>
-      </div>
-
-      <div>
-        <h3 className="font-medium text-gray-800 mb-2">Documentation</h3>
-        <p className="text-sm text-gray-600 mb-4">
-          Access detailed documentation on how to use all features of Test Manager.
-        </p>
-        <a
-          href="/docs"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:text-blue-800 flex items-center"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-          </svg>
-          View Documentation
-        </a>
-      </div>
-    </div>
-  );
-};
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('profile');
@@ -352,18 +304,11 @@ export default function Settings() {
         >
           Notifications
         </button>
-        <button
-          className={`py-2 px-4 font-medium ${activeTab === 'help' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          onClick={() => setActiveTab('help')}
-        >
-          Help & Tutorials
-        </button>
       </div>
 
       {activeTab === 'profile' && <Profile />}
       {activeTab === 'account' && <Account />}
       {activeTab === 'notifications' && <Notifications />}
-      {activeTab === 'help' && <HelpAndTutorials />}
     </div>
   );
 }

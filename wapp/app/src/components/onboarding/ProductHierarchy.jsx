@@ -7,7 +7,7 @@ const ProductHierarchy = ({ onNext, onPrev, onSkip }) => {
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-3">Understanding Product Structure</h2>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Test Manager uses a hierarchical structure to organize your testing workflow.
+          Laneo uses a hierarchical structure to organize your testing workflow.
           This helps you maintain a clear relationship between product features and their tests.
         </p>
       </div>

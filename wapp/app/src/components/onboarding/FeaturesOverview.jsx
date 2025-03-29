@@ -12,9 +12,9 @@ const FeaturesOverview = ({ onNext, onPrev, onSkip }) => {
   return (
     <div className="p-6 space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-3">Key Features Overview</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-3">What to do next</h2>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Let's explore the main features of Test Manager that will help you organize and execute your testing workflow.
+          Let's explore the main features of Laneo that will help you organize and execute your testing workflow.
         </p>
       </div>
 
@@ -25,15 +25,6 @@ const FeaturesOverview = ({ onNext, onPrev, onSkip }) => {
           description="Create comprehensive tests with detailed steps, expected outcomes, and actual results. Categorize tests to organize your test suite."
           links={[
             { label: "Create a Test", path: "/tests" }
-          ]}
-        />
-
-        <FeatureCard
-          title="Test Execution Tracking"
-          icon={<Play className="h-6 w-6 text-blue-500" />}
-          description="Track test executions in different environments. Record execution details including pass/fail status, evidence, and time taken."
-          links={[
-            { label: "View Test Executions", path: "/tests" }
           ]}
         />
 
@@ -63,23 +54,6 @@ const FeaturesOverview = ({ onNext, onPrev, onSkip }) => {
             { label: "Organization Dashboard", path: "/organizations/dashboard" }
           ]}
         />
-
-        <FeatureCard
-          title="Testing Analytics"
-          icon={<BarChart className="h-6 w-6 text-amber-500" />}
-          description="Get insights into test coverage, pass/fail rates, and bug trends through dashboards and reports."
-          links={[
-            { label: "View Dashboard", path: "/dashboard" }
-          ]}
-        />
-      </div>
-
-      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 max-w-3xl mx-auto mt-8">
-        <h3 className="text-lg font-medium text-blue-800 mb-2">Next Steps</h3>
-        <p className="text-blue-700">
-          You're now ready to use Test Manager! Start by exploring the features above and creating your first tests.
-          You can always revisit this onboarding process from your user settings if you need a refresher.
-        </p>
       </div>
 
       <div className="flex justify-between mt-8">

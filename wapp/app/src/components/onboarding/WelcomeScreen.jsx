@@ -5,7 +5,7 @@ const WelcomeScreen = ({ onNext, onSkip }) => {
   return (
     <div className="p-6 space-y-6">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Welcome to Test Manager</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">Welcome to Laneo</h1>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
           Your comprehensive platform for managing test products, tracking bugs, and organizing testing workflows.
           Let's get you started with a quick tour of the key features.
