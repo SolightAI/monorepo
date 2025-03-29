@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader, AlertCircle, Plus, ArrowLeft, Sparkles, Edit, Zap, Trash2 } from 'lucide-react';
+import { Loader, AlertCircle, Plus, ArrowLeft, Sparkles, Edit, Zap, Trash2, Play } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
 import AddFeatureModal from '@/components/modals/AddFeatureModal';
 import FeatureGenerationModal from '@/components/modals/FeatureGenerationModal';
@@ -35,6 +35,9 @@ const EpicDetails = () => {
   // State for delete confirmation
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [featureToDelete, setFeatureToDelete] = useState(null);
+
+  // Add a new state for success messages at the top with the other state declarations
+  const [successMessage, setSuccessMessage] = useState(null);
 
   const navigate = useNavigate();
 
@@ -105,18 +108,18 @@ const EpicDetails = () => {
   // Confirm feature deletion
   const confirmDeleteFeature = async () => {
     if (!featureToDelete) return;
-    
+
     try {
       await axios.delete(`${API_URL}/features/${featureToDelete.id}`, {
         withCredentials: true
       });
-      
+
       // Update the epic state by removing the deleted feature
       setEpic(prevEpic => ({
         ...prevEpic,
         features: prevEpic.features.filter(f => f.id !== featureToDelete.id)
       }));
-      
+
       // Reset state
       setFeatureToDelete(null);
       setShowDeleteConfirm(false);
@@ -138,31 +141,31 @@ const EpicDetails = () => {
         // No features exist, trigger feature generation first
         const featureTaskId = await generateFeatures(epicId);
         console.log('Feature generation initiated with taskId:', featureTaskId);
-        
+
         // Show the generation progress modal with the feature generation task
         setGenerateAllTaskId(featureTaskId);
         // Set specific task type for feature generation
         setIsGenerateAllModalOpen(true);
-        
+
         // Poll the feature generation task status
         let isCompleted = false;
         let attempts = 0;
         const maxAttempts = 60; // 10 minutes (10s intervals)
-        
+
         console.log('Starting polling loop for feature generation status');
         while (!isCompleted && attempts < maxAttempts) {
           await new Promise(resolve => setTimeout(resolve, 10000)); // 10-second polling
           attempts++;
           console.log(`Polling attempt ${attempts}/${maxAttempts} for taskId: ${featureTaskId}`);
-          
+
           try {
             const status = await getFeatureGenerationStatus(featureTaskId);
             console.log('Feature generation status:', status);
-            
+
             if (status.status === 'completed') {
               console.log('Feature generation completed successfully');
               isCompleted = true;
-              
+
               // Refresh epic details to get the new features
               console.log('Refreshing epic details to get newly generated features');
               // Get fresh data directly from the API response
@@ -170,15 +173,15 @@ const EpicDetails = () => {
                 const epicResponse = await axios.get(`${API_URL}/epics/${epicId}`, {
                   withCredentials: true
                 });
-                
+
                 const freshEpicData = epicResponse.data;
-                console.log('Epic details refreshed directly', { 
-                  featureCount: freshEpicData?.features?.length 
+                console.log('Epic details refreshed directly', {
+                  featureCount: freshEpicData?.features?.length
                 });
-                
+
                 // Update state (though we won't rely on it immediately)
                 setEpic(freshEpicData);
-                
+
                 // Now that features exist, trigger full generation - using the fresh data
                 if (freshEpicData?.features && freshEpicData.features.length > 0) {
                   console.log('Features found after refresh, triggering full generation');
@@ -217,7 +220,7 @@ const EpicDetails = () => {
             attempts++;
           }
         }
-        
+
         if (!isCompleted && attempts >= maxAttempts) {
           console.error('Feature generation timed out after maximum attempts');
           setError('Feature generation timed out. Please try again.');
@@ -249,6 +252,75 @@ const EpicDetails = () => {
     setGenerateAllTaskId(null);
   };
 
+  // Handle run all tests for all features in the epic
+  const handleRunAllTests = async () => {
+    try {
+      if (!epic?.features || epic.features.length === 0) {
+        setError('No features available to run tests.');
+        setSuccessMessage(null);
+        return;
+      }
+
+      setError(null);
+      setSuccessMessage(null);
+      setLoading(true);
+
+      let testCount = 0;
+      let featuresWithTests = 0;
+
+      // For each feature, run all its tests
+      for (const feature of epic.features) {
+        try {
+          // Fetch tests for this feature
+          const testsResponse = await axios.get(`${API_URL}/tests/by-feature/${feature.id}`, {
+            withCredentials: true
+          });
+
+          const tests = testsResponse.data;
+
+          if (tests && tests.length > 0) {
+            featuresWithTests++;
+
+            // Run each test
+            for (const test of tests) {
+              const executionData = {
+                test_id: test.id,
+                status: 'PENDING',
+                environment: 'development',
+                executor_type: 'MANUAL',
+                notes: null
+              };
+
+              await axios.post(`${API_URL}/test-executions/`, executionData, {
+                withCredentials: true
+              });
+
+              testCount++;
+            }
+          }
+        } catch (featureErr) {
+          console.error(`Error running tests for feature ${feature.id}:`, featureErr);
+          // Continue with other features
+        }
+      }
+
+      // Show appropriate message based on results
+      if (testCount > 0) {
+        setSuccessMessage(`Successfully started ${testCount} tests across ${featuresWithTests} features.`);
+        setError(null);
+      } else {
+        setError('No tests found for any features in this epic.');
+        setSuccessMessage(null);
+      }
+    } catch (err) {
+      console.error('Error running all tests:', err);
+      setError('Failed to run all tests. Please try again.');
+      setSuccessMessage(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -266,6 +338,13 @@ const EpicDetails = () => {
           <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start">
             <AlertCircle size={20} className="mr-2 flex-shrink-0 mt-1" />
             <p>{error}</p>
+          </div>
+        )}
+
+        {/* Success message */}
+        {successMessage && (
+          <div className="mb-6 p-4 bg-green-100 border border-green-200 text-green-700 rounded-lg flex items-start">
+            <p>{successMessage}</p>
           </div>
         )}
 
@@ -299,6 +378,16 @@ const EpicDetails = () => {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">Features</h2>
                 <div className="flex space-x-3">
+                  {/* Run All Tests button - only show if features exist */}
+                  {epic?.features && epic.features.length > 0 && (
+                    <button
+                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150"
+                      onClick={handleRunAllTests}
+                    >
+                      <Play size={18} className="mr-2" />
+                      Run All Tests
+                    </button>
+                  )}
                   {/* Generate All button - show regardless of feature count */}
                   <button
                     className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150"
