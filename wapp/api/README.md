@@ -1,6 +1,6 @@
-# Test Manager API
+# Laneo API
 
-This is the backend API for the Test Manager Application, built with FastAPI and PostgreSQL. It provides endpoints for managing products, epics, features, tests, bugs, and more.
+This is the backend API for the Laneo Application, built with FastAPI and PostgreSQL. It provides endpoints for managing products, epics, features, tests, bugs, and more.
 
 ## Architecture
 
