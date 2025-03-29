@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
@@ -14,6 +14,7 @@ export default function Layout() {
   const { selectedOrganization } = useOrganization();
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -23,6 +24,8 @@ export default function Layout() {
     await logout();
     navigate('/login');
   };
+
+  const isOrganizationRoute = location.pathname.startsWith('/organizations/');
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -90,7 +93,7 @@ export default function Layout() {
           </div>
         )}
 
-        {selectedProduct ? (
+        {selectedProduct || isOrganizationRoute ? (
           <>
             {/* Desktop sidebar */}
             <div className="hidden md:flex md:flex-shrink-0">
