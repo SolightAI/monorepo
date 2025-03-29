@@ -25,8 +25,6 @@ export default function Layout() {
     navigate('/login');
   };
 
-  const isOrganizationRoute = location.pathname.startsWith('/organizations/');
-
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Top navigation */}
@@ -84,7 +82,7 @@ export default function Layout() {
               <div className="px-4 mb-4">
                 <ProductSelector isMobile={true} />
               </div>
-              {selectedProduct && (
+              {(selectedProduct || location.pathname.startsWith('/organizations/')) && (
                 <div className="flex-1 h-0 overflow-y-auto bg-white">
                   <NavigationTree />
                 </div>
@@ -93,7 +91,7 @@ export default function Layout() {
           </div>
         )}
 
-        {selectedProduct || isOrganizationRoute ? (
+        {selectedProduct ? (
           <>
             {/* Desktop sidebar */}
             <div className="hidden md:flex md:flex-shrink-0">
@@ -113,6 +111,39 @@ export default function Layout() {
               </div>
             </div>
           </>
+        ) : location.pathname.startsWith('/organizations/') ? (
+          // Show organization dashboard when on organization routes
+          <div className="flex-1 overflow-auto">
+            <div className="py-6 px-4 sm:px-6 lg:px-8">
+              <Outlet />
+            </div>
+          </div>
+        ) : !selectedOrganization ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center relative">
+              <div className="absolute left-[60%] sm:left-[90%] -top-52 md:-top-40 lg:-top-48 left-1/2 md:left-[20%] lg:left-[10%] transform -translate-x-1/2 md:scale-x-[-1]">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  shapeRendering="geometricPrecision" 
+                  textRendering="geometricPrecision" 
+                  imageRendering="optimizeQuality" 
+                  fillRule="evenodd" 
+                  clipRule="evenodd" 
+                  viewBox="0 0 512 442.137"
+                  className="h-32 w-32 md:h-40 md:w-40 lg:h-48 lg:w-48 text-blue-600"
+                  style={{      
+                    transformOrigin: 'center',
+                  }}
+                >
+                  <path fill="currentColor" d="M498.536 0c-31.387 25.229-67.042 47.435-83.064 62.714-5.282 5.036-11.007 12.153-1.664 8.574 25.872-9.91 54.004-27.667 75.003-49.744-2.547 18.498 2.366 41.616 9.997 60.504.939 2.328 3.886 11.918 7.547 15.089 1.358 1.177 2.819 1.472 4.307.179.849-.738 1.28-1.994 1.333-3.706.152-4.983-3.387-19.558-6.693-33.835-4.904-21.183-7.422-37.783-6.766-59.775z"/>
+                  <path fill="currentColor" d="M243.828 205.789c4.322 22.157 5.797 44.278 4.95 66.742 45.792-16.983 86.744-47.759 120.988-82.094 41.377-41.487 75.893-91.781 100.677-142.434 7.709-15.756 12.142-22.106 22.781-36.215-19.821 95.783-137.213 251.196-246.698 274.193C232.218 412.974 103.055 495.853 0 401.433c95.353 64.985 210.522 25.748 234.658-113.48-11.685 1.414-23.233 1.218-34.515-.824-26.693-4.83-52.462-12.782-72.736-38.719-28.125-35.979-26.324-94.975 19.286-115.588 54.862-24.791 87.927 25.74 97.135 72.967zm-7.016 67.487c.889-23.575-1.128-48.171-6.111-71.196-8.03-37.107-29.726-69.192-65.407-62.82-22.084 3.943-35.695 18.675-40.56 38.116-17.522 70.029 62.617 107.875 112.078 95.9z"/>
+                </svg>
+              </div>
+              <h2 className="text-6xl md:text-8xl lg:text-8xl font-semibold text-gray-900 mb-4">
+                Create your first <br/><span className="text-blue-600">organization</span>
+              </h2>
+            </div>
+          </div>
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center relative">
