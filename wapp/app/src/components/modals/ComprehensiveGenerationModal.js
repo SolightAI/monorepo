@@ -759,6 +759,9 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
         setStatus('completed');
         setMessage('Generation completed successfully!');
 
+        // Wait a moment for the backend to process
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         // Call the onComplete callback if provided
         if (typeof onComplete === 'function') {
           onComplete();
