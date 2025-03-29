@@ -261,14 +261,14 @@ const Home = () => {
                     {epics.map(epic => (
                       <div
                         key={epic.id}
-                        className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow"
+                        className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full"
                       >
-                        <div className="p-6">
+                        <div className="p-6 flex flex-col flex-grow">
                           <div className="flex items-center mb-3">
                             <Sparkles size={18} className="text-purple-500 mr-2" />
                             <h3 className="text-xl font-semibold text-gray-800 truncate">{epic.name}</h3>
                           </div>
-                          <p className="text-gray-700">{epic.description}</p>
+                          <p className="text-gray-700 line-clamp-6 overflow-hidden flex-grow">{epic.description}</p>
 
                           <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
                             <button
