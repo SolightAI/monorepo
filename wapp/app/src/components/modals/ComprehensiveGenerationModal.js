@@ -155,6 +155,12 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
               setDetailedProgress('');
               addStatusLog(`Successfully generated ${epicResults.length} epics`);
             } else if (epicStatus.status === 'error') {
+              if (epicStatus.error === 'No Username/Password found. Stopping here.') {
+                setError('No Username/Password found. Stopping here.');
+                setStatus('error');
+                setMessage('Generation failed!');
+                return;
+              }
               addErrorLog(`Error generating epics: ${epicStatus.error || 'Unknown error'}`);
               // Instead of throwing an error, we'll set epicsCompleted to true to exit the loop
               // and continue with an empty epicResults array
@@ -759,9 +765,6 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
         setStatus('completed');
         setMessage('Generation completed successfully!');
 
-        // Wait a moment for the backend to process
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
         // Call the onComplete callback if provided
         if (typeof onComplete === 'function') {
           onComplete();
@@ -874,8 +877,8 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
           )}
         </div>
 
-        {/* Status Logs - Always show logs if we have any */}
-        {statusLogs.length > 0 && (
+        {/* Status Logs - Only show logs if we have any and there's no error */}
+        {statusLogs.length > 0 && status !== 'error' && (
           <div className="mb-6 border rounded-lg p-3 bg-gray-50 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
             <div className="flex justify-between items-center mb-2">
               <p className="text-sm font-medium text-gray-700">Activity Log:</p>
