@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { X, AlertCircle } from 'lucide-react';
+import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -68,7 +69,7 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
       ...formData,
       urls: updatedUrls
     });
-    
+
     // Validate URL
     const newUrlErrors = [...urlErrors];
     if (value.trim() !== '' && !isValidUrl(value)) {
@@ -77,7 +78,7 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
       newUrlErrors[index] = '';
     }
     setUrlErrors(newUrlErrors);
-    
+
     // Mark URLs as touched
     if (!touched.urls) {
       setTouched({
@@ -117,7 +118,7 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
 
     // Filter out empty URLs
     const filteredUrls = formData.urls.filter(url => url.trim() !== '');
-    
+
     // Simple validation: require at least one URL
     if (filteredUrls.length === 0) {
       setError('At least one URL is required');
@@ -143,7 +144,7 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
           name: formData.name,
           description: formData.description,
           epic_id: epicId,
-          urls: filteredUrls 
+          urls: filteredUrls
         },
         { withCredentials: true }
       );
@@ -170,8 +171,8 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div {...getModalContainerProps(onClose)}>
+      <div {...getModalContentProps('w-full max-w-md')}>
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold">

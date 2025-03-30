@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useOrganization } from '@/context/OrganizationContext';
 import { Loader, X, Check, AlertTriangle, Clock, Zap } from 'lucide-react';
 import { generateEpics, getEpicGenerationStatus } from '@/api/epicGeneration';
@@ -6,6 +6,8 @@ import { generateFeatures, getFeatureGenerationStatus } from '@/api/featureGener
 import { triggerUserStoriesGeneration, getUserStoriesGenerationStatus } from '@/services/userStoryService';
 import { generateAcceptanceCriteria, getAcceptanceCriteriaGenerationStatus } from '@/api/acceptanceCriteriaGeneration';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -66,6 +68,7 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
   const [progress, setProgress] = useState(0); // 0 to 100
   const [currentTask, setCurrentTask] = useState(null);
   const [message, setMessage] = useState('Preparing to generate everything...');
+  const [isBlockingClose, setIsBlockingClose] = useState(false); // Add state for blocking close functionality
   const hasStartedGeneration = useRef(false);
   const { selectedOrganization, loading: organizationLoading } = useOrganization();
 
@@ -803,9 +806,10 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
-        <div className="flex justify-between items-center mb-4">
+    <div {...getModalContainerProps(onClose)}>
+      <div {...getModalContentProps('w-full max-w-4xl')}>
+        {/* Modal header */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
           <h2 className="text-xl font-semibold text-gray-800">
             {status === 'completed'
               ? 'Generation Complete'
@@ -815,9 +819,10 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 hover:text-gray-700 focus:outline-none"
+            disabled={isBlockingClose}
           >
-            <X size={20} />
+            <X size={24} />
           </button>
         </div>
 

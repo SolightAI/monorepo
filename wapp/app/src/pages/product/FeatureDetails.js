@@ -86,7 +86,13 @@ const FeatureDetails = () => {
 
       // Combine feature data with tests
       const featureData = featureResponse.data;
-      featureData.tests = testsResponse.data;
+
+      // Sort tests by name in ascending order
+      const sortedTests = testsResponse.data.sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+
+      featureData.tests = sortedTests;
 
       // IMPORTANT: Set user stories from the feature data
       if (featureData.user_stories) {
@@ -581,6 +587,12 @@ const FeatureDetails = () => {
   const formatDateTime = (dateString) => {
     if (!dateString) return null;
     return new Date(dateString).toLocaleString();
+  };
+
+  // Function to truncate text if it's too long
+  const truncateText = (text, maxLength = 40) => {
+    if (!text) return '';
+    return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
   };
 
   // Handle test click to open details modal
@@ -1128,7 +1140,9 @@ const FeatureDetails = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{test.name}</div>
+                            <div className="text-sm font-medium text-gray-900" title={test.name}>
+                              {truncateText(test.name)}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-500">{test.category}</div>
@@ -1163,7 +1177,7 @@ const FeatureDetails = () => {
       {isAddTestModalOpen && (
         <AddTestModal
           onClose={() => setIsAddTestModalOpen(false)}
-          onTestAdded={handleTestAdded}
+          onAddTest={handleTestAdded}
           defaultUrl={feature?.urls?.[0] || ''}
         />
       )}

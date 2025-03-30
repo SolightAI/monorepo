@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import ContactFormModal from './ContactFormModal';
+import axios from 'axios';
+import { Loader, ExternalLink, Check, X, Bug, Calendar, User, AlertTriangle, Image, Calendar as CalendarIcon } from 'lucide-react';
+import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
 
 function BugDetailsModal({ bug, onClose, isRestricted }) {
   const [selectedScreenshot, setSelectedScreenshot] = useState(null);
@@ -57,8 +60,8 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-[800px] max-h-[90vh] overflow-y-auto">
+    <div {...getModalContainerProps(onClose)}>
+      <div {...getModalContentProps('w-[800px]')}>
         {/* Header */}
         <div className="p-6 flex items-start justify-between">
           <div className="flex items-start gap-3">
