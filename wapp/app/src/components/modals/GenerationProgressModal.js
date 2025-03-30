@@ -3,6 +3,7 @@ import { X, AlertCircle, CheckCircle, Clock, Loader } from 'lucide-react';
 import useGenerationStatus from '@/hooks/useGenerationStatus';
 import { getFeatureGenerationStatus } from '@/api/featureGeneration';
 import { getGenerationStatus } from '@/services/generationService';
+import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
 
 // Adding taskType parameter to distinguish between feature generation and full generation
 const GenerationProgressModal = ({ taskId, scope, taskType = 'general', onClose }) => {
@@ -48,7 +49,7 @@ const GenerationProgressModal = ({ taskId, scope, taskType = 'general', onClose 
           return 'Generating...';
       }
     })();
-    
+
     console.log('Modal title:', title);
     return title;
   };
@@ -56,7 +57,7 @@ const GenerationProgressModal = ({ taskId, scope, taskType = 'general', onClose 
   // Get subtitle based on current state
   const getSubtitle = () => {
     let subtitle;
-    
+
     if (error) {
       subtitle = 'Error occurred during generation';
     } else if (isComplete) {
@@ -85,7 +86,7 @@ const GenerationProgressModal = ({ taskId, scope, taskType = 'general', onClose 
     } else {
       subtitle = 'Processing items...';
     }
-    
+
     console.log('Modal subtitle:', subtitle, { error, isComplete, hasErrors });
     return subtitle;
   };
@@ -110,19 +111,14 @@ const GenerationProgressModal = ({ taskId, scope, taskType = 'general', onClose 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
-        {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b">
-          <div className="flex items-center">
-            {getStatusIcon()}
-            <h2 className="text-lg font-semibold ml-2">{getTitle()}</h2>
-          </div>
+    <div {...getModalContainerProps(onClose)}>
+      <div {...getModalContentProps('w-full max-w-2xl p-6')}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">
+            {getTitle()}
+          </h2>
           <button
-            onClick={() => {
-              console.log('Modal close button clicked');
-              onClose();
-            }}
+            onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
           >
             <X size={20} />

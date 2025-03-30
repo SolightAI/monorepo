@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { X, AlertCircle, Mail, Send, CheckCircle, Loader } from 'lucide-react';
+import axios from 'axios';
+import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
 
-function ContactFormModal({ onClose }) {
+function ContactFormModal({ onClose, prefilledSubject = '', prefilledMessage = '' }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -89,25 +92,19 @@ function ContactFormModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-[550px] max-h-[90vh] overflow-y-auto shadow-xl">
+    <div {...getModalContainerProps(onClose)}>
+      <div {...getModalContentProps('w-full max-w-2xl')}>
         <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">
-              {submitted ? "You're In!" : "Unlock Laneo's Full Potential"}
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold flex items-center">
+              <Mail className="mr-2 text-blue-600" />
+              Contact Us
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
-              aria-label="Close"
+              className="text-gray-400 hover:text-gray-600 transition-colors"
             >
-              <svg className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <X size={24} />
             </button>
           </div>
 
