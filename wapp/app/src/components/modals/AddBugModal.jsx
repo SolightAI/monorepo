@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { X, Upload, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Upload, AlertCircle, UploadCloud, Trash } from 'lucide-react';
 import { createBug } from '@/services/bugService';
 import { getTestExecutions } from '@/services/testExecutionService';
+import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
 
 /**
  * Modal component for adding a new bug related to a test
  */
-const AddBugModal = ({ test, onClose, onBugCreated }) => {
+const AddBugModal = ({ test, onClose, onBugCreated, productId }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -21,6 +22,8 @@ const AddBugModal = ({ test, onClose, onBugCreated }) => {
   const [loading, setLoading] = useState(false);
   const [testExecutions, setTestExecutions] = useState([]);
   const [loadingExecutions, setLoadingExecutions] = useState(false);
+
+  const modalRef = useRef(null);
 
   useEffect(() => {
     fetchTestExecutions();
@@ -114,21 +117,21 @@ const AddBugModal = ({ test, onClose, onBugCreated }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full">
-        {/* Modal header */}
-        <div className="flex justify-between items-center p-4 border-b">
-          <h2 className="text-xl font-semibold text-gray-800">Report Bug</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 focus:outline-none"
-          >
-            <X size={24} />
-          </button>
-        </div>
+    <div {...getModalContainerProps(onClose)}>
+      <div {...getModalContentProps('w-full max-w-2xl')}>
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold">
+              Report a Bug
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X size={24} />
+            </button>
+          </div>
 
-        {/* Modal body */}
-        <form onSubmit={handleSubmit} className="p-4">
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 flex items-start">
               <AlertCircle size={18} className="mr-2 flex-shrink-0 mt-0.5" />
@@ -294,7 +297,7 @@ const AddBugModal = ({ test, onClose, onBugCreated }) => {
               </div>
             )}
           </div>
-        </form>
+        </div>
 
         {/* Modal footer */}
         <div className="p-4 border-t flex justify-end">
