@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Filter,
   Search,
@@ -43,7 +42,6 @@ const TestsTable = () => {
   const [loadingFeatures, setLoadingFeatures] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  const navigate = useNavigate();
   const { selectedProduct } = useProduct();
   const { selectedOrganization } = useOrganization();
 
