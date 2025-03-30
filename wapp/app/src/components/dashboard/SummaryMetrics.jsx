@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { getStatusMetricClasses } from '@/utils/testExecutionUtils';
 
 /**
  * Displays summary metrics in a row of cards.
@@ -7,19 +8,6 @@ import PropTypes from 'prop-types';
  */
 function SummaryMetrics({ metrics }) {
   const { tests_total, tests_by_status, bugs_total, bugs_by_severity, test_pass_rate } = metrics;
-
-  // Status colors mapping
-  const statusColors = {
-    'PASSED': 'text-green-600 bg-green-50 border-green-100',
-    'FAILED': 'text-red-600 bg-red-50 border-red-100',
-    'ERROR': 'text-red-600 bg-red-50 border-red-100',
-    'PENDING': 'text-orange-600 bg-orange-50 border-orange-100',
-    'NOT_STARTED': 'text-gray-600 bg-gray-50 border-gray-100',
-    'BLOCKED': 'text-purple-600 bg-purple-50 border-purple-100',
-    'SKIPPED': 'text-blue-600 bg-blue-50 border-blue-100',
-    'AGENT_LIMITATION': 'text-purple-600 bg-purple-50 border-purple-100',
-    'UNEXISTING_FEATURE': 'text-amber-600 bg-amber-50 border-amber-100'
-  };
 
   // Severity colors mapping
   const severityColors = {
@@ -184,7 +172,7 @@ function SummaryMetrics({ metrics }) {
           <h4 className="text-md font-medium mb-2">Tests by Status</h4>
           <div className="space-y-2">
             {Object.entries(tests_by_status || {}).map(([status, count]) => (
-              <div key={status} className={`flex justify-between p-2 rounded ${statusColors[status] || 'bg-gray-50'}`}>
+              <div key={status} className={`flex justify-between p-2 rounded ${getStatusMetricClasses(status)}`}>
                 <span>{status.replace('_', ' ')}</span>
                 <span className="font-medium">{count}</span>
               </div>
