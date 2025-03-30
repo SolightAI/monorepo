@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { X, AlertCircle } from 'lucide-react';
+import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -75,14 +76,8 @@ const EditAcceptanceCriteriaModal = ({ onClose, criteria, onCriteriaUpdated }) =
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div {...getModalContainerProps(onClose)}>
+      <div {...getModalContentProps('w-full max-w-md')}>
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold">

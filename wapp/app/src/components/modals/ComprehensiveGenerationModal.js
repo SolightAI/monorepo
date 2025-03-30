@@ -68,6 +68,7 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
   const [progress, setProgress] = useState(0); // 0 to 100
   const [currentTask, setCurrentTask] = useState(null);
   const [message, setMessage] = useState('Preparing to generate everything...');
+  const [isBlockingClose, setIsBlockingClose] = useState(false); // Add state for blocking close functionality
   const hasStartedGeneration = useRef(false);
   const { selectedOrganization, loading: organizationLoading } = useOrganization();
 

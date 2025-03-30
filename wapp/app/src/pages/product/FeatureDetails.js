@@ -15,7 +15,6 @@ import { createTestExecution } from '@/services/testExecutionService';
 import EditFeatureModal from '@/components/modals/EditFeatureModal';
 import EditUserStoryModal from '@/components/modals/EditUserStoryModal';
 import EditAcceptanceCriteriaModal from '@/components/modals/EditAcceptanceCriteriaModal';
-import { disableBodyScroll } from '@/utils/modalUtils';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -60,39 +59,6 @@ const FeatureDetails = () => {
   });
 
   const navigate = useNavigate();
-
-  // Effect to prevent body scrolling when a modal is open
-  useEffect(() => {
-    // Create an array of modal states for cleaner checking
-    const modalStates = [
-      isAddTestModalOpen,
-      isTestDetailsModalOpen,
-      isAddUserStoryModalOpen,
-      isEditFeatureModalOpen,
-      isEditUserStoryModalOpen,
-      isEditAcceptanceCriteriaModalOpen,
-      modalState.isOpen
-    ];
-
-    // Check if any modal is open using array.some()
-    const isAnyModalOpen = modalStates.some(isOpen => isOpen);
-
-    // Prevent scrolling on the body when a modal is open
-    disableBodyScroll(isAnyModalOpen);
-
-    // Cleanup function to ensure scrolling is restored when component unmounts
-    return () => {
-      disableBodyScroll(false);
-    };
-  }, [
-    isAddTestModalOpen,
-    isTestDetailsModalOpen,
-    isAddUserStoryModalOpen,
-    isEditFeatureModalOpen,
-    isEditUserStoryModalOpen,
-    isEditAcceptanceCriteriaModalOpen,
-    modalState.isOpen
-  ]);
 
   useEffect(() => {
     fetchFeatureDetails();
