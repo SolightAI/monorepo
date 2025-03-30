@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircle, XCircle, Clock, AlertCircle, SkipForward, Server, User, RefreshCw, Info, Search } from 'lucide-react';
+import { formatDuration } from './dateUtils';
 
 /**
  * Test status constants
@@ -15,6 +16,16 @@ export const TEST_STATUS = {
   AGENT_LIMITATION: 'AGENT_LIMITATION',
   UNEXISTING_FEATURE: 'UNEXISTING_FEATURE',
   NOT_STARTED: 'NOT_STARTED'
+};
+
+/**
+ * Executor type constants matching backend enum
+ */
+export const EXECUTOR_TYPE = {
+  MANUAL: 'MANUAL',
+  AUTOMATED: 'AUTOMATED',
+  CI_PIPELINE: 'CI_PIPELINE',
+  SCHEDULED: 'SCHEDULED'
 };
 
 /**
@@ -149,12 +160,14 @@ export const getStatusMetricClasses = (status) => {
  */
 export const getExecutorIcon = (executorType) => {
   switch (executorType?.toUpperCase()) {
-    case 'MANUAL':
+    case EXECUTOR_TYPE.MANUAL:
       return <User size={16} className="text-gray-600" />;
-    case 'AUTOMATED':
+    case EXECUTOR_TYPE.AUTOMATED:
       return <RefreshCw size={16} className="text-blue-600" />;
-    case 'CI_PIPELINE':
+    case EXECUTOR_TYPE.CI_PIPELINE:
       return <Server size={16} className="text-purple-600" />;
+    case EXECUTOR_TYPE.SCHEDULED:
+      return <Clock size={16} className="text-green-600" />;
     default:
       return <User size={16} className="text-gray-600" />;
   }
@@ -178,21 +191,7 @@ export const formatExecutionDate = (dateString) => {
  * @param {number} ms - Duration in milliseconds
  * @returns {string} Formatted duration string
  */
-export const formatExecutionDuration = (ms) => {
-  if (!ms) return 'N/A';
-
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-
-  if (hours > 0) {
-    return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
-  } else if (minutes > 0) {
-    return `${minutes}m ${seconds % 60}s`;
-  } else {
-    return `${seconds}s`;
-  }
-};
+export const formatExecutionDuration = formatDuration;
 
 /**
  * Format execution status by replacing underscores with spaces
