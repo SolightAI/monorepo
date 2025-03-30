@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, CheckCircle, XCircle, Loader, TestTube, AlertCircle, Play, Trash2, Edit } from 'lucide-react';
 import TestExecutionHistory from '../test/TestExecutionHistory';
 import TestExecutionDetail from '../test/TestExecutionDetail';
 import { getTestExecutions, createTestExecution } from '@/services/testExecutionService';
 import { deleteTest } from '@/services/testService';
 import EditTestModal from './EditTestModal';
+import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
 
 /**
  * Modal component for displaying detailed test information
  */
-const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
+const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
+  const [test, setTest] = useState(initialTest);
   const [activeTab, setActiveTab] = useState('details');
   const [selectedExecution, setSelectedExecution] = useState(null);
   const [executions, setExecutions] = useState([]);
@@ -19,28 +21,86 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [testData, setTestData] = useState(test);
+  const fetchingRef = useRef(false);
 
+  // Update test state when initialTest changes
   useEffect(() => {
-    // Load test executions when the modal opens or when a new execution is created
-    fetchTestExecutions();
-  }, [testData.id]);
+    setTest(initialTest);
+  }, [initialTest]);
 
   // Update testData if the passed test prop changes
   useEffect(() => {
     setTestData(test);
   }, [test]);
 
-  const fetchTestExecutions = async () => {
+  // Memoize fetch function to avoid dependencies issues
+  const fetchTestExecutions = useCallback(async () => {
+    // Prevent concurrent fetch calls
+    if (fetchingRef.current) return;
+
     try {
-      setLoadingExecutions(true);
+      fetchingRef.current = true;
+
+      // Only show loading indicator on first load
+      if (!executions.length) {
+        setLoadingExecutions(true);
+      }
+
       const data = await getTestExecutions(testData.id);
       setExecutions(data);
     } catch (err) {
       console.error('Error fetching test executions:', err);
     } finally {
       setLoadingExecutions(false);
+      fetchingRef.current = false;
     }
-  };
+  }, [testData.id, executions.length]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchTestExecutions();
+  }, [fetchTestExecutions]);
+
+  // Check for pending executions function
+  const hasPendingExecutions = useCallback(() => {
+    return executions.some(execution => execution.status?.toUpperCase() === 'PENDING');
+  }, [executions]);
+
+  // Use our custom hook for polling
+  usePendingStatusPolling(
+    fetchTestExecutions,
+    hasPendingExecutions,
+    [executions, testData.id]
+  );
+
+  // Update test from executions when they change
+  useEffect(() => {
+    if (executions.length > 0) {
+      // Find the most recent execution
+      const latestExecution = executions.sort((a, b) =>
+        new Date(b.started_at) - new Date(a.started_at)
+      )[0];
+
+      // Update the test status if the latest execution has a different status
+      if (latestExecution && latestExecution.status !== test.status) {
+        setTest(prevTest => {
+          const updatedTest = {
+            ...prevTest,
+            status: latestExecution.status,
+            started_at: latestExecution.started_at,
+            ended_at: latestExecution.ended_at
+          };
+
+          // Notify parent component of the status change
+          if (typeof onTestUpdated === 'function') {
+            onTestUpdated();
+          }
+
+          return updatedTest;
+        });
+      }
+    }
+  }, [executions, test.status, onTestUpdated]);
 
   // Format date and time display
   const formatDateTime = (dateString) => {
@@ -77,14 +137,14 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
       case 'ERROR':
         return <XCircle size={20} className="text-red-500" />;
       case 'PENDING':
-        return <Loader size={20} className="text-yellow-500" />;
-      case 'IN_PROGRESS':
-        return <Loader size={20} className="text-blue-500" />;
-      case 'BLOCKED':
+        return <Loader size={20} className="text-yellow-500 animate-spin" />;
+      case 'IN_PROGRESS':  // unused for now
+        return <Loader size={20} className="text-blue-500 animate-spin" />;
+      case 'BLOCKED':  // unused for now
         return <AlertCircle size={20} className="text-orange-500" />;
-      case 'SKIPPED':
+      case 'SKIPPED':  // unused for now
         return <TestTube size={20} className="text-blue-500" />;
-      case 'NOT_STARTED':
+      case 'NOT_STARTED':  // unused for now
       default:
         return <TestTube size={20} className="text-gray-400" />;
     }

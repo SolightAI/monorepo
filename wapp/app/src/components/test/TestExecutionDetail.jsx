@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle, XCircle, Clock, AlertCircle, SkipForward, Server, User, Calendar, File, Image, Link2, ArrowLeft } from 'lucide-react';
 import { getBugsByTestExecution, getTestExecution } from '@/services/testExecutionService';
 
@@ -10,6 +10,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
   const [bugs, setBugs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const refreshingRef = useRef(false);
 
   useEffect(() => {
     if (execution?.id) {
@@ -42,12 +43,24 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
   };
 
   const refreshExecution = async () => {
+    // Prevent concurrent refresh calls
+    if (refreshingRef.current) return;
+
     try {
+      refreshingRef.current = true;
       const updatedExecution = await getTestExecution(execution.id);
-      setExecution(updatedExecution);
+
+      // Only update if there's actually a change
+      if (updatedExecution &&
+          (updatedExecution.status !== execution.status ||
+           JSON.stringify(updatedExecution) !== JSON.stringify(execution))) {
+        setExecution(updatedExecution);
+      }
     } catch (err) {
       console.error('Error refreshing execution data:', err);
       // Don't set error state to avoid disrupting the UI
+    } finally {
+      refreshingRef.current = false;
     }
   };
 
