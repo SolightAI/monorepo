@@ -106,7 +106,7 @@ const FeatureGenerationModal = ({ onClose, epicId, epicName, onComplete }) => {
         </div>
 
         {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto px-6 ">
+        <div className="flex-1 overflow-y-auto px-6 pt-4">
           {/* Status and Messages */}
           <div className="mb-6">
             {status === 'starting' && (
