@@ -204,20 +204,16 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
     } else if (type === 'oauth_credential') {
       // Set OAuth credential fields with additional useful fields
       setSecretValues([
-        { id: uuidv4(), key: 'client_id', value: '', revealed: false },
-        { id: uuidv4(), key: 'client_secret', value: '', revealed: false },
-        { id: uuidv4(), key: 'redirect_uri', value: '', revealed: false },
-        { id: uuidv4(), key: 'token_url', value: '', revealed: false },
-        { id: uuidv4(), key: 'auth_url', value: '', revealed: false }
+        { id: uuidv4(), key: 'provider', value: '', revealed: false },
+        { id: uuidv4(), key: 'username', value: '', revealed: false },
+        { id: uuidv4(), key: 'password', value: '', revealed: false },
       ]);
 
       // Update valuesToUpdate
       setValuesToUpdate({
-        client_id: '',
-        client_secret: '',
-        redirect_uri: '',
-        token_url: '',
-        auth_url: ''
+        provider: '',
+        username: '',
+        password: ''
       });
     } else {
       // For 'other' type, set a more useful example
@@ -444,11 +440,11 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
                   required
                 >
                   <option value="username_password">Username/Password</option>
-                  <option value="api_key">API Key</option>
-                  <option value="environment_variable">Environment Variable</option>
-                  <option value="connection_string">Connection String</option>
+                  {/* <option value="api_key">API Key</option> */}
+                  {/* <option value="environment_variable">Environment Variable</option> */}
+                  {/* <option value="connection_string">Connection String</option> */}
                   <option value="oauth_credential">OAuth Credentials</option>
-                  <option value="other">Other</option>
+                  {/* <option value="other">Other</option> */}
                 </select>
               </div>
 
@@ -501,67 +497,84 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
                           disabled={formData.type !== 'other'}
                         />
                         <div className="relative flex-1">
-                          <input
-                            type={item.revealed ? 'text' : 'password'}
-                            placeholder={
-                              // Username/Password fields
-                              item.key === 'username' ? 'Enter username' :
-                              item.key === 'password' ? 'Enter password' :
-
-                              // API Key fields
-                              item.key === 'api_key' ? 'Enter API key value' :
-                              item.key === 'api_url' ? 'https://api.example.com/v1' :
-                              item.key === 'header_name' ? 'Name of header (e.g., Authorization)' :
-
-                              // Environment Variable fields
-                              item.key === 'DATABASE_URL' ? 'postgresql://user:pass@localhost:5432/db' :
-                              item.key === 'API_TOKEN' ? 'Enter API token value' :
-                              item.key === 'DEBUG_MODE' ? 'true or false' :
-
-                              // Connection String fields
-                              item.key === 'database_url' ? 'postgresql://user:pass@localhost:5432/db' :
-                              item.key === 'database_type' ? 'postgresql, mysql, mongodb, etc.' :
-                              item.key === 'ssl_mode' ? 'require, prefer, disable, etc.' :
-
-                              // OAuth credential fields
-                              item.key === 'client_id' ? 'Enter OAuth client ID' :
-                              item.key === 'client_secret' ? 'Enter OAuth client secret' :
-                              item.key === 'redirect_uri' ? 'https://your-app.com/callback' :
-                              item.key === 'token_url' ? 'https://provider.com/oauth/token' :
-                              item.key === 'auth_url' ? 'https://provider.com/oauth/authorize' :
-
-                              // Other type
-                              item.key === 'service_name' ? 'Name of the service' :
-                              item.key === 'credential_value' ? 'Enter credential value' :
-
-                              // Default
-                              'Enter value'
-                            }
-                            value={item.value}
-                            onChange={(e) => handleValueChange(item.id, 'value', e.target.value)}
-                            className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 pr-16 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                          />
-                          <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-                            <button
-                              type="button"
-                              onClick={() => toggleReveal(item.id)}
-                              className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                          {/* Conditional rendering for OAuth provider */}
+                          {formData.type === 'oauth_credential' && item.key === 'provider' ? (
+                            <select
+                              value={item.value}
+                              onChange={(e) => handleValueChange(item.id, 'value', e.target.value)}
+                              className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 pr-10 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             >
-                              {item.revealed ? (
-                                <HiEyeOff className="h-4 w-4" />
-                              ) : (
-                                <HiEye className="h-4 w-4" />
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(item.value)}
-                              className="ml-1 text-gray-400 hover:text-gray-600 focus:outline-none"
-                              disabled={!item.value}
-                            >
-                              <HiClipboardCopy className="h-4 w-4" />
-                            </button>
-                          </div>
+                              <option value="">Select Provider</option>
+                              <option value="Google">Google</option>
+                              <option value="GitHub">GitHub</option>
+                              <option value="GitLab">GitLab</option>
+                              <option value="Microsoft">Microsoft</option>
+                              <option value="Apple">Apple</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          ) : (
+                            // Original input for other fields or types
+                            <>
+                              <input
+                                type={item.revealed ? 'text' : 'password'}
+                                placeholder={
+                                  // Username/Password fields
+                                  item.key === 'username' ? 'Enter username' :
+                                  item.key === 'password' ? 'Enter password' :
+
+                                  // API Key fields
+                                  item.key === 'api_key' ? 'Enter API key value' :
+                                  item.key === 'api_url' ? 'https://api.example.com/v1' :
+                                  item.key === 'header_name' ? 'Name of header (e.g., Authorization)' :
+
+                                  // Environment Variable fields
+                                  item.key === 'DATABASE_URL' ? 'postgresql://user:pass@localhost:5432/db' :
+                                  item.key === 'API_TOKEN' ? 'Enter API token value' :
+                                  item.key === 'DEBUG_MODE' ? 'true or false' :
+
+                                  // Connection String fields
+                                  item.key === 'database_url' ? 'postgresql://user:pass@localhost:5432/db' :
+                                  item.key === 'database_type' ? 'postgresql, mysql, mongodb, etc.' :
+                                  item.key === 'ssl_mode' ? 'require, prefer, disable, etc.' :
+
+                                  // OAuth credential fields (username/password handled here)
+                                  item.key === 'username' ? 'Enter username' :
+                                  item.key === 'password' ? 'Enter password' :
+
+                                  // Other type
+                                  item.key === 'service_name' ? 'Name of the service' :
+                                  item.key === 'credential_value' ? 'Enter credential value' :
+
+                                  // Default
+                                  'Enter value'
+                                }
+                                value={item.value}
+                                onChange={(e) => handleValueChange(item.id, 'value', e.target.value)}
+                                className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 pr-16 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                              />
+                              <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleReveal(item.id)}
+                                  className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                                >
+                                  {item.revealed ? (
+                                    <HiEyeOff className="h-4 w-4" />
+                                  ) : (
+                                    <HiEye className="h-4 w-4" />
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboard(item.value)}
+                                  className="ml-1 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                  disabled={!item.value}
+                                >
+                                  <HiClipboardCopy className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
                         {formData.type === 'other' && (
                           <button
