@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CheckCircle, XCircle, Clock, AlertCircle, SkipForward, Server, User, Calendar, File, Image, Link2, ArrowLeft } from 'lucide-react';
+import { Server, Calendar, Clock, File, Image, Link2, ArrowLeft } from 'lucide-react';
 import { getBugsByTestExecution, getTestExecution } from '@/services/testExecutionService';
+import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatExecutionDuration, formatStatus, getStatusColorClasses } from '@/utils/testExecutionUtils';
+import PropTypes from 'prop-types';
 
 /**
  * Component to display detailed information about a test execution
@@ -66,22 +68,9 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
 
   // Get status icon based on execution status
   const getStatusIcon = (status) => {
-    switch (status?.toUpperCase()) {
-      case 'PASSED':
-        return <CheckCircle size={20} className="text-green-500" />;
-      case 'FAILED':
-        return <XCircle size={20} className="text-red-500" />;
-      case 'ERROR':
-        return <XCircle size={20} className="text-red-500" />;
-      case 'PENDING':
-        return <Clock size={20} className="text-yellow-500" />;
-      case 'BLOCKED':
-        return <AlertCircle size={20} className="text-orange-500" />;
-      case 'SKIPPED':
-        return <SkipForward size={20} className="text-blue-500" />;
-      default:
-        return <Clock size={20} className="text-gray-400" />;
-    }
+    const { icon } = getStatusInfo(status);
+    // Make the icon bigger for the header
+    return React.cloneElement(icon, { size: 20 });
   };
 
   // Get background color based on execution status
@@ -99,46 +88,12 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
         return 'bg-orange-50 border-orange-200';
       case 'SKIPPED':
         return 'bg-blue-50 border-blue-200';
+      case 'AGENT_LIMITATION':
+        return 'bg-purple-50 border-purple-200';
+      case 'UNEXISTING_FEATURE':
+        return 'bg-amber-50 border-amber-200';
       default:
         return 'bg-gray-50 border-gray-200';
-    }
-  };
-
-  // Get executor icon based on executor type
-  const getExecutorIcon = (executorType) => {
-    switch (executorType?.toUpperCase()) {
-      case 'MANUAL':
-        return <User size={16} className="text-gray-600" />;
-      case 'AUTOMATED':
-        return <Clock size={16} className="text-blue-600" />;
-      case 'CI_PIPELINE':
-        return <Server size={16} className="text-purple-600" />;
-      default:
-        return <User size={16} className="text-gray-600" />;
-    }
-  };
-
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-  };
-
-  // Format duration
-  const formatDuration = (ms) => {
-    if (!ms) return 'N/A';
-
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds % 60}s`;
-    } else {
-      return `${seconds}s`;
     }
   };
 
@@ -160,12 +115,12 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
       </div>
 
       {/* Header with status */}
-      <div className={`p-4 rounded-lg mb-4 ${getStatusColor(execution.status)}`}>
+      <div className={`p-4 rounded-lg mb-4 ${getStatusColorClasses(execution.status)}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             {getStatusIcon(execution.status)}
             <h2 className="text-xl font-semibold ml-2">
-              Test Execution {execution.status}
+              {formatStatus(execution.status)}
             </h2>
           </div>
           <div className="text-sm text-gray-600">
@@ -180,7 +135,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
           <span className="text-sm text-gray-500">Started</span>
           <div className="font-medium">
             <Calendar size={14} className="inline mr-1" />
-            {formatDate(execution.started_at)}
+            {formatExecutionDate(execution.started_at)}
           </div>
         </div>
 
@@ -190,7 +145,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
             {execution.ended_at ? (
               <>
                 <Calendar size={14} className="inline mr-1" />
-                {formatDate(execution.ended_at)}
+                {formatExecutionDate(execution.ended_at)}
               </>
             ) : (
               <span className="text-yellow-600">In progress</span>
@@ -202,7 +157,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
           <span className="text-sm text-gray-500">Duration</span>
           <div className="font-medium">
             <Clock size={14} className="inline mr-1" />
-            {execution.duration_ms ? formatDuration(execution.duration_ms) : 'In progress'}
+            {execution.duration_ms ? formatExecutionDuration(execution.duration_ms) : 'In progress'}
           </div>
         </div>
 
@@ -323,118 +278,31 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
             {/* Display console logs */}
             {(() => {
-              // If test is still running but we don't have logs yet
-              if (execution.status === 'PENDING' && !execution.tracing) {
+              if (execution.status === 'PENDING') {
                 return (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900 mr-2"></div>
-                    <p>Collecting logs...</p>
+                  <div className="p-3 text-yellow-600">
+                    Execution in progress. Logs will be available when completed.
                   </div>
                 );
               }
 
-              // Get logs from tracing
-              const logs = execution.tracing || {};
-              const consoleLogs = logs.console_logs || [];
-              const jsExceptions = logs.js_exceptions || [];
+              if (!execution.tracing || Object.keys(execution.tracing).length === 0) {
+                return (
+                  <div className="p-3 text-gray-600">
+                    No logs available for this execution.
+                  </div>
+                );
+              }
 
               return (
-                <>
-                  {consoleLogs.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="font-medium mb-2">Console Logs</h4>
-                      <div className="overflow-x-auto max-h-80 overflow-y-auto">
-                        <table className="min-w-full table-auto">
-                          <thead>
-                            <tr className="bg-gray-100">
-                              <th className="px-4 py-2 text-left">Timestamp</th>
-                              <th className="px-4 py-2 text-left">Type</th>
-                              <th className="px-4 py-2 text-left">Message</th>
-                              <th className="px-4 py-2 text-left">Location</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {consoleLogs.map((log, index) => (
-                              <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                <td className="px-4 py-2 text-sm">
-                                  {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'N/A'}
-                                </td>
-                                <td className="px-4 py-2">
-                                  <span
-                                    className={`px-2 py-1 rounded-full text-xs font-medium
-                                      ${log.type === 'error' ? 'bg-red-100 text-red-800' :
-                                      log.type === 'warning' ? 'bg-yellow-100 text-yellow-800' :
-                                      log.type === 'info' ? 'bg-blue-100 text-blue-800' :
-                                      'bg-gray-100 text-gray-800'}`}
-                                  >
-                                    {log.type}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-2 font-mono text-sm">{log.text}</td>
-                                <td className="px-4 py-2 text-xs text-gray-600">
-                                  {log.location ? (
-                                    <>
-                                      <div className="truncate max-w-[200px]" title={log.location.url}>
-                                        {log.location.url}
-                                      </div>
-                                      <div>
-                                        Line: {log.location.lineNumber}, Col: {log.location.columnNumber}
-                                      </div>
-                                    </>
-                                  ) : (
-                                    'N/A'
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Display JavaScript exceptions */}
-                  {jsExceptions.length > 0 && (
-                    <div>
-                      <h4 className="font-medium mb-2">JavaScript Exceptions</h4>
-                      <div className="space-y-4">
-                        {jsExceptions.map((exception, index) => (
-                          <div key={index} className="bg-red-50 p-3 rounded border border-red-200">
-                            <div className="flex justify-between items-start mb-1">
-                              <div className="font-medium text-red-800">{exception.message}</div>
-                              <div className="text-xs text-gray-500">
-                                {exception.timestamp ? new Date(exception.timestamp).toLocaleTimeString() : 'N/A'}
-                              </div>
-                            </div>
-                            {exception.stack && (
-                              <pre className="mt-2 text-xs bg-red-100 p-2 rounded overflow-x-auto">
-                                {exception.stack}
-                              </pre>
-                            )}
-                            {exception.location && (
-                              <div className="mt-2 text-xs text-gray-600">
-                                Location: {exception.location.url} (Line: {exception.location.lineNumber}, Column: {exception.location.columnNumber})
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Empty state when no logs but test is complete */}
-                  {consoleLogs.length === 0 && jsExceptions.length === 0 && execution.status !== 'PENDING' && (
-                    <p className="text-gray-500 italic text-center py-4">No logs available</p>
-                  )}
-
-                  {/* "More logs coming" message when test is still running */}
-                  {consoleLogs.length > 0 && execution.status === 'PENDING' && (
-                    <div className="text-center py-2 text-sm text-blue-600 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                      <span>More logs are being collected...</span>
-                    </div>
-                  )}
-                </>
+                <div className="p-3">
+                  <div className="mb-4">
+                    <div className="font-medium mb-2">Trace</div>
+                    <pre className="bg-gray-900 text-gray-100 p-4 rounded overflow-auto max-h-96 text-xs">
+                      {execution.tracing.logs}
+                    </pre>
+                  </div>
+                </div>
               );
             })()}
           </div>
@@ -522,6 +390,11 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
       )}
     </div>
   );
+};
+
+TestExecutionDetail.propTypes = {
+  execution: PropTypes.object,
+  onBack: PropTypes.func.isRequired
 };
 
 export default TestExecutionDetail;

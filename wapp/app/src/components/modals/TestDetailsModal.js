@@ -1,176 +1,204 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, CheckCircle, XCircle, Loader, TestTube, AlertCircle, Play, Trash2, Edit } from 'lucide-react';
+import { X, Loader, Play, Trash2, Edit, Server } from 'lucide-react';
 import TestExecutionHistory from '../test/TestExecutionHistory';
 import TestExecutionDetail from '../test/TestExecutionDetail';
 import { getTestExecutions, createTestExecution } from '@/services/testExecutionService';
 import { deleteTest } from '@/services/testService';
 import EditTestModal from './EditTestModal';
 import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
+import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus, getStatusIconLarge } from '@/utils/testExecutionUtils';
+
+/**
+ * Component to display the last test execution in a table format
+ */
+const LastTestExecution = ({ execution, onExecutionSelect }) => {
+  if (!execution) {
+    return (
+      <div className="bg-gray-50 p-5 rounded-lg text-gray-500 text-center my-5">
+        No execution history available for this test.
+      </div>
+    );
+  }
+
+  const { icon, color } = getStatusInfo(execution.status);
+
+  return (
+    <div className="mb-8 mt-2">
+      <h3 className="text-lg font-semibold mb-2 flex items-center">
+        Last Execution
+      </h3>
+      <div className="border rounded-lg overflow-hidden shadow-sm">
+        <table className="min-w-full divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-200">
+            <tr
+              className="hover:bg-gray-50 cursor-pointer"
+              onClick={() => onExecutionSelect && onExecutionSelect(execution)}
+            >
+              <td className="px-5 py-4 whitespace-nowrap">
+                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full ${color}`}>
+                  {icon}
+                  <span className="ml-1.5 text-xs">{formatStatus(execution.status)}</span>
+                </div>
+              </td>
+              <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700">
+                {formatExecutionDate(execution.started_at)}
+              </td>
+              <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700">
+                <div className="inline-flex items-center">
+                  <Server size={14} className="mr-1 text-gray-500" />
+                  {execution.environment}
+                </div>
+              </td>
+              <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700">
+                <div className="inline-flex items-center">
+                  {getExecutorIcon(execution.executor_type)}
+                  <span className="ml-1.5">
+                    {execution.executor_name || execution.executor_type}
+                  </span>
+                </div>
+              </td>
+              <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700">
+                {execution.duration_ms
+                  ? `${(execution.duration_ms / 1000).toFixed(1)}s`
+                  : execution.ended_at
+                    ? 'Completed'
+                    : 'In progress'
+                }
+              </td>
+              <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
+                {execution.bugs_count > 0 ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                    {execution.bugs_count} {execution.bugs_count === 1 ? 'bug' : 'bugs'}
+                  </span>
+                ) : (
+                  <span className="text-gray-500">None</span>
+                )}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
 
 /**
  * Modal component for displaying detailed test information
  */
 const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
-  const [test, setTest] = useState(initialTest);
+  console.log("TestDetailsModal rendering with initialTest:", initialTest);
+  const [testData, setTestData] = useState(initialTest);
   const [activeTab, setActiveTab] = useState('details');
-  const [selectedExecution, setSelectedExecution] = useState(null);
   const [executions, setExecutions] = useState([]);
-  const [loadingExecutions, setLoadingExecutions] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [selectedExecution, setSelectedExecution] = useState(null);
   const [runningTest, setRunningTest] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [testData, setTestData] = useState(test);
-  const fetchingRef = useRef(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const modalRef = useRef(null);
 
-  // Update test state when initialTest changes
+  // Update internal state when initialTest changes
   useEffect(() => {
-    setTest(initialTest);
+    setTestData(initialTest);
   }, [initialTest]);
 
-  // Update testData if the passed test prop changes
-  useEffect(() => {
-    setTestData(test);
-  }, [test]);
+  // Function to close modal and ensure updated test data is passed back
+  const handleClose = useCallback(() => {
+    // If onTestUpdated is provided, call it with the latest test data
+    if (typeof onTestUpdated === 'function') {
+      onTestUpdated(testData);
+    }
+    // Call the original onClose function
+    onClose();
+  }, [testData, onClose, onTestUpdated]);
 
-  // Memoize fetch function to avoid dependencies issues
+  // Fetch executions when component mounts
   const fetchTestExecutions = useCallback(async () => {
-    // Prevent concurrent fetch calls
-    if (fetchingRef.current) return;
-
     try {
-      fetchingRef.current = true;
-
-      // Only show loading indicator on first load
-      if (!executions.length) {
-        setLoadingExecutions(true);
-      }
-
+      setIsLoading(true);
+      setError(null);
       const data = await getTestExecutions(testData.id);
-      setExecutions(data);
+
+      // Sort executions by started_at date descending (newest first)
+      const sortedExecutions = data.sort((a, b) =>
+        new Date(b.started_at) - new Date(a.started_at)
+      );
+
+      setExecutions(sortedExecutions);
     } catch (err) {
       console.error('Error fetching test executions:', err);
+      setError('Failed to load test executions. Please try again.');
     } finally {
-      setLoadingExecutions(false);
-      fetchingRef.current = false;
+      setIsLoading(false);
     }
-  }, [testData.id, executions.length]);
+  }, [testData.id]);
 
-  // Initial fetch
+  // If there's an execution that's in the pending state, poll for updates
+  const needsPolling = usePendingStatusPolling(
+    fetchTestExecutions,
+    () => executions.some(exec => exec.status === 'PENDING'),
+    [executions]
+  );
+
   useEffect(() => {
     fetchTestExecutions();
   }, [fetchTestExecutions]);
 
-  // Check for pending executions function
-  const hasPendingExecutions = useCallback(() => {
-    return executions.some(execution => execution.status?.toUpperCase() === 'PENDING');
-  }, [executions]);
-
-  // Use our custom hook for polling
-  usePendingStatusPolling(
-    fetchTestExecutions,
-    hasPendingExecutions,
-    [executions, testData.id]
-  );
-
-  // Update test from executions when they change
+  // Close on escape key
   useEffect(() => {
-    if (executions.length > 0) {
-      // Find the most recent execution
-      const latestExecution = executions.sort((a, b) =>
-        new Date(b.started_at) - new Date(a.started_at)
-      )[0];
-
-      // Update the test status if the latest execution has a different status
-      if (latestExecution && latestExecution.status !== test.status) {
-        setTest(prevTest => {
-          const updatedTest = {
-            ...prevTest,
-            status: latestExecution.status,
-            started_at: latestExecution.started_at,
-            ended_at: latestExecution.ended_at
-          };
-
-          // Notify parent component of the status change
-          if (typeof onTestUpdated === 'function') {
-            onTestUpdated();
-          }
-
-          return updatedTest;
-        });
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        handleClose();
       }
-    }
-  }, [executions, test.status, onTestUpdated]);
+    };
 
-  // Format date and time display
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [handleClose]);
+
+  // Handle click outside of modal
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        handleClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [handleClose]);
+
+  // Format date for display
   const formatDateTime = (dateString) => {
-    if (!dateString) return 'Not available';
-    return new Date(dateString).toLocaleString();
+    if (!dateString) return 'Not yet';
+
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
-  // Calculate duration between start and end dates
+  // Calculate duration between dates
   const getDuration = (startDate, endDate) => {
-    if (!startDate || !endDate) return 'Not available';
+    if (!startDate || !endDate) return 'N/A';
+
     const start = new Date(startDate);
     const end = new Date(endDate);
     const durationMs = end - start;
+
+    // Format duration
     const seconds = Math.floor(durationMs / 1000);
+    if (seconds < 60) return `${seconds}s`;
+
     const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
+
     const hours = Math.floor(minutes / 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes % 60}m`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds % 60}s`;
-    } else {
-      return `${seconds}s`;
-    }
-  };
-
-  // Get status icon based on test status
-  const getTestStatusIcon = (status) => {
-    switch (status?.toUpperCase()) {
-      case 'PASSED':
-        return <CheckCircle size={20} className="text-green-500" />;
-      case 'FAILED':
-        return <XCircle size={20} className="text-red-500" />;
-      case 'ERROR':
-        return <XCircle size={20} className="text-red-500" />;
-      case 'PENDING':
-        return <Loader size={20} className="text-yellow-500 animate-spin" />;
-      case 'IN_PROGRESS':  // unused for now
-        return <Loader size={20} className="text-blue-500 animate-spin" />;
-      case 'BLOCKED':  // unused for now
-        return <AlertCircle size={20} className="text-orange-500" />;
-      case 'SKIPPED':  // unused for now
-        return <TestTube size={20} className="text-blue-500" />;
-      case 'NOT_STARTED':  // unused for now
-      default:
-        return <TestTube size={20} className="text-gray-400" />;
-    }
-  };
-
-  // Get background and text color based on test status
-  const getTestStatusColor = (status) => {
-    switch (status?.toUpperCase()) {
-      case 'PASSED':
-        return 'bg-green-100 text-green-800';
-      case 'FAILED':
-        return 'bg-red-100 text-red-800';
-      case 'ERROR':
-        return 'bg-red-100 text-red-800';
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'IN_PROGRESS':
-        return 'bg-blue-100 text-blue-800';
-      case 'BLOCKED':
-        return 'bg-orange-100 text-orange-800';
-      case 'SKIPPED':
-        return 'bg-blue-100 text-blue-800';
-      case 'NOT_STARTED':
-      default:
-        return 'bg-gray-100 text-gray-600';
-    }
+    return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
   };
 
   // Handle test execution created
@@ -230,7 +258,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
         onTestUpdated();
       }
       // Close the modal
-      onClose();
+      handleClose();
     } catch (err) {
       console.error('Error deleting test:', err);
       setIsDeleting(false);
@@ -241,29 +269,46 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
 
   // Handle test edit
   const handleTestEdited = (updatedTest) => {
+    console.log("Test edited, received updated data:", updatedTest);
     try {
-      // Update the local test data with the edited values
       if (updatedTest && typeof updatedTest === 'object') {
-        // Create a new object to update the state rather than mutating props
-        setTestData({...testData, ...updatedTest});
-      }
+        // Create a fresh object with updated test data
+        const newTestData = {
+          ...testData,  // Keep existing properties
+          ...updatedTest, // Override with updated properties
+        };
 
-      // Refresh executions if test properties that affect executions changed
-      fetchTestExecutions();
+        console.log("Setting new test data:", newTestData);
 
-      // Call onTestUpdated to notify parent component that test was edited
-      if (typeof onTestUpdated === 'function') {
-        onTestUpdated(testData);
+        // Update state with new test data
+        setTestData(newTestData);
+
+        // Close the edit modal
+        setShowEditModal(false);
+
+        // Refresh executions if test properties that affect executions changed
+        fetchTestExecutions();
       }
     } catch (err) {
       console.error('Error updating test data in modal:', err);
     }
   };
 
+  // Find the latest execution for the Last Execution component
+  const latestExecution = executions.length > 0
+    ? executions.sort((a, b) => new Date(b.started_at) - new Date(a.started_at))[0]
+    : null;
+
+  // Handle view details for last execution
+  const handleViewLastExecutionDetails = (execution) => {
+    setSelectedExecution(execution);
+    setActiveTab('history');
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-auto"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
@@ -272,12 +317,12 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
         {/* Modal header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
           <div className="flex items-center">
-            {getTestStatusIcon(testData.status)}
+            {getStatusIconLarge(testData.status)}
             <h2 className="text-xl font-semibold text-gray-800 ml-3">{testData.name}</h2>
           </div>
           <div className="flex items-center space-x-2">
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="text-gray-500 hover:text-gray-700 focus:outline-none"
             >
               <X size={24} />
@@ -314,59 +359,56 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
           </div>
         )}
 
-        {/* Edit Test Modal */}
-        {isEditModalOpen && (
+        {showEditModal && (
           <EditTestModal
             test={testData}
-            onClose={() => setIsEditModalOpen(false)}
+            onClose={() => setShowEditModal(false)}
             onTestUpdated={handleTestEdited}
           />
         )}
 
-        {/* Tabs navigation */}
-        <div className="border-b border-gray-200">
-          <nav className="flex -mb-px px-6">
-            <button
-              onClick={() => setActiveTab('details')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm mr-8 ${
-                activeTab === 'details'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Test Details
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('history');
-                setSelectedExecution(null);
-              }}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'history'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Execution History
-            </button>
-          </nav>
+        {/* Modal tabs */}
+        <div className="flex border-b">
+          <button
+            className={`px-4 py-2 font-medium border-b-2 ${
+              activeTab === 'details'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => setActiveTab('details')}
+          >
+            Details
+          </button>
+          <button
+            className={`px-4 py-2 font-medium border-b-2 ${
+              activeTab === 'history'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            } flex items-center`}
+            onClick={() => {
+              setActiveTab('history');
+              setSelectedExecution(null); // Reset selected execution when switching to history tab
+            }}
+          >
+            Execution History
+            {needsPolling && (
+              <span className="ml-2 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-yellow-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Modal body */}
         <div className="px-6 py-4">
           {activeTab === 'details' && (
             <>
-              {/* Status and category section */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                <span className={`px-3 py-1 text-sm font-medium rounded-full ${getTestStatusColor(testData.status)}`}>
-                  {testData.status || 'Not Started'}
-                </span>
-                {testData.category && (
-                  <span className="px-3 py-1 text-sm font-medium rounded-full bg-purple-100 text-purple-800">
-                    {testData.category}
-                  </span>
-                )}
-              </div>
+              {/* Last Execution section - new component */}
+              <LastTestExecution
+                execution={latestExecution}
+                onExecutionSelect={handleViewLastExecutionDetails}
+              />
 
               {/* Basic details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -374,41 +416,36 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
                   <div className="text-sm text-gray-500">URL</div>
                   <div className="text-gray-800">{testData.url || 'Not specified'}</div>
                 </div>
-                <div className="space-y-1">
-                  <div className="text-sm text-gray-500">Last Run</div>
-                  <div className="text-gray-800">{testData.started_at ? formatDateTime(testData.started_at) : 'Not run yet'}</div>
-                </div>
               </div>
 
               {/* Description section */}
               <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-2">Description</h3>
+                <h3 className="text-lg font-semibold mb-2 flex items-center">
+                  Description
+                  {testData.category && (
+                    <span className="px-3 py-1 text-sm font-medium rounded-full bg-purple-100 text-purple-800 ml-3">
+                      {testData.category}
+                    </span>
+                  )}
+                </h3>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-gray-800 whitespace-pre-line">{testData.description}</p>
                 </div>
               </div>
 
-              {/* Preconditions section */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-2">Preconditions</h3>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-800 whitespace-pre-line">{testData.preconditions}</p>
+              {/* Steps and Expected Results */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Steps</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-800 whitespace-pre-line">{testData.steps}</p>
+                  </div>
                 </div>
-              </div>
-
-              {/* Steps section */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-2">Steps</h3>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-800 whitespace-pre-line">{testData.steps}</p>
-                </div>
-              </div>
-
-              {/* Expected results section */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-2">Expected Results</h3>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-800 whitespace-pre-line">{testData.expected_results}</p>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Expected Results</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-800 whitespace-pre-line">{testData.expected_results}</p>
+                  </div>
                 </div>
               </div>
 
@@ -420,32 +457,45 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
                 </div>
               </div>
 
-              {/* Bugs section */}
-              {testData.bugs && testData.bugs.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-2">Bugs ({testData.bugs.length})</h3>
-                  <div className="space-y-3">
-                    {testData.bugs.map(bug => (
-                      <div key={bug.id} className="bg-red-50 border border-red-200 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-medium text-red-800">{bug.name}</h4>
-                          <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
-                            {bug.severity}
-                          </span>
-                        </div>
-                        <p className="text-gray-700">{bug.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Action buttons */}
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition duration-150 flex items-center"
+                >
+                  <Trash2 size={16} className="mr-1" />
+                  Delete
+                </button>
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition duration-150 flex items-center"
+                >
+                  <Edit size={16} className="mr-1" />
+                  Edit Test
+                </button>
+                <button
+                  onClick={handleRunTest}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-150 flex items-center"
+                  disabled={runningTest}
+                >
+                  {runningTest ? (
+                    <Loader size={16} className="mr-1 animate-spin" />
+                  ) : (
+                    <Play size={16} className="mr-1" />
+                  )}
+                  {runningTest ? 'Starting...' : 'Run Test'}
+                </button>
+              </div>
             </>
           )}
 
           {activeTab === 'history' && !selectedExecution && (
             <TestExecutionHistory
-              testId={testData.id}
-              onExecutionSelect={handleExecutionSelect}
+              executions={executions}
+              isLoading={isLoading}
+              error={error}
+              onSelect={handleExecutionSelect}
+              onRefresh={fetchTestExecutions}
             />
           )}
 
@@ -456,52 +506,6 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
             />
           )}
         </div>
-
-        {/* Modal footer with action buttons */}
-        {!(activeTab === 'history' && selectedExecution) && <div className="border-t border-gray-200 px-6 py-4 flex justify-between">
-          <div className="flex space-x-3">
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="px-4 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50 flex items-center"
-            >
-              <Trash2 size={18} className="mr-2" />
-              Delete Test
-            </button>
-            <button
-              onClick={() => setIsEditModalOpen(true)}
-              className="px-4 py-2 border border-blue-300 text-blue-700 rounded-md hover:bg-blue-50 flex items-center"
-            >
-              <Edit size={18} className="mr-2" />
-              Edit Test
-            </button>
-          </div>
-          <div className="flex space-x-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-            >
-              Close
-            </button>
-
-            <button
-              onClick={handleRunTest}
-              disabled={runningTest}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
-            >
-              {runningTest ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Running...
-                </>
-              ) : (
-                <>
-                  <Play size={18} className="mr-2" />
-                  Run Test
-                </>
-              )}
-            </button>
-          </div>
-        </div>}
       </div>
     </div>
   );

@@ -100,7 +100,7 @@ async def create_test_execution(
     test.status = test_execution.status
     test.started_at = datetime.now(tzinfo) if not test.started_at else test.started_at
 
-    if test_execution.status in [TestStatus.PASSED, TestStatus.FAILED, TestStatus.BLOCKED, TestStatus.SKIPPED]:
+    if test_execution.status in [TestStatus.PASSED, TestStatus.FAILED, TestStatus.BLOCKED, TestStatus.SKIPPED, TestStatus.AGENT_LIMITATION, TestStatus.UNEXISTING_FEATURE]:
         test.ended_at = datetime.now(tzinfo)
 
     await test.save()
@@ -287,8 +287,44 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                 )
                 break
 
+            elif status_data["status"] == "agent_limitation":
+                await update_test_execution(
+                    execution_id,
+                    TestExecutionUpdateSchema(
+                        status=TestStatus.AGENT_LIMITATION,
+                        notes=f"{status_data.get('results', 'Agent limitation encountered')}",
+                        ended_at=datetime.now(tzinfo),
+                        metadata=updated_metadata,
+                        tracing=tracing_data,
+                    )
+                )
+                break
+
+            elif status_data["status"] == "unexisting_feature":
+                await update_test_execution(
+                    execution_id,
+                    TestExecutionUpdateSchema(
+                        status=TestStatus.UNEXISTING_FEATURE,
+                        notes=f"{status_data.get('results', 'Feature does not exist on the page')}",
+                        ended_at=datetime.now(tzinfo),
+                        metadata=updated_metadata,
+                        tracing=tracing_data,
+                    )
+                )
+                break
+
             else:
                 logger.error(f"Unknown status of test run: {status_data}")
+                await update_test_execution(
+                    execution_id,
+                    TestExecutionUpdateSchema(
+                        status=TestStatus.ERROR,
+                        notes=f"Unknown status of test run: {status_data}",
+                        ended_at=datetime.now(tzinfo),
+                        metadata=updated_metadata,
+                        tracing=tracing_data,
+                    )
+                )
                 break
 
         except Exception as e:
@@ -354,7 +390,7 @@ async def update_test_execution(
         test = await TestModel.get(id=test_execution.test_id)
         test.status = test_execution_update.status
 
-        if test_execution_update.status in [TestStatus.PASSED, TestStatus.FAILED, TestStatus.BLOCKED, TestStatus.SKIPPED]:
+        if test_execution_update.status in [TestStatus.PASSED, TestStatus.FAILED, TestStatus.BLOCKED, TestStatus.SKIPPED, TestStatus.AGENT_LIMITATION, TestStatus.UNEXISTING_FEATURE]:
             test.ended_at = datetime.now(tzinfo)
 
         await test.save()

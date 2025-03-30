@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  CheckCircle,
-  XCircle,
-  Clock,
-  AlertTriangle,
   Filter,
   Search,
   ChevronUp,
@@ -21,6 +16,8 @@ import { getAllEpics, getFeaturesByEpic } from '@/services/productService';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import TestDetailsModal from '@/components/modals/TestDetailsModal';
+import { getStatusIconLarge, formatStatus, getStatusColorClasses } from '@/utils/testExecutionUtils';
+import { formatDate } from '@/utils/dateUtils';
 
 /**
  * Displays all tests in a tabular format with sorting and filtering capabilities
@@ -45,7 +42,6 @@ const TestsTable = () => {
   const [loadingFeatures, setLoadingFeatures] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  const navigate = useNavigate();
   const { selectedProduct } = useProduct();
   const { selectedOrganization } = useOrganization();
 
@@ -165,6 +161,13 @@ const TestsTable = () => {
     }
   };
 
+  // Centralized error handling function
+  const handleFetchError = (action, err) => {
+    console.error(`Error ${action}:`, err);
+    setError(`Failed to ${action}. Please try again later.`);
+    setLoading(false);
+  };
+
   const fetchTestsByProduct = async (productId) => {
     try {
       setLoading(true);
@@ -173,12 +176,27 @@ const TestsTable = () => {
       setTests(testsData);
       applyFilters(testsData, selectedStatus, searchQuery);
     } catch (err) {
-      console.error('Error fetching tests:', err);
-      setError('Failed to load tests data. Please try again later.');
+      handleFetchError('load tests data', err);
       setFilteredTests([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Sort function that can be reused across the component
+  const sortItems = (items, key, direction) => {
+    return [...items].sort((a, b) => {
+      const aValue = a[key];
+      const bValue = b[key];
+
+      if (aValue < bValue) {
+        return direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
   };
 
   const applyFilters = (testsToFilter = tests, statusOverride = null, queryOverride = null) => {
@@ -213,20 +231,8 @@ const TestsTable = () => {
       );
     }
 
-    // Apply sorting
-    result.sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
-
-      if (aValue < bValue) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
-      }
-      if (aValue > bValue) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
-
+    // Apply sorting using the reusable function
+    result = sortItems(result, sortConfig.key, sortConfig.direction);
     setFilteredTests(result);
   };
 
@@ -235,23 +241,36 @@ const TestsTable = () => {
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
       direction = 'desc';
     }
-    setSortConfig({ key, direction });
+    const newSortConfig = { key, direction };
+    setSortConfig(newSortConfig);
 
-    // Re-sort the filtered tests
-    const sorted = [...filteredTests].sort((a, b) => {
-      const aValue = a[key];
-      const bValue = b[key];
-
-      if (aValue < bValue) {
-        return direction === 'asc' ? -1 : 1;
-      }
-      if (aValue > bValue) {
-        return direction === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
-
+    // Re-sort the filtered tests using the reusable function
+    const sorted = sortItems(filteredTests, key, direction);
     setFilteredTests(sorted);
+  };
+
+  // Centralized function to fetch tests based on the current filters
+  const fetchTestsWithCurrentFilters = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (selectedFeature !== 'all') {
+        const testsData = await getTestsByFeature(selectedFeature);
+        setTests(testsData);
+        applyFilters(testsData, selectedStatus, searchQuery);
+      } else if (selectedEpic !== 'all') {
+        const testsData = await getTestsByEpic(selectedEpic);
+        setTests(testsData);
+        applyFilters(testsData, selectedStatus, searchQuery);
+      } else {
+        await fetchTestsByProduct(selectedProduct.id);
+      }
+    } catch (err) {
+      handleFetchError('load tests data', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEpicChange = (epicId) => {
@@ -261,46 +280,15 @@ const TestsTable = () => {
       // Refresh tests with product ID
       fetchTestsByProduct(selectedProduct.id);
     } else {
-      // Get tests for the epic
-      getTestsByEpic(epicId).then(testsData => {
-        setTests(testsData);
-        applyFilters(testsData, selectedStatus, searchQuery);
-      }).catch(err => {
-        console.error('Error fetching tests:', err);
-        setError('Failed to load tests data. Please try again later.');
-        setFilteredTests([]);
-      });
+      // Get tests for the epic using the centralized fetch function
+      fetchTestsWithCurrentFilters();
     }
   };
 
   const handleFeatureChange = (featureId) => {
     setSelectedFeature(featureId);
-    if (featureId === 'all') {
-      // If feature is 'all', get tests for the epic
-      if (selectedEpic !== 'all') {
-        getTestsByEpic(selectedEpic).then(testsData => {
-          setTests(testsData);
-          applyFilters(testsData, selectedStatus, searchQuery);
-        }).catch(err => {
-          console.error('Error fetching tests:', err);
-          setError('Failed to load tests data. Please try again later.');
-          setFilteredTests([]);
-        });
-      } else {
-        // If no epic selected, get all tests for the product
-        fetchTestsByProduct(selectedProduct.id);
-      }
-    } else {
-      // Get tests for the specific feature
-      getTestsByFeature(featureId).then(testsData => {
-        setTests(testsData);
-        applyFilters(testsData, selectedStatus, searchQuery);
-      }).catch(err => {
-        console.error('Error fetching tests:', err);
-        setError('Failed to load tests data. Please try again later.');
-        setFilteredTests([]);
-      });
-    }
+    // Use the centralized fetch function for any filter change
+    fetchTestsWithCurrentFilters();
   };
 
   const getSortIcon = (key) => {
@@ -311,28 +299,7 @@ const TestsTable = () => {
   };
 
   const getStatusIcon = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'passed':
-        return <CheckCircle size={18} className="text-green-500" />;
-      case 'failed':
-        return <XCircle size={18} className="text-red-500" />;
-      case 'pending':
-      case 'not_started':
-        return <Clock size={18} className="text-yellow-500" />;
-      case 'blocked':
-        return <AlertTriangle size={18} className="text-orange-500" />;
-      default:
-        return <Clock size={18} className="text-gray-500" />;
-    }
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    return getStatusIconLarge(status);
   };
 
   const handleTestSelect = (test) => {
@@ -347,27 +314,7 @@ const TestsTable = () => {
   // This function will be called only when a test is actually updated
   const handleTestUpdated = () => {
     // Refresh tests list after viewing test details with current filters
-    if (selectedFeature !== 'all') {
-      getTestsByFeature(selectedFeature).then(testsData => {
-        setTests(testsData);
-        applyFilters(testsData, selectedStatus, searchQuery);
-      }).catch(err => {
-        console.error('Error fetching tests:', err);
-        setError('Failed to load tests data. Please try again later.');
-        setFilteredTests([]);
-      });
-    } else if (selectedEpic !== 'all') {
-      getTestsByEpic(selectedEpic).then(testsData => {
-        setTests(testsData);
-        applyFilters(testsData, selectedStatus, searchQuery);
-      }).catch(err => {
-        console.error('Error fetching tests:', err);
-        setError('Failed to load tests data. Please try again later.');
-        setFilteredTests([]);
-      });
-    } else {
-      fetchTestsByProduct(selectedProduct.id);
-    }
+    fetchTestsWithCurrentFilters();
   };
 
   // Handle running selected tests (filtered tests)
@@ -416,36 +363,14 @@ const TestsTable = () => {
         setSuccessMessage(null);
       }
 
-      // Refresh the tests list while maintaining the current filters
-      await refreshTestsWithCurrentFilters();
+      // Refresh the tests list using the centralized function
+      await fetchTestsWithCurrentFilters();
 
     } catch (err) {
-      console.error('Error running selected tests:', err);
-      setError('Failed to run selected tests. Please try again.');
+      handleFetchError('run selected tests', err);
       setSuccessMessage(null);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Helper function to refresh tests while maintaining current filters
-  const refreshTestsWithCurrentFilters = async () => {
-    try {
-      // Re-fetch tests based on the current filter selections
-      if (selectedFeature !== 'all') {
-        const testsData = await getTestsByFeature(selectedFeature);
-        setTests(testsData);
-        applyFilters(testsData, selectedStatus, searchQuery);
-      } else if (selectedEpic !== 'all') {
-        const testsData = await getTestsByEpic(selectedEpic);
-        setTests(testsData);
-        applyFilters(testsData, selectedStatus, searchQuery);
-      } else {
-        await fetchTestsByProduct(selectedProduct.id);
-      }
-    } catch (err) {
-      console.error('Error refreshing tests:', err);
-      // Don't show error as this is just a refresh, and the main action (running tests) was successful
     }
   };
 
@@ -671,8 +596,8 @@ const TestsTable = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           {getStatusIcon(test.status)}
-                          <span className="ml-2 text-sm font-medium">
-                            {test.status.charAt(0).toUpperCase() + test.status.slice(1).replace('_', ' ')}
+                          <span className={`ml-2 text-sm font-medium px-2 py-1 rounded-full ${getStatusColorClasses(test.status)}`}>
+                            {formatStatus(test.status)}
                           </span>
                         </div>
                       </td>

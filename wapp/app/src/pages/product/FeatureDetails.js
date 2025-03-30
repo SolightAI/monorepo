@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Loader, AlertCircle, ArrowLeft, TestTube, Plus,
-  CheckCircle, XCircle, Sparkles, CheckSquare, Edit, Zap, Play
+  CheckCircle, XCircle, Sparkles, CheckSquare, Edit, Zap, Play, Info, Search
 } from 'lucide-react';
 import AddTestModal from '@/components/modals/AddTestModal';
 import TestDetailsModal from '@/components/modals/TestDetailsModal';
@@ -16,6 +16,7 @@ import EditFeatureModal from '@/components/modals/EditFeatureModal';
 import EditUserStoryModal from '@/components/modals/EditUserStoryModal';
 import EditAcceptanceCriteriaModal from '@/components/modals/EditAcceptanceCriteriaModal';
 import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
+import { formatStatus } from '@/utils/testExecutionUtils';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -593,6 +594,10 @@ const FeatureDetails = () => {
         return <XCircle size={20} className="text-red-500" />;
       case 'PENDING':
         return <Loader size={20} className="text-yellow-500 animate-spin" />;
+      case 'AGENT_LIMITATION':
+        return <Info size={20} className="text-purple-500" />;
+      case 'UNEXISTING_FEATURE':
+        return <Search size={20} className="text-amber-500" />;
       case 'NOT_STARTED':
         return <TestTube size={20} className="text-gray-400" />;
       default:
@@ -608,6 +613,10 @@ const FeatureDetails = () => {
         return 'bg-red-100 text-red-800';
       case 'PENDING':
         return 'bg-yellow-100 text-yellow-800';
+      case 'AGENT_LIMITATION':
+        return 'bg-purple-100 text-purple-800';
+      case 'UNEXISTING_FEATURE':
+        return 'bg-amber-100 text-amber-800';
       case 'NOT_STARTED':
       default:
         return 'bg-gray-100 text-gray-600';
@@ -627,7 +636,9 @@ const FeatureDetails = () => {
 
   // Handle test click to open details modal
   const handleTestClick = (test) => {
-    setSelectedTest(test);
+    // Get the most up-to-date test data from the feature.tests array
+    const updatedTest = feature.tests.find(t => t.id === test.id) || test;
+    setSelectedTest(updatedTest);
     setIsTestDetailsModalOpen(true);
   };
 
@@ -1191,7 +1202,7 @@ const FeatureDetails = () => {
                             <div className="flex items-center">
                               {getTestStatusIcon(test.status)}
                               <span className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTestStatusColor(test.status)}`}>
-                                {test.status}
+                                {formatStatus(test.status)}
                               </span>
                             </div>
                           </td>
@@ -1242,7 +1253,22 @@ const FeatureDetails = () => {
         <TestDetailsModal
           onClose={() => setIsTestDetailsModalOpen(false)}
           test={selectedTest}
-          onTestUpdated={fetchFeatureDetails}
+          onTestUpdated={(updatedTest) => {
+            console.log("Test updated in parent:", updatedTest);
+            if (updatedTest) {
+              // Update the test in the feature.tests array
+              setFeature(prevFeature => ({
+                ...prevFeature,
+                tests: prevFeature.tests.map(test =>
+                  test.id === updatedTest.id ? updatedTest : test
+                )
+              }));
+            } else {
+              // If no test data provided (e.g., on delete), refresh all tests
+              fetchFeatureDetails();
+            }
+            setIsTestDetailsModalOpen(false);
+          }}
         />
       )}
 

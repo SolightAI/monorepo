@@ -27,7 +27,7 @@ class Organization(models.Model):
     logo_url = fields.CharField(max_length=255, null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
-    type = fields.CharEnumField(OrganizationType)
+    type = fields.CharEnumField(OrganizationType, max_length=255)
     settings = fields.JSONField(default={})
 
     # Relations
@@ -42,7 +42,7 @@ class Organization(models.Model):
 class OrganizationMember(models.Model):
     id = fields.UUIDField(pk=True)
     joined_at = fields.DatetimeField(auto_now_add=True)
-    role = fields.CharEnumField(OrganizationRole)
+    role = fields.CharEnumField(OrganizationRole, max_length=255)
 
     # Relations
     user = fields.ForeignKeyField('models.User', related_name='organizations')
@@ -62,7 +62,7 @@ class Invitation(models.Model):
     expires_at = fields.DatetimeField(null=True)
     used = fields.BooleanField(default=False)
     used_at = fields.DatetimeField(null=True)
-    role = fields.CharEnumField(OrganizationRole, null=True)
+    role = fields.CharEnumField(OrganizationRole, null=True, max_length=255)
 
     # Relations
     created_by = fields.ForeignKeyField('models.User', related_name='created_invitations', null=True)
@@ -152,8 +152,8 @@ class Test(models.Model):
     expected_results = fields.TextField()
     assertions = fields.TextField()
 
-    category = fields.CharEnumField(TestCategory)
-    status = fields.CharEnumField(TestStatus, default=TestStatus.NOT_STARTED)
+    category = fields.CharEnumField(TestCategory, max_length=255)
+    status = fields.CharEnumField(TestStatus, default=TestStatus.NOT_STARTED, max_length=255)
 
     started_at = fields.DatetimeField(null=True)
     ended_at = fields.DatetimeField(null=True)
@@ -170,9 +170,9 @@ class Test(models.Model):
 class TestExecution(models.Model):
     """Model for storing each individual test execution."""
     id = fields.UUIDField(pk=True)
-    status = fields.CharEnumField(TestStatus)
+    status = fields.CharEnumField(TestStatus, max_length=255)
     environment = fields.CharField(max_length=50)  # dev, staging, production, etc.
-    executor_type = fields.CharEnumField(ExecutorType)
+    executor_type = fields.CharEnumField(ExecutorType, max_length=255)
     executor_name = fields.CharField(max_length=255, null=True)  # name of user or automation system
     started_at = fields.DatetimeField(auto_now_add=True)
     ended_at = fields.DatetimeField(null=True)
@@ -194,7 +194,7 @@ class Bug(models.Model):
     id = fields.UUIDField(pk=True)
     name = fields.CharField(max_length=255)
     description = fields.TextField()
-    severity = fields.CharEnumField(SeverityLevel)
+    severity = fields.CharEnumField(SeverityLevel, max_length=255)
     url = fields.CharField(max_length=255)   # url of the bug
     screenshots = fields.JSONField(default=[])   # urls to screenshots of the bug
     status = fields.CharField(max_length=50, null=True)   # retrieved from Jira/Linear/other
@@ -214,7 +214,7 @@ class Secret(models.Model):
     id = fields.UUIDField(pk=True)
     name = fields.CharField(max_length=255)
     description = fields.TextField(null=True)
-    type = fields.CharEnumField(SecretType)
+    type = fields.CharEnumField(SecretType, max_length=255)
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
     expires_at = fields.DatetimeField(null=True)
