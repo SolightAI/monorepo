@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import ProductSelector from "./ProductSelector";
 import OrganizationSelector from "./OrganizationSelector";
 import NavigationTree from "./NavigationTree";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 export default function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -45,11 +46,7 @@ export default function Layout() {
   const renderMainContent = () => {
     // Show loading state while organizations are being fetched initially
     if (isOrganizationLoading) {
-      return (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      );
+      return <LoadingSpinner />;
     }
 
     // Only show create organization screen after we're sure there's no data
@@ -186,9 +183,7 @@ export default function Layout() {
             </div>
           </>
         ) : isProductLoading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
+          <LoadingSpinner />
         ) : null}
       </>
     );
