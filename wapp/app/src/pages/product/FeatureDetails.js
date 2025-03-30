@@ -1163,7 +1163,7 @@ const FeatureDetails = () => {
       {isAddTestModalOpen && (
         <AddTestModal
           onClose={() => setIsAddTestModalOpen(false)}
-          onTestAdded={handleTestAdded}
+          onAddTest={handleTestAdded}
           defaultUrl={feature?.urls?.[0] || ''}
         />
       )}
