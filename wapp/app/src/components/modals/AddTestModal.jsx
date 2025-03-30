@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
-import SecretSelector from "../secrets/SecretSelector"
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -395,18 +394,6 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
                 <p className="mt-1 text-xs text-gray-500">
                   Enter verification points that confirm the test is working as expected. Required field.
                 </p>
-              </div>
-
-              {/* Update SecretSelector to support multiple selection */}
-              <div>
-                <SecretSelector
-                  onSecretSelect={handleSecretSelect}
-                  selectedSecretIds={selectedSecretIds}
-                  secretType="username_password"
-                  label="Test Credentials (Optional)"
-                  placeholder="Select credentials for this test..."
-                  multiple={true}
-                />
               </div>
             </div>
 

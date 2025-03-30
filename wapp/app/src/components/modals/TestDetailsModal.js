@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, XCircle, Loader, TestTube, AlertCircle, Play } from 'lucide-react';
+import { X, CheckCircle, XCircle, Loader, TestTube, AlertCircle, Play, Trash2, Edit } from 'lucide-react';
 import TestExecutionHistory from '../test/TestExecutionHistory';
 import TestExecutionDetail from '../test/TestExecutionDetail';
 import { getTestExecutions, createTestExecution } from '@/services/testExecutionService';
+import { deleteTest } from '@/services/testService';
+import EditTestModal from './EditTestModal';
 
 /**
  * Modal component for displaying detailed test information
@@ -13,6 +15,9 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
   const [executions, setExecutions] = useState([]);
   const [loadingExecutions, setLoadingExecutions] = useState(false);
   const [runningTest, setRunningTest] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     // Load test executions when the modal opens or when a new execution is created
@@ -149,6 +154,45 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
     setSelectedExecution(null);
   };
 
+  // Handle test deletion
+  const handleDeleteTest = async () => {
+    try {
+      setIsDeleting(true);
+      await deleteTest(test.id);
+      // Call onTestUpdated to notify parent component that test was deleted
+      if (typeof onTestUpdated === 'function') {
+        onTestUpdated();
+      }
+      // Close the modal
+      onClose();
+    } catch (err) {
+      console.error('Error deleting test:', err);
+      setIsDeleting(false);
+      // Close delete confirmation dialog but keep modal open
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  // Handle test edit
+  const handleTestEdited = (updatedTest) => {
+    try {
+      // Update the local test data with the edited values
+      if (updatedTest && typeof updatedTest === 'object') {
+        Object.assign(test, updatedTest);
+      }
+
+      // Refresh executions if test properties that affect executions changed
+      fetchTestExecutions();
+
+      // Call onTestUpdated to notify parent component that test was edited
+      if (typeof onTestUpdated === 'function') {
+        onTestUpdated();
+      }
+    } catch (err) {
+      console.error('Error updating test data in modal:', err);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-auto">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -158,13 +202,53 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
             {getTestStatusIcon(test.status)}
             <h2 className="text-xl font-semibold text-gray-800 ml-3">{test.name}</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 focus:outline-none"
-          >
-            <X size={24} />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 focus:outline-none"
+            >
+              <X size={24} />
+            </button>
+          </div>
         </div>
+
+        {/* Delete confirmation dialog */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Deletion</h3>
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete this test: <span className="font-medium">{test.name}</span>? This action cannot be undone.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition duration-150"
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteTest}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-150 flex items-center"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? <Loader size={16} className="mr-2 animate-spin" /> : <Trash2 size={16} className="mr-2" />}
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Test Modal */}
+        {isEditModalOpen && (
+          <EditTestModal
+            test={test}
+            onClose={() => setIsEditModalOpen(false)}
+            onTestUpdated={handleTestEdited}
+          />
+        )}
 
         {/* Tabs navigation */}
         <div className="border-b border-gray-200">
@@ -301,31 +385,49 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
         </div>
 
         {/* Modal footer with action buttons */}
-        {!(activeTab === 'history' && selectedExecution) && <div className="border-t border-gray-200 px-6 py-4 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 mr-3"
-          >
-            Close
-          </button>
+        {!(activeTab === 'history' && selectedExecution) && <div className="border-t border-gray-200 px-6 py-4 flex justify-between">
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="px-4 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50 flex items-center"
+            >
+              <Trash2 size={18} className="mr-2" />
+              Delete Test
+            </button>
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="px-4 py-2 border border-blue-300 text-blue-700 rounded-md hover:bg-blue-50 flex items-center"
+            >
+              <Edit size={18} className="mr-2" />
+              Edit Test
+            </button>
+          </div>
+          <div className="flex space-x-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+            >
+              Close
+            </button>
 
-          <button
-            onClick={handleRunTest}
-            disabled={runningTest}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
-          >
-            {runningTest ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Running...
-              </>
-            ) : (
-              <>
-                <Play size={18} className="mr-2" />
-                Run Test
-              </>
-            )}
-          </button>
+            <button
+              onClick={handleRunTest}
+              disabled={runningTest}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+            >
+              {runningTest ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Running...
+                </>
+              ) : (
+                <>
+                  <Play size={18} className="mr-2" />
+                  Run Test
+                </>
+              )}
+            </button>
+          </div>
         </div>}
       </div>
     </div>
