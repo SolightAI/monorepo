@@ -18,16 +18,22 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [testData, setTestData] = useState(test);
 
   useEffect(() => {
     // Load test executions when the modal opens or when a new execution is created
     fetchTestExecutions();
-  }, [test.id]);
+  }, [testData.id]);
+
+  // Update testData if the passed test prop changes
+  useEffect(() => {
+    setTestData(test);
+  }, [test]);
 
   const fetchTestExecutions = async () => {
     try {
       setLoadingExecutions(true);
-      const data = await getTestExecutions(test.id);
+      const data = await getTestExecutions(testData.id);
       setExecutions(data);
     } catch (err) {
       console.error('Error fetching test executions:', err);
@@ -123,7 +129,7 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
       setRunningTest(true);
 
       const executionData = {
-        test_id: test.id,
+        test_id: testData.id,
         status: 'PENDING',
         environment: 'development', // Default to development environment
         executor_type: 'MANUAL',
@@ -158,7 +164,7 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
   const handleDeleteTest = async () => {
     try {
       setIsDeleting(true);
-      await deleteTest(test.id);
+      await deleteTest(testData.id);
       // Call onTestUpdated to notify parent component that test was deleted
       if (typeof onTestUpdated === 'function') {
         onTestUpdated();
@@ -178,7 +184,8 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
     try {
       // Update the local test data with the edited values
       if (updatedTest && typeof updatedTest === 'object') {
-        Object.assign(test, updatedTest);
+        // Create a new object to update the state rather than mutating props
+        setTestData({...testData, ...updatedTest});
       }
 
       // Refresh executions if test properties that affect executions changed
@@ -186,7 +193,7 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
 
       // Call onTestUpdated to notify parent component that test was edited
       if (typeof onTestUpdated === 'function') {
-        onTestUpdated();
+        onTestUpdated(testData);
       }
     } catch (err) {
       console.error('Error updating test data in modal:', err);
@@ -199,8 +206,8 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
         {/* Modal header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
           <div className="flex items-center">
-            {getTestStatusIcon(test.status)}
-            <h2 className="text-xl font-semibold text-gray-800 ml-3">{test.name}</h2>
+            {getTestStatusIcon(testData.status)}
+            <h2 className="text-xl font-semibold text-gray-800 ml-3">{testData.name}</h2>
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -218,7 +225,7 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
             <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Deletion</h3>
               <p className="text-gray-700 mb-6">
-                Are you sure you want to delete this test: <span className="font-medium">{test.name}</span>? This action cannot be undone.
+                Are you sure you want to delete this test: <span className="font-medium">{testData.name}</span>? This action cannot be undone.
               </p>
               <div className="flex justify-end space-x-3">
                 <button
@@ -244,7 +251,7 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
         {/* Edit Test Modal */}
         {isEditModalOpen && (
           <EditTestModal
-            test={test}
+            test={testData}
             onClose={() => setIsEditModalOpen(false)}
             onTestUpdated={handleTestEdited}
           />
@@ -285,12 +292,12 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
             <>
               {/* Status and category section */}
               <div className="flex flex-wrap gap-2 mb-4">
-                <span className={`px-3 py-1 text-sm font-medium rounded-full ${getTestStatusColor(test.status)}`}>
-                  {test.status || 'Not Started'}
+                <span className={`px-3 py-1 text-sm font-medium rounded-full ${getTestStatusColor(testData.status)}`}>
+                  {testData.status || 'Not Started'}
                 </span>
-                {test.category && (
+                {testData.category && (
                   <span className="px-3 py-1 text-sm font-medium rounded-full bg-purple-100 text-purple-800">
-                    {test.category}
+                    {testData.category}
                   </span>
                 )}
               </div>
@@ -299,11 +306,11 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="space-y-1">
                   <div className="text-sm text-gray-500">URL</div>
-                  <div className="text-gray-800">{test.url || 'Not specified'}</div>
+                  <div className="text-gray-800">{testData.url || 'Not specified'}</div>
                 </div>
                 <div className="space-y-1">
                   <div className="text-sm text-gray-500">Last Run</div>
-                  <div className="text-gray-800">{test.started_at ? formatDateTime(test.started_at) : 'Not run yet'}</div>
+                  <div className="text-gray-800">{testData.started_at ? formatDateTime(testData.started_at) : 'Not run yet'}</div>
                 </div>
               </div>
 
@@ -311,7 +318,7 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2">Description</h3>
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-800 whitespace-pre-line">{test.description}</p>
+                  <p className="text-gray-800 whitespace-pre-line">{testData.description}</p>
                 </div>
               </div>
 
@@ -319,7 +326,7 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2">Preconditions</h3>
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-800 whitespace-pre-line">{test.preconditions}</p>
+                  <p className="text-gray-800 whitespace-pre-line">{testData.preconditions}</p>
                 </div>
               </div>
 
@@ -327,7 +334,7 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2">Steps</h3>
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-800 whitespace-pre-line">{test.steps}</p>
+                  <p className="text-gray-800 whitespace-pre-line">{testData.steps}</p>
                 </div>
               </div>
 
@@ -335,7 +342,7 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2">Expected Results</h3>
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-800 whitespace-pre-line">{test.expected_results}</p>
+                  <p className="text-gray-800 whitespace-pre-line">{testData.expected_results}</p>
                 </div>
               </div>
 
@@ -343,16 +350,16 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2">Assertions</h3>
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-800 whitespace-pre-line">{test.assertions}</p>
+                  <p className="text-gray-800 whitespace-pre-line">{testData.assertions}</p>
                 </div>
               </div>
 
               {/* Bugs section */}
-              {test.bugs && test.bugs.length > 0 && (
+              {testData.bugs && testData.bugs.length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-2">Bugs ({test.bugs.length})</h3>
+                  <h3 className="text-lg font-semibold mb-2">Bugs ({testData.bugs.length})</h3>
                   <div className="space-y-3">
-                    {test.bugs.map(bug => (
+                    {testData.bugs.map(bug => (
                       <div key={bug.id} className="bg-red-50 border border-red-200 rounded-lg p-4">
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-medium text-red-800">{bug.name}</h4>
@@ -371,7 +378,7 @@ const TestDetailsModal = ({ test, onClose, onTestUpdated }) => {
 
           {activeTab === 'history' && !selectedExecution && (
             <TestExecutionHistory
-              testId={test.id}
+              testId={testData.id}
               onExecutionSelect={handleExecutionSelect}
             />
           )}
