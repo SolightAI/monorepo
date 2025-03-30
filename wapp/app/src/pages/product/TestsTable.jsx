@@ -10,11 +10,14 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import TestDetails from '@/components/test/TestDetails';
-import { API_URL } from '@/config';
 import { getTestsByFeature, getTestsByEpic, getTestsByProduct } from '@/services/testService';
-import { useProduct } from '@/contexts/ProductContext';
+import { useProduct } from '@/context/ProductContext';
 import { getStatusIconLarge, TEST_STATUS, EXECUTOR_TYPE } from '@/utils/testExecutionUtils';
 import { formatDate } from '@/utils/dateUtils';
+
+
+const API_URL = process.env.REACT_APP_API_URL;
+
 
 /**
  * Component for displaying and filtering tests in a table format

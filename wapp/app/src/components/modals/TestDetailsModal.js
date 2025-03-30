@@ -86,6 +86,7 @@ const LastTestExecution = ({ execution, onExecutionSelect }) => {
  * Modal component for displaying detailed test information
  */
 const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
+  console.log("TestDetailsModal rendering with initialTest:", initialTest);
   const [testData, setTestData] = useState(initialTest);
   const [activeTab, setActiveTab] = useState('details');
   const [executions, setExecutions] = useState([]);
@@ -98,8 +99,20 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const modalRef = useRef(null);
 
-  // If there's an execution that's in the pending state, poll for updates
-  const { needsPolling } = usePendingStatusPolling(executions, setExecutions);
+  // Update internal state when initialTest changes
+  useEffect(() => {
+    setTestData(initialTest);
+  }, [initialTest]);
+
+  // Function to close modal and ensure updated test data is passed back
+  const handleClose = useCallback(() => {
+    // If onTestUpdated is provided, call it with the latest test data
+    if (typeof onTestUpdated === 'function') {
+      onTestUpdated(testData);
+    }
+    // Call the original onClose function
+    onClose();
+  }, [testData, onClose, onTestUpdated]);
 
   // Fetch executions when component mounts
   const fetchTestExecutions = useCallback(async () => {
@@ -122,6 +135,13 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
     }
   }, [testData.id]);
 
+  // If there's an execution that's in the pending state, poll for updates
+  const needsPolling = usePendingStatusPolling(
+    fetchTestExecutions,
+    () => executions.some(exec => exec.status === 'PENDING'),
+    [executions]
+  );
+
   useEffect(() => {
     fetchTestExecutions();
   }, [fetchTestExecutions]);
@@ -130,7 +150,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
-        onClose();
+        handleClose();
       }
     };
 
@@ -138,13 +158,13 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [onClose]);
+  }, [handleClose]);
 
   // Handle click outside of modal
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (modalRef.current && !modalRef.current.contains(event.target)) {
-        onClose();
+        handleClose();
       }
     };
 
@@ -152,7 +172,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [onClose]);
+  }, [handleClose]);
 
   // Format date for display
   const formatDateTime = (dateString) => {
@@ -238,7 +258,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
         onTestUpdated();
       }
       // Close the modal
-      onClose();
+      handleClose();
     } catch (err) {
       console.error('Error deleting test:', err);
       setIsDeleting(false);
@@ -249,19 +269,25 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
 
   // Handle test edit
   const handleTestEdited = (updatedTest) => {
+    console.log("Test edited, received updated data:", updatedTest);
     try {
-      // Update the local test data with the edited values
       if (updatedTest && typeof updatedTest === 'object') {
-        // Create a new object to update the state rather than mutating props
-        setTestData({...testData, ...updatedTest});
-      }
+        // Create a fresh object with updated test data
+        const newTestData = {
+          ...testData,  // Keep existing properties
+          ...updatedTest, // Override with updated properties
+        };
 
-      // Refresh executions if test properties that affect executions changed
-      fetchTestExecutions();
+        console.log("Setting new test data:", newTestData);
 
-      // Call onTestUpdated to notify parent component that test was edited
-      if (typeof onTestUpdated === 'function') {
-        onTestUpdated(testData);
+        // Update state with new test data
+        setTestData(newTestData);
+
+        // Close the edit modal
+        setShowEditModal(false);
+
+        // Refresh executions if test properties that affect executions changed
+        fetchTestExecutions();
       }
     } catch (err) {
       console.error('Error updating test data in modal:', err);
@@ -282,7 +308,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-auto"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
@@ -296,7 +322,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
           </div>
           <div className="flex items-center space-x-2">
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="text-gray-500 hover:text-gray-700 focus:outline-none"
             >
               <X size={24} />
@@ -337,7 +363,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
           <EditTestModal
             test={testData}
             onClose={() => setShowEditModal(false)}
-            onSave={handleTestEdited}
+            onTestUpdated={handleTestEdited}
           />
         )}
 
@@ -434,18 +460,18 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
               {/* Action buttons */}
               <div className="flex justify-end space-x-3 mt-6">
                 <button
-                  onClick={() => setShowEditModal(true)}
-                  className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition duration-150 flex items-center"
-                >
-                  <Edit size={16} className="mr-1" />
-                  Edit Test
-                </button>
-                <button
                   onClick={() => setShowDeleteConfirm(true)}
                   className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition duration-150 flex items-center"
                 >
                   <Trash2 size={16} className="mr-1" />
                   Delete
+                </button>
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition duration-150 flex items-center"
+                >
+                  <Edit size={16} className="mr-1" />
+                  Edit Test
                 </button>
                 <button
                   onClick={handleRunTest}

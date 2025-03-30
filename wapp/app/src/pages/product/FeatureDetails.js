@@ -636,7 +636,9 @@ const FeatureDetails = () => {
 
   // Handle test click to open details modal
   const handleTestClick = (test) => {
-    setSelectedTest(test);
+    // Get the most up-to-date test data from the feature.tests array
+    const updatedTest = feature.tests.find(t => t.id === test.id) || test;
+    setSelectedTest(updatedTest);
     setIsTestDetailsModalOpen(true);
   };
 
@@ -1251,7 +1253,22 @@ const FeatureDetails = () => {
         <TestDetailsModal
           onClose={() => setIsTestDetailsModalOpen(false)}
           test={selectedTest}
-          onTestUpdated={fetchFeatureDetails}
+          onTestUpdated={(updatedTest) => {
+            console.log("Test updated in parent:", updatedTest);
+            if (updatedTest) {
+              // Update the test in the feature.tests array
+              setFeature(prevFeature => ({
+                ...prevFeature,
+                tests: prevFeature.tests.map(test =>
+                  test.id === updatedTest.id ? updatedTest : test
+                )
+              }));
+            } else {
+              // If no test data provided (e.g., on delete), refresh all tests
+              fetchFeatureDetails();
+            }
+            setIsTestDetailsModalOpen(false);
+          }}
         />
       )}
 
