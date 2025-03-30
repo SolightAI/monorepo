@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
-import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
