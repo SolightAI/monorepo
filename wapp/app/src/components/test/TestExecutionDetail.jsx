@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CheckCircle, XCircle, Clock, AlertCircle, SkipForward, Server, User, Calendar, File, Image, Link2, ArrowLeft } from 'lucide-react';
+import { Server, Calendar, Clock, File, Image, Link2, ArrowLeft } from 'lucide-react';
 import { getBugsByTestExecution, getTestExecution } from '@/services/testExecutionService';
+import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatExecutionDuration, formatStatus } from '@/utils/testExecutionUtils';
 
 /**
  * Component to display detailed information about a test execution
@@ -66,22 +67,9 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
 
   // Get status icon based on execution status
   const getStatusIcon = (status) => {
-    switch (status?.toUpperCase()) {
-      case 'PASSED':
-        return <CheckCircle size={20} className="text-green-500" />;
-      case 'FAILED':
-        return <XCircle size={20} className="text-red-500" />;
-      case 'ERROR':
-        return <XCircle size={20} className="text-red-500" />;
-      case 'PENDING':
-        return <Clock size={20} className="text-yellow-500" />;
-      case 'BLOCKED':
-        return <AlertCircle size={20} className="text-orange-500" />;
-      case 'SKIPPED':
-        return <SkipForward size={20} className="text-blue-500" />;
-      default:
-        return <Clock size={20} className="text-gray-400" />;
-    }
+    const { icon } = getStatusInfo(status);
+    // Make the icon bigger for the header
+    return React.cloneElement(icon, { size: 20 });
   };
 
   // Get background color based on execution status
@@ -99,46 +87,12 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
         return 'bg-orange-50 border-orange-200';
       case 'SKIPPED':
         return 'bg-blue-50 border-blue-200';
+      case 'AGENT_LIMITATION':
+        return 'bg-purple-50 border-purple-200';
+      case 'UNEXISTING_FEATURE':
+        return 'bg-amber-50 border-amber-200';
       default:
         return 'bg-gray-50 border-gray-200';
-    }
-  };
-
-  // Get executor icon based on executor type
-  const getExecutorIcon = (executorType) => {
-    switch (executorType?.toUpperCase()) {
-      case 'MANUAL':
-        return <User size={16} className="text-gray-600" />;
-      case 'AUTOMATED':
-        return <Clock size={16} className="text-blue-600" />;
-      case 'CI_PIPELINE':
-        return <Server size={16} className="text-purple-600" />;
-      default:
-        return <User size={16} className="text-gray-600" />;
-    }
-  };
-
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-  };
-
-  // Format duration
-  const formatDuration = (ms) => {
-    if (!ms) return 'N/A';
-
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds % 60}s`;
-    } else {
-      return `${seconds}s`;
     }
   };
 
@@ -165,7 +119,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
           <div className="flex items-center">
             {getStatusIcon(execution.status)}
             <h2 className="text-xl font-semibold ml-2">
-              Test Execution {execution.status}
+              {formatStatus(execution.status)}
             </h2>
           </div>
           <div className="text-sm text-gray-600">
@@ -180,7 +134,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
           <span className="text-sm text-gray-500">Started</span>
           <div className="font-medium">
             <Calendar size={14} className="inline mr-1" />
-            {formatDate(execution.started_at)}
+            {formatExecutionDate(execution.started_at)}
           </div>
         </div>
 
@@ -190,7 +144,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
             {execution.ended_at ? (
               <>
                 <Calendar size={14} className="inline mr-1" />
-                {formatDate(execution.ended_at)}
+                {formatExecutionDate(execution.ended_at)}
               </>
             ) : (
               <span className="text-yellow-600">In progress</span>
@@ -202,7 +156,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
           <span className="text-sm text-gray-500">Duration</span>
           <div className="font-medium">
             <Clock size={14} className="inline mr-1" />
-            {execution.duration_ms ? formatDuration(execution.duration_ms) : 'In progress'}
+            {execution.duration_ms ? formatExecutionDuration(execution.duration_ms) : 'In progress'}
           </div>
         </div>
 

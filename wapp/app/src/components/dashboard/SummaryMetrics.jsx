@@ -16,7 +16,9 @@ function SummaryMetrics({ metrics }) {
     'PENDING': 'text-orange-600 bg-orange-50 border-orange-100',
     'NOT_STARTED': 'text-gray-600 bg-gray-50 border-gray-100',
     'BLOCKED': 'text-purple-600 bg-purple-50 border-purple-100',
-    'SKIPPED': 'text-blue-600 bg-blue-50 border-blue-100'
+    'SKIPPED': 'text-blue-600 bg-blue-50 border-blue-100',
+    'AGENT_LIMITATION': 'text-purple-600 bg-purple-50 border-purple-100',
+    'UNEXISTING_FEATURE': 'text-amber-600 bg-amber-50 border-amber-100'
   };
 
   // Severity colors mapping

@@ -1,11 +1,86 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, CheckCircle, XCircle, Loader, TestTube, AlertCircle, Play, Trash2, Edit } from 'lucide-react';
+import { X, CheckCircle, XCircle, Loader, TestTube, AlertCircle, Play, Trash2, Edit, Server, Calendar, Info, Search } from 'lucide-react';
 import TestExecutionHistory from '../test/TestExecutionHistory';
 import TestExecutionDetail from '../test/TestExecutionDetail';
 import { getTestExecutions, createTestExecution } from '@/services/testExecutionService';
 import { deleteTest } from '@/services/testService';
 import EditTestModal from './EditTestModal';
 import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
+import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus } from '@/utils/testExecutionUtils';
+
+/**
+ * Component to display the last test execution in a table format
+ */
+const LastTestExecution = ({ execution, onExecutionSelect }) => {
+  if (!execution) {
+    return (
+      <div className="bg-gray-50 p-5 rounded-lg text-gray-500 text-center my-5">
+        No execution history available for this test.
+      </div>
+    );
+  }
+
+  const { icon, color } = getStatusInfo(execution.status);
+
+  return (
+    <div className="mb-8 mt-2">
+      <h3 className="text-lg font-semibold mb-2 flex items-center">
+        Last Execution
+      </h3>
+      <div className="border rounded-lg overflow-hidden shadow-sm">
+        <table className="min-w-full divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-200">
+            <tr
+              className="hover:bg-gray-50 cursor-pointer"
+              onClick={() => onExecutionSelect && onExecutionSelect(execution)}
+            >
+              <td className="px-5 py-4 whitespace-nowrap">
+                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full ${color}`}>
+                  {icon}
+                  <span className="ml-1.5 text-xs">{formatStatus(execution.status)}</span>
+                </div>
+              </td>
+              <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700">
+                {formatExecutionDate(execution.started_at)}
+              </td>
+              <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700">
+                <div className="inline-flex items-center">
+                  <Server size={14} className="mr-1 text-gray-500" />
+                  {execution.environment}
+                </div>
+              </td>
+              <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700">
+                <div className="inline-flex items-center">
+                  {getExecutorIcon(execution.executor_type)}
+                  <span className="ml-1.5">
+                    {execution.executor_name || execution.executor_type}
+                  </span>
+                </div>
+              </td>
+              <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700">
+                {execution.duration_ms
+                  ? `${(execution.duration_ms / 1000).toFixed(1)}s`
+                  : execution.ended_at
+                    ? 'Completed'
+                    : 'In progress'
+                }
+              </td>
+              <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
+                {execution.bugs_count > 0 ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                    {execution.bugs_count} {execution.bugs_count === 1 ? 'bug' : 'bugs'}
+                  </span>
+                ) : (
+                  <span className="text-gray-500">None</span>
+                )}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
 
 /**
  * Modal component for displaying detailed test information
@@ -144,6 +219,10 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
         return <AlertCircle size={20} className="text-orange-500" />;
       case 'SKIPPED':  // unused for now
         return <TestTube size={20} className="text-blue-500" />;
+      case 'AGENT_LIMITATION':  // new status
+        return <Info size={20} className="text-purple-500" />;
+      case 'UNEXISTING_FEATURE':  // new status
+        return <Search size={20} className="text-amber-500" />;
       case 'NOT_STARTED':  // unused for now
       default:
         return <TestTube size={20} className="text-gray-400" />;
@@ -167,6 +246,10 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
         return 'bg-orange-100 text-orange-800';
       case 'SKIPPED':
         return 'bg-blue-100 text-blue-800';
+      case 'AGENT_LIMITATION':
+        return 'bg-purple-100 text-purple-800';
+      case 'UNEXISTING_FEATURE':
+        return 'bg-amber-100 text-amber-800';
       case 'NOT_STARTED':
       default:
         return 'bg-gray-100 text-gray-600';
@@ -258,6 +341,17 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
     } catch (err) {
       console.error('Error updating test data in modal:', err);
     }
+  };
+
+  // Find the latest execution for the Last Execution component
+  const latestExecution = executions.length > 0
+    ? executions.sort((a, b) => new Date(b.started_at) - new Date(a.started_at))[0]
+    : null;
+
+  // Handle view details for last execution
+  const handleViewLastExecutionDetails = (execution) => {
+    setSelectedExecution(execution);
+    setActiveTab('history');
   };
 
   return (
@@ -356,17 +450,11 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
         <div className="px-6 py-4">
           {activeTab === 'details' && (
             <>
-              {/* Status and category section */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                <span className={`px-3 py-1 text-sm font-medium rounded-full ${getTestStatusColor(testData.status)}`}>
-                  {testData.status || 'Not Started'}
-                </span>
-                {testData.category && (
-                  <span className="px-3 py-1 text-sm font-medium rounded-full bg-purple-100 text-purple-800">
-                    {testData.category}
-                  </span>
-                )}
-              </div>
+              {/* Last Execution section - new component */}
+              <LastTestExecution
+                execution={latestExecution}
+                onExecutionSelect={handleViewLastExecutionDetails}
+              />
 
               {/* Basic details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -374,15 +462,18 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
                   <div className="text-sm text-gray-500">URL</div>
                   <div className="text-gray-800">{testData.url || 'Not specified'}</div>
                 </div>
-                <div className="space-y-1">
-                  <div className="text-sm text-gray-500">Last Run</div>
-                  <div className="text-gray-800">{testData.started_at ? formatDateTime(testData.started_at) : 'Not run yet'}</div>
-                </div>
               </div>
 
               {/* Description section */}
               <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-2">Description</h3>
+                <h3 className="text-lg font-semibold mb-2 flex items-center">
+                  Description
+                  {testData.category && (
+                    <span className="px-3 py-1 text-sm font-medium rounded-full bg-purple-100 text-purple-800 ml-3">
+                      {testData.category}
+                    </span>
+                  )}
+                </h3>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-gray-800 whitespace-pre-line">{testData.description}</p>
                 </div>

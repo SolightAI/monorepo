@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pydantic import BaseModel, UUID4, Field
-from typing import Optional, List, Dict, Any, Callable
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
 
@@ -135,6 +135,8 @@ class TestStatus(str, Enum):
     BLOCKED = "BLOCKED"
     SKIPPED = "SKIPPED"
     ERROR = "ERROR"
+    AGENT_LIMITATION = "AGENT_LIMITATION"
+    UNEXISTING_FEATURE = "UNEXISTING_FEATURE"
 
 
 class SeverityLevel(str, Enum):
@@ -549,6 +551,6 @@ class TestExecution(BaseModel):
     evidence: List[str] = []
     metadata: Dict[str, Any] = {}
     tracing: Dict[str, Any] = {}
-    
+
     class Config:
         from_attributes = True
