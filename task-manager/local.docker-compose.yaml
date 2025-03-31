@@ -13,32 +13,27 @@ services:
       - AZURE_OPENAI_KEY=${AZURE_OPENAI_KEY}
       - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
       - PRIVATE_KEY_PATH=${PRIVATE_KEY_PATH:-/app/keys/private.pem}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
     networks:
       - default
       - api-tm_shared_network
+    depends_on:
+      - redis
 
-  # Weaviate - Vector Database for RAG
-  weaviate:
-    image: semitechnologies/weaviate:latest
+  redis:
+    image: redis:7-alpine
     ports:
-      - "8081:8080"
-      - "50051:50051"
+      - "6379:6379"
     volumes:
-      - weaviate_data:/var/lib/weaviate
-    environment:
-      - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
-      - PERSISTENCE_DATA_PATH=/var/lib/weaviate
-      - DEFAULT_VECTORIZER_MODULE=none  # We'll use our own vectors from OpenAI
-      - ENABLE_MODULES=text2vec-openai
-      - CLUSTER_HOSTNAME=weaviate
-    restart: on-failure
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/v1/.well-known/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - redis_data:/data
+    networks:
+      - default
 
 volumes:
+  redis_data:
   playwright_browsers:
 
 networks:

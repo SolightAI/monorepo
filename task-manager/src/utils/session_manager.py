@@ -1,81 +1,124 @@
-from typing import Dict, Optional, Tuple
-import asyncio
+from typing import Dict, Optional
 import logging
+import json
+import time
+import os
+import redis.asyncio as redis
 
+
+DEFAULT_EXPIRATION = 86400
+
+
+_redis = None
 logger = logging.getLogger(__name__)
 
-# Global session cache
-# Structure: { ("url", "user_id"): {"session_data": {...}, "last_used_timestamp": timestamp} }
-_session_cache: Dict[Tuple[str, str], Dict] = {}
-_cache_lock = asyncio.Lock()
 
-# Time in seconds after which we'll attempt to validate a session even if it exists
-SESSION_VALIDATION_INTERVAL = 300  # 5 minutes
+async def get_redis() -> redis.Redis:
+    """Get Redis client instance"""
+    global _redis
+    if _redis is None:
+        _redis = redis.Redis(
+            host=os.getenv("REDIS_HOST", "localhost"),
+            port=int(os.getenv("REDIS_PORT", "6379")),
+            db=int(os.getenv("REDIS_DB", "0")),
+            password=os.getenv("REDIS_PASSWORD", None),
+            decode_responses=False
+        )
+    return _redis
 
 
 async def get_cached_session(url: str, user_id: str) -> Optional[Dict]:
     """
-    Get a cached session for a URL and user_id if one exists and is recent enough
-
+    Get a cached session for a URL and user_id from Redis
+    
     Args:
         url: The website URL
-        user_id: Unique identifier for the user (e.g., username, email, or other identifier)
-
+        user_id: User identifier
+    
     Returns:
-        The cached session data or None if no valid cache exists
+        The cached session data or None
     """
-    cache_key = (url, user_id)
-
-    async with _cache_lock:
-        if cache_key in _session_cache:
-            import time
-            current_time = time.time()
-            last_used = _session_cache[cache_key].get("last_used_timestamp", 0)
-
-            # If session was used recently, return it without validation
-            if current_time - last_used < SESSION_VALIDATION_INTERVAL:
-                logger.info(f"Using cached session for {url} (user: {user_id}) - used {current_time - last_used:.1f}s ago")
-                return _session_cache[cache_key]["session_data"]
-
-            # If session exists but hasn't been used recently, it will be validated by the caller
-            logger.info(f"Cached session for {url} (user: {user_id}) exists but needs validation (last used {current_time - last_used:.1f}s ago)")
-            return _session_cache[cache_key]["session_data"]
-
-    return None
+    try:
+        redis_client = await get_redis()
+        key = f"session:{url}:{user_id}"
+        data = await redis_client.get(key)
+        
+        if not data:
+            return None
+            
+        session_data = json.loads(data)
+        logger.info(f"Retrieved session for {url} (user: {user_id})")
+        return session_data.get("session_data")
+        
+    except Exception as e:
+        logger.error(f"Error retrieving session: {str(e)}")
+        return None
 
 
 async def cache_session(url: str, user_id: str, session_data: Dict) -> None:
     """
-    Cache a session for future use
-
+    Cache a session in Redis
+    
     Args:
         url: The website URL
-        user_id: Unique identifier for the user
-        session_data: The session data to cache
+        user_id: User identifier
+        session_data: Session data to cache
     """
-    cache_key = (url, user_id)
-
-    async with _cache_lock:
-        import time
-        _session_cache[cache_key] = {
+    try:
+        redis_client = await get_redis()
+        key = f"session:{url}:{user_id}"
+        
+        data = {
             "session_data": session_data,
-            "last_used_timestamp": time.time()
+            "created_at": time.time()
         }
-        logger.info(f"Cached new session for {url} (user: {user_id})")
+        
+        expiration = int(os.getenv("SESSION_EXPIRATION_SECONDS", DEFAULT_EXPIRATION))
+        await redis_client.setex(key, expiration, json.dumps(data))
+        logger.info(f"Cached session for {url} (user: {user_id})")
+    
+    except Exception as e:
+        logger.error(f"Error caching session: {str(e)}")
 
 
 async def update_session_timestamp(url: str, user_id: str) -> None:
     """
-    Update the last used timestamp for a session
-
+    Refresh the expiration time for a session
+    
     Args:
         url: The website URL
-        user_id: Unique identifier for the user
+        user_id: User identifier
     """
-    cache_key = (url, user_id)
+    try:
+        redis_client = await get_redis()
+        key = f"session:{url}:{user_id}"
+        
+        # Check if session exists
+        if not await redis_client.exists(key):
+            return
+            
+        # Reset the expiration time
+        expiration = int(os.getenv("SESSION_EXPIRATION_SECONDS", DEFAULT_EXPIRATION))
+        await redis_client.expire(key, expiration)
+        logger.info(f"Refreshed expiration for session {url} (user: {user_id})")
+    
+    except Exception as e:
+        logger.error(f"Error updating session expiration: {str(e)}")
 
-    async with _cache_lock:
-        if cache_key in _session_cache:
-            import time
-            _session_cache[cache_key]["last_used_timestamp"] = time.time()
-            logger.info(f"Updated timestamp for cached session at {url} (user: {user_id})")
+
+async def delete_session(url: str, user_id: str) -> bool:
+    """
+    Delete a session
+    
+    Args:
+        url: The website URL
+        user_id: User identifier
+    """
+    try:
+        redis_client = await get_redis()
+        key = f"session:{url}:{user_id}"
+        result = await redis_client.delete(key)
+        return result > 0
+    except Exception as e:
+        logger.error(f"Error deleting session: {str(e)}")
+        return False
