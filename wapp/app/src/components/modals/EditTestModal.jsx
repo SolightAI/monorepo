@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { updateTest } from '@/services/testService';
 
-// Base API URL
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 const EditTestModal = ({ onClose, test, onTestUpdated }) => {
   const [formData, setFormData] = useState({
@@ -54,14 +52,6 @@ const EditTestModal = ({ onClose, test, onTestUpdated }) => {
         [name]: value
       }));
     }
-  };
-
-  const handleSecretSelect = (secretIds, secrets) => {
-    setSelectedSecretIds(secretIds);
-    setFormData(prev => ({
-      ...prev,
-      secret_ids: secretIds
-    }));
   };
 
   // Handle form submission
