@@ -373,8 +373,22 @@ export default function Login() {
                       const newCode = e.target.value;
                       setInvitationCode(newCode);
                       setHighlightInvitationCode(false);
-                      // Fetch new Google auth URL when invitation code changes
-                      fetchGoogleAuthUrl(newCode);
+                    }}
+                    onKeyPress={async (e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (invitationCode) {
+                          try {
+                            const response = await axios.get(`${API_URL}/auth/login/google?invitation_code=${encodeURIComponent(invitationCode)}`);
+                            if (response.data.url) {
+                              window.location.href = response.data.url;
+                            }
+                          } catch (error) {
+                            console.error('Failed to get Google auth URL:', error);
+                            setError('Failed to get Google auth URL');
+                          }
+                        }
+                      }
                     }}
                     className={`mt-1 block w-full px-3 py-2 border ${
                       highlightInvitationCode
