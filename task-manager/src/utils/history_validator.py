@@ -1,7 +1,7 @@
 import logging
 
 from typing import Optional, Any
-from browser_use.agent.views import AgentHistoryList  # Assuming this is the correct import
+from browser_use.agent.views import AgentHistoryList
 
 
 logger = logging.getLogger(__name__)
