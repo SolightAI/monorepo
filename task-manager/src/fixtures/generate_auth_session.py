@@ -1,4 +1,5 @@
 import os
+import json
 
 from logging import getLogger
 from pydantic import SecretStr
@@ -7,6 +8,7 @@ from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from typing import Optional
 from utils.session_manager import get_cached_session, cache_session, update_session_timestamp
+from utils.history_validator import validate_agent_history
 
 
 OAUTH = "oauth_credential"
@@ -104,7 +106,7 @@ async def check_is_logged_in(
                 });
                 return localStorage.length;
             })(%s)
-            """ % str(existing_session["localStorage"]).replace("'", '"')
+            """ % json.dumps(existing_session["localStorage"])
             await context.execute_javascript(load_script)
 
     agent = Agent(
@@ -207,10 +209,13 @@ async def generate_auth_session(
         await context.close()
         await browser.close()
 
-    result = history.final_result()  # type: ignore
-
-    if history.has_errors() or not history.is_done() or result is None or not history.is_successful() or "[AN ERROR OCCURED]" in result:
-        raise Exception(f"Failed to login to {url}, result is None")
+    # Validate the history and get the result
+    await validate_agent_history(
+        history=history,
+        task_name=f"login to {url}",
+        error_markers=["[AN ERROR OCCURED]"],
+        empty_result_is_ok=True,
+    )
 
     session_data = {"cookies": cookies, "localStorage": localStorage_data}
 

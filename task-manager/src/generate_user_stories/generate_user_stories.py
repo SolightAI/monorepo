@@ -16,6 +16,7 @@ from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service
 from utils.task_status import task_status_manager
+from utils.history_validator import validate_agent_history
 
 
 PROMPT = """
@@ -135,7 +136,7 @@ async def _generate_user_stories(
             });
             return localStorage.length;
         })(%s)
-        """.strip() % str(localStorage).replace("'", '"')
+        """.strip() % json.dumps(localStorage)
         await context.execute_javascript(load_script)
 
     if gif_output_path:
@@ -161,14 +162,10 @@ async def _generate_user_stories(
         await context.close()
         await browser.close()
 
-    result = history.final_result()
-    if history.has_errors() or not history.is_done() or result is None or not history.is_successful():
-        raise Exception("Failed to generate user stories for feature")
-
-    if result is None:
-        logger.error("Couldn't generate user stories for feature for %s", feature.name)
-        logger.debug("History of the agent when generating user stories for feature for %s: %s", feature.name, history.action_results())
-        raise Exception("Failed to generate user stories for feature, result is None")
+    result = await validate_agent_history(
+        history=history,
+        task_name=f"generate user stories for {feature.name}",
+    )
 
     # Parse the test cases from the LLM response
     user_stories = _parse_user_stories(result)
