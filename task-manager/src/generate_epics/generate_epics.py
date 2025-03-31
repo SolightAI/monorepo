@@ -16,6 +16,7 @@ from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service
 from utils.task_status import task_status_manager
+from generate_page_type.generate_page_type import analyze_page_type, get_marketing_page_error_message, PageType
 from utils.history_validator import validate_agent_history
 
 
@@ -28,6 +29,8 @@ First, review the following information:
 Project: {product.name}
 URL: {product.url}
 Description: {product.description}
+
+From the description, if the user tells to login or sign up, ignore it, you are already logged in.
 
 Analyze the provided information carefully and explore the product to identify meaningful epics.
 An epic is a large body of work that can be broken down into features. Think of epics as major product sections or significant capabilities.
@@ -164,6 +167,7 @@ async def _generate_epics(
 
     try:
         history = await agent.run(max_steps=30)
+        
     finally:
         await context.close()
         await browser.close()
@@ -218,6 +222,15 @@ async def background_generate_epics(
     Returns:
         List of generated epics
     """
+
+    # First, analyze the page type
+    page_type = await analyze_page_type(
+        product=product,
+    )
+    
+    if page_type == PageType.MARKETING:
+        raise Exception(get_marketing_page_error_message())
+
 
     auth_session = await generate_auth_session(
         product.url,

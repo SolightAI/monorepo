@@ -134,9 +134,10 @@ const EpicGenerationModal = ({ onClose, productId, productName, onComplete }) =>
           )}
 
           {status === 'error' && (
-            <div className="flex items-center text-red-600">
-              <AlertTriangle size={20} className="mr-2" />
-              <span>{error || 'An error occurred during epic generation'}</span>
+            // added <pre> because the error message from python was not being displayed correctly, "\n" was not being rendered
+            <div className="flex items-start text-red-600">
+              <AlertTriangle size={20} className="mr-2 flex-shrink-0 mt-1" />
+              <pre className="whitespace-pre-wrap font-sans text-sm">{error || 'An error occurred during epic generation'}</pre>
             </div>
           )}
         </div>

@@ -2,6 +2,9 @@ from enum import Enum
 from pydantic import BaseModel, Field
 from typing import List
 
+class PageType(str, Enum):
+    MARKETING = "marketing"
+    PRODUCT = "product"
 
 class TestStatus(str, Enum):
     PASSED = "PASSED"
