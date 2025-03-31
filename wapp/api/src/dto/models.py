@@ -75,7 +75,7 @@ class Invitation(models.Model):
 
 class Product(models.Model):
     id = fields.UUIDField(pk=True)
-    url = fields.CharField(max_length=255)
+    url = fields.CharField(max_length=1024)
     name = fields.CharField(max_length=255)
     description = fields.TextField()  # summary of what we've ingested from the project
     documentation = fields.TextField()  # what we ingest from the project (e.g. Jira, Linear, etc.)
