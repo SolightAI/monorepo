@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      const response = await axios.get(`${API_URL}/auth/is-admin`, {
+      const response = await axios.get(`${API_URL}/auth/is-admin/`, {
         withCredentials: true,
         timeout: 5000
       });
