@@ -369,7 +369,7 @@ const SecretCreation = ({ onNext, onPrev, onSkip }) => {
           onClick={onNext}
           className="px-5 py-2 bg-blue-600 text-white rounded-md flex items-center hover:bg-blue-700 transition-colors"
         >
-          Continue to Next Step
+          Continue to Features Overview
           <ArrowRight className="ml-2 h-5 w-5" />
         </button>
       </div>
