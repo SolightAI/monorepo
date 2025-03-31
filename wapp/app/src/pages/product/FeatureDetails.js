@@ -15,6 +15,7 @@ import { createTestExecution } from '@/services/testExecutionService';
 import EditFeatureModal from '@/components/modals/EditFeatureModal';
 import EditUserStoryModal from '@/components/modals/EditUserStoryModal';
 import EditAcceptanceCriteriaModal from '@/components/modals/EditAcceptanceCriteriaModal';
+import AddAcceptanceCriteriaModal from '@/components/modals/AddAcceptanceCriteriaModal';
 import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
 import { formatStatus } from '@/utils/testExecutionUtils';
 
@@ -198,8 +199,10 @@ const FeatureDetails = () => {
 
   // Handle acceptance criteria added
   const handleAddAcceptanceCriteria = () => {
-    // Implement the logic for adding acceptance criteria manually
-    console.log('Add acceptance criteria clicked');
+    setModalState({
+      type: 'acceptance-criteria',
+      isOpen: true
+    });
   };
 
   // Handle feature updated
@@ -1302,6 +1305,17 @@ const FeatureDetails = () => {
           onClose={() => setIsEditAcceptanceCriteriaModalOpen(false)}
           criteria={selectedAcceptanceCriteria}
           onCriteriaUpdated={handleAcceptanceCriteriaUpdated}
+        />
+      )}
+
+      {modalState.type === 'acceptance-criteria' && modalState.isOpen && (
+        <AddAcceptanceCriteriaModal
+          onClose={() => setModalState({ type: null, isOpen: false })}
+          featureId={featureId}
+          onAcceptanceCriteriaAdded={(newCriteria) => {
+            setAcceptanceCriteria(prevCriteria => [...prevCriteria, newCriteria]);
+            setModalState({ type: null, isOpen: false });
+          }}
         />
       )}
     </div>
