@@ -16,7 +16,7 @@ from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service
 from utils.task_status import task_status_manager
-from generate_page_type.generate_page_type import analyze_page_type, get_marketing_page_error_message
+from generate_page_type.generate_page_type import analyze_page_type, get_marketing_page_error_message, PageType
 
 
 PROMPT = """
@@ -231,7 +231,7 @@ async def background_generate_epics(
         product=product,
     )
     
-    if page_type == "marketing":
+    if page_type == PageType.MARKETING:
         raise Exception(get_marketing_page_error_message())
 
 

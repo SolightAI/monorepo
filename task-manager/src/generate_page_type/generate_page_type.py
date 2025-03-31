@@ -8,6 +8,7 @@ import os
 import json
 from langchain_openai import AzureChatOpenAI
 from pydantic import SecretStr
+from utils.dto import PageType
 
 logger = getLogger(__name__)
 
@@ -27,33 +28,31 @@ LLM_CLIENT = AzureChatOpenAI(
 )
 
 
-PAGE_TYPE_PROMPT = """
+PAGE_TYPE_PROMPT = f"""
 You are an AI assistant acting as a product owner. Your task is to analyze the current page and determine if it's a marketing/landing page or the actual product interface.
 
 First, review the following information:
 
 == Product ==
-Project: {product.name}
-URL: {product.url}
-Description: {product.description}
+Project: {{product.name}}
+URL: {{product.url}}
+Description: {{product.description}}
 
 CRITICAL:If there is log in or sign up components in the URL or in the description, stop immediately and output this:
 <page_type>
-product
+{PageType.PRODUCT.value}
 </page_type>
-
-Analyze the provided information carefully and determine the page type.
 
 CRITICAL: Your response MUST start with one of these tags:
 
 If you're on a marketing/landing page (you see pricing, features list, testimonials, hero sections, etc.) stop immediately and output this:
 <page_type>
-marketing
+{PageType.MARKETING.value}
 </page_type>
 
 If you're on the product interface (you see user interface elements, forms, data tables, etc.), output this:
 <page_type>
-product
+{PageType.PRODUCT.value}
 </page_type>
 
 Some extra ground rules:
