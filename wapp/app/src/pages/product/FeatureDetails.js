@@ -261,11 +261,6 @@ const FeatureDetails = () => {
         taskId: taskId,
         message: 'Generating user stories...'
       });
-
-      setModalState({
-        type: 'user-stories',
-        isOpen: true
-      });
     } catch (err) {
       console.error('Error triggering user stories generation:', err);
       setError('Failed to trigger user stories generation. Please try again.');
@@ -297,11 +292,6 @@ const FeatureDetails = () => {
         type: 'acceptance-criteria',
         taskId: taskId,
         message: 'Generating acceptance criteria...'
-      });
-
-      setModalState({
-        type: 'acceptance-criteria',
-        isOpen: true
       });
     } catch (err) {
       console.error('Error triggering acceptance criteria generation:', err);
@@ -359,12 +349,6 @@ const FeatureDetails = () => {
         type: 'tests',
         taskId: taskId, // Use 'polling' as a fallback
         message: 'Generating tests...'
-      });
-
-      // Set modal state
-      setModalState({
-        type: 'tests',
-        isOpen: true
       });
 
       console.log("Test generation initiated");
@@ -435,10 +419,6 @@ const FeatureDetails = () => {
               taskId: null,
               message: null
             });
-            setModalState({
-              type: null,
-              isOpen: false
-            });
             if (isGeneratingSequential) {
               setIsGeneratingSequential(false);
               setSequentialGenerationMessage(null);
@@ -459,10 +439,6 @@ const FeatureDetails = () => {
             taskId: null,
             message: null
           });
-          setModalState({
-            type: null,
-            isOpen: false
-          });
           if (isGeneratingSequential) {
             setIsGeneratingSequential(false);
             setSequentialGenerationMessage(null);
@@ -482,12 +458,6 @@ const FeatureDetails = () => {
 
     // First fetch updated data
     await fetchFeatureDetails();
-
-    // Then close the modal
-    setModalState({
-      type: null,
-      isOpen: false
-    });
 
     if (generationState.type === 'tests') {
       // If this was the final step in sequential generation
@@ -731,12 +701,6 @@ const FeatureDetails = () => {
           message: 'Generating acceptance criteria...'
         });
 
-        // Set modal state to show progress
-        setModalState({
-          type: 'acceptance-criteria',
-          isOpen: true
-        });
-
       } catch (err) {
         console.error('Error generating acceptance criteria:', err);
         setError('Failed to generate acceptance criteria. Sequential generation stopped.');
@@ -801,12 +765,6 @@ const FeatureDetails = () => {
           type: 'tests',
           taskId: taskId || 'polling', // Use 'polling' as a fallback
           message: 'Generating tests...'
-        });
-
-        // Set modal state to show progress
-        setModalState({
-          type: 'tests',
-          isOpen: true
         });
 
         console.log("Sequential test generation initiated");
@@ -992,12 +950,16 @@ const FeatureDetails = () => {
                 <div className="flex space-x-2">
                   {(!userStories || userStories.length === 0) && (
                     <button
-                      className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                      className={`flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150 ${(generationState.isGenerating && generationState.type === 'user-stories') ? 'opacity-80' : ''}`}
                       onClick={handleGenerateUserStories}
-                      disabled={loading}
+                      disabled={loading || (generationState.isGenerating && generationState.type === 'user-stories')}
                     >
-                      <Sparkles size={18} className="mr-2" />
-                      Generate User Stories
+                      {(generationState.isGenerating && generationState.type === 'user-stories') ? (
+                        <Loader size={18} className="mr-2 animate-spin" />
+                      ) : (
+                        <Sparkles size={18} className="mr-2" />
+                      )}
+                      {(generationState.isGenerating && generationState.type === 'user-stories') ? 'Generating...' : 'Generate User Stories'}
                     </button>
                   )}
                   <button
@@ -1015,12 +977,16 @@ const FeatureDetails = () => {
                   <p className="text-gray-500 mb-4">No user stories found for this feature</p>
                   <div className="flex justify-center space-x-4">
                     <button
-                      className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                      className={`flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150 ${(generationState.isGenerating && generationState.type === 'user-stories') ? 'opacity-80' : ''}`}
                       onClick={handleGenerateUserStories}
-                      disabled={loading}
+                      disabled={loading || (generationState.isGenerating && generationState.type === 'user-stories')}
                     >
-                      <Sparkles size={18} className="mr-2" />
-                      Generate User Stories with AI
+                      {(generationState.isGenerating && generationState.type === 'user-stories') ? (
+                        <Loader size={18} className="mr-2 animate-spin" />
+                      ) : (
+                        <Sparkles size={18} className="mr-2" />
+                      )}
+                      {(generationState.isGenerating && generationState.type === 'user-stories') ? 'Generating...' : 'Generate User Stories with AI'}
                     </button>
                     <button
                       className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
@@ -1075,12 +1041,16 @@ const FeatureDetails = () => {
                   </button>
                   {userStories && userStories.length > 0 && (!acceptanceCriteria || acceptanceCriteria.length === 0) && (
                     <button
-                      className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                      className={`flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150 ${(generationState.isGenerating && generationState.type === 'acceptance-criteria') ? 'opacity-80' : ''}`}
                       onClick={handleGenerateAcceptanceCriteria}
                       disabled={generationState.isGenerating}
                     >
-                      <Sparkles size={18} className="mr-2" />
-                      Generate Acceptance Criteria
+                      {(generationState.isGenerating && generationState.type === 'acceptance-criteria') ? (
+                        <Loader size={18} className="mr-2 animate-spin" />
+                      ) : (
+                        <Sparkles size={18} className="mr-2" />
+                      )}
+                      {(generationState.isGenerating && generationState.type === 'acceptance-criteria') ? 'Generating...' : 'Generate Acceptance Criteria'}
                     </button>
                   )}
                 </div>
@@ -1131,12 +1101,16 @@ const FeatureDetails = () => {
                 <div className="flex space-x-3">
                   {acceptanceCriteria && acceptanceCriteria.length > 0 && (!feature?.tests || feature.tests.length === 0) && (
                     <button
-                      className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                      className={`flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150 ${(generationState.isGenerating && generationState.type === 'tests') ? 'opacity-80' : ''}`}
                       onClick={handleGenerateTest}
                       disabled={generationState.isGenerating}
                     >
-                      <Sparkles size={18} className="mr-2" />
-                      {generationState.isGenerating ? 'Generating...' : 'Generate Tests with AI'}
+                      {(generationState.isGenerating && generationState.type === 'tests') ? (
+                        <Loader size={18} className="mr-2 animate-spin" />
+                      ) : (
+                        <Sparkles size={18} className="mr-2" />
+                      )}
+                      {(generationState.isGenerating && generationState.type === 'tests') ? 'Generating...' : 'Generate Tests with AI'}
                     </button>
                   )}
                   {/* Add Run All Tests button */}
@@ -1165,12 +1139,16 @@ const FeatureDetails = () => {
                   <div className="flex justify-center space-x-4">
                     {acceptanceCriteria && acceptanceCriteria.length > 0 && (!feature?.tests || feature.tests.length === 0) && (
                       <button
-                        className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                        className={`flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150 ${(generationState.isGenerating && generationState.type === 'tests') ? 'opacity-80' : ''}`}
                         onClick={handleGenerateTest}
                         disabled={generationState.isGenerating}
                       >
-                        <Sparkles size={18} className="mr-2" />
-                        {generationState.isGenerating ? 'Generating...' : 'Generate Tests with AI'}
+                        {(generationState.isGenerating && generationState.type === 'tests') ? (
+                          <Loader size={18} className="mr-2 animate-spin" />
+                        ) : (
+                          <Sparkles size={18} className="mr-2" />
+                        )}
+                        {(generationState.isGenerating && generationState.type === 'tests') ? 'Generating...' : 'Generate Tests with AI'}
                       </button>
                     )}
                     <button
