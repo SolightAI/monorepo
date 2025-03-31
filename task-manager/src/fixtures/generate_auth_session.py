@@ -1,4 +1,5 @@
 import os
+import json
 
 from logging import getLogger
 from pydantic import SecretStr
@@ -7,18 +8,27 @@ from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from typing import Optional
 from utils.session_manager import get_cached_session, cache_session, update_session_timestamp
+from utils.history_validator import validate_agent_history
+
+
+OAUTH = "oauth_credential"
+USERNAME_PASSWORD = "username_password"
 
 
 PROMPT = """
 You are an AI assistant acting as a test automation engineer. Your task is to login to the application.
 
-If both the google oauth and the email/password login are available, you should try the email/password login first.
-If the email/password login is not available, you should use the google oauth login.
+Determine which authentication method to use based on the type of credentials provided:
+- If '{USERNAME_PASSWORD}' credentials are provided, use the email/password login flow.
+- If '{OAUTH}' credentials are provided with 'provider' set to 'Google', use the Google OAuth login flow.
+- If both types are available, prioritize using the '{USERNAME_PASSWORD}' credentials.
 
 If the provided credentials are invalid, you should raise an error message that must include "[AN ERROR OCCURED]".
 In case of invalid credentials, you will probably see an error message on screen.
 However, if the credentials are valid, you will not see any message on screen confirming the login. It's up to you to detect if the login was successful.
-""".strip()
+
+Note that some '{USERNAME_PASSWORD}' credentials might be done in two steps where the you would first need to past the username, then click on a button to continue to the password input.
+""".strip().format(USERNAME_PASSWORD=USERNAME_PASSWORD, OAUTH=OAUTH)
 
 CHECK_LOGIN_PROMPT = """
 You are an AI assistant acting as a test automation engineer. Your task is to check if the user is logged in to the application.
@@ -96,7 +106,7 @@ async def check_is_logged_in(
                 });
                 return localStorage.length;
             })(%s)
-            """ % str(existing_session["localStorage"]).replace("'", '"')
+            """ % json.dumps(existing_session["localStorage"])
             await context.execute_javascript(load_script)
 
     agent = Agent(
@@ -130,13 +140,15 @@ async def generate_auth_session(
     If reuse_session is True, will attempt to reuse cached sessions if they're still valid.
     """
 
-    # Extract user_id from secrets
+    # Extract user_id from secrets - check both username_password and oauth_credential
     user_id = None
-    if "username_password" in secrets and "username" in secrets["username_password"]:
-        user_id = secrets["username_password"]["username"]
+    if USERNAME_PASSWORD in secrets and "username" in secrets[USERNAME_PASSWORD]:
+        user_id = secrets[USERNAME_PASSWORD]["username"]
+    elif OAUTH in secrets and "username" in secrets[OAUTH]:
+        user_id = secrets[OAUTH]["username"]
 
     if not user_id:
-        raise RuntimeError("No Username/Password found. Stopping here.")
+        raise RuntimeError("No valid credentials found (missing username). Stopping here.")
 
     # First check if we can reuse a cached session
     if reuse_session:
@@ -150,8 +162,9 @@ async def generate_auth_session(
             else:
                 logger.info(f"Cached session for user {user_id} is no longer valid, generating a new one")
 
-    if 'username_password' not in secrets:
-        raise ValueError('No username or password found in secrets')
+    # Validate that we have at least one valid credential type
+    if USERNAME_PASSWORD not in secrets and OAUTH not in secrets:
+        raise ValueError('No valid credentials found in secrets (need username_password or oauth_credential)')
 
     sensitive_data = {f"{_sec_category}:{_sec_name}": _sec_value for _sec_category, _secrets in secrets.items() for _sec_name, _sec_value in _secrets.items()}
 
@@ -196,10 +209,13 @@ async def generate_auth_session(
         await context.close()
         await browser.close()
 
-    result = history.final_result()  # type: ignore
-
-    if history.has_errors() or not history.is_done() or result is None or not history.is_successful() or "[AN ERROR OCCURED]" in result:
-        raise Exception(f"Failed to login to {url}, result is None")
+    # Validate the history and get the result
+    await validate_agent_history(
+        history=history,
+        task_name=f"login to {url}",
+        error_markers=["[AN ERROR OCCURED]"],
+        empty_result_is_ok=True,
+    )
 
     session_data = {"cookies": cookies, "localStorage": localStorage_data}
 

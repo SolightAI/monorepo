@@ -16,8 +16,7 @@ from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 import logging
 from utils.crypto import crypto_service
-
-# Import the tracing modules
+from utils.history_validator import validate_agent_history
 from run_tests.tracing import initialize, extend_agent_history
 
 
@@ -127,7 +126,7 @@ async def _run_test(
             });
             return localStorage.length;
         })(%s)
-        """.strip() % str(localStorage).replace("'", '"')
+        """.strip() % json.dumps(localStorage)
         await context.execute_javascript(load_script)
 
     if gif_output_path:
@@ -159,7 +158,10 @@ async def _run_test(
         await context.close()
         await browser.close()
 
-    result = history.final_result()  # type: ignore
+    result = await validate_agent_history(
+        history=history,
+        task_name=f"run test {test.name}",
+    )
 
     from browser_use.agent.gif import create_history_gif  # NOTE: importing after agent.run() to avoid thread blocking
     if gif_output_path:
