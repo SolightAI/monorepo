@@ -6,7 +6,7 @@ import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
-const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCriteriaAdded }) => {
+const AddAcceptanceCriteriaModal = ({ onClose, featureId, onAcceptanceCriteriaAdded }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: ''
@@ -48,14 +48,14 @@ const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCr
         {
           name: formData.name,
           description: formData.description,
-          user_story_id: userStoryId
+          feature_id: featureId
         },
         { withCredentials: true }
       );
 
       // Notify parent component
-      if (onCriteriaAdded) {
-        onCriteriaAdded(response.data);
+      if (onAcceptanceCriteriaAdded) {
+        onAcceptanceCriteriaAdded(response.data);
       }
 
       // Close the modal
@@ -89,13 +89,6 @@ const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCr
               <X size={24} />
             </button>
           </div>
-
-          <p className="text-gray-600 mb-2">
-            For user story:
-          </p>
-          <p className="font-medium text-gray-800 mb-6">
-            {userStoryTitle}
-          </p>
 
           {error && (
             <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start">
@@ -135,7 +128,7 @@ const AddAcceptanceCriteriaModal = ({ onClose, userStoryId, userStoryTitle, onCr
                 onChange={handleInputChange}
                 rows="4"
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Describe a specific condition that must be met for the user story to be considered complete"
+                placeholder="Describe a specific condition that must be met for the feature to be considered complete"
                 required
               ></textarea>
               <p className="mt-2 text-sm text-gray-500">
