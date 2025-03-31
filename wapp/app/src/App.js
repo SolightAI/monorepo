@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import Login from './pages/auth/Login';
@@ -27,6 +27,7 @@ import { SecretProvider } from './context/SecretContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { OnboardingProvider } from './context/OnboardingContext';
 import OnboardingModal from './components/onboarding/OnboardingModal';
+import { disableBodyScroll } from './utils/modalUtils';
 
 
 // Remove the local isAuthenticated function and use the one from AuthContext instead
@@ -72,6 +73,21 @@ const AdminRoute = ({ children }) => {
 function AppContent() {
   // OnboardingProvider now manages the onboarding state
   // We can still access onboarding state from Auth context, but it's mainly handled by OnboardingProvider
+
+  // Detect if any modal is open by checking for elements with modal class
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const modalElements = document.querySelectorAll('.fixed.inset-0');
+      disableBodyScroll(modalElements.length > 0);
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      disableBodyScroll(false);
+    };
+  }, []);
 
   return (
     <OnboardingProvider>

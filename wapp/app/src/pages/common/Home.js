@@ -261,7 +261,8 @@ const Home = () => {
                     {epics.map(epic => (
                       <div
                         key={epic.id}
-                        className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full"
+                        className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full cursor-pointer"
+                        onClick={() => navigate(`/epics/${epic.id}`)}
                       >
                         <div className="p-6 flex flex-col flex-grow">
                           <div className="flex items-center mb-3">
@@ -271,12 +272,9 @@ const Home = () => {
                           <p className="text-gray-700 line-clamp-6 overflow-hidden flex-grow">{epic.description}</p>
 
                           <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
-                            <button
-                              onClick={() => navigate(`/epics/${epic.id}`)}
-                              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                            >
+                            <span className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                               View Features
-                            </button>
+                            </span>
                             <div className="flex space-x-2">
                               <button
                                 onClick={(e) => {

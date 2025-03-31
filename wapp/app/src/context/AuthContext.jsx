@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
   // Validate invitation code
   const validateInvitationCode = async (code, email) => {
     try {
-      const url = `${API_URL}/invitations/validate/${code}` + (email ? `?email=${email}` : '');
+      const url = `${API_URL}/invitations/validate/${code}` + (email ? `?email=${email}/` : '/' );
       const response = await axios.get(url);
       return { valid: true, data: response.data };
     } catch (error) {
@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      const response = await axios.get(`${API_URL}/auth/is-admin`, {
+      const response = await axios.get(`${API_URL}/auth/is-admin/`, {
         withCredentials: true,
         timeout: 5000
       });

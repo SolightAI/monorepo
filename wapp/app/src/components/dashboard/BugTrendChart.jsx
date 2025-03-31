@@ -10,20 +10,14 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
+import { getSeverityChartColor } from '@/utils/bugUtils';
+import { formatChartDate } from '@/utils/dateUtils';
 
 /**
  * Visualizes bug trend data using a line chart.
  * Shows the count of bugs by severity over time.
  */
 function BugTrendChart({ data }) {
-  // Colors for different bug severities
-  const severityColors = {
-    'Critical': '#DC2626', // red-600
-    'High': '#EA580C',     // orange-600
-    'Medium': '#D97706',   // amber-600
-    'Low': '#65A30D'       // lime-600
-  };
-
   // Group data by date
   const groupedData = data.reduce((result, item) => {
     const { date, count, category } = item;
@@ -45,12 +39,6 @@ function BugTrendChart({ data }) {
   // Extract unique categories from data
   const categories = [...new Set(data.map(item => item.category))];
 
-  // Format date for display
-  const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
-    return `${date.getMonth() + 1}/${date.getDate()}`;
-  };
-
   if (chartData.length === 0) {
     return (
       <div className="flex justify-center items-center h-64 bg-gray-50 rounded-lg">
@@ -69,7 +57,7 @@ function BugTrendChart({ data }) {
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="date"
-            tickFormatter={formatDate}
+            tickFormatter={formatChartDate}
             tick={{ fontSize: 12 }}
           />
           <YAxis
@@ -90,7 +78,7 @@ function BugTrendChart({ data }) {
               type="monotone"
               dataKey={category}
               name={category}
-              stroke={severityColors[category] || '#8884d8'}
+              stroke={getSeverityChartColor(category)}
               strokeWidth={2}
               dot={{ strokeWidth: 2, r: 4 }}
               activeDot={{ r: 6 }}

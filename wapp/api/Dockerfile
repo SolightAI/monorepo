@@ -10,6 +10,8 @@ COPY src/ ./src/
 
 COPY *.py ./
 
+ENV WORKERS=1
+
 EXPOSE 8000
 
-CMD ["fastapi", "dev", "src/main.py", "--host", "0.0.0.0", "--port", "8000"]
+CMD fastapi run --workers ${WORKERS} src/main.py --host 0.0.0.0 --port 8000

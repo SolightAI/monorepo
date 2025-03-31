@@ -82,7 +82,7 @@ async def create_invitation_endpoint(
     )
 
 
-@router.get("/validate/{code}")
+@router.get("/validate/{code}/")
 async def validate_invitation_endpoint(
     code: str,
     email: Optional[str] = None
@@ -91,7 +91,7 @@ async def validate_invitation_endpoint(
     return await validate_invitation(code, email)
 
 
-@router.post("/mark-used/{code}")
+@router.post("/mark-used/{code}/")
 async def mark_invitation_used_endpoint(
     code: str,
     current_user: User = Depends(get_current_user_dependency)
@@ -100,7 +100,7 @@ async def mark_invitation_used_endpoint(
     return await mark_invitation_used(code, current_user.id)
 
 
-@router.delete("/{invitation_id}")
+@router.delete("/{invitation_id}/")
 async def delete_invitation_endpoint(
     invitation_id: UUID,
     current_user: User = Depends(get_current_user_dependency)

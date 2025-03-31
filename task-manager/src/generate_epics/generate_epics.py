@@ -17,6 +17,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service
 from utils.task_status import task_status_manager
 from generate_page_type.generate_page_type import analyze_page_type, get_marketing_page_error_message, PageType
+from utils.history_validator import validate_agent_history
 
 
 PROMPT = """
@@ -146,7 +147,7 @@ async def _generate_epics(
         })(%s)
         """.strip() % json.dumps(localStorage)
         result = await context.execute_javascript(load_script)
-        
+
         # Log any errors in Python
         for error in result['errors']:
             logger.error(error)
@@ -171,14 +172,10 @@ async def _generate_epics(
         await context.close()
         await browser.close()
 
-    result = history.final_result()
-    if history.has_errors() or not history.is_done() or result is None or not history.is_successful():
-        raise Exception("Failed to generate epics for product")
-
-    if result is None:
-        logger.error("Couldn't generate epics for product %s", product.name)
-        logger.debug("History of the agent when generating epics for product %s: %s", product.name, history.action_results())
-        raise Exception("Failed to generate epics for product, result is None")
+    result = await validate_agent_history(
+        history=history,
+        task_name=f"generate epics for {product.name}",
+    )
 
     # Parse the epics from the LLM response
     epics = _parse_epics(result)

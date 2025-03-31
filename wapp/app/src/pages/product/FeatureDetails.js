@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Loader, AlertCircle, ArrowLeft, TestTube, Plus,
-  CheckCircle, XCircle, Sparkles, CheckSquare, Edit, Zap, Play
+  CheckCircle, XCircle, Sparkles, CheckSquare, Edit, Zap, Play, Info, Search
 } from 'lucide-react';
 import AddTestModal from '@/components/modals/AddTestModal';
 import TestDetailsModal from '@/components/modals/TestDetailsModal';
@@ -15,6 +15,8 @@ import { createTestExecution } from '@/services/testExecutionService';
 import EditFeatureModal from '@/components/modals/EditFeatureModal';
 import EditUserStoryModal from '@/components/modals/EditUserStoryModal';
 import EditAcceptanceCriteriaModal from '@/components/modals/EditAcceptanceCriteriaModal';
+import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
+import { formatStatus } from '@/utils/testExecutionUtils';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -26,6 +28,7 @@ const FeatureDetails = () => {
   const [feature, setFeature] = useState(null);
   const [userStories, setUserStories] = useState([]);
   const [acceptanceCriteria, setAcceptanceCriteria] = useState([]);
+  const fetchingRef = useRef(false);
 
   // State for Add Test Modal
   const [isAddTestModalOpen, setIsAddTestModalOpen] = useState(false);
@@ -64,9 +67,19 @@ const FeatureDetails = () => {
     fetchFeatureDetails();
   }, [featureId]);
 
-  const fetchFeatureDetails = async () => {
-    setLoading(true);
+  // Memoize fetch function and check for pending tests
+  const fetchFeatureDetails = useCallback(async () => {
+    // Prevent concurrent fetch calls
+    if (fetchingRef.current) return;
+
     setError(null);
+    // Only show full loading indicator on initial fetch
+    const shouldShowLoading = !feature;
+    if (shouldShowLoading) {
+      setLoading(true);
+    }
+
+    fetchingRef.current = true;
 
     try {
       // Fetch feature details
@@ -86,7 +99,13 @@ const FeatureDetails = () => {
 
       // Combine feature data with tests
       const featureData = featureResponse.data;
-      featureData.tests = testsResponse.data;
+
+      // Sort tests by name in ascending order
+      const sortedTests = testsResponse.data.sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+
+      featureData.tests = sortedTests;
 
       // IMPORTANT: Set user stories from the feature data
       if (featureData.user_stories) {
@@ -113,9 +132,27 @@ const FeatureDetails = () => {
       console.error('Error fetching feature details:', err);
       setError('Failed to fetch feature details. Please try again.');
     } finally {
-      setLoading(false);
+      if (shouldShowLoading) {
+        setLoading(false);
+      }
+      fetchingRef.current = false;
     }
-  };
+  }, [featureId]);
+
+  // Check for pending tests
+  const hasPendingTests = useCallback(() => {
+    if (!feature || !feature.tests || feature.tests.length === 0) {
+      return false;
+    }
+    return feature.tests.some(test => test.status?.toUpperCase() === 'PENDING');
+  }, [feature]);
+
+  // Use our custom hook for polling
+  usePendingStatusPolling(
+    fetchFeatureDetails,
+    hasPendingTests,
+    [feature?.tests, featureId]
+  );
 
   // Handle test added
   const handleTestAdded = async (newTest) => {
@@ -556,7 +593,11 @@ const FeatureDetails = () => {
       case 'FAILED':
         return <XCircle size={20} className="text-red-500" />;
       case 'PENDING':
-        return <Loader size={20} className="text-yellow-500" />;
+        return <Loader size={20} className="text-yellow-500 animate-spin" />;
+      case 'AGENT_LIMITATION':
+        return <Info size={20} className="text-purple-500" />;
+      case 'UNEXISTING_FEATURE':
+        return <Search size={20} className="text-amber-500" />;
       case 'NOT_STARTED':
         return <TestTube size={20} className="text-gray-400" />;
       default:
@@ -572,6 +613,10 @@ const FeatureDetails = () => {
         return 'bg-red-100 text-red-800';
       case 'PENDING':
         return 'bg-yellow-100 text-yellow-800';
+      case 'AGENT_LIMITATION':
+        return 'bg-purple-100 text-purple-800';
+      case 'UNEXISTING_FEATURE':
+        return 'bg-amber-100 text-amber-800';
       case 'NOT_STARTED':
       default:
         return 'bg-gray-100 text-gray-600';
@@ -583,9 +628,17 @@ const FeatureDetails = () => {
     return new Date(dateString).toLocaleString();
   };
 
+  // Function to truncate text if it's too long
+  const truncateText = (text, maxLength = 40) => {
+    if (!text) return '';
+    return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+  };
+
   // Handle test click to open details modal
   const handleTestClick = (test) => {
-    setSelectedTest(test);
+    // Get the most up-to-date test data from the feature.tests array
+    const updatedTest = feature.tests.find(t => t.id === test.id) || test;
+    setSelectedTest(updatedTest);
     setIsTestDetailsModalOpen(true);
   };
 
@@ -777,6 +830,17 @@ const FeatureDetails = () => {
         notes: null
       };
 
+      // Immediately update the UI to show PENDING status
+      setFeature(prevFeature => ({
+        ...prevFeature,
+        tests: prevFeature.tests.map(t =>
+          t.id === test.id
+            ? { ...t, status: 'PENDING' }  // Update the status to PENDING
+            : t
+        )
+      }));
+
+      // Create the test execution
       await createTestExecution(executionData);
 
       // Refresh the feature details to update the test status
@@ -784,6 +848,9 @@ const FeatureDetails = () => {
     } catch (err) {
       console.error('Error running test:', err);
       setError('Failed to run test. Please try again.');
+
+      // If there was an error, revert the status update
+      fetchFeatureDetails();
     }
   };
 
@@ -796,6 +863,15 @@ const FeatureDetails = () => {
 
       // Show a loading indicator or message
       setError(null);
+
+      // Immediately update all tests in the UI to show PENDING status
+      setFeature(prevFeature => ({
+        ...prevFeature,
+        tests: prevFeature.tests.map(test => ({
+          ...test,
+          status: 'PENDING'
+        }))
+      }));
 
       // Run all tests sequentially
       for (const test of feature.tests) {
@@ -818,6 +894,9 @@ const FeatureDetails = () => {
     } catch (err) {
       console.error('Error running all tests:', err);
       setError('Failed to run all tests. Please try again.');
+
+      // If there was an error, revert the status updates
+      fetchFeatureDetails();
     }
   };
 
@@ -1123,12 +1202,14 @@ const FeatureDetails = () => {
                             <div className="flex items-center">
                               {getTestStatusIcon(test.status)}
                               <span className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTestStatusColor(test.status)}`}>
-                                {test.status}
+                                {formatStatus(test.status)}
                               </span>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{test.name}</div>
+                            <div className="text-sm font-medium text-gray-900" title={test.name}>
+                              {truncateText(test.name)}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-500">{test.category}</div>
@@ -1163,7 +1244,7 @@ const FeatureDetails = () => {
       {isAddTestModalOpen && (
         <AddTestModal
           onClose={() => setIsAddTestModalOpen(false)}
-          onTestAdded={handleTestAdded}
+          onAddTest={handleTestAdded}
           defaultUrl={feature?.urls?.[0] || ''}
         />
       )}
@@ -1172,7 +1253,22 @@ const FeatureDetails = () => {
         <TestDetailsModal
           onClose={() => setIsTestDetailsModalOpen(false)}
           test={selectedTest}
-          onTestUpdated={fetchFeatureDetails}
+          onTestUpdated={(updatedTest) => {
+            console.log("Test updated in parent:", updatedTest);
+            if (updatedTest) {
+              // Update the test in the feature.tests array
+              setFeature(prevFeature => ({
+                ...prevFeature,
+                tests: prevFeature.tests.map(test =>
+                  test.id === updatedTest.id ? updatedTest : test
+                )
+              }));
+            } else {
+              // If no test data provided (e.g., on delete), refresh all tests
+              fetchFeatureDetails();
+            }
+            setIsTestDetailsModalOpen(false);
+          }}
         />
       )}
 

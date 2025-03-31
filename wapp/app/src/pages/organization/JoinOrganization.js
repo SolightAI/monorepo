@@ -61,7 +61,7 @@ const JoinOrganization = () => {
     setJoining(true);
     try {
       // Mark invitation as used
-      await axios.post(`${API_URL}/invitations/mark-used/${code}`, {}, {
+      await axios.post(`${API_URL}/invitations/mark-used/${code}/`, {}, {
         withCredentials: true
       });
       setJoinSuccess(true);

@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { getFeatureGenerationStatus } from '@/api/featureGeneration';
 import { getGenerationStatus } from '@/services/generationService';
 
-// Base API URL
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 /**
  * Custom hook for tracking generation status

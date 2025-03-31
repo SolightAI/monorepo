@@ -100,7 +100,7 @@ async def create_test_execution(
     test.status = test_execution.status
     test.started_at = datetime.now(tzinfo) if not test.started_at else test.started_at
 
-    if test_execution.status in [TestStatus.PASSED, TestStatus.FAILED, TestStatus.BLOCKED, TestStatus.SKIPPED]:
+    if test_execution.status in [TestStatus.PASSED, TestStatus.FAILED, TestStatus.BLOCKED, TestStatus.SKIPPED, TestStatus.AGENT_LIMITATION, TestStatus.UNEXISTING_FEATURE]:
         test.ended_at = datetime.now(tzinfo)
 
     await test.save()
@@ -232,6 +232,16 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
 
             tracing_data = status_data.get("tracing", {})
 
+            # Extract agent thoughts and actions from the response
+            agent_thoughts = status_data.get("agent_thoughts", {})
+            agent_actions = status_data.get("agent_actions", [])
+
+            # Prepare metadata with agent data
+            updated_metadata = (test_execution.metadata or {}) | {
+                "agent_thoughts": agent_thoughts,
+                "agent_actions": agent_actions
+            }
+
             # Update the test execution based on the task status
             if status_data["status"] == "completed":
                 # Task completed successfully
@@ -241,7 +251,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                         status=TestStatus.PASSED,
                         notes=str(status_data.get("results", "")),
                         ended_at=datetime.now(tzinfo),
-                        metadata=test_execution.metadata,
+                        metadata=updated_metadata,
                         tracing=tracing_data,
                     )
                 )
@@ -255,7 +265,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                         status=TestStatus.FAILED,
                         notes=f"{status_data.get('error', 'Unknown error')}",
                         ended_at=datetime.now(tzinfo),
-                        metadata=(test_execution.metadata or {}) | {"error": status_data.get("error"), "traceback": status_data.get("traceback")},
+                        metadata=updated_metadata | {"error": status_data.get("error"), "traceback": status_data.get("traceback")},
                         tracing=tracing_data,
                     )
                 )
@@ -271,7 +281,33 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                         status=TestStatus.FAILED,
                         notes=f"{status_data.get('results', 'Unknown error')}",
                         ended_at=datetime.now(tzinfo),
-                        metadata=test_execution.metadata or {},
+                        metadata=updated_metadata,
+                        tracing=tracing_data,
+                    )
+                )
+                break
+
+            elif status_data["status"] == "agent_limitation":
+                await update_test_execution(
+                    execution_id,
+                    TestExecutionUpdateSchema(
+                        status=TestStatus.AGENT_LIMITATION,
+                        notes=f"{status_data.get('results', 'Agent limitation encountered')}",
+                        ended_at=datetime.now(tzinfo),
+                        metadata=updated_metadata,
+                        tracing=tracing_data,
+                    )
+                )
+                break
+
+            elif status_data["status"] == "unexisting_feature":
+                await update_test_execution(
+                    execution_id,
+                    TestExecutionUpdateSchema(
+                        status=TestStatus.UNEXISTING_FEATURE,
+                        notes=f"{status_data.get('results', 'Feature does not exist on the page')}",
+                        ended_at=datetime.now(tzinfo),
+                        metadata=updated_metadata,
                         tracing=tracing_data,
                     )
                 )
@@ -279,6 +315,16 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
 
             else:
                 logger.error(f"Unknown status of test run: {status_data}")
+                await update_test_execution(
+                    execution_id,
+                    TestExecutionUpdateSchema(
+                        status=TestStatus.ERROR,
+                        notes=f"Unknown status of test run: {status_data}",
+                        ended_at=datetime.now(tzinfo),
+                        metadata=updated_metadata,
+                        tracing=tracing_data,
+                    )
+                )
                 break
 
         except Exception as e:
@@ -344,7 +390,7 @@ async def update_test_execution(
         test = await TestModel.get(id=test_execution.test_id)
         test.status = test_execution_update.status
 
-        if test_execution_update.status in [TestStatus.PASSED, TestStatus.FAILED, TestStatus.BLOCKED, TestStatus.SKIPPED]:
+        if test_execution_update.status in [TestStatus.PASSED, TestStatus.FAILED, TestStatus.BLOCKED, TestStatus.SKIPPED, TestStatus.AGENT_LIMITATION, TestStatus.UNEXISTING_FEATURE]:
             test.ended_at = datetime.now(tzinfo)
 
         await test.save()

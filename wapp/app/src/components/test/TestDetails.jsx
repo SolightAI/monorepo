@@ -1,31 +1,9 @@
+import React from 'react';
 import { createTestExecution } from '@/services/testExecutionService';
+import { getStatusColorClasses, TEST_STATUS, EXECUTOR_TYPE } from '@/utils/testExecutionUtils';
+import { formatDate } from '@/utils/dateUtils';
 
 function TestDetails({ test, onClose }) {
-    const getStatusColor = (status) => {
-      switch (status) {
-        case "passed":
-          return "bg-green-100 text-green-800"
-        case "failed":
-          return "bg-red-100 text-red-800"
-        case "pending":
-          return "bg-yellow-100 text-yellow-800"
-        default:
-          return "bg-gray-100 text-gray-800"
-      }
-    }
-
-    const formatDate = (dateString) => {
-      const date = new Date(dateString)
-      return date.toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    }
-
     // Function to get a descriptive name for a secret type
     const getSecretTypeDisplay = (type) => {
       const typeMap = {
@@ -65,9 +43,9 @@ function TestDetails({ test, onClose }) {
       try {
         const executionData = {
           test_id: test.id,
-          status: 'PENDING',
+          status: TEST_STATUS.PENDING,
           environment: 'development',
-          executor_type: 'MANUAL',
+          executor_type: EXECUTOR_TYPE.MANUAL,
           notes: null
         };
 
@@ -102,7 +80,7 @@ function TestDetails({ test, onClose }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-gray-50 p-3 rounded-lg">
             <p className="text-sm text-gray-500 mb-1">Status</p>
-            <span className={`px-2 py-1 rounded-full text-sm font-medium ${getStatusColor(test.status)}`}>
+            <span className={`px-2 py-1 rounded-full text-sm font-medium ${getStatusColorClasses(test.status)}`}>
               {test.status.charAt(0).toUpperCase() + test.status.slice(1)}
             </span>
           </div>
@@ -120,11 +98,11 @@ function TestDetails({ test, onClose }) {
           </div>
           <div className="bg-gray-50 p-3 rounded-lg">
             <p className="text-sm text-gray-500 mb-1">Created</p>
-            <p className="font-medium">{formatDate(test.createdAt)}</p>
+            <p className="font-medium">{formatDate(test.createdAt, true)}</p>
           </div>
           <div className="bg-gray-50 p-3 rounded-lg">
             <p className="text-sm text-gray-500 mb-1">Last Run</p>
-            <p className="font-medium">{test.lastRun ? formatDate(test.lastRun) : "Not run yet"}</p>
+            <p className="font-medium">{test.lastRun ? formatDate(test.lastRun, true) : "Not run yet"}</p>
           </div>
         </div>
 

@@ -139,3 +139,40 @@ export const getTestsByProduct = async (productId) => {
     throw error;
   }
 };
+
+/**
+ * Delete a test by ID
+ * @param {string} testId - The UUID of the test to delete
+ * @returns {Promise<void>} Promise that resolves when the test is deleted
+ */
+export const deleteTest = async (testId) => {
+  try {
+    await axios.delete(`${API_URL}/tests/${testId}`, {
+      withCredentials: true
+    });
+    return true;
+  } catch (error) {
+    console.error(`Error deleting test ${testId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Update a test by ID
+ * @param {string} testId - The UUID of the test to update
+ * @param {object} testData - The test data to update
+ * @returns {Promise<object>} Promise that resolves with the updated test
+ */
+export const updateTest = async (testId, testData) => {
+  try {
+    const response = await axios.put(
+      `${API_URL}/tests/${testId}`,
+      testData,
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating test ${testId}:`, error);
+    throw error;
+  }
+};

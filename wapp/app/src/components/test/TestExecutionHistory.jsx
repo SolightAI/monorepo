@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Clock, AlertCircle, SkipForward, Server, User, Calendar, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Server, Calendar } from 'lucide-react';
 import { getTestExecutions } from '@/services/testExecutionService';
+import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
+import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus } from '@/utils/testExecutionUtils';
 
 /**
  * Component to display a history of test executions
@@ -11,15 +13,22 @@ const TestExecutionHistory = ({ testId, onExecutionSelect }) => {
   const [error, setError] = useState(null);
   const [selectedEnvironment, setSelectedEnvironment] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const fetchingRef = useRef(false);
 
-  useEffect(() => {
-    fetchTestExecutions();
-  }, [testId]);
+  // Memoize fetch function to avoid dependency issues
+  const fetchTestExecutions = useCallback(async () => {
+    // Prevent concurrent fetch calls
+    if (fetchingRef.current) return;
 
-  const fetchTestExecutions = async () => {
     try {
-      setLoading(true);
+      fetchingRef.current = true;
       setError(null);
+
+      // Only show loading indicator on initial load, not during polling
+      if (!executions.length) {
+        setLoading(true);
+      }
+
       const data = await getTestExecutions(testId);
       // Sort executions by date, newest first
       const sortedExecutions = data.sort((a, b) =>
@@ -31,49 +40,26 @@ const TestExecutionHistory = ({ testId, onExecutionSelect }) => {
       setError('Failed to load test execution history.');
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
-  };
+  }, [testId, executions.length]);
 
-  // Get icon and color based on execution status
-  const getStatusInfo = (status) => {
-    switch (status?.toUpperCase()) {
-      case 'PASSED':
-        return { icon: <CheckCircle size={16} />, color: 'text-green-500 bg-green-50' };
-      case 'FAILED':
-        return { icon: <XCircle size={16} />, color: 'text-red-500 bg-red-50' };
-      case 'PENDING':
-        return { icon: <Clock size={16} />, color: 'text-yellow-500 bg-yellow-50' };
-      case 'ERROR':
-        return { icon: <XCircle size={16} />, color: 'text-red-500 bg-red-50' };
-      case 'BLOCKED':
-        return { icon: <AlertCircle size={16} />, color: 'text-orange-500 bg-orange-50' };
-      case 'SKIPPED':
-        return { icon: <SkipForward size={16} />, color: 'text-blue-500 bg-blue-50' };
-      default:
-        return { icon: <Clock size={16} />, color: 'text-gray-500 bg-gray-50' };
-    }
-  };
+  // Initial fetch
+  useEffect(() => {
+    fetchTestExecutions();
+  }, [fetchTestExecutions]);
 
-  // Get executor icon based on executor type
-  const getExecutorIcon = (executorType) => {
-    switch (executorType?.toUpperCase()) {
-      case 'MANUAL':
-        return <User size={16} className="text-gray-600" />;
-      case 'AUTOMATED':
-        return <RefreshCw size={16} className="text-blue-600" />;
-      case 'CI_PIPELINE':
-        return <Server size={16} className="text-purple-600" />;
-      default:
-        return <User size={16} className="text-gray-600" />;
-    }
-  };
+  // Check for pending executions
+  const hasPendingExecutions = useCallback(() => {
+    return executions.some(execution => execution.status?.toUpperCase() === 'PENDING');
+  }, [executions]);
 
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-  };
+  // Use our custom hook for polling
+  usePendingStatusPolling(
+    fetchTestExecutions,
+    hasPendingExecutions,
+    [executions, testId]
+  );
 
   // Get all available environments for filtering
   const environments = ['all', ...new Set(executions.map(exec => exec.environment))];
@@ -179,11 +165,11 @@ const TestExecutionHistory = ({ testId, onExecutionSelect }) => {
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full ${color}`}>
                       {icon}
-                      <span className="ml-1.5 text-xs">{execution.status}</span>
+                      <span className="ml-1.5 text-xs">{formatStatus(execution.status)}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                    {formatDate(execution.started_at)}
+                    {formatExecutionDate(execution.started_at)}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
                     <div className="inline-flex items-center">

@@ -16,15 +16,16 @@ from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 import logging
 from utils.crypto import crypto_service
-
-# Import the tracing modules
+from utils.history_validator import validate_agent_history
 from run_tests.tracing import initialize, extend_agent_history
 
 
-TEST_SUCCESS_MESSAGE = "[TEST SUCCESSFUL]"
-TEST_FAILED_MESSAGE = "[TEST FAILED]"
-AN_ERROR_OCCURED_MESSAGE = "[AN ERROR OCCURED]"
-PRECONDITION_NOT_MET_MESSAGE = "[PRECONDITION NOT MET]"
+TEST_SUCCESS_MESSAGE = "[TEST SUCCESSFUL]"  # when the test is successful
+TEST_FAILED_MESSAGE = "[TEST FAILED]"  # when the test is failed
+AN_ERROR_OCCURED_MESSAGE = "[AN ERROR OCCURED]"  # when an error occurs
+PRECONDITION_NOT_MET_MESSAGE = "[PRECONDITION NOT MET]"  # when the precondition is not met
+UNEXISTING_FEATURE_MESSAGE = "[UNEXISTING FEATURE]"  # when the agent is unable to locaate the feature on the page
+AGENT_LIMITATION_MESSAGE = "[AGENT LIMITATION]"  # when the test cannot be completed due to agent limitations
 
 
 # TODO: use Preconditions to let the agent know what fixture to run before running the test
@@ -51,10 +52,21 @@ Assertions: {test.assertions}
 Additional instructions:
 - If an error occurs, prepend your final output by "{an_error_occured_message}", and then explain the error.
 - If a precondition is not met, prepend your final output by "{precondition_not_met_message}", and then explain why.
-- If one of the step fails, try it 2 times, and if it still fails, stop what you are doing and prepend your final output by "{test_failed_message}", and then explain what failed.
-- If one of the assertions failed, stop what you are doing and prepend your final output by "{test_failed_message}", and then explain what failed.
 - If the test is successful, prepend your final output by "{test_successful_message}", and then explain why.
+- If you are unable to run the test or if the test failed due to the fact that you don't have the ability to do an action, stop what you are doing and prepend your final output by "{agent_limitation_message}", and then explain what happened.
+- Before starting the test, check if you have the ability to perform the actions required to run the test. If not, refer to the previous instructions.
+- If you are unable to locate the feature on the page and you think it's because it doesn't exist, stop what you are doing and prepend your final output by "{unexisting_feature_message}", and then explain what happened.
+- If one of the step fails, for a reason other than the ones specified above, try it 2 times, and if it still fails, stop what you are doing and prepend your final output by "{test_failed_message}", and then explain what failed.
+- If one of the assertions failed, for a reason other than the ones specified above, stop what you are doing and prepend your final output by "{test_failed_message}", and then explain what failed.
 - After each step, check if the step was successful. If yes, continue to the next step. If not, refer to the previous instructions.
+
+Be aware that you do NOT have the ability to:
+- Upload files and Download files
+- Upload images and Download images
+- Upload videos and Download videos
+- See the OS file selector, or the OS file uploader or OS file dialogs
+- Leave outside the website to perform any search
+- Change the window size, or the viewport size
 
 Now, run the test.
 """.strip()
@@ -114,7 +126,7 @@ async def _run_test(
             });
             return localStorage.length;
         })(%s)
-        """.strip() % str(localStorage).replace("'", '"')
+        """.strip() % json.dumps(localStorage)
         await context.execute_javascript(load_script)
 
     if gif_output_path:
@@ -131,6 +143,8 @@ async def _run_test(
             test_successful_message=TEST_SUCCESS_MESSAGE,
             an_error_occured_message=AN_ERROR_OCCURED_MESSAGE,
             precondition_not_met_message=PRECONDITION_NOT_MET_MESSAGE,
+            unexisting_feature_message=UNEXISTING_FEATURE_MESSAGE,
+            agent_limitation_message=AGENT_LIMITATION_MESSAGE,
         ),
         llm=LLM_CLIENT,
         initial_actions=[{'go_to_url': {'url': test.url}}, {'go_to_url': {'url': test.url}}],
@@ -144,7 +158,10 @@ async def _run_test(
         await context.close()
         await browser.close()
 
-    result = history.final_result()  # type: ignore
+    result = await validate_agent_history(
+        history=history,
+        task_name=f"run test {test.name}",
+    )
 
     from browser_use.agent.gif import create_history_gif  # NOTE: importing after agent.run() to avoid thread blocking
     if gif_output_path:
@@ -152,9 +169,14 @@ async def _run_test(
 
     logger.info(f"{history.has_errors()=} {history.is_done()=} {result is None=} {history.is_successful()=}")
 
+    base_ouput = {
+        "agent_thoughts": history.model_thoughts(),
+        "agent_actions": history.model_actions(),
+    }
+
     if result is None:
         logger.error(f"Couldn't run test for {test.name}: {history.final_result()}")
-        return {
+        return base_ouput | {
             "status": "error",
             "results": None,
             "tracing": history.get_logs(),
@@ -162,9 +184,29 @@ async def _run_test(
             "traceback": "",
         }
 
+    if AGENT_LIMITATION_MESSAGE in result:
+        logger.info(f"Agent limitation encountered: {result}")
+        return base_ouput | {
+            "status": "agent_limitation",
+            "results": result.replace(AGENT_LIMITATION_MESSAGE, "").strip(),
+            "tracing": history.get_logs(),
+            "error": "",
+            "traceback": "",
+        }
+
+    if UNEXISTING_FEATURE_MESSAGE in result:
+        logger.info(f"Feature not found: {result}")
+        return base_ouput | {
+            "status": "unexisting_feature",
+            "results": result.replace(UNEXISTING_FEATURE_MESSAGE, "").strip(),
+            "tracing": history.get_logs(),
+            "error": "",
+            "traceback": "",
+        }
+
     if AN_ERROR_OCCURED_MESSAGE in result:
         logger.error(f"An error occurred during the test: {result}")
-        return {
+        return base_ouput | {
             "status": "error",
             "results": result.replace(AN_ERROR_OCCURED_MESSAGE, "").strip(),
             "tracing": history.get_logs(),
@@ -174,7 +216,7 @@ async def _run_test(
 
     if PRECONDITION_NOT_MET_MESSAGE in result:
         logger.info(f"Precondition not met: {result}")
-        return {
+        return base_ouput | {
             "status": "error",
             "results": result.replace(PRECONDITION_NOT_MET_MESSAGE, "").strip(),
             "tracing": history.get_logs(),
@@ -184,7 +226,7 @@ async def _run_test(
 
     if TEST_FAILED_MESSAGE in result:
         logger.info(f"Test failed: {result}")
-        return {
+        return base_ouput | {
             "status": "failed",
             "results": result.replace(TEST_FAILED_MESSAGE, "").strip(),
             "tracing": history.get_logs(),
@@ -194,7 +236,7 @@ async def _run_test(
 
     if TEST_SUCCESS_MESSAGE in result:
         logger.info(f"Test successful: {result}")
-        return {
+        return base_ouput | {
             "status": "completed",
             "results": result.replace(TEST_SUCCESS_MESSAGE, "").strip(),
             "tracing": history.get_logs(),
@@ -203,27 +245,13 @@ async def _run_test(
         }
 
     logger.error(f"Unknown status of test run: {result}")
-    return {
+    return base_ouput | {
         "status": "error",
         "results": None,
         "tracing": history.get_logs(),
         "error": "Unknown status of test run.",
         "traceback": "",
     }
-
-    # if history.has_errors() or not history.is_done() or result is None or not history.is_successful():
-    #     logger.error(f"Failed to run test: {history.final_result()}")
-    #     return {
-    #         "status": "error",
-    #         "results": None,
-    #         "tracing": history.get_logs(),
-    #         "error": "Failed to run test.",
-    #         "traceback": "",
-    #     }
-
-    # # Don't attach JS logs directly to the result
-    # # Instead include them as a separate key
-    # return {"status": "completed", "results": result, "tracing": history.get_logs()}
 
 
 def handle_background_task_errors(func):

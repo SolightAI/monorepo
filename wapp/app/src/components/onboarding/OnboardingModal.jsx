@@ -5,6 +5,7 @@ import WelcomeScreen from './WelcomeScreen';
 import ProductHierarchy from './ProductHierarchy';
 import OrganizationSetup from './OrganizationSetup';
 import ProductSetup from './ProductSetup';
+import SecretCreation from './SecretCreation';
 import FeaturesOverview from './FeaturesOverview';
 
 const OnboardingModal = () => {
@@ -20,7 +21,7 @@ const OnboardingModal = () => {
 
   // Set total steps on mount
   useEffect(() => {
-    setTotalSteps(5); // 5 steps in our onboarding
+    setTotalSteps(6); // 6 steps in our onboarding
   }, [setTotalSteps]);
 
   // Don't render anything if onboarding is not shown
@@ -40,6 +41,8 @@ const OnboardingModal = () => {
       case 3:
         return <ProductSetup onNext={nextStep} onPrev={prevStep} onSkip={skipOnboarding} />;
       case 4:
+        return <SecretCreation onNext={nextStep} onPrev={prevStep} onSkip={skipOnboarding} />;
+      case 5:
         return <FeaturesOverview onNext={nextStep} onPrev={prevStep} onSkip={skipOnboarding} />;
       default:
         return <WelcomeScreen onNext={nextStep} onSkip={skipOnboarding} />;

@@ -108,7 +108,7 @@ async def delete_test_endpoint(test_id: UUID4) -> dict:
 @router.post("/generate")
 async def generate_test(feature_id: UUID4, background_tasks: BackgroundTasks) -> str:  # returns task id
     task_id = await trigger_test_generation(feature_id=feature_id)
-    background_tasks.add_task(poll_test_generation_status, task_id)  # temporary disabled
+    background_tasks.add_task(poll_test_generation_status, task_id)
     logger.error(f"Test generation task {task_id} started")
     return task_id
 

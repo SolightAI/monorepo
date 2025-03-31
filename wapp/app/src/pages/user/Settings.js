@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { useOnboarding } from '@/context/OnboardingContext';
 import ChangePassword from '@/components/auth/ChangePassword';
 
 // Account section (existing code)
