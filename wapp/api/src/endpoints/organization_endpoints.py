@@ -324,3 +324,56 @@ async def get_member(
         )
 
     return target_member
+
+
+@router.get("/{organization_id}/invitation", response_model=Organization)
+async def get_organization_for_invitation(organization_id: UUID):
+    """
+    Get an organization by ID for invitation validation.
+    This endpoint can be accessed without authentication.
+    """
+    organization = await organization_services.get_organization(organization_id)
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found",
+        )
+
+    return organization
+
+
+@router.post("/{organization_id}/join", response_model=OrganizationMember)
+async def join_organization(
+    organization_id: UUID,
+    current_user=Depends(get_current_user_dependency),
+):
+    """
+    Join an organization through an invitation.
+    This endpoint can be used by users who have received an invitation.
+    """
+    # Check if user is already a member
+    existing_member = await organization_services.get_organization_member(
+        organization_id, current_user.id
+    )
+    if existing_member:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You are already a member of this organization",
+        )
+
+    # Add the user as a member
+    member_data = OrganizationMemberCreate(
+        user_id=current_user.id,
+        role=OrganizationRole.MEMBER,  # Default role for invited members
+    )
+    
+    new_member = await organization_services.add_member_to_organization(
+        organization_id, member_data
+    )
+    if not new_member:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to join organization",
+        )
+
+    return new_member

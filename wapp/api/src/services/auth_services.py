@@ -193,16 +193,40 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
                     invited_by_id=invitation.created_by_id
                 )
             )
+    else:
+        # For existing users, check if there's an organization invitation
+        if invitation_code:
+            try:
+                invitation = await validate_invitation(invitation_code, user_info["email"])
+                if invitation.organization_id and invitation.role:
+                    from services.organization_services import add_member_to_organization
+                    from dto.schemas import OrganizationMemberCreate
+
+                    await add_member_to_organization(
+                        organization_id=invitation.organization_id,
+                        data=OrganizationMemberCreate(
+                            user_id=user.id,
+                            role=invitation.role,
+                            invited_by_id=invitation.created_by_id
+                        )
+                    )
+                    await mark_invitation_used(invitation.code, user.id)
+            except Exception as e:
+                # Log the error but don't block the login
+                logging.error(f"Failed to process organization invitation: {str(e)}")
 
     # Create JWT access token
     jwt_token = create_access_token(data={
         "sub": user.email,
     })
 
-    print("REDIRECTING TO: ", f"{os.getenv('APP_URL')}/auth/google/callback?token={jwt_token}")
-    redirect_response = RedirectResponse(
-        url=f"{os.getenv('APP_URL')}/auth/google/callback?token={jwt_token}"
-    )
+    # Determine the redirect URL based on whether there was an invitation
+    redirect_url = f"{os.getenv('APP_URL')}/auth/google/callback?token={jwt_token}"
+    if invitation_code:
+        redirect_url = f"{os.getenv('APP_URL')}/join-organization/{invitation_code}"
+
+    print("REDIRECTING TO: ", redirect_url)
+    redirect_response = RedirectResponse(url=redirect_url)
     set_auth_cookie(redirect_response, jwt_token)
 
     return redirect_response

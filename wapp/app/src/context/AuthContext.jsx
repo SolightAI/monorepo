@@ -26,11 +26,12 @@ export const AuthProvider = ({ children }) => {
   // Validate invitation code
   const validateInvitationCode = async (code, email) => {
     try {
-      const url = `${API_URL}/invitations/validate/${code}` + (email ? `?email=${email}/` : '/' );
-      const response = await axios.get(url);
-      return { valid: true, data: response.data };
+      const url = `${API_URL}/invitations/validate/${code}${email ? `?email=${email}` : ''}`;
+      const response = await axios.get(url, { withCredentials: true });
+      return { isValid: true, data: response.data };
     } catch (error) {
-      return { valid: false, error: error.response?.data?.detail || 'Invalid code' };
+      console.error('Error validating invitation code:', error);
+      return { isValid: false, error: error.response?.data?.detail || 'Invalid invitation code' };
     }
   };
 
