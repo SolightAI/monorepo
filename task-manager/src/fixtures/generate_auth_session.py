@@ -237,6 +237,7 @@ async def generate_auth_session(
 
     # Validate the history and get the result
     await validate_agent_history(
+        task_id=task_id,
         history=history,
         task_name=f"login to {url}",
         error_markers=["[AN ERROR OCCURED]"],

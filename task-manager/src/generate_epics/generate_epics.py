@@ -196,6 +196,7 @@ async def _generate_epics(
             logger.info(f"[{task_id}] Epics GIF uploaded to S3: {s3_url}")
 
     result = await validate_agent_history(
+        task_id=task_id,
         history=history,
         task_name=f"generate epics for {product.name}",
     )

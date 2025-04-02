@@ -160,6 +160,7 @@ async def _run_test(
         await browser.close()
 
     result = await validate_agent_history(
+        task_id=task_id,
         history=history,
         task_name=f"run test {test.name}",
     )

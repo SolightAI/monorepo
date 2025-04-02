@@ -221,6 +221,7 @@ async def _generate_acceptance_criteria(
             logger.info(f"[{task_id}] Acceptance Criteria GIF uploaded to S3: {s3_url}")
 
     result = await validate_agent_history(
+        task_id=task_id,
         history=history,
         task_name=f"generate acceptance criteria for {feature.name}",
     )
