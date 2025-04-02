@@ -9,6 +9,8 @@ import json
 from langchain_openai import AzureChatOpenAI
 from pydantic import SecretStr
 from utils.dto import PageType
+from tempfile import NamedTemporaryFile
+from utils.s3_utils import upload_gif_to_s3
 
 logger = getLogger(__name__)
 
@@ -61,39 +63,40 @@ Some extra ground rules:
 """.strip()
 
 
-def check_page_type(result: str) -> Literal["marketing", "product"]:
+def check_page_type(task_id: str, result: str) -> Literal["marketing", "product"]:
     """
     Check if the agent's response indicates we're on a product page.
-    
+
     Args:
         result: The agent's response text
-        
+
     Returns:
         "product" if we're on a product page, "marketing" if we're on a marketing page
-        
+
     Raises:
         Exception: If the response is missing the page type tag
     """
     page_type_check = re.search(r"<page_type>\s*(marketing|product)\s*</page_type>", result, re.IGNORECASE)
     if not page_type_check:
-        logger.error("Agent response missing <page_type> tag. Response: %s", result)
+        logger.error(f"[{task_id}] Agent response missing <page_type> tag. Response: {result}")
         raise Exception("Agent response missing <page_type> tag")
-        
+
     page_type = page_type_check.group(1).strip().lower()
     return page_type
 
 
 async def analyze_page_type(
+    task_id: str,
     product: Product,
     localStorage: str | None = None,
 ) -> Literal["marketing", "product"]:
     """
     Analyze the current page to determine if it's a marketing page or product interface.
-    
+
     Args:
         product: Product information
         localStorage: Path to localStorage file for browser automation
-        
+
     Returns:
         "product" if we're on a product page, "marketing" if we're on a marketing page
     """
@@ -129,10 +132,10 @@ async def analyze_page_type(
             })(%s)
             """.strip() % json.dumps(localStorage)
             result = await context.execute_javascript(load_script)
-            
+
             # Log any errors in Python
             for error in result['errors']:
-                logger.error(error)
+                logger.error(f"[{task_id}] {error}")
 
         # Create agent with the prompt and browser context
         agent = Agent(
@@ -149,11 +152,33 @@ async def analyze_page_type(
             raise Exception("Failed to analyze page type")
 
         if result is None:
-            logger.error("Couldn't analyze page type for product %s", product.name)
-            logger.debug("History of the agent when analyzing page type for product %s: %s", product.name, history.action_results())
+            logger.error(f"[{task_id}] Couldn't analyze page type for product {product.name}")
+            logger.debug(f"[{task_id}] History of the agent when analyzing page type for product {product.name}: {history.action_results()}")
             raise Exception("Failed to analyze page type, result is None")
 
-        return check_page_type(result)
+        from browser_use.agent.gif import create_history_gif  # import here to avoid thread blocking
+        with NamedTemporaryFile(suffix='.gif', delete=True) as temp_gif:
+            create_history_gif(
+                task="a",
+                history=history,
+                output_path=temp_gif.name,
+                show_task=False,
+                show_logo=False,
+                show_goals=False
+            )
+
+            # Upload GIF to S3
+            s3_url = upload_gif_to_s3(
+                task_id=task_id,
+                file_path=temp_gif.name,
+                task_type="page_type",
+                task_name=product.name,
+                additional_params=product.model_dump()
+            )
+            if s3_url:
+                logger.info(f"[{task_id}] Page Type Analysis GIF uploaded to S3: {s3_url}")
+
+        return check_page_type(task_id, result)
 
     finally:
         await context.close()
@@ -163,7 +188,7 @@ async def analyze_page_type(
 def get_marketing_page_error_message() -> str:
     """
     Get the error message to display when a marketing page is detected.
-    
+
     Returns:
         The formatted error message with instructions
     """
@@ -175,4 +200,4 @@ def get_marketing_page_error_message() -> str:
         "3. In the description, explain how to open the product (e.g. 'Click Launch App')\n"
         "4. Click Save\n"
         '5. Press "Generate Epics" or "Generate All" again'
-    ) 
+    )

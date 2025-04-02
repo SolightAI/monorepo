@@ -1,5 +1,6 @@
 import os
 import json
+from tempfile import NamedTemporaryFile
 
 from logging import getLogger
 from pydantic import SecretStr
@@ -9,6 +10,7 @@ from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from typing import Optional
 from utils.session_manager import get_cached_session, cache_session, update_session_timestamp
 from utils.history_validator import validate_agent_history
+from utils.s3_utils import upload_gif_to_s3
 
 
 OAUTH = "oauth_credential"
@@ -59,6 +61,7 @@ logger = getLogger(__name__)
 
 
 async def check_is_logged_in(
+    task_id: str,
     url: str,
     existing_session: Optional[dict[str, dict[str, str]]],
     user_id: str,
@@ -121,7 +124,7 @@ async def check_is_logged_in(
         result = history.final_result()
 
         is_logged_in = result is not None and "User is logged in".lower() in result.lower()
-        logger.info(f"Login check result for user {user_id}: {'Logged in' if is_logged_in else 'Not logged in'}")
+        logger.info(f"[{task_id}] Login check result for user {user_id}: {'Logged in' if is_logged_in else 'Not logged in'}")
         return is_logged_in
     finally:
         await context.close()
@@ -129,6 +132,7 @@ async def check_is_logged_in(
 
 
 async def generate_auth_session(
+    task_id: str,
     url: str,
     secrets: dict[str, dict[str, str]],
     gif_output_path: str | bool = False,
@@ -154,13 +158,13 @@ async def generate_auth_session(
     if reuse_session:
         cached_session = await get_cached_session(url, user_id)
         if cached_session:
-            logger.info(f"Found cached session for {url} (user: {user_id}), checking if still valid...")
-            if await check_is_logged_in(url, cached_session, user_id):
-                logger.info(f"Cached session for user {user_id} is still valid, reusing it")
+            logger.info(f"[{task_id}] Found cached session for {url} (user: {user_id}), checking if still valid...")
+            if await check_is_logged_in(task_id, url, cached_session, user_id):
+                logger.info(f"[{task_id}] Cached session for user {user_id} is still valid, reusing it")
                 await update_session_timestamp(url, user_id)
                 return cached_session
             else:
-                logger.info(f"Cached session for user {user_id} is no longer valid, generating a new one")
+                logger.info(f"[{task_id}] Cached session for user {user_id} is no longer valid, generating a new one")
 
     # Validate that we have at least one valid credential type
     if USERNAME_PASSWORD not in secrets and OAUTH not in secrets:
@@ -208,6 +212,28 @@ async def generate_auth_session(
         """.strip())
         await context.close()
         await browser.close()
+
+    from browser_use.agent.gif import create_history_gif  # import here to avoid thread blocking
+    with NamedTemporaryFile(suffix='.gif', delete=True) as temp_gif:
+        create_history_gif(
+            task="a",
+            history=history,
+            output_path=temp_gif.name,
+            show_task=False,
+            show_logo=False,
+            show_goals=False
+        )
+
+        # Upload GIF to S3
+        s3_url = upload_gif_to_s3(
+            file_path=temp_gif.name,
+            task_id=task_id,
+            task_type="auth",
+            task_name=url,
+            additional_params={"user_id": user_id}
+        )
+        if s3_url:
+            logger.info(f"[{task_id}] Auth Session Generation GIF uploaded to S3: {s3_url}")
 
     # Validate the history and get the result
     await validate_agent_history(
