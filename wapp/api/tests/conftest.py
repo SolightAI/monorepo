@@ -1,11 +1,16 @@
+import os
 import pytest
 import asyncio
+import sys
 from typing import AsyncGenerator, Dict, Any, Generator
 from asyncio import AbstractEventLoop
 from fastapi import FastAPI
 from httpx import AsyncClient
 from tortoise import Tortoise
 from tortoise.contrib.test import finalizer, initializer
+
+# Add project root to Python path to enable proper imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import your app
 from src.main import app as main_app
