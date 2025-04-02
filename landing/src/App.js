@@ -13,7 +13,6 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/faq" element={<FAQ />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/domains" element={<DomainLanding />} />

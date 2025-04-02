@@ -28,8 +28,8 @@ export default function About() {
       description: "Pre-Seed Funding"
     },
     {
-      metric: "5+",
-      description: "Research Partnerships"
+      metric: "10+",
+      description: "Partnerships"
     },
     {
       metric: "10+",
@@ -41,14 +41,14 @@ export default function About() {
     {
       name: "Antoine Levy",
       title: "Co-Founder & CEO",
-      bio: "Antoine brings extensive product leadership experience from the digital media industry, where he built and scaled B2B products generating XX millions in revenue. He also played professional soccer.",
+      bio: "Former professional soccer player turned product leader, with extensive experience in the digital media industry. Built and scaled B2B products generating $XX millions in revenue, bringing the same drive and ambition from professional sports to business.",
       image: "https://landing.s3.fr-par.scw.cloud/antoine_founder.jpg",
       linkedin: "https://www.linkedin.com/in/antoine-l%C3%A9vy-653106201"
     },
     {
       name: "Valentin De Matos",
       title: "Co-Founder & CTO",
-      bio: "Valentin has led AI engineering teams at fast-growing startups and directed R&D initiatives at his university. Before falling in love with Computer Science, he wanted to join the army.",
+      bio: "Former Lead AI Engineer at Gladia, where he built the company's AI infrastructure from scratch. Previously Head of AI at POC INNOVATION and Founder of POC SERVICES, bridging cutting-edge research with real-world applications.",
       image: "https://landing.s3.fr-par.scw.cloud/val_founder.jpg",
       linkedin: "https://www.linkedin.com/in/valentin-de-matos/"
     }
@@ -100,28 +100,23 @@ export default function About() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
                 {founders.map((founder, index) => (
-                  <div key={index} className="relative group">
+                  <a
+                    key={index}
+                    href={founder.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative group block cursor-pointer"
+                  >
                     <div className="absolute inset-0 bg-gradient-to-r from-laneo-400/10 to-purple-500/10 rounded-2xl blur-lg group-hover:blur-xl transition-all duration-300 opacity-0 group-hover:opacity-100" />
                     <div className="relative p-8 rounded-2xl border border-white/10 group-hover:border-laneo-400/50 transition-all duration-300 h-full flex flex-col bg-black/30 backdrop-blur-sm">
                       <div className="w-32 h-32 rounded-full bg-gray-700 mx-auto mb-6 overflow-hidden ring-2 ring-laneo-400/30 group-hover:ring-laneo-400 transition-all duration-300">
                         {founder.image && <img src={founder.image} alt={founder.name} className="w-full h-full object-cover" />}
                       </div>
-                      <h3 className="text-2xl font-bold text-center mb-2 text-white">{founder.name}</h3>
+                      <h3 className="text-2xl font-bold text-center mb-2 text-white group-hover:text-laneo-400 transition-colors duration-300">{founder.name}</h3>
                       <p className="text-laneo-400 text-center mb-4">{founder.title}</p>
                       <p className="text-gray-300 text-center mb-4">{founder.bio}</p>
-                      {founder.linkedin && (
-                        <a
-                          href={founder.linkedin}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-auto mx-auto flex items-center text-laneo-400 hover:text-white transition-colors duration-300"
-                        >
-                          Connect on LinkedIn
-                          <ExternalLink className="ml-2 w-4 h-4" />
-                        </a>
-                      )}
                     </div>
-                  </div>
+                  </a>
                 ))}
               </div>
             </div>

@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import FeatureShowcase from '../components/FeatureShowcase';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 import confetti from 'canvas-confetti';
 
 // Note: The animate-fadeInUp, animate-fadeInDown, animate-fadeInLeft, and animate-fadeInRight classes are assumed
@@ -85,11 +86,11 @@ export default function Landing() {
     <div className="flex flex-col min-h-screen bg-black text-white overflow-hidden">
       <Header />
 
-      <main className="h-screen overflow-y-auto snap-y snap-proximity pt-16">
+      <main className="h-screen overflow-y-auto overflow-x-hidden snap-y snap-proximity pt-16">
         {/* Hero Section */}
         <section
           id="hero"
-          className="min-h-screen snap-start flex items-center justify-center overflow-hidden relative pb-24"
+          className="min-h-screen w-full snap-start flex items-center justify-center overflow-hidden relative pb-24"
         >
           <AnimatedBackground />
 
@@ -168,7 +169,7 @@ export default function Landing() {
         </section>
 
         {/* Benefits Section */}
-        <section id="benefits" className="min-h-screen snap-start py-24 relative flex items-center">
+        <section id="benefits" className="min-h-screen w-full snap-start py-24 relative flex items-center">
           {/* Background Elements */}
           <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black" />
           <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-black to-transparent pointer-events-none" />
@@ -226,7 +227,7 @@ export default function Landing() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="min-h-screen snap-start py-24 relative flex items-center">
+        <section id="features" className="min-h-screen w-full snap-start py-24 relative flex items-center">
           {/* Background Elements - updated to match other sections */}
           <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black">
             <div className="absolute -top-[30%] -left-[10%] w-[70%] h-[70%] rounded-full bg-blue-900/10 blur-[120px]"></div>
@@ -250,7 +251,7 @@ export default function Landing() {
         </section>
 
         {/* Demo Section */}
-        <section id="demo" className="min-h-screen snap-start py-24 relative flex items-center">
+        <section id="demo" className="min-h-screen w-full snap-start py-24 relative flex items-center">
           {/* Background Elements */}
           <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black" />
           <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-black to-transparent pointer-events-none" />
@@ -340,9 +341,9 @@ export default function Landing() {
         </section>
 
         {/* Call to Action */}
-        <section id="contact" className="min-h-screen snap-start py-24 relative flex flex-col">
+        <section id="contact" className="min-h-screen w-full snap-start py-24 relative flex flex-col">
         <AnimatedBackground />
-          <div className="flex-1 py-20 flex items-center">
+          <div className="flex-1 flex items-center">
             <div className="container mx-auto px-4 relative z-10">
               <div className="max-w-4xl mx-auto text-center">
                 <h2 className="text-3xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-white/90 via-white/70 to-white/40 text-transparent bg-clip-text text-center">
@@ -409,31 +410,9 @@ export default function Landing() {
             </div>
           </div>
 
-          <footer className="py-8 border-t border-white/10 bg-black relative z-20">
-            <div className="container mx-auto px-4">
-              <div className="flex flex-col md:flex-row justify-between items-center">
-                <p className="text-gray-400 text-sm">&copy; 2025 Laneo. All rights reserved.</p>
-                
-                {/* Sign Up button in center */}
-                <div className="my-4 md:my-0 relative z-10">
-                  <a
-                    href="https://docs.google.com/forms/d/e/1FAIpQLScq0g8iWlWzel10HwjhZeCWnGbl1VrzsHAnW8hj2h0mylQtew/viewform?usp=header"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-6 py-2 rounded-full bg-green-500 hover:bg-green-400 transition-colors text-white text-sm font-medium pointer-events-auto"
-                  >
-                    Sign Up
-                  </a>
-                </div>
-                
-                <div className="text-gray-400 text-sm">
-                  <p>Contact us: <a href="mailto:contact@laneo.io" className="text-blue-400 hover:text-white transition-colors">contact@laneo.io</a></p>
-                </div>
-              </div>
-            </div>
-          </footer>
         </section>
       </main>
+      <Footer />
     </div>
   );
 }
