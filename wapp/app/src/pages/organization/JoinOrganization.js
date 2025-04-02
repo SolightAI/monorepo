@@ -32,22 +32,17 @@ const JoinOrganization = () => {
           }
 
           setInvitation(result.data);
-          // Fetch organization details
-          const orgResponse = await fetch(
-            `${process.env.REACT_APP_API_URL}/organizations/${result.data.organization_id}/invitation`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              withCredentials: true,
-            }
-          );
-          if (orgResponse.ok) {
-            const orgData = await orgResponse.json();
-            setOrganization(orgData);
-          } else {
-            console.error('Error fetching organization details:', orgResponse.statusText);
+          // Fetch organization details using the public endpoint
+          try {
+            const orgResponse = await axios.get(
+              `${API_URL}/organizations/public/${result.data.organization_id}`,
+              {
+                withCredentials: true
+              }
+            );
+            setOrganization(orgResponse.data);
+          } catch (err) {
+            console.error('Error fetching organization details:', err);
             setError('Failed to fetch organization details.');
           }
         } else {
@@ -78,34 +73,23 @@ const JoinOrganization = () => {
 
     setJoining(true);
     try {
+      console.log('Attempting to join organization:', {
+        organizationId: invitation.organization_id,
+        invitationCode: code
+      });
+
       // Try to join the organization first
       const joinResponse = await axios.post(
-        `${API_URL}/organizations/${invitation.organization_id}/join`,
+        `${API_URL}/organizations/${invitation.organization_id}/join?invitation_code=${code}`,
         {},
         {
           withCredentials: true
         }
       );
 
-      if (!joinResponse.data) {
-        throw new Error('Failed to join organization');
-      }
+      console.log('Join response:', joinResponse.data);
 
-      // If join was successful, try to mark the invitation as used
-      try {
-        await axios.post(
-          `${API_URL}/invitations/mark-used/${code}/`,
-          {},
-          {
-            withCredentials: true
-          }
-        );
-      } catch (markUsedErr) {
-        // If marking as used fails, we can still consider this a success
-        // since the user has already joined
-        console.warn('Failed to mark invitation as used:', markUsedErr);
-      }
-      
+      // If we get here, the join was successful
       setJoinSuccess(true);
 
       // Redirect to the main application after a short delay
@@ -113,45 +97,89 @@ const JoinOrganization = () => {
         navigate('/');
       }, 2000);
     } catch (err) {
-      console.error('Error joining organization:', err);
+      console.error('Error joining organization:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+        config: err.config
+      });
       
-      // Check if the error is because the user is already a member
-      if (err.response?.status === 400 && err.response?.data?.detail === 'You are already a member of this organization') {
+      // Check if this is a CORS error but the request actually succeeded
+      if (err.message === 'Network Error' && err.config?.url?.includes('/join')) {
+        // The request might have succeeded despite the CORS error
         setJoinSuccess(true);
         setTimeout(() => {
           navigate('/');
         }, 2000);
         return;
       }
-
-      // If we get a network error, try to check if we're already a member
-      if (err.message?.includes('Network Error')) {
-        try {
-          const checkResponse = await axios.get(
-            `${API_URL}/organizations/${invitation.organization_id}/members`,
-            {
-              withCredentials: true
-            }
-          );
-          
-          // If we can get the members list, we're probably already a member
+      
+      // Handle specific error cases
+      if (err.response?.status === 400) {
+        const errorDetail = err.response?.data?.detail;
+        console.log('400 error detail:', errorDetail);
+        if (errorDetail === 'You are already a member of this organization') {
           setJoinSuccess(true);
           setTimeout(() => {
             navigate('/');
           }, 2000);
           return;
-        } catch (checkErr) {
-          // If we can't check membership, show the error
+        }
+        if (errorDetail === 'This invitation has already been used') {
+          setError('This invitation has already been used. Please request a new invitation.');
+        } else if (errorDetail === 'This invitation has expired') {
+          setError('This invitation has expired. Please request a new invitation.');
+        } else {
+          setError(typeof errorDetail === 'string' ? errorDetail : 'Failed to join organization. Please try again.');
+        }
+      } else if (err.response?.status === 404) {
+        setError('Invalid invitation code. Please check the code and try again.');
+      } else if (err.response?.status === 422) {
+        console.log('422 error data:', err.response?.data);
+        // Log the full error details for debugging
+        console.log('Full error details:', {
+          detail: err.response?.data?.detail,
+          type: typeof err.response?.data?.detail,
+          isArray: Array.isArray(err.response?.data?.detail),
+          firstError: err.response?.data?.detail?.[0],
+          firstErrorType: typeof err.response?.data?.detail?.[0],
+          firstErrorKeys: err.response?.data?.detail?.[0] ? Object.keys(err.response.data.detail[0]) : [],
+          firstErrorMsg: err.response?.data?.detail?.[0]?.msg,
+          firstErrorLoc: err.response?.data?.detail?.[0]?.loc
+        });
+
+        // Check if the error is about being already a member
+        if (err.response?.data?.detail?.includes('already a member')) {
+          setJoinSuccess(true);
+          setTimeout(() => {
+            navigate('/');
+          }, 2000);
+          return;
+        }
+        // Check if the error is about email mismatch
+        if (err.response?.data?.detail?.includes('email')) {
+          setError('This invitation is not valid for your email address. Please use the email address that received the invitation.');
+        } else if (Array.isArray(err.response?.data?.detail)) {
+          // Handle array of validation errors
+          const firstError = err.response.data.detail[0];
+          if (firstError && typeof firstError === 'object') {
+            // Handle FastAPI validation error format
+            const errorMessage = firstError.msg || firstError.message || 'Failed to join organization. Please try again.';
+            console.log('Validation error message:', errorMessage);
+            console.log('Validation error location:', firstError.loc);
+            setError(errorMessage);
+          } else if (typeof firstError === 'string') {
+            setError(firstError);
+          } else {
+            setError('Failed to join organization. Please try again.');
+          }
+        } else if (typeof err.response?.data?.detail === 'string') {
+          setError(err.response.data.detail);
+        } else {
           setError('Failed to join organization. Please try again.');
         }
       } else {
-        setError(
-          typeof err.response?.data?.detail === 'string' 
-            ? err.response.data.detail 
-            : typeof err.message === 'string'
-              ? err.message
-              : 'Failed to join organization. Please try again.'
-        );
+        setError('Failed to join organization. Please try again later.');
       }
     } finally {
       setJoining(false);

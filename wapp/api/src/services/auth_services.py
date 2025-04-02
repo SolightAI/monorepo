@@ -12,6 +12,7 @@ from fastapi import HTTPException, status, Response
 from itsdangerous import URLSafeTimedSerializer
 from services.user_services import get_user
 from services.invitation_services import validate_invitation, mark_invitation_used
+from services.organization_invitation_service import handle_organization_invitation
 from dto.schemas import InvitationCreate
 
 
@@ -160,9 +161,15 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
             )
             return redirect_response
 
-        # Validate the invitation code
+        # Validate the invitation code and check email match
         try:
-            invitation = await validate_invitation(invitation_code, user_info["email"])
+            invitation = await validate_invitation(invitation_code)
+            # Check if the email matches
+            if invitation.email and invitation.email.lower() != user_info["email"].lower():
+                redirect_response = RedirectResponse(
+                    url=f"{os.getenv('APP_URL')}/auth/google/callback?error=email_mismatch&error_description=This invitation is for {invitation.email}. Please log in with that email address."
+                )
+                return redirect_response
         except Exception as e:
             redirect_response = RedirectResponse(
                 url=f"{os.getenv('APP_URL')}/auth/google/callback?error=invitation_invalid&error_description={str(e)}"
@@ -182,36 +189,34 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
 
         # If the invitation has an organization, add the user to it
         if invitation.organization_id and invitation.role:
-            from services.organization_services import add_member_to_organization
-            from dto.schemas import OrganizationMemberCreate
-
-            await add_member_to_organization(
-                organization_id=invitation.organization_id,
-                data=OrganizationMemberCreate(
-                    user_id=user.id,
-                    role=invitation.role,
-                    invited_by_id=invitation.created_by_id
+            try:
+                success, message = await handle_organization_invitation(invitation_code, user)
+                if not success:
+                    redirect_response = RedirectResponse(
+                        url=f"{os.getenv('APP_URL')}/auth/google/callback?error=join_failed&error_description={message}"
+                    )
+                    return redirect_response
+            except HTTPException as e:
+                redirect_response = RedirectResponse(
+                    url=f"{os.getenv('APP_URL')}/auth/google/callback?error=join_failed&error_description={e.detail}"
                 )
-            )
+                return redirect_response
     else:
         # For existing users, check if there's an organization invitation
         if invitation_code:
             try:
-                invitation = await validate_invitation(invitation_code, user_info["email"])
-                if invitation.organization_id and invitation.role:
-                    from services.organization_services import add_member_to_organization
-                    from dto.schemas import OrganizationMemberCreate
-
-                    await add_member_to_organization(
-                        organization_id=invitation.organization_id,
-                        data=OrganizationMemberCreate(
-                            user_id=user.id,
-                            role=invitation.role,
-                            invited_by_id=invitation.created_by_id
-                        )
+                # First validate the invitation and check email match
+                invitation = await validate_invitation(invitation_code)
+                if invitation.email and invitation.email.lower() != user_info["email"].lower():
+                    redirect_response = RedirectResponse(
+                        url=f"{os.getenv('APP_URL')}/auth/google/callback?error=email_mismatch&error_description=This invitation is for {invitation.email}. Please log in with that email address."
                     )
-                    await mark_invitation_used(invitation.code, user.id)
-            except Exception as e:
+                    return redirect_response
+
+                # If email matches, process the invitation
+                success, message = await handle_organization_invitation(invitation_code, user)
+                logging.info(f"Organization invitation process result: {message}")
+            except HTTPException as e:
                 # Log the error but don't block the login
                 logging.error(f"Failed to process organization invitation: {str(e)}")
 
