@@ -3,6 +3,7 @@ import { ChevronDown, Plus, Sparkles, Edit, Trash, X, AlertCircle } from 'lucide
 import { useNavigate } from 'react-router-dom';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
+import { isValidUrl } from '@/utils/urlUtils';
 import axios from 'axios';
 
 // Base API URL
@@ -135,9 +136,25 @@ const ProductSelector = ({ isMobile = false }) => {
     e.preventDefault();
     setFormError('');
 
-    // Validate URL field is not empty
+    // Validate URL field is not empty and valid
     if (!formData.url || formData.url.trim() === '') {
       setFormError('URL is required. Please enter a valid URL for the product.');
+      return;
+    }
+
+    // Validate main product URL
+    if (!isValidUrl(formData.url)) {
+      setFormError('Please enter a valid URL for the product (e.g., https://example.com)');
+      return;
+    }
+
+    // Validate documentation links
+    const invalidLinks = formData.links_to_documentation.filter(link => 
+      link.url.trim() !== '' && !isValidUrl(link.url)
+    );
+
+    if (invalidLinks.length > 0) {
+      setFormError('Please enter valid URLs for all documentation links (e.g., https://example.com)');
       return;
     }
 

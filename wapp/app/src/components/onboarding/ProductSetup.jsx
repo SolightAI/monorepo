@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRight, ArrowLeft, CheckCircle, AlertCircle, Link as LinkIcon } from 'lucide-react';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
+import { isValidUrl } from '@/utils/urlUtils';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -87,9 +88,27 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
     setError('');
     setIsLoading(true);
 
-    // Validate URL field is not empty
+    // Validate URL field is not empty and valid
     if (!formData.url || formData.url.trim() === '') {
       setError('URL is required. Please enter a valid URL for the product.');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate main product URL
+    if (!isValidUrl(formData.url)) {
+      setError('Please enter a valid URL for the product (e.g., https://example.com)');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate documentation links
+    const invalidLinks = formData.links_to_documentation.filter(link => 
+      link.url.trim() !== '' && !isValidUrl(link.url)
+    );
+
+    if (invalidLinks.length > 0) {
+      setError('Please enter valid URLs for all documentation links (e.g., https://example.com)');
       setIsLoading(false);
       return;
     }
