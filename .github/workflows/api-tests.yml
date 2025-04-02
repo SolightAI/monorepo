@@ -54,12 +54,6 @@ jobs:
       env:
         PYTHONPATH: ${{ github.workspace }}
 
-    - name: Run basic tests first
-      run: |
-        pytest tests/unit/test_basic.py -v
-      env:
-        PYTHONPATH: ${{ github.workspace }}
-
     - name: Run unit tests
       run: |
         pytest tests/unit -v --cov=src --cov-report=xml:coverage-unit.xml
