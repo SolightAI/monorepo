@@ -146,7 +146,7 @@ export default function Layout() {
     }
 
     // If we have a product but no secrets, show an arrow to the secrets tab
-    if (selectedProduct && !isSecretLoading && secrets?.length === 1 && location.pathname === '/') {
+    if (selectedProduct && !isSecretLoading && secrets?.length === 0 && location.pathname === '/') {
       return (
         <>
           {/* Desktop sidebar */}
