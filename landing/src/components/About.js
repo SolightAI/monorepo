@@ -63,7 +63,7 @@ export default function About() {
 
       <div className={`container mx-auto px-4 py-16 relative z-20 transition-all duration-1000 transform ${isIntersecting ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
         {/* Section Title */}
-        <h2 className="text-5xl font-bold text-center mb-16 bg-gradient-to-r from-white to-laneo-400 text-transparent bg-clip-text">About Laneo</h2>
+        <h2 className="text-5xl py-6 font-bold text-center mb-16 bg-gradient-to-r from-white to-laneo-400 text-transparent bg-clip-text">About Us</h2>
 
         {/* Achievement Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-16">
@@ -93,12 +93,9 @@ export default function About() {
         {/* Founders Section - Moved before mission */}
         <div className="mb-16">
           <div className="relative overflow-hidden rounded-3xl">
-            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80 pointer-events-none" />
-
             <div className="relative z-10 p-8">
-              <h2 className="text-3xl font-bold text-center mb-12 bg-gradient-to-r from-white to-laneo-400 text-transparent bg-clip-text">Meet Our Founders</h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+              <h2 className="text-3xl font-bold text-center mb-12 bg-gradient-to-r from-white to-laneo-400 text-transparent bg-clip-text">Meet the Founders</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto pb-2">
                 {founders.map((founder, index) => (
                   <a
                     key={index}
