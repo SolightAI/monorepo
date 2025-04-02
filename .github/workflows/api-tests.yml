@@ -1,0 +1,55 @@
+name: API Tests
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'wapp/api/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'wapp/api/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./wapp/api
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install hatch
+        pip install .[test]
+
+    - name: Run unit tests
+      run: |
+        pytest tests/unit -v --cov=src --cov-report=xml:coverage-unit.xml
+
+    - name: Run integration tests
+      run: |
+        pytest tests/integration -v --cov=src --cov-report=xml:coverage-integration.xml
+
+    - name: Run functional tests
+      run: |
+        pytest tests/functional -v --cov=src --cov-report=xml:coverage-functional.xml
+
+    - name: Run critical path tests
+      run: |
+        pytest -m critical -v
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./wapp/api/coverage-unit.xml,./wapp/api/coverage-integration.xml,./wapp/api/coverage-functional.xml
+        fail_ci_if_error: false 

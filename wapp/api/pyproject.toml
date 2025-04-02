@@ -19,6 +19,10 @@ dependencies = [
     "cryptography>=44.0.2",
 ]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [tool.aerich]
 tortoise_orm = "database.database.TORTOISE_ORM"
 location = "./migrations"
@@ -38,3 +42,26 @@ strict_optional = true
 [[tool.mypy.overrides]]
 module = ["migrations.*"]
 ignore_errors = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = "test_*.py"
+markers = [
+    "functional: End-to-end API tests",
+    "integration: Integration tests",
+    "unit: Unit tests",
+    "critical: Critical path tests",
+    "auth: Authentication related tests",
+    "slow: Tests that take longer to execute"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.18.0",
+    "pytest-cov>=3.0.0",
+    "factory-boy>=3.2.0",
+    "faker>=13.0.0",
+    "httpx>=0.24.0",
+]
