@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import AnimatedBackground from './AnimatedBackground';
 
 export default function About() {
-  const [activeIndex, setActiveIndex] = useState(0);
   const [isIntersecting, setIsIntersecting] = useState(false);
 
   useEffect(() => {
@@ -18,20 +17,11 @@ export default function About() {
     return () => observer.disconnect();
   }, []);
 
-  // Auto-advance carousel with pause on hover
-  useEffect(() => {
-    let interval = setInterval(() => {
-      setActiveIndex((prevIndex) => (prevIndex + 1) % teamHighlights.length);
-    }, 5000); // Changed to 5 seconds for better readability
-
-    return () => clearInterval(interval);
-  }, []);
-
   const achievements = [
     {
-      metric: "800+",
+      metric: "900+",
       description: "GitHub Stars",
-      link: "https://github.com/Thytu/Agentarium"
+      // link: "https://github.com/Thytu/Agentarium"
     },
     {
       metric: "$XXXK",
@@ -47,40 +37,17 @@ export default function About() {
     },
   ];
 
-  const teamHighlights = [
-    {
-      title: "Elite Research Network",
-      description: "Our team collaborates with leading AI researchers from MIT, Stanford, DeepMind, Cambridge, and École normale supérieure Paris, bringing cutting-edge research to practical applications.",
-      color: "from-purple-500 to-blue-500"
-    },
-    {
-      title: "Proven Track Record",
-      description: "We've successfully scaled AI solutions from concept to enterprise deployment, generating multi-million dollar revenue and delivering measurable business impact for our clients.",
-      color: "from-blue-500 to-cyan-500"
-    },
-    {
-      title: "Leadership Excellence",
-      description: "Our founders combine technical expertise with business acumen, having led high-performance AI teams and delivered enterprise-grade systems that solve real-world challenges.",
-      color: "from-cyan-500 to-emerald-500"
-    },
-    {
-      title: "Strategic Partnerships",
-      description: "Backed by Entrepreneur First and supported by a growing network of enterprise partners, we're building an ecosystem that accelerates AI adoption across industries.",
-      color: "from-emerald-500 to-purple-500"
-    }
-  ];
-
   const founders = [
     {
       name: "Antoine Levy",
-      title: "CEO & Co-Founder",
+      title: "Co-Founder & CEO",
       bio: "Antoine brings extensive product leadership experience from the digital media industry, where he built and scaled B2B products generating XX millions in revenue. He also played professional soccer.",
       image: "https://landing.s3.fr-par.scw.cloud/antoine_founder.jpg",
       linkedin: "https://www.linkedin.com/in/antoine-l%C3%A9vy-653106201"
     },
     {
       name: "Valentin De Matos",
-      title: "CTO & Co-Founder",
+      title: "Co-Founder & CTO",
       bio: "Valentin has led AI engineering teams at fast-growing startups and directed R&D initiatives at his university. Before falling in love with Computer Science, he wanted to join the army.",
       image: "https://landing.s3.fr-par.scw.cloud/val_founder.jpg",
       linkedin: "https://www.linkedin.com/in/valentin-de-matos/"

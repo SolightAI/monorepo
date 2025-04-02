@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import ReactMarkdown from 'react-markdown'
 import BugDetailsModal from "./BugDetailsModal.jsx"
 import ContactFormModal from "./ContactFormModal.jsx"

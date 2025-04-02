@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { parseCSV, extractRouteFromUrl } from '../utils/csvParser';
 import AiDetectedBugs from '../components/AiDetectedBugs';
-import Header from '../components/Header';
 
 /**
  * Page component for displaying domain details from CSV data
