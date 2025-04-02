@@ -8,9 +8,15 @@ from fastapi import FastAPI
 from httpx import AsyncClient
 from tortoise import Tortoise
 from tortoise.contrib.test import finalizer, initializer
+from dotenv import load_dotenv
+
+# Load test environment variables
+test_env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env.test')
+load_dotenv(test_env_path)
 
 # Add project root to Python path to enable proper imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 # Import your app
 from src.main import app as main_app
