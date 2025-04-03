@@ -3,9 +3,10 @@ import json
 import base64
 
 from services import auth_services
+from services.invitation_services import get_invitation_by_code
 from dependencies import get_current_user_dependency
 from dto.models import User
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Response, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
@@ -16,8 +17,25 @@ router = APIRouter(prefix="/auth")
 @router.get("/login/google")
 async def login_google(invitation_code: Optional[str] = None) -> dict:
     state = {}
+
     if invitation_code:
-        state["invitation_code"] = invitation_code
+        try:
+            # Get the invitation to determine its type
+            invitation = await get_invitation_by_code(invitation_code)
+            state["invitation_code"] = invitation_code
+
+            # Determine the invitation type based on the invitation data
+            if invitation.organization_id:
+                state["type"] = "organization"
+            elif invitation.email:
+                state["type"] = "individual"
+            else:
+                state["type"] = "domain"  # Default to domain if no specific type is set
+        except HTTPException as e:
+            # If the invitation is not found or invalid, we'll still include the code
+            # but let the callback handle the validation
+            state["invitation_code"] = invitation_code
+            state["type"] = "unknown"
 
     state_param = f"&state={base64.urlsafe_b64encode(json.dumps(state).encode()).decode()}" if state else ""
 

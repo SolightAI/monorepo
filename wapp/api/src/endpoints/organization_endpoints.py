@@ -1,7 +1,7 @@
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 
 from dto.schemas import (
     Organization,
@@ -12,8 +12,10 @@ from dto.schemas import (
     OrganizationMemberCreate,
     OrganizationMemberUpdate,
     OrganizationRole,
+    PublicOrganization,
 )
 from services import organization_services
+from services.invitation_services import validate_invitation, mark_invitation_used
 from dependencies import get_current_user_dependency
 
 router = APIRouter(
@@ -324,3 +326,72 @@ async def get_member(
         )
 
     return target_member
+
+
+@router.get("/public/{organization_id}", response_model=PublicOrganization)
+async def get_organization_public(organization_id: UUID):
+    """
+    Get an organization by ID for invitation validation.
+    This endpoint can be accessed without authentication.
+    Only returns public information about the organization.
+    """
+    organization = await organization_services.get_organization(organization_id)
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found",
+        )
+
+    return PublicOrganization.model_validate(organization)
+
+
+@router.post("/{organization_id}/join")
+async def join_organization(
+    organization_id: UUID,
+    invitation_code: str = Query(..., description="The invitation code to join the organization"),
+    current_user=Depends(get_current_user_dependency),
+):
+    """
+    Join an organization through an invitation.
+    This endpoint can be used by users who have received an invitation.
+    """
+    # Validate the invitation and check if it's for this user's email
+    invitation = await validate_invitation(invitation_code, current_user.email)
+    
+    # Check if the invitation is for this organization
+    if invitation.organization_id != organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This invitation is not valid for this organization",
+        )
+
+    # Check if user is already a member
+    existing_member = await organization_services.get_organization_member(
+        organization_id, current_user.id
+    )
+    if existing_member:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You are already a member of this organization",
+        )
+
+    # Add the user as a member with the role from the invitation
+    member_data = OrganizationMemberCreate(
+        user_id=current_user.id,
+        role=invitation.role or OrganizationRole.MEMBER,  # Use invitation role or default to MEMBER
+        invited_by_id=invitation.created_by_id,
+    )
+    
+    new_member = await organization_services.add_member_to_organization(
+        organization_id, member_data
+    )
+    if not new_member:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to join organization",
+        )
+
+    # Mark the invitation as used
+    await mark_invitation_used(invitation_code, current_user.id)
+
+    return new_member

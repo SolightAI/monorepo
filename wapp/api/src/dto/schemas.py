@@ -60,6 +60,17 @@ class Organization(OrganizationBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PublicOrganization(BaseModel):
+    """Schema for public organization information used in invitation flows."""
+    id: UUID4
+    name: str
+    logo_url: Optional[str] = None
+    type: OrganizationType
+
+    class Config:
+        from_attributes = True
+
+
 class OrganizationWithMembers(Organization):
     members: List["OrganizationMember"] = []
 

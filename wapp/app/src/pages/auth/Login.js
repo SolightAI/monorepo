@@ -26,93 +26,42 @@ export default function Login() {
   const { login: authLogin, error: authError, isAuthenticated, handleGoogleCallback, logout } = useAuth();
   const authChecked = useRef(false);
 
-  // Check if user is already authenticated using the server API
-  useEffect(() => {
-    let isMounted = true;
-    const controller = new AbortController();
-
-    const checkAuth = async () => {
-      try {
-        if (!isMounted) return;
-
-        setIsLoading(true);
-
-        // First check if user is already authenticated in context
-        if (isAuthenticated) {
-          console.log("User already authenticated according to context");
-          // Already authenticated, redirect
-          const from = location.state?.from?.pathname || '/';
-          navigate(from, { replace: true });
-          return;
-        }
-
-        // If not authenticated in context, check with server
-        try {
-          console.log("Checking auth status with server");
-          const response = await axios.get(`${API_URL}/auth/check-auth`, {
-            withCredentials: true,
-            timeout: 5000,
-            signal: controller.signal
-          });
-
-          if (isMounted && response.data.authenticated) {
-            console.log("User authenticated according to server");
-            // Update context with user data
-            handleGoogleCallback(response.data);
-
-            // Redirect user
-            const from = location.state?.from?.pathname || '/';
-            navigate(from, { replace: true });
-          } else if (isMounted) {
-            console.log("User not authenticated according to server");
-            setIsLoading(false);
-            // Set auth checked flag now that we have a definitive answer
-            authChecked.current = true;
-          }
-        } catch (error) {
-          if (isMounted) {
-            console.log("Error checking auth status:", error.message);
-            if (error.name !== 'AbortError' && error.response?.status !== 401) {
-              console.error('Error checking auth status:', error);
-            }
-
-            setIsLoading(false);
-            // Set auth checked flag after an error
-            authChecked.current = true;
-          }
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    // Always check auth status when login page mounts
-    checkAuth();
-
-    // Cleanup function
-    return () => {
-      isMounted = false;
-      controller.abort();
-    };
-  }, [navigate, location.state?.from, isAuthenticated, handleGoogleCallback]);
-
   const fetchGoogleAuthUrl = useCallback(async (codeOverride = null) => {
-    console.log(`Fetching Google auth URL from ${API_URL}/auth/login/google`);
-
+    console.log('Fetching Google auth URL with code:', codeOverride || invitationCode);
     try {
       let url = `${API_URL}/auth/login/google`;
       const codeToUse = codeOverride !== null ? codeOverride : invitationCode;
       if (codeToUse) {
         url += `?invitation_code=${encodeURIComponent(codeToUse)}`;
       }
+      console.log('Requesting URL:', url);
       const response = await axios.get(url);
+      console.log('Google auth URL response:', response.data);
       setGoogleAuthUrl(response.data.url);
     } catch (error) {
+      console.error('Failed to fetch Google login URL:', error);
       setError('Failed to fetch Google login URL');
     }
   }, [invitationCode]);
+
+  // Handle successful authentication
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('User is authenticated, checking for redirect path');
+      // Check if there's a stored redirect path
+      const redirectPath = sessionStorage.getItem('joinOrgRedirect');
+      if (redirectPath) {
+        console.log('Found redirect path:', redirectPath);
+        // Clear the stored path
+        sessionStorage.removeItem('joinOrgRedirect');
+        // Navigate to the stored path
+        navigate(redirectPath, { replace: true });
+      } else {
+        // If no redirect path, go to main app
+        navigate('/', { replace: true });
+      }
+    }
+  }, [isAuthenticated, navigate]);
 
   // Extract code from URL query parameters and check for messages from redirects
   useEffect(() => {
@@ -122,24 +71,21 @@ export default function Login() {
     }
 
     const params = new URLSearchParams(window.location.search);
+    console.log('Login page URL params:', Object.fromEntries(params));
 
     // Check for error messages from URL parameters
     const error = params.get('error');
     const errorDescription = params.get('error_description');
     if (error) {
+      console.log('Error from URL params:', error, errorDescription);
       setError(errorDescription || error);
-      if (error === 'invitation_required') {
-        setHighlightInvitationCode(true);
-      }
     }
 
     // Check for messages from React Router state (redirects)
     const state = location.state;
     if (state?.message) {
+      console.log('Error from state:', state.message);
       setError(state.message);
-      if (state.requiresInvitationCode) {
-        setHighlightInvitationCode(true);
-      }
 
       // Clear the state message so it doesn't persist on refresh
       const timer = setTimeout(() => {
@@ -149,17 +95,37 @@ export default function Login() {
       return () => clearTimeout(timer);
     }
 
-    // Only fetch Google Auth URL if needed
-    if (!googleAuthUrl && !authChecked.current) {
+    // Check for invitation code in cookies
+    const cookies = document.cookie.split(';');
+    const pendingInvitation = cookies.find(cookie => cookie.trim().startsWith('pending_invitation='));
+    if (pendingInvitation) {
+      const code = pendingInvitation.split('=')[1];
+      console.log('Found invitation code in cookies:', code);
+      setInvitationCode(code);
+      authChecked.current = true;
+      fetchGoogleAuthUrl(code);
+    }
+    // Only fetch Google Auth URL if needed and not already fetched
+    else if (!googleAuthUrl && !authChecked.current) {
       const codeFromUrl = params.get('invitation_code');
+      console.log('Invitation code from URL:', codeFromUrl);
       if (codeFromUrl) {
         setInvitationCode(codeFromUrl);
+        authChecked.current = true;
         fetchGoogleAuthUrl(codeFromUrl);
       } else {
+        authChecked.current = true;
         fetchGoogleAuthUrl();
       }
     }
   }, [fetchGoogleAuthUrl, location, navigate, isLoading, isAuthenticated, googleAuthUrl]);
+
+  // Reset authChecked when component unmounts
+  useEffect(() => {
+    return () => {
+      authChecked.current = false;
+    };
+  }, []);
 
   // Use authError from context if available
   useEffect(() => {
@@ -174,16 +140,13 @@ export default function Login() {
     setIsLoading(true);
 
     try {
+      console.log('Attempting login with email:', email);
       await authLogin(email, password);
-
-      // Set a short timeout before navigation to ensure UI feedback
-      setTimeout(() => {
-        // Navigate to home page or intended destination
-        const from = location.state?.from?.pathname || '/';
-        navigate(from, { replace: true });
-      }, 300);
-
+      console.log('Login successful, redirecting to main app');
+      // Always redirect to main app
+      navigate('/', { replace: true });
     } catch (error) {
+      console.error('Login error:', error);
       setError(error.response?.data?.detail || 'An error occurred during login.');
       setIsLoading(false);
     }
