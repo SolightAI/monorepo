@@ -168,31 +168,17 @@ async def test_get_organization_members(client: AsyncClient, regular_user, organ
     assert result["members"][0]["role"] == "owner"
 
 
-@pytest.mark.skip(reason="TODO: Rewrite without heavy mocking to test actual functionality")
 @pytest.mark.anyio
 async def test_add_member_to_organization(client: AsyncClient, regular_user, second_user, organization):
     """Test adding a new member to an organization"""
+    # First, upgrade the regular_user to be an admin of the organization
+    # This is needed because only admins can add members
+    member = await OrganizationMember.filter(user_id=regular_user.id, organization_id=organization.id).first()
+    member.role = OrganizationRole.ADMIN
+    await member.save()
+    
     token = create_token(regular_user.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
-
-    # First create the member directly in the database to avoid service validation issues
-    member_id = uuid4()
-    await OrganizationMember.create(
-        id=member_id,
-        user=second_user,
-        organization=organization,
-        role=OrganizationRole.MEMBER
-    )
-
-    # Then mock the service to return this member's data
-    mock_result = {
-        "user_id": second_user.id,
-        "organization_id": str(organization.id),
-        "role": "member",
-        "id": str(member_id),
-        "joined_at": "2025-04-03T02:21:03.897893Z",
-        "invited_by_id": None
-    }
 
     # Add second user as member via API
     data = {
@@ -200,69 +186,65 @@ async def test_add_member_to_organization(client: AsyncClient, regular_user, sec
         "role": "member"
     }
 
-    with patch('services.organization_services.add_member_to_organization', return_value=mock_result):
-        response = await client.post(f"/organizations/{organization.id}/members", json=data, headers=headers)
+    response = await client.post(
+        f"/organizations/{organization.id}/members", 
+        json=data, 
+        headers=headers
+    )
 
     assert response.status_code == 200
     result = response.json()
     assert result["user_id"] == second_user.id
     assert result["role"] == "member"
 
-    # Verify in database - now we know it exists because we created it
-    membership = await OrganizationMember.filter(id=member_id).first()
+    # Verify in database
+    membership = await OrganizationMember.filter(
+        user_id=second_user.id, 
+        organization_id=organization.id
+    ).first()
     assert membership is not None
     assert membership.role == OrganizationRole.MEMBER
 
 
-@pytest.mark.skip(reason="TODO: Rewrite without heavy mocking to test actual functionality")
 @pytest.mark.anyio
-async def test_update_member_role(client: AsyncClient, regular_user, second_user, organization) -> None:
+async def test_update_member_role(client: AsyncClient, regular_user, second_user, organization):
     """Test updating a member's role in an organization"""
-    token = create_token(regular_user.email)
-    headers = {"Cookie": f"access_token=Bearer {token}"}
-
-    # First add the second user as a member
-    member_id = uuid4()
+    # First, set up the organization with correct permissions
+    # Make regular_user an owner (only owners can update roles)
+    owner_member = await OrganizationMember.filter(user_id=regular_user.id, organization_id=organization.id).first()
+    owner_member.role = OrganizationRole.OWNER
+    await owner_member.save()
+    
+    # Add second_user as a member
     member = await OrganizationMember.create(
-        id=member_id,
-        user=second_user,
-        organization=organization,
+        id=uuid4(),
+        user_id=second_user.id,
+        organization_id=organization.id,
         role=OrganizationRole.MEMBER
     )
+    
+    token = create_token(regular_user.email)
+    headers = {"Cookie": f"access_token=Bearer {token}"}
 
     # Update role to admin
     data = {
         "role": "admin"
     }
 
-    # Skip API interaction and manually update in database
-    member.role = OrganizationRole.ADMIN
-    await member.save()
-
-    # Mock the service response
-    mock_result = {
-        "user_id": second_user.id,
-        "organization_id": str(organization.id),
-        "role": "admin",
-        "id": str(member_id),
-        "joined_at": "2025-04-03T02:21:03.897893Z",
-        "invited_by_id": None
-    }
-
-    with patch('services.organization_services.update_member_role', return_value=mock_result):
-        response = await client.put(
-            f"/organizations/{organization.id}/members/{second_user.id}",
-            json=data,
-            headers=headers
-        )
+    response = await client.put(
+        f"/organizations/{organization.id}/members/{second_user.id}", 
+        json=data, 
+        headers=headers
+    )
 
     assert response.status_code == 200
     result = response.json()
+    assert result["user_id"] == second_user.id
     assert result["role"] == "admin"
 
     # Verify in database
-    updated_membership = await OrganizationMember.get(id=member_id)
-    assert updated_membership.role == OrganizationRole.ADMIN
+    updated_member = await OrganizationMember.get(id=member.id)
+    assert updated_member.role == OrganizationRole.ADMIN
 
 
 @pytest.mark.anyio
@@ -274,8 +256,8 @@ async def test_remove_member(client: AsyncClient, regular_user, second_user, org
     # First add the second user as a member
     await OrganizationMember.create(
         id=uuid4(),
-        user=second_user,
-        organization=organization,
+        user_id=second_user.id,
+        organization_id=organization.id,
         role=OrganizationRole.MEMBER
     )
 

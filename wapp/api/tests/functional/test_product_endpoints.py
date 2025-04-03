@@ -118,14 +118,13 @@ async def test_get_product_details(client: AsyncClient, regular_user, organizati
     assert result["organization_id"] == str(organization.id)
 
 
-@pytest.mark.skip(reason="TODO: Fix validation errors in the create_product endpoint or service")
 @pytest.mark.anyio
 async def test_create_product(client: AsyncClient, organization_admin_user, organization):
     """Test creating a new product as an admin user"""
     token = create_token(organization_admin_user.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
 
-    # Create request data with all required fields
+    # Create request data with proper LinkDocument format
     data = {
         "name": "New Product",
         "description": "A new product created in functional test",
@@ -135,7 +134,6 @@ async def test_create_product(client: AsyncClient, organization_admin_user, orga
         "organization_id": str(organization.id)
     }
 
-    # Instead of mocking, we'll handle the response checking differently
     response = await client.post("/products/", json=data, headers=headers)
 
     # Check for success and grab the ID
@@ -145,11 +143,14 @@ async def test_create_product(client: AsyncClient, organization_admin_user, orga
     assert result["description"] == data["description"]
     assert result["organization_id"] == data["organization_id"]
 
+    # Verify in database
+    created_product = await Product.filter(name=data["name"]).first()
+    assert created_product is not None
+    assert str(created_product.organization_id) == data["organization_id"]
+
     # Clean up the created product
-    if "id" in result:
-        product = await Product.filter(id=result["id"]).first()
-        if product:
-            await product.delete()
+    if created_product:
+        await created_product.delete()
 
 
 @pytest.mark.anyio

@@ -203,6 +203,23 @@ async def add_member_to_organization(
             invited_by_id=data.invited_by_id,
         )
 
+        # Create a dictionary with the proper structure for validation
+        member_dict = {
+            "id": member.id,
+            "user_id": member.user_id,
+            "organization_id": member.organization_id,
+            "role": member.role,
+            "joined_at": member.joined_at,
+            "invited_by_id": member.invited_by_id if hasattr(member, "invited_by_id") else None
+        }
+
+        # Add user data in the correct format
+        if hasattr(member, "user") and member.user:
+            member_dict["user"] = {
+                "id": user.id,
+                "username": user.username
+            }
+
         return OrganizationMemberSchema.model_validate(member)
     except (DoesNotExist, IntegrityError):
         return None
@@ -230,8 +247,30 @@ async def update_member_role(
         # Update the role
         member.role = data.role
         await member.save()
+        
+        # Fetch the updated member with user data
+        updated_member = await OrganizationMember.get(
+            user_id=user_id, organization_id=organization_id
+        ).prefetch_related("user")
+        
+        # Create a dictionary with the proper structure for validation
+        member_dict = {
+            "id": updated_member.id,
+            "user_id": updated_member.user_id,
+            "organization_id": updated_member.organization_id,
+            "role": updated_member.role,
+            "joined_at": updated_member.joined_at,
+            "invited_by_id": updated_member.invited_by_id if hasattr(updated_member, "invited_by_id") else None
+        }
+        
+        # Add user data in the correct format
+        if hasattr(updated_member, "user") and updated_member.user:
+            member_dict["user"] = {
+                "id": updated_member.user.id,
+                "username": updated_member.user.username
+            }
 
-        return OrganizationMemberSchema.model_validate(member)
+        return OrganizationMemberSchema.model_validate(member_dict)
     except DoesNotExist:
         return None
 
