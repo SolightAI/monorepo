@@ -1,5 +1,5 @@
 from __future__ import annotations
-from pydantic import BaseModel, UUID4, Field
+from pydantic import BaseModel, UUID4, Field, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -59,8 +59,7 @@ class Organization(OrganizationBase):
     updated_at: datetime
     settings: dict = {}
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrganizationWithMembers(Organization):
@@ -89,8 +88,7 @@ class OrganizationMember(OrganizationMemberBase):
     joined_at: datetime
     user: Optional[UserPrivate] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class InvitationBase(BaseModel):
@@ -113,8 +111,7 @@ class Invitation(InvitationBase):
     used_at: Optional[datetime] = None
     used_by_id: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserRegister(BaseModel):
@@ -198,8 +195,7 @@ class Product(ProductBase):
     id: UUID4
     epics: list[EpicBase] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EpicCreate(BaseModel):
@@ -220,8 +216,7 @@ class EpicBase(EpicCreate):
 class Epic(EpicBase):
     features: list["FeatureBase"] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class FeatureCreate(BaseModel):
@@ -247,8 +242,7 @@ class Feature(FeatureBase):
     acceptance_criteria: list[AcceptanceCriteriaBase] = []
     tests: list[TestBase] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserStoryCreate(BaseModel):
@@ -269,8 +263,7 @@ class UserStoryBase(UserStoryCreate):
 class UserStory(UserStoryBase):
     feature_id: UUID4
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AcceptanceCriteriaCreate(BaseModel):
@@ -291,8 +284,7 @@ class AcceptanceCriteriaBase(AcceptanceCriteriaCreate):
 class AcceptanceCriteria(AcceptanceCriteriaBase):
     feature_id: UUID4
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TestCreate(BaseModel):
@@ -333,8 +325,7 @@ class Test(TestBase):
     secrets: List[Dict[str, Any]] = []
     bugs: list[BugBase] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BugCreate(BaseModel):
@@ -356,8 +347,7 @@ class Bug(BugBase):
     test_id: UUID4
     test_execution_id: Optional[UUID4] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Dashboard Schema Models
@@ -439,8 +429,7 @@ class Secret(SecretBase):
     updated_at: datetime
     created_by_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SecretValueBase(BaseModel):
@@ -468,8 +457,7 @@ class SecretValue(SecretValueBase):
     secret_id: UUID4
     # Note: actual value is not included in responses
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SecretWithValues(Secret):
@@ -485,8 +473,7 @@ class SecretAccess(BaseModel):
     accessed_at: datetime
     action: str  # view, create, update, delete
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TestSecretCreate(BaseModel):
@@ -507,8 +494,7 @@ class TestSecret(TestSecretBase):
     secret_name: Optional[str] = None
     secret_type: Optional[SecretType] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TestExecutionCreate(BaseModel):
@@ -552,5 +538,4 @@ class TestExecution(BaseModel):
     metadata: Dict[str, Any] = {}
     tracing: Dict[str, Any] = {}
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

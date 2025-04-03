@@ -74,6 +74,10 @@ def set_auth_cookie(response: Response, token: str) -> None:
 
 async def get_current_user(token: str) -> UserModel:
     try:
+
+        if len(token.split()) != 2:
+            raise CredentialsException()
+
         payload = jwt.decode(token.split()[1], JWT_SECRET_KEY, algorithms=[ALGORITHM])
         email: str | None = payload.get("sub")
         if email is None:

@@ -2,7 +2,7 @@ import os
 import pytest
 import asyncio
 import sys
-from typing import AsyncGenerator, Dict, Any, Generator
+from httpx import AsyncClient, ASGITransport
 from asyncio import AbstractEventLoop
 from fastapi import FastAPI
 from tortoise import Tortoise
@@ -17,10 +17,7 @@ load_dotenv(test_env_path)
 # Add project root to Python path to enable proper imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
-
-# Import your app
-from src.main import app as main_app
-
+from main import app
 
 # Test database configuration
 TEST_DB = {
@@ -38,44 +35,40 @@ TEST_DB = {
     }
 }
 
+
+async def init_db(db_url, create_db: bool = False, schemas: bool = False) -> None:
+    """Initial database connection"""
+    await Tortoise.init(
+        db_url=db_url, modules={"models": ["dto.models"]}, _create_db=create_db
+    )
+    if create_db:
+        print(f"Database created! {db_url = }")
+    if schemas:
+        await Tortoise.generate_schemas()
+        print("Success to generate schemas")
+
+
+async def init(db_url: str = "sqlite://:memory:"):
+    await init_db(db_url, True, True)
+
+
 @pytest.fixture(scope="session")
-def initialize_tests() -> None:
-    """Initialize test database before tests."""
-    initializer(TEST_DB["apps"]["models"]["models"], db_url="sqlite://:memory:")
-    yield None
-    finalizer()
+def anyio_backend():
+    return "asyncio"
 
 
-@pytest.fixture
-def app(initialize_tests: None) -> FastAPI:
-    """Get the FastAPI app for testing."""
-    return main_app
+@pytest.fixture(scope="function")
+async def client():
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test"
+    ) as client:
+        print("Client is ready")
+        yield client
 
 
-@pytest.fixture
-def client(app: FastAPI) -> TestClient:
-    """Get a synchronous TestClient for testing the API."""
-    return TestClient(app)
-
-
-@pytest.fixture
-def test_user() -> Dict[str, Any]:
-    """Test user for authentication tests."""
-    return {
-        "email": "test@example.com",
-        "password": "TestPassword123",
-        "full_name": "Test User"
-    }
-
-
-@pytest.fixture
-def auth_headers(client: TestClient, test_user: Dict[str, Any]) -> Dict[str, str]:
-    """Get authentication headers for a test user."""
-    # This is a placeholder - implement actual registration and login once auth endpoints are ready
-    client.post("/auth/register", json=test_user)
-    login_response = client.post("/auth/login", data={
-        "username": test_user["email"],
-        "password": test_user["password"]
-    })
-    token = login_response.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+@pytest.fixture(scope="function", autouse=True)
+async def initialize_tests():
+    await init()
+    yield
+    await Tortoise._drop_databases()
