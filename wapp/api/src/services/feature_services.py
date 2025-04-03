@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from dto.models import Feature as FeatureModel
+from dto.models import Feature as FeatureModel, Epic as EpicModel
 from dto.schemas import FeatureCreate as FeatureCreateSchema, FeatureUpdate as FeatureUpdateSchema
 from uuid import UUID
 from pydantic import UUID4
@@ -15,6 +15,11 @@ async def get_feature(feature_id: str | UUID) -> FeatureModel:
 
 
 async def create_feature(feature: FeatureCreateSchema) -> FeatureModel:
+    # Check if the epic exists first
+    epic = await EpicModel.get_or_none(id=feature.epic_id)
+    if not epic:
+        raise HTTPException(status_code=404, detail=f"Epic with ID {feature.epic_id} not found")
+
     feature_model = await FeatureModel.create(**feature.model_dump())
 
     return await get_feature(feature_model.id)  # NOTE: a bit dirty, but it works (prevents issue with ManyToManyField)
@@ -42,12 +47,12 @@ async def delete_feature(feature_id: str | UUID) -> bool:
     from services.user_story_services import delete_user_story
     for user_story in feature.user_stories:
         await delete_user_story(user_story.id)
-        
+
     # Delete all acceptance criteria related to this feature
     from services.acceptance_criteria_services import delete_acceptance_criteria
     for acceptance_criteria in feature.acceptance_criteria:
         await delete_acceptance_criteria(acceptance_criteria.id)
-        
+
     # Delete all tests related to this feature
     from services.test_services import delete_test
     for test in feature.tests:

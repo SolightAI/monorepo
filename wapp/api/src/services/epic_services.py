@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from dto.models import Epic as EpicModel
+from dto.models import Epic as EpicModel, Product as ProductModel
 from dto.schemas import EpicCreate as EpicCreateSchema, EpicUpdate as EpicUpdateSchema
 from pydantic import UUID4
 
@@ -14,6 +14,11 @@ async def get_epic(epic_id: UUID4) -> EpicModel:
 
 
 async def create_epic(epic: EpicCreateSchema) -> EpicModel:
+    # Check if the product exists first
+    product = await ProductModel.get_or_none(id=epic.product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Product with ID {epic.product_id} not found")
+
     epic_model = await EpicModel.create(**epic.model_dump())
     return await get_epic(epic_model.id)  # NOTE: a bit dirty, but it works (prevents issue with ManyToManyField)
 
