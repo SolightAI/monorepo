@@ -94,16 +94,16 @@ const SecretCreation = ({ onNext, onPrev, onSkip }) => {
   const renderIntroduction = () => (
     <div className="p-6 space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-3">Create Your First Secret</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-3">Create Your First Test Credential</h2>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Secrets are a secure way to store sensitive information like login credentials.
+          Test Credentials are a secure way to store sensitive information like login credentials.
         </p>
       </div>
 
       <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 max-w-3xl mx-auto mb-6">
-        <h3 className="text-lg font-medium text-amber-800 mb-2">Why Secrets Matter</h3>
+        <h3 className="text-lg font-medium text-amber-800 mb-2">Why Test Credentials Matter</h3>
         <p className="text-amber-700">
-          Using the Secrets Manager keeps your sensitive information encrypted and secure.
+          Using the Test Credentials Manager keeps your sensitive information encrypted and secure.
           These secrets will be used by the AI agents to generate and run the tests
           Without them, the AI agents will not be able to login to the application.
         </p>
@@ -140,7 +140,7 @@ const SecretCreation = ({ onNext, onPrev, onSkip }) => {
           onClick={() => setStep('form')}
           className="px-5 py-2 bg-blue-600 text-white rounded-md flex items-center hover:bg-blue-700 transition-colors"
         >
-          Create Your First Secret
+          Create Your First Test Credential
           <ArrowRight className="ml-2 h-5 w-5" />
         </button>
 
@@ -158,7 +158,7 @@ const SecretCreation = ({ onNext, onPrev, onSkip }) => {
   const renderForm = () => (
     <div className="p-6 space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-3">Create Secret</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-3">Create Test Credential</h2>
         <p className="text-gray-600 max-w-2xl mx-auto">
           Let's create your first secret that you can use in your tests.
         </p>
@@ -173,7 +173,7 @@ const SecretCreation = ({ onNext, onPrev, onSkip }) => {
       <form onSubmit={handleCreateSecret} className="max-w-md mx-auto">
         <div className="mb-4">
           <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-            Secret Name
+            Test Credential Name
           </label>
           <input
             type="text"
@@ -202,7 +202,7 @@ const SecretCreation = ({ onNext, onPrev, onSkip }) => {
 
         <div className="mb-4">
           <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-            Secret Type
+            Test Credential Type
           </label>
           <select
             id="type"
@@ -334,7 +334,7 @@ const SecretCreation = ({ onNext, onPrev, onSkip }) => {
               </>
             ) : (
               <>
-                Create Secret
+                Create Test Credential
                 <Key className="ml-2 h-5 w-5" />
               </>
             )}
@@ -350,7 +350,7 @@ const SecretCreation = ({ onNext, onPrev, onSkip }) => {
         <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
           <Key className="h-8 w-8 text-green-600" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-3">Secret Created Successfully!</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-3">Test Credential Created Successfully!</h2>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
           Your first secret has been securely stored in the platform. You can now use it in your tests
           without exposing sensitive information.
@@ -360,7 +360,7 @@ const SecretCreation = ({ onNext, onPrev, onSkip }) => {
       <div className="bg-green-50 p-4 rounded-lg border border-green-200 max-w-3xl mx-auto mb-6">
         <p className="text-green-700">
           <strong>Pro tip:</strong> You can create different types of secrets including API keys,
-          connection strings, environment variables, and more from the Secrets section after completing onboarding.
+          connection strings, environment variables, and more from the Test Credentials section after completing onboarding.
         </p>
       </div>
 

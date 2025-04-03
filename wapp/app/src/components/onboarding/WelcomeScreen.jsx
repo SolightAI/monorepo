@@ -30,7 +30,7 @@ const WelcomeScreen = ({ onNext, onSkip }) => {
         />
         <FeatureCard
           icon={<Lock className="h-8 w-8 text-amber-500" />}
-          title="Secure Secrets Management"
+          title="Secure Test Credentials Management"
           description="Safely store and manage test credentials and sensitive information for your testing environments"
         />
       </div>
