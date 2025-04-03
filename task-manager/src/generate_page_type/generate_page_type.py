@@ -148,14 +148,6 @@ async def analyze_page_type(
         history = await agent.run(max_steps=30)
         result = history.final_result()
 
-        if history.has_errors() or not history.is_done() or result is None or not history.is_successful():
-            raise Exception(f"[{task_id}] Failed to analyze page type")
-
-        if result is None:
-            logger.error(f"[{task_id}] Couldn't analyze page type for product {product.name}")
-            logger.debug(f"[{task_id}] History of the agent when analyzing page type for product {product.name}: {history.action_results()}")
-            raise Exception(f"[{task_id}] Failed to analyze page type, result is None")
-
         from browser_use.agent.gif import create_history_gif  # import here to avoid thread blocking
         with NamedTemporaryFile(suffix='.gif', delete=True) as temp_gif:
             create_history_gif(
@@ -177,6 +169,14 @@ async def analyze_page_type(
             )
             if s3_url:
                 logger.info(f"[{task_id}] Page Type Analysis GIF uploaded to S3: {s3_url}")
+
+        if history.has_errors() or not history.is_done() or result is None or not history.is_successful():
+            raise Exception(f"[{task_id}] Failed to analyze page type")
+
+        if result is None:
+            logger.error(f"[{task_id}] Couldn't analyze page type for product {product.name}")
+            logger.debug(f"[{task_id}] History of the agent when analyzing page type for product {product.name}: {history.action_results()}")
+            raise Exception(f"[{task_id}] Failed to analyze page type, result is None")
 
         return check_page_type(task_id, result)
 
