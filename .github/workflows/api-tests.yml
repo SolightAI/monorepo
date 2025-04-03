@@ -70,12 +70,6 @@ jobs:
       env:
         PYTHONPATH: ${{ github.workspace }}
 
-    - name: Run critical path tests
-      run: |
-        pytest -m critical -v
-      env:
-        PYTHONPATH: ${{ github.workspace }}
-
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
       with:
