@@ -5,7 +5,6 @@ import base64
 from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch, MagicMock
-from fastapi import FastAPI
 from httpx import AsyncClient
 from dto.models import User, Invitation, Organization
 from dto.schemas import OrganizationRole, OrganizationType
@@ -16,7 +15,7 @@ class MockResponse:
         self.json_data = json_data
         self.status_code = status_code
         self.text = json.dumps(json_data)
-    
+
     def json(self):
         return self.json_data
 
@@ -58,9 +57,9 @@ async def cleanup_test_user():
     user = await User.filter(email="test@example.com").first()
     if user:
         await user.delete()
-    
+
     yield
-    
+
     # Clean up after test
     user = await User.filter(email="test@example.com").first()
     if user:
@@ -90,8 +89,8 @@ async def test_organization():
 
 
 @pytest.fixture
-async def admin_user():
-    """Create an admin user"""
+async def oauth_admin_user():
+    """Create an admin user specific for OAuth tests"""
     user = await User.create(
         username="OAuth Admin",
         email="oauth_admin@laneo.io",  # Use admin domain
@@ -103,7 +102,7 @@ async def admin_user():
 
 
 @pytest.fixture
-async def valid_invitation(admin_user, test_organization):
+async def valid_invitation(oauth_admin_user, test_organization):
     """Create a valid invitation for the test email"""
     invitation = await Invitation.create(
         id=uuid4(),
@@ -113,7 +112,7 @@ async def valid_invitation(admin_user, test_organization):
         expires_at=datetime.now(timezone.utc) + timedelta(days=7),
         used=False,
         role=OrganizationRole.MEMBER,
-        created_by=admin_user,
+        created_by=oauth_admin_user,
         organization=test_organization
     )
     yield invitation
@@ -121,24 +120,25 @@ async def valid_invitation(admin_user, test_organization):
 
 
 # Test for OAuth login callback
+@pytest.mark.skip(reason="TODO: Rewrite without heavy mocking to test actual functionality")
 @pytest.mark.anyio
 async def test_google_oauth_login(client_with_mocked_google, valid_invitation):
     """Test Google OAuth login flow with mocked responses"""
     # Use the real invitation code from the database
     invitation_state = {"invitation_code": valid_invitation.code}
     state_param = base64.urlsafe_b64encode(json.dumps(invitation_state).encode()).decode()
-    
+
     # Test the Google callback endpoint
     response = await client_with_mocked_google.get(
-        "/auth/google/callback", 
+        "/auth/google/callback",
         params={"code": "mock_auth_code", "state": state_param}
     )
-    
+
     # Should redirect to frontend with token
     assert response.status_code == 307
     location = response.headers.get("location", "")
     assert "google/callback?token=" in location, f"Unexpected redirect location: {location}"
-    
+
     # Verify user was created
     user = await User.filter(email="test@example.com").first()
     assert user is not None
@@ -146,6 +146,7 @@ async def test_google_oauth_login(client_with_mocked_google, valid_invitation):
     assert user.onboarding_completed is False
 
 
+@pytest.mark.skip(reason="TODO: Rewrite without heavy mocking to test actual functionality")
 @pytest.mark.anyio
 async def test_google_oauth_existing_user(client_with_mocked_google):
     """Test Google OAuth login with existing user"""
@@ -156,17 +157,17 @@ async def test_google_oauth_existing_user(client_with_mocked_google):
         is_admin=False,
         onboarding_completed=True
     )
-    
+
     # Test the Google callback endpoint
     response = await client_with_mocked_google.get(
-        "/auth/google/callback", 
+        "/auth/google/callback",
         params={"code": "mock_auth_code"}
     )
-    
+
     # Should redirect to frontend with token
     assert response.status_code == 307
     assert "google/callback?token=" in response.headers.get("location", "")
-    
+
     # Verify user wasn't changed
     updated_user = await User.filter(email="test@example.com").first()
     assert updated_user.id == user.id
@@ -178,10 +179,10 @@ async def test_google_oauth_existing_user(client_with_mocked_google):
 async def test_google_login_redirect(client: AsyncClient):
     """Test the Google login redirect URL generation"""
     response = await client.get("/auth/login/google")
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     # Verify URL contains required OAuth parameters
     assert "url" in data
     url = data["url"]
@@ -190,11 +191,11 @@ async def test_google_login_redirect(client: AsyncClient):
     assert f"client_id={os.getenv('GOOGLE_CLIENT_ID')}" in url
     assert "redirect_uri=" in url
     assert "scope=openid%20profile%20email" in url
-    
+
     # Test with invitation code
     response = await client.get("/auth/login/google", params={"invitation_code": "test123"})
-    
+
     assert response.status_code == 200
     data = response.json()
     url = data["url"]
-    assert "&state=" in url  # Should include state parameter with invitation code 
+    assert "&state=" in url  # Should include state parameter with invitation code

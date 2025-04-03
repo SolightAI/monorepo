@@ -9,6 +9,8 @@ from tortoise import Tortoise
 from tortoise.contrib.test import finalizer, initializer
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
+import jwt
+from datetime import datetime, timezone, timedelta
 
 # Load test environment variables
 test_env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env.test')
@@ -72,3 +74,15 @@ async def initialize_tests():
     await init()
     yield
     await Tortoise._drop_databases()
+
+def create_token(user_email, expires_delta=None, algorithm="HS256"):
+    """Helper function to create JWT tokens"""
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "test_secret_key")
+    
+    to_encode = {"sub": user_email}
+    
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+        to_encode.update({"exp": expire})
+        
+    return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=algorithm)
