@@ -69,9 +69,3 @@ jobs:
         pytest tests/functional -v --cov=src --cov-report=xml:coverage-functional.xml
       env:
         PYTHONPATH: ${{ github.workspace }}
-
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
-      with:
-        files: ./wapp/api/coverage-unit.xml,./wapp/api/coverage-integration.xml,./wapp/api/coverage-functional.xml
-        fail_ci_if_error: false
