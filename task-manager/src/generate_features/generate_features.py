@@ -17,6 +17,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service
 from utils.task_status import task_status_manager
 from utils.history_validator import validate_agent_history
+from utils.s3_utils import upload_gif_to_s3
 
 
 PROMPT = """
@@ -113,6 +114,7 @@ def _parse_features(features_text: str) -> list[dict[str, str]]:
 
 
 async def _generate_features(
+    task_id: str,
     product: Product,
     epic: Epic,
     cookies_file: str | None = None,
@@ -180,7 +182,30 @@ async def _generate_features(
         await context.close()
         await browser.close()
 
+    from browser_use.agent.gif import create_history_gif  # import here to avoid thread blocking
+    with NamedTemporaryFile(suffix='.gif', delete=True) as temp_gif:
+        create_history_gif(
+            task="a",
+            history=history,
+            output_path=temp_gif.name,
+            show_task=False,
+            show_logo=False,
+            show_goals=False
+        )
+
+        # Upload GIF to S3
+        s3_url = upload_gif_to_s3(
+            task_id=task_id,
+            file_path=temp_gif.name,
+            task_type="feature",
+            task_name=epic.name,
+            additional_params=epic.model_dump()
+        )
+        if s3_url:
+            logger.info(f"[{task_id}] Features GIF uploaded to S3: {s3_url}")
+
     result = await validate_agent_history(
+        task_id=task_id,
         history=history,
         task_name=f"generate features for {epic.name}",
     )
@@ -203,7 +228,7 @@ def handle_background_task_errors(func):
         except Exception as e:
             error_message = str(e)
             stack_trace = traceback.format_exc()
-            logger.error(f"Error in background task {task_id}: {error_message}\n{stack_trace}")
+            logger.error(f"[{task_id}] Error in background task: {error_message}\n{stack_trace}")
             task_status_manager.set_status(task_id, "error", error=error_message)
             raise e
 
@@ -235,8 +260,9 @@ async def background_generate_features(
     """
 
     auth_session = await generate_auth_session(
-        product.url,
-        secrets,
+        task_id=task_id,
+        url=product.url,
+        secrets=secrets,
     )
 
     with NamedTemporaryFile(suffix=".json", mode="w+") as cookies_file:
@@ -245,6 +271,7 @@ async def background_generate_features(
         cookies_file.seek(0)
 
         features = await _generate_features(
+            task_id=task_id,
             product=product,
             epic=epic,
             cookies_file=cookies_file.name if auth_session.get('cookies') is not None else None,
@@ -285,7 +312,7 @@ async def generate_features(
             if not secrets_to_use:
                 raise HTTPException(status_code=400, detail="No secrets provided")
         except Exception as e:
-            logger.error(f"Failed to decrypt secrets: {str(e)}")
+            logger.error(f"[{task_id}] Failed to decrypt secrets: {str(e)}")
             raise HTTPException(status_code=400, detail=f"Failed to decrypt secrets: {str(e)}")
 
     background_task.add_task(

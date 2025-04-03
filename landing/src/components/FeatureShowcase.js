@@ -3,11 +3,7 @@ import { Brain, Zap, Target, Users } from 'lucide-react';
 
 const FeatureShowcase = ({ title = "Your Fully Automated QA Agent", hideTitle = false }) => {
   const [activeFeature, setActiveFeature] = useState(0);
-  const [isHovering, setIsHovering] = useState(false);
   const [animationStep, setAnimationStep] = useState(0);
-  const featureListRef = useRef(null);
-  const [scrollPosition, setScrollPosition] = useState(0);
-  const [showDots, setShowDots] = useState(false);
   const componentRef = useRef(null);
   const [autoScrolling, setAutoScrolling] = useState(true);
   const autoScrollTimerRef = useRef(null);

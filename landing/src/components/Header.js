@@ -34,13 +34,7 @@ export default function Header() {
         {/* Desktop navigation */}
         <nav className="hidden md:flex space-x-8 md:space-x-12 mx-auto">
           <a href="/" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
-            Home
-          </a>
-          <a href="/#features" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
-            Features
-          </a>
-          <a href="/#demo" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
-            Demo
+            About Laneo
           </a>
           <a href="/about" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1 px-1 leading-relaxed">
             About Us
@@ -49,14 +43,6 @@ export default function Header() {
 
         {/* CTA button - hidden on mobile */}
         <div className="hidden md:flex items-center space-x-3">
-          <a
-            href="https://docs.google.com/forms/d/e/1FAIpQLScq0g8iWlWzel10HwjhZeCWnGbl1VrzsHAnW8hj2h0mylQtew/viewform?usp=header"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-1.5 rounded-full bg-green-500 hover:bg-green-400 transition-colors text-white text-xs font-medium"
-          >
-            Sign Up
-          </a>
           <a
             href="https://calendly.com/antoinelevy"
             target="_blank"
@@ -75,12 +61,6 @@ export default function Header() {
             <a href="/" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
               Home
             </a>
-            <a href="/#features" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
-              Features
-            </a>
-            <a href="/#demo" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
-              Demo
-            </a>
             <a href="/about" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
               About Us
             </a>
@@ -91,14 +71,6 @@ export default function Header() {
               className="px-4 py-1.5 rounded-full bg-blue-500 hover:bg-blue-400 transition-colors text-white text-xs font-medium w-fit"
             >
               Request a Demo
-            </a>
-            <a
-              href="https://docs.google.com/forms/d/e/1FAIpQLScq0g8iWlWzel10HwjhZeCWnGbl1VrzsHAnW8hj2h0mylQtew/viewform?usp=header"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-1.5 rounded-full bg-green-500 hover:bg-green-400 transition-colors text-white text-xs font-medium w-fit"
-            >
-              Sign Up
             </a>
           </nav>
         </div>

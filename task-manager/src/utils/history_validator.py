@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 async def validate_agent_history(
+    task_id: str,
     history: AgentHistoryList,
     task_name: str,
     error_markers: Optional[list[str]] = None,
@@ -35,28 +36,32 @@ async def validate_agent_history(
 
     # Check if the task completed
     if not history.is_done():
-        error_msg = f"Failed to {task_name}, history is not done"
+        error_msg = f"[{task_id}] Failed to {task_name}, history is not done."
+        error_msg += f" {result}"
         logger.error(error_msg)
         raise Exception(error_msg)
 
     # Check if the task was successful
     if not history.is_successful():
-        error_msg = f"Failed to {task_name}, history is not successful"
+        error_msg = f"[{task_id}] Failed to {task_name}, history is not successful."
+        error_msg += f" {result}"
         logger.error(error_msg)
 
         raise Exception(error_msg)
 
     # Check if the result is empty and empty_result_is_ok is False
     if not empty_result_is_ok and result is None:
-        error_msg = f"Failed to {task_name}, result is None"
+        error_msg = f"[{task_id}] Failed to {task_name}, result is None."
+        error_msg += f" {result}"
         logger.error(error_msg)
         raise Exception(error_msg)
 
     # Check for custom error marker in the result
     if error_markers is not None:
-        for error_marker in error_markers:
-            if result is not None and error_marker in result:
-                error_msg = f"Failed to {task_name}, {error_marker} found in result"
+        for _error_marker in error_markers:
+            if result is not None and _error_marker in result:
+                error_msg = f"[{task_id}] Failed to {task_name}, {_error_marker} found in result."
+                error_msg += f" {result}"
                 logger.error(error_msg)
                 raise Exception(error_msg)
 

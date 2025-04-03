@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { X, AlertCircle } from 'lucide-react';
 import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
+import { isValidUrl } from '@/utils/urlUtils';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -20,17 +21,6 @@ const EditFeatureModal = ({ onClose, feature, onFeatureUpdated }) => {
     urls: false
   });
   const [urlErrors, setUrlErrors] = useState([]);
-
-  // URL validation function
-  const isValidUrl = (url) => {
-    try {
-      // Use the URL constructor to validate the URL
-      new URL(url);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  };
 
   // Calculate if form is valid for submit button
   const isFormValid = () => {

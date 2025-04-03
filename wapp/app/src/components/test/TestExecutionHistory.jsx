@@ -1,65 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Server, Calendar } from 'lucide-react';
-import { getTestExecutions } from '@/services/testExecutionService';
-import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
 import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus } from '@/utils/testExecutionUtils';
 
 /**
  * Component to display a history of test executions
  */
-const TestExecutionHistory = ({ testId, onExecutionSelect }) => {
-  const [executions, setExecutions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const TestExecutionHistory = ({ executions = [], isLoading = false, error = null, onSelect, onRefresh }) => {
   const [selectedEnvironment, setSelectedEnvironment] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const fetchingRef = useRef(false);
-
-  // Memoize fetch function to avoid dependency issues
-  const fetchTestExecutions = useCallback(async () => {
-    // Prevent concurrent fetch calls
-    if (fetchingRef.current) return;
-
-    try {
-      fetchingRef.current = true;
-      setError(null);
-
-      // Only show loading indicator on initial load, not during polling
-      if (!executions.length) {
-        setLoading(true);
-      }
-
-      const data = await getTestExecutions(testId);
-      // Sort executions by date, newest first
-      const sortedExecutions = data.sort((a, b) =>
-        new Date(b.started_at) - new Date(a.started_at)
-      );
-      setExecutions(sortedExecutions);
-    } catch (err) {
-      console.error('Error fetching test executions:', err);
-      setError('Failed to load test execution history.');
-    } finally {
-      setLoading(false);
-      fetchingRef.current = false;
-    }
-  }, [testId, executions.length]);
-
-  // Initial fetch
-  useEffect(() => {
-    fetchTestExecutions();
-  }, [fetchTestExecutions]);
-
-  // Check for pending executions
-  const hasPendingExecutions = useCallback(() => {
-    return executions.some(execution => execution.status?.toUpperCase() === 'PENDING');
-  }, [executions]);
-
-  // Use our custom hook for polling
-  usePendingStatusPolling(
-    fetchTestExecutions,
-    hasPendingExecutions,
-    [executions, testId]
-  );
 
   // Get all available environments for filtering
   const environments = ['all', ...new Set(executions.map(exec => exec.environment))];
@@ -73,7 +21,7 @@ const TestExecutionHistory = ({ testId, onExecutionSelect }) => {
     (selectedStatus === 'all' || exec.status === selectedStatus)
   );
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center p-6">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
@@ -87,7 +35,7 @@ const TestExecutionHistory = ({ testId, onExecutionSelect }) => {
       <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700">
         <p>{error}</p>
         <button
-          onClick={fetchTestExecutions}
+          onClick={onRefresh}
           className="mt-2 px-3 py-1 bg-red-100 hover:bg-red-200 rounded-md text-sm"
         >
           Try Again
@@ -159,7 +107,7 @@ const TestExecutionHistory = ({ testId, onExecutionSelect }) => {
               return (
                 <tr
                   key={execution.id}
-                  onClick={() => onExecutionSelect(execution)}
+                  onClick={() => onSelect(execution)}
                   className="hover:bg-gray-50 cursor-pointer"
                 >
                   <td className="px-4 py-3 whitespace-nowrap">

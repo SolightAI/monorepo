@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# exit if error
+set -e
+
 # Set PLAYWRIGHT_BROWSERS_PATH to /tmp/playwright-browsers only if not already set
 if [ -z "$PLAYWRIGHT_BROWSERS_PATH" ]; then
   export PLAYWRIGHT_BROWSERS_PATH="/tmp/playwright-browsers"
@@ -20,6 +23,9 @@ else
   echo "==== Playwright browsers already installed in $PLAYWRIGHT_BROWSERS_PATH ==== "
   pip install playwright
 fi
+
+# Give rights to the user to use the all Playwright binary
+chmod -R 755 $PLAYWRIGHT_BROWSERS_PATH
 
 # Run the application
 exec uvicorn main:app --host 0.0.0.0 --port 9000 --reload

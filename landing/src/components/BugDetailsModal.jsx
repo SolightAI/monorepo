@@ -5,7 +5,6 @@ import ContactFormModal from './ContactFormModal';
 function BugDetailsModal({ bug, onClose, isRestricted }) {
   const [selectedScreenshot, setSelectedScreenshot] = useState(null);
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
-  const [ticketCreated, setTicketCreated] = useState(false);
   const [showContactForm, setShowContactForm] = useState(false);
 
   // Add useEffect hook to handle escape key
@@ -41,7 +40,6 @@ function BugDetailsModal({ bug, onClose, isRestricted }) {
     // Simulate API call with timeout
     setTimeout(() => {
       setIsCreatingTicket(false);
-      setTicketCreated(true);
       // In a real app, you would update the bug with the new ticket info from the API response
     }, 1500);
   };

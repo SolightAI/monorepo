@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { parseCSV, extractRouteFromUrl } from '../utils/csvParser';
 import AiDetectedBugs from '../components/AiDetectedBugs';
-import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 /**
  * Page component for displaying domain details from CSV data
@@ -93,8 +93,8 @@ const DomainPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="container mx-auto px-4 py-8 pt-8">
+    <div className="min-h-screen bg-white flex flex-col">
+      <div className="container mx-auto px-4 py-8 pt-8 flex-1">
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">{domainInfo.name}</h1>
           {/* <a
@@ -110,6 +110,7 @@ const DomainPage = () => {
 
         <AiDetectedBugs bugs={transformedBugs} />
       </div>
+      <Footer />
     </div>
   );
 };

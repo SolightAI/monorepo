@@ -3,7 +3,24 @@ FROM python:3.11-slim
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y git \
-    && apt-get clean
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libgtk-3-0 \
+    libx11-xcb1 \
+    libxcb-dri3-0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libcups2 \
+    libxss1 \
+    libxshmfence1 \
+    --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get clean
 
 WORKDIR /app
 
