@@ -1,6 +1,7 @@
 import factory
 from faker import Faker
 from typing import Any
+from dto.models import User
 
 fake = Faker()
 
@@ -10,22 +11,24 @@ class UserFactory(factory.Factory):
 
     class Meta:
         """Meta class for UserFactory."""
-        model = dict
+        model = User
 
+    username = factory.LazyFunction(lambda: fake.user_name())
     email = factory.LazyFunction(lambda: fake.email())
-    password = factory.LazyFunction(lambda: fake.password(length=12, special_chars=True, digits=True, upper_case=True, lower_case=True))
-    full_name = factory.LazyFunction(lambda: fake.name())
+    is_admin = factory.LazyFunction(lambda: False)
+    onboarding_completed = factory.LazyFunction(lambda: False)
 
     @classmethod
-    def admin(cls, **kwargs) -> dict[str, Any]:
+    def admin(cls, **kwargs) -> User:
         """Create an admin user."""
-        user = cls(**kwargs)
-        user["is_admin"] = True
-        return user
+        return cls(is_admin=True, **kwargs)
 
     @classmethod
-    def regular(cls, **kwargs) -> dict[str, Any]:
+    def regular(cls, **kwargs) -> User:
         """Create a regular user."""
-        user = cls(**kwargs)
-        user["is_admin"] = False
-        return user
+        return cls(is_admin=False, **kwargs)
+
+    @classmethod
+    def onboarded(cls, **kwargs) -> User:
+        """Create an onboarded user."""
+        return cls(onboarding_completed=True, **kwargs)
