@@ -85,7 +85,7 @@ router = APIRouter(prefix="/generate-acceptance-criteria")
 logger = getLogger(__name__)
 
 
-def _parse_acceptance_criteria(acceptance_criteria_text: str) -> list[dict[str, str]]:
+def _parse_acceptance_criteria(task_id: str, acceptance_criteria_text: str) -> list[dict[str, str]]:
     """Parse the text returned from LLM into a list of acceptance criteria dictionaries."""
     # Use regex to extract acceptance criteria
     acceptance_criteria = []
@@ -102,14 +102,14 @@ def _parse_acceptance_criteria(acceptance_criteria_text: str) -> list[dict[str, 
         name_match = re.search(name_pattern, criteria_content, re.DOTALL)
 
         if not name_match:
-            raise Exception("No name found for acceptance criteria: %s", criteria_content)
+            raise Exception(f"[{task_id}] No name found for acceptance criteria: {criteria_content}")
 
         name = name_match.group(1).strip()
 
         # Extract description
         description_match = re.search(description_pattern, criteria_content, re.DOTALL)
         if not description_match:
-            raise Exception("No description found for acceptance criteria: %s", criteria_content)
+            raise Exception(f"[{task_id}] No description found for acceptance criteria: {criteria_content}")
 
         description = description_match.group(1).strip()
 
@@ -227,7 +227,7 @@ async def _generate_acceptance_criteria(
     )
 
     # Parse the test cases from the LLM response
-    acceptance_criteria = _parse_acceptance_criteria(result)
+    acceptance_criteria = _parse_acceptance_criteria(task_id, result)
 
     return [AcceptanceCriteria(name=ac["name"], description=ac["description"]) for ac in acceptance_criteria]
 
