@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { X, AlertCircle, Loader } from 'lucide-react';
 import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
+import { MAX_NAME_LENGTH } from '@/constants/validation';
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
@@ -23,6 +24,11 @@ const EditEpicModal = ({
 
     if (!editedEpic.name.trim()) {
       setError('Please provide an epic name.');
+      return;
+    }
+
+    if (editedEpic.name.length > MAX_NAME_LENGTH) {
+      setError(`Epic name cannot exceed ${MAX_NAME_LENGTH} characters.`);
       return;
     }
 
@@ -91,7 +97,11 @@ const EditEpicModal = ({
                 onChange={(e) => setEditedEpic({ ...editedEpic, name: e.target.value })}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 placeholder="E.g., User Authentication, Payment Processing"
+                maxLength={MAX_NAME_LENGTH}
               />
+              <div className="mt-1 text-xs text-gray-500 flex justify-end">
+                {editedEpic.name.length}/{MAX_NAME_LENGTH} characters
+              </div>
             </div>
 
             <div className="mb-6">

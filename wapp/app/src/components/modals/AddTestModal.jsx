@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
 import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
+import { MAX_NAME_LENGTH } from '@/constants/validation';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -265,11 +266,15 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
                   id="name"
                   name="name"
                   required
+                  maxLength={MAX_NAME_LENGTH}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Enter test name"
                 />
+                <div className="mt-1 text-xs text-gray-500 flex justify-end">
+                  {formData.name.length}/{MAX_NAME_LENGTH} characters
+                </div>
               </div>
 
               <div>

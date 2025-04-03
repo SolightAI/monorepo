@@ -22,15 +22,18 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
   });
   const [urlErrors, setUrlErrors] = useState([]);
 
+  // Maximum name length constant
+  const MAX_NAME_LENGTH = 255;
+
   // Calculate if form is valid for submit button
   const isFormValid = () => {
-    const nameValid = formData.name.trim() !== '';
+    const nameValid = formData.name.trim() !== '' && formData.name.length <= MAX_NAME_LENGTH;
     const urlsValid = formData.urls.some(url => url.trim() !== '' && isValidUrl(url));
     return nameValid && urlsValid && urlErrors.every(error => !error);
   };
 
   // Check individual field validity for UI feedback
-  const isNameValid = formData.name.trim() !== '';
+  const isNameValid = formData.name.trim() !== '' && formData.name.length <= MAX_NAME_LENGTH;
   const isUrlsValid = formData.urls.some(url => url.trim() !== '');
 
   // Handle input change for name and description
@@ -106,6 +109,12 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
       return;
     }
 
+    // Validate name length
+    if (formData.name.length > MAX_NAME_LENGTH) {
+      setError(`Feature name cannot exceed ${MAX_NAME_LENGTH} characters`);
+      return;
+    }
+
     // Filter out empty URLs
     const filteredUrls = formData.urls.filter(url => url.trim() !== '');
 
@@ -165,12 +174,12 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
       <div {...getModalContentProps('w-full max-w-md')}>
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold">
+            <h2 className="text-2xl font-bold truncate max-w-[92%]">
               Add Feature to "{epicName}"
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
             >
               <X size={24} />
             </button>
@@ -200,7 +209,16 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
                 onChange={handleInputChange}
                 className={`w-full p-2 border ${touched.name && !isNameValid ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-md focus:ring-blue-500 focus:border-blue-500`}
                 required
+                maxLength={MAX_NAME_LENGTH}
               />
+              <div className="flex justify-between mt-1">
+                {touched.name && formData.name.trim() !== '' && formData.name.length > MAX_NAME_LENGTH && (
+                  <div className="text-xs text-red-500">Name cannot exceed {MAX_NAME_LENGTH} characters</div>
+                )}
+                <div className={`text-xs ml-auto ${formData.name.length > MAX_NAME_LENGTH ? 'text-red-500' : 'text-gray-500'}`}>
+                  {formData.name.length}/{MAX_NAME_LENGTH}
+                </div>
+              </div>
             </div>
 
             <div className="mb-4">

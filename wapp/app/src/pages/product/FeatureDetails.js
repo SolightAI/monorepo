@@ -902,7 +902,7 @@ const FeatureDetails = () => {
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center">
                     <TestTube size={24} className="text-purple-500 mr-3" />
-                    <h1 className="text-3xl font-bold text-gray-800">{feature.name}</h1>
+                    <h1 className="text-3xl font-bold text-gray-800 truncate max-w-[800px]" title={feature.name}>{feature.name}</h1>
                   </div>
                   <div className="flex items-center space-x-3">
                     {/* Add Generate All button */}
@@ -927,7 +927,9 @@ const FeatureDetails = () => {
                     </button>
                   </div>
                 </div>
-                <p className="text-gray-700 mb-4">{feature.description}</p>
+                <div className="mb-4">
+                  <p className="text-gray-700 break-words overflow-hidden max-h-40 overflow-y-auto break-all">{feature.description}</p>
+                </div>
                 {feature.urls && feature.urls.length > 0 && (
                   <div className="mt-4">
                     <h3 className="text-lg font-semibold mb-2">URLs:</h3>
@@ -1008,9 +1010,9 @@ const FeatureDetails = () => {
                         <div className="flex items-start">
                           <CheckSquare size={20} className="text-green-500 mr-3 mt-1 flex-shrink-0" />
                           <div>
-                            <h3 className="text-lg font-medium text-gray-800 mb-1">{story.name}</h3>
+                            <h3 className="text-lg font-medium text-gray-800 mb-1 truncate max-w-[500px]" title={story.name}>{story.name}</h3>
                             {story.description && (
-                              <p className="text-gray-600 mb-2">{story.description}</p>
+                              <p className="text-gray-600 mb-2 break-words overflow-y-auto pr-2 break-all">{story.description}</p>
                             )}
                           </div>
                         </div>
@@ -1068,17 +1070,19 @@ const FeatureDetails = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {acceptanceCriteria.map((criteria) => (
+                  {acceptanceCriteria.map((criteria, index) => (
                     <div
-                      key={criteria.id}
+                      key={criteria.id || `temp-${index}`}
                       className="p-4 border border-gray-200 rounded-lg"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-start">
                           <CheckSquare size={20} className="text-green-500 mr-3 mt-1 flex-shrink-0" />
                           <div>
-                            <h3 className="text-lg font-medium text-gray-800 mb-1">{criteria.name}</h3>
-                            <p className="text-gray-600 mb-2">{criteria.description}</p>
+                            <h3 className="text-lg font-medium text-gray-800 mb-1 truncate max-w-[500px]" title={criteria.name}>{criteria.name}</h3>
+                            {criteria.description && (
+                              <p className="text-gray-600 mb-2 break-words overflow-y-auto pr-2 break-all">{criteria.description}</p>
+                            )}
                           </div>
                         </div>
                         <button
@@ -1188,8 +1192,8 @@ const FeatureDetails = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900" title={test.name}>
-                              {truncateText(test.name)}
+                            <div className="text-sm font-medium text-gray-900 truncate max-w-[200px]" title={test.name}>
+                              {test.name}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
