@@ -12,7 +12,6 @@ async def organization(admin_user, organization_owner, organization_member, orga
     org = await Organization.create(
         id=uuid4(),
         name="Feature Test Org",
-        description="Organization for testing feature endpoints",
         type=OrganizationType.ENTERPRISE
     )
 
@@ -23,21 +22,21 @@ async def organization(admin_user, organization_owner, organization_member, orga
         organization=org,
         role=OrganizationRole.ADMIN
     )
-    
+
     await OrganizationMember.create(
         id=uuid4(),
         user=organization_owner,
         organization=org,
         role=OrganizationRole.OWNER
     )
-    
+
     await OrganizationMember.create(
         id=uuid4(),
         user=organization_member,
         organization=org,
         role=OrganizationRole.MEMBER
     )
-    
+
     await OrganizationMember.create(
         id=uuid4(),
         user=organization_guest,
@@ -220,7 +219,7 @@ async def test_owner_can_create_feature(client: AsyncClient, organization_owner,
 
     assert response.status_code == 200
     result = response.json()
-    
+
     # Cleanup
     feature_id = result["id"]
     feature = await Feature.get(id=feature_id)
@@ -277,19 +276,19 @@ async def test_guest_can_view_but_not_modify_feature(client: AsyncClient, organi
         headers=headers
     )
     assert view_response.status_code == 200
-    
+
     # Guest should not be able to update feature
     update_data = {
         "name": "Guest Modified Feature",
         "description": "This update should fail"
     }
-    
+
     update_response = await client.put(
         f"/features/{feature.id}",
         json=update_data,
         headers=headers
     )
-    
+
     # Guest should be forbidden
     assert update_response.status_code in [401, 403]
 
@@ -305,7 +304,7 @@ async def test_non_member_cannot_access_feature(client: AsyncClient, feature):
         is_admin=False,
         onboarding_completed=True
     )
-    
+
     token = create_token(non_member.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
 
@@ -316,7 +315,7 @@ async def test_non_member_cannot_access_feature(client: AsyncClient, feature):
 
     # Non-member should be forbidden
     assert response.status_code in [401, 403, 404]
-    
+
     # Cleanup
     await non_member.delete()
 
@@ -391,7 +390,7 @@ async def test_multiple_features_per_epic(client: AsyncClient, admin_user, epic)
     # Verify both features belong to the same epic
     feature1_get = await client.get(f"/features/{feature1_id}", headers=headers)
     feature2_get = await client.get(f"/features/{feature2_id}", headers=headers)
-    
+
     assert feature1_get.json()["epic_id"] == str(epic.id)
     assert feature2_get.json()["epic_id"] == str(epic.id)
 
@@ -406,7 +405,7 @@ async def test_owner_can_delete_feature(client: AsyncClient, organization_owner,
     """Test that organization owner can delete features"""
     token = create_token(organization_owner.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
-    
+
     # Create feature to delete
     feature = await Feature.create(
         id=uuid4(),
@@ -415,16 +414,16 @@ async def test_owner_can_delete_feature(client: AsyncClient, organization_owner,
         epic=epic,
         urls=[]
     )
-    
+
     response = await client.delete(
         f"/features/{feature.id}",
         headers=headers
     )
-    
+
     assert response.status_code == 200
     result = response.json()
     assert result["success"] is True
-    
+
     # Verify feature is deleted
     feature_exists = await Feature.filter(id=feature.id).exists()
     assert not feature_exists
@@ -436,7 +435,7 @@ async def test_member_cannot_delete_feature(client: AsyncClient, organization_me
     """Test that regular members cannot delete features"""
     token = create_token(organization_member.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
-    
+
     # Create feature to attempt deleting
     feature = await Feature.create(
         id=uuid4(),
@@ -445,19 +444,19 @@ async def test_member_cannot_delete_feature(client: AsyncClient, organization_me
         epic=epic,
         urls=[]
     )
-    
+
     response = await client.delete(
         f"/features/{feature.id}",
         headers=headers
     )
-    
+
     # Should be forbidden
     assert response.status_code in [401, 403]
-    
+
     # Verify feature still exists
     feature_exists = await Feature.filter(id=feature.id).exists()
     assert feature_exists
-    
+
     # Cleanup
     await feature.delete()
 
@@ -467,20 +466,20 @@ async def test_create_feature_validation(client: AsyncClient, admin_user, epic):
     """Test validation when creating features with invalid data"""
     token = create_token(admin_user.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
-    
+
     # Missing required fields
     invalid_data = {
         "name": "",  # Empty name
         "epic_id": str(epic.id),
         "urls": []
     }
-    
+
     response = await client.post(
         "/features/",
         json=invalid_data,
         headers=headers
     )
-    
+
     # Should fail validation
     assert response.status_code in [400, 422]
 
@@ -496,7 +495,7 @@ async def test_cross_organization_access_denied(client: AsyncClient, organizatio
         description="Not member's organization",
         type=OrganizationType.STARTUP
     )
-    
+
     # Create product in other organization
     other_product = await Product.create(
         id=uuid4(),
@@ -507,7 +506,7 @@ async def test_cross_organization_access_denied(client: AsyncClient, organizatio
         links_to_documentation=[],
         organization=other_org
     )
-    
+
     # Create epic in other product
     other_epic = await Epic.create(
         id=uuid4(),
@@ -515,7 +514,7 @@ async def test_cross_organization_access_denied(client: AsyncClient, organizatio
         description="Epic in other organization",
         product=other_product
     )
-    
+
     # Create feature in other epic
     other_feature = await Feature.create(
         id=uuid4(),
@@ -524,19 +523,19 @@ async def test_cross_organization_access_denied(client: AsyncClient, organizatio
         epic=other_epic,
         urls=[]
     )
-    
+
     token = create_token(organization_member.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
-    
+
     # Try to access feature from other organization
     response = await client.get(
         f"/features/{other_feature.id}",
         headers=headers
     )
-    
+
     # Should be forbidden
     assert response.status_code in [401, 403, 404]
-    
+
     # Cleanup
     await other_feature.delete()
     await other_epic.delete()
@@ -549,22 +548,22 @@ async def test_create_feature_with_nonexistent_epic(client: AsyncClient, admin_u
     """Test creating a feature with a non-existent epic_id"""
     token = create_token(admin_user.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
-    
+
     # Use a random UUID that doesn't exist in the database
     nonexistent_epic_id = uuid4()
-    
+
     data = {
         "name": "Feature with Bad Epic",
         "description": "Feature with non-existent epic ID",
         "epic_id": str(nonexistent_epic_id),
         "urls": []
     }
-    
+
     response = await client.post(
         "/features/",
         json=data,
         headers=headers
     )
-    
+
     # Should return an error status code
-    assert response.status_code in [400, 404, 422] 
+    assert response.status_code in [400, 404, 422]

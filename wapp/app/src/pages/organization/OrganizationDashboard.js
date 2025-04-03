@@ -177,20 +177,6 @@ const OrganizationDashboard = () => {
                       </div>
 
                       <div>
-                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                          Description
-                        </label>
-                        <textarea
-                          id="description"
-                          name="description"
-                          rows="3"
-                          value={editData.description}
-                          onChange={handleEditChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                      </div>
-
-                      <div>
                         <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
                           Organization Type
                         </label>
@@ -266,13 +252,6 @@ const OrganizationDashboard = () => {
                       Click the delete button again to permanently delete this organization. This action cannot be undone.
                     </div>
                   )}
-
-                  <div className="mt-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Description</h3>
-                    <p className="text-gray-600">
-                      {selectedOrganization.description || 'No description provided.'}
-                    </p>
-                  </div>
 
                   <div className="mt-6">
                     <div className="flex justify-between items-center mb-3">

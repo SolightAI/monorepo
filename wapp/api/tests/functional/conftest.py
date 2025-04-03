@@ -94,7 +94,6 @@ async def test_organization(admin_user, organization_owner, organization_member,
     org = await Organization.create(
         id=uuid4(),
         name="Test Organization",
-        description="Organization for testing endpoints",
         type=OrganizationType.ENTERPRISE
     )
 

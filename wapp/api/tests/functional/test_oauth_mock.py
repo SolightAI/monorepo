@@ -81,7 +81,6 @@ async def test_organization():
     org = await Organization.create(
         id=uuid4(),
         name="Test OAuth Organization",
-        description="Test Organization for OAuth tests",
         type=OrganizationType.STARTUP
     )
     yield org

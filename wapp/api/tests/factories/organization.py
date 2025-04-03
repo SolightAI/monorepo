@@ -17,7 +17,6 @@ class OrganizationFactory(factory.Factory):
 
     id = factory.LazyFunction(lambda: uuid4())
     name = factory.LazyFunction(lambda: fake.company())
-    description = factory.LazyFunction(lambda: fake.catch_phrase())
     type = factory.LazyFunction(lambda: OrganizationType.ENTERPRISE)
     logo_url = factory.LazyFunction(lambda: fake.image_url())
     created_at = factory.LazyFunction(lambda: datetime.now())

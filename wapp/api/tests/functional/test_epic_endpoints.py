@@ -12,7 +12,6 @@ async def organization(admin_user, organization_owner, organization_member, orga
     org = await Organization.create(
         id=uuid4(),
         name="Epic Test Org",
-        description="Organization for testing epic endpoints",
         type=OrganizationType.ENTERPRISE
     )
 
@@ -23,21 +22,21 @@ async def organization(admin_user, organization_owner, organization_member, orga
         organization=org,
         role=OrganizationRole.ADMIN
     )
-    
+
     await OrganizationMember.create(
         id=uuid4(),
         user=organization_owner,
         organization=org,
         role=OrganizationRole.OWNER
     )
-    
+
     await OrganizationMember.create(
         id=uuid4(),
         user=organization_member,
         organization=org,
         role=OrganizationRole.MEMBER
     )
-    
+
     await OrganizationMember.create(
         id=uuid4(),
         user=organization_guest,
@@ -202,7 +201,7 @@ async def test_owner_can_create_epic(client: AsyncClient, organization_owner, pr
 
     assert response.status_code == 200
     result = response.json()
-    
+
     # Cleanup
     epic_id = result["id"]
     epic = await Epic.get(id=epic_id)
@@ -259,19 +258,19 @@ async def test_guest_can_view_but_not_modify_epic(client: AsyncClient, organizat
         headers=headers
     )
     assert view_response.status_code == 200
-    
+
     # Guest should not be able to update epic
     update_data = {
         "name": "Guest Modified Epic",
         "description": "This update should fail"
     }
-    
+
     update_response = await client.put(
         f"/epics/{epic.id}",
         json=update_data,
         headers=headers
     )
-    
+
     # Guest should be forbidden
     assert update_response.status_code in [401, 403]
 
@@ -287,7 +286,7 @@ async def test_non_member_cannot_access_epic(client: AsyncClient, epic):
         is_admin=False,
         onboarding_completed=True
     )
-    
+
     token = create_token(non_member.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
 
@@ -298,7 +297,7 @@ async def test_non_member_cannot_access_epic(client: AsyncClient, epic):
 
     # Non-member should be forbidden
     assert response.status_code in [401, 403, 404]
-    
+
     # Cleanup
     await non_member.delete()
 
@@ -340,7 +339,7 @@ async def test_multiple_epics_per_product(client: AsyncClient, admin_user, produ
     # Verify both epics belong to the same product
     epic1_get = await client.get(f"/epics/{epic1_id}", headers=headers)
     epic2_get = await client.get(f"/epics/{epic2_id}", headers=headers)
-    
+
     assert epic1_get.json()["product_id"] == str(product.id)
     assert epic2_get.json()["product_id"] == str(product.id)
 
@@ -355,7 +354,7 @@ async def test_owner_can_delete_epic(client: AsyncClient, organization_owner, pr
     """Test that organization owner can delete epics"""
     token = create_token(organization_owner.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
-    
+
     # Create epic to delete
     epic = await Epic.create(
         id=uuid4(),
@@ -363,16 +362,16 @@ async def test_owner_can_delete_epic(client: AsyncClient, organization_owner, pr
         description="Epic to be deleted by owner",
         product=product
     )
-    
+
     response = await client.delete(
         f"/epics/{epic.id}",
         headers=headers
     )
-    
+
     assert response.status_code == 200
     result = response.json()
     assert result["success"] is True
-    
+
     # Verify epic is deleted
     epic_exists = await Epic.filter(id=epic.id).exists()
     assert not epic_exists
@@ -384,7 +383,7 @@ async def test_member_cannot_delete_epic(client: AsyncClient, organization_membe
     """Test that regular members cannot delete epics"""
     token = create_token(organization_member.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
-    
+
     # Create epic to attempt deleting
     epic = await Epic.create(
         id=uuid4(),
@@ -392,19 +391,19 @@ async def test_member_cannot_delete_epic(client: AsyncClient, organization_membe
         description="Epic that member will try to delete",
         product=product
     )
-    
+
     response = await client.delete(
         f"/epics/{epic.id}",
         headers=headers
     )
-    
+
     # Should be forbidden
     assert response.status_code in [401, 403]
-    
+
     # Verify epic still exists
     epic_exists = await Epic.filter(id=epic.id).exists()
     assert epic_exists
-    
+
     # Cleanup
     await epic.delete()
 
@@ -414,19 +413,19 @@ async def test_create_epic_validation(client: AsyncClient, admin_user, product):
     """Test validation when creating epics with invalid data"""
     token = create_token(admin_user.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
-    
+
     # Missing required fields
     invalid_data = {
         "name": "",  # Empty name
         "product_id": str(product.id)
     }
-    
+
     response = await client.post(
         "/epics/",
         json=invalid_data,
         headers=headers
     )
-    
+
     # Should fail validation
     assert response.status_code in [400, 422]
 
@@ -442,7 +441,7 @@ async def test_cross_organization_access_denied(client: AsyncClient, organizatio
         description="Not member's organization",
         type=OrganizationType.STARTUP
     )
-    
+
     # Create product in other organization
     other_product = await Product.create(
         id=uuid4(),
@@ -453,7 +452,7 @@ async def test_cross_organization_access_denied(client: AsyncClient, organizatio
         links_to_documentation=[],
         organization=other_org
     )
-    
+
     # Create epic in other product
     other_epic = await Epic.create(
         id=uuid4(),
@@ -461,19 +460,19 @@ async def test_cross_organization_access_denied(client: AsyncClient, organizatio
         description="Epic in other organization",
         product=other_product
     )
-    
+
     token = create_token(organization_member.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
-    
+
     # Try to access epic from other organization
     response = await client.get(
         f"/epics/{other_epic.id}",
         headers=headers
     )
-    
+
     # Should be forbidden
     assert response.status_code in [401, 403, 404]
-    
+
     # Cleanup
     await other_epic.delete()
     await other_product.delete()
@@ -485,21 +484,21 @@ async def test_create_epic_with_nonexistent_product(client: AsyncClient, admin_u
     """Test creating an epic with a non-existent product_id"""
     token = create_token(admin_user.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
-    
+
     # Use a random UUID that doesn't exist in the database
     nonexistent_product_id = uuid4()
-    
+
     data = {
         "name": "Epic with Bad Product",
         "description": "Epic with non-existent product ID",
         "product_id": str(nonexistent_product_id)
     }
-    
+
     response = await client.post(
         "/epics/",
         json=data,
         headers=headers
     )
-    
+
     # Should return an error status code
-    assert response.status_code in [400, 404, 422] 
+    assert response.status_code in [400, 404, 422]

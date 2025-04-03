@@ -13,7 +13,6 @@ async def organization():
     org = await Organization.create(
         id=uuid4(),
         name="Test Organization",
-        description="Test Organization for invitation tests",
         type=OrganizationType.STARTUP
     )
     yield org

@@ -105,7 +105,6 @@ async def create_organization(
     organization = await Organization.create(
         id=uuid4(),
         name=data.name,
-        description=data.description,
         logo_url=data.logo_url,
         type=data.type,
     )

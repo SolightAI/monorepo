@@ -36,7 +36,6 @@ class User(UserPrivate):
 
 class OrganizationBase(BaseModel):
     name: str
-    description: Optional[str] = None
     logo_url: Optional[str] = None
     type: OrganizationType
 
@@ -47,7 +46,6 @@ class OrganizationCreate(OrganizationBase):
 
 class OrganizationUpdate(BaseModel):
     name: Optional[str] = None
-    description: Optional[str] = None
     logo_url: Optional[str] = None
     type: Optional[OrganizationType] = None
     settings: Optional[dict] = None

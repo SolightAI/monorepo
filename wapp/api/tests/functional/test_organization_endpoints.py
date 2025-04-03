@@ -1,6 +1,5 @@
 import pytest
 from uuid import uuid4
-from unittest.mock import patch
 from httpx import AsyncClient
 from dto.models import User, Organization, OrganizationMember
 from dto.schemas import OrganizationType, OrganizationRole
@@ -39,7 +38,6 @@ async def organization(regular_user):
     org = await Organization.create(
         id=uuid4(),
         name="Test Organization",
-        description="Test Organization for API tests",
         type=OrganizationType.STARTUP
     )
 
@@ -64,7 +62,6 @@ async def test_create_organization(client: AsyncClient, regular_user):
     # Create request data
     data = {
         "name": "New Test Organization",
-        "description": "Created in functional test",
         "type": "startup"
     }
 
@@ -73,7 +70,6 @@ async def test_create_organization(client: AsyncClient, regular_user):
     assert response.status_code == 201
     result = response.json()
     assert result["name"] == data["name"]
-    assert result["description"] == data["description"]
     assert result["type"] == data["type"]
 
     # Clean up created organization
@@ -109,7 +105,6 @@ async def test_get_organization_details(client: AsyncClient, regular_user, organ
     result = response.json()
     assert result["id"] == str(organization.id)
     assert result["name"] == organization.name
-    assert result["description"] == organization.description
 
 
 @pytest.mark.anyio
@@ -121,7 +116,6 @@ async def test_update_organization(client: AsyncClient, regular_user, organizati
     # Update data
     data = {
         "name": "Updated Organization Name",
-        "description": "Updated description"
     }
 
     response = await client.put(f"/organizations/{organization.id}", json=data, headers=headers)
@@ -129,12 +123,10 @@ async def test_update_organization(client: AsyncClient, regular_user, organizati
     assert response.status_code == 200
     result = response.json()
     assert result["name"] == data["name"]
-    assert result["description"] == data["description"]
 
     # Verify in database
     updated_org = await Organization.get(id=organization.id)
     assert updated_org.name == data["name"]
-    assert updated_org.description == data["description"]
 
 
 @pytest.mark.anyio
@@ -176,7 +168,7 @@ async def test_add_member_to_organization(client: AsyncClient, regular_user, sec
     member = await OrganizationMember.filter(user_id=regular_user.id, organization_id=organization.id).first()
     member.role = OrganizationRole.ADMIN
     await member.save()
-    
+
     token = create_token(regular_user.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
 
@@ -187,8 +179,8 @@ async def test_add_member_to_organization(client: AsyncClient, regular_user, sec
     }
 
     response = await client.post(
-        f"/organizations/{organization.id}/members", 
-        json=data, 
+        f"/organizations/{organization.id}/members",
+        json=data,
         headers=headers
     )
 
@@ -199,7 +191,7 @@ async def test_add_member_to_organization(client: AsyncClient, regular_user, sec
 
     # Verify in database
     membership = await OrganizationMember.filter(
-        user_id=second_user.id, 
+        user_id=second_user.id,
         organization_id=organization.id
     ).first()
     assert membership is not None
@@ -214,7 +206,7 @@ async def test_update_member_role(client: AsyncClient, regular_user, second_user
     owner_member = await OrganizationMember.filter(user_id=regular_user.id, organization_id=organization.id).first()
     owner_member.role = OrganizationRole.OWNER
     await owner_member.save()
-    
+
     # Add second_user as a member
     member = await OrganizationMember.create(
         id=uuid4(),
@@ -222,7 +214,7 @@ async def test_update_member_role(client: AsyncClient, regular_user, second_user
         organization_id=organization.id,
         role=OrganizationRole.MEMBER
     )
-    
+
     token = create_token(regular_user.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
 
@@ -232,8 +224,8 @@ async def test_update_member_role(client: AsyncClient, regular_user, second_user
     }
 
     response = await client.put(
-        f"/organizations/{organization.id}/members/{second_user.id}", 
-        json=data, 
+        f"/organizations/{organization.id}/members/{second_user.id}",
+        json=data,
         headers=headers
     )
 

@@ -1,7 +1,7 @@
 import pytest
 from uuid import uuid4
 from httpx import AsyncClient
-from dto.models import User, Organization, OrganizationMember, Product, Epic, Feature
+from dto.models import User, Organization, OrganizationMember, Product, Epic
 from dto.schemas import OrganizationType, OrganizationRole
 from ..conftest import create_token
 
@@ -129,8 +129,8 @@ async def epic(product):
 
 @pytest.mark.anyio
 async def test_non_member_cannot_access_organization_resources(
-    client: AsyncClient, 
-    non_member_user, 
+    client: AsyncClient,
+    non_member_user,
     organization
 ):
     """Test that users who are not members cannot access organization resources"""
@@ -149,8 +149,8 @@ async def test_non_member_cannot_access_organization_resources(
 
 @pytest.mark.anyio
 async def test_member_cannot_update_organization(
-    client: AsyncClient, 
-    organization_member, 
+    client: AsyncClient,
+    organization_member,
     organization
 ):
     """Test that regular members cannot update organization details"""
@@ -175,8 +175,8 @@ async def test_member_cannot_update_organization(
 
 @pytest.mark.anyio
 async def test_admin_can_update_organization(
-    client: AsyncClient, 
-    organization_admin, 
+    client: AsyncClient,
+    organization_admin,
     organization
 ):
     """Test that admins can update organization details"""
@@ -186,7 +186,6 @@ async def test_admin_can_update_organization(
     # Update data
     data = {
         "name": "Admin Updated Organization",
-        "description": "Updated by admin"
     }
 
     response = await client.put(
@@ -199,13 +198,12 @@ async def test_admin_can_update_organization(
     assert response.status_code == 200
     result = response.json()
     assert result["name"] == data["name"]
-    assert result["description"] == data["description"]
 
 
 @pytest.mark.anyio
 async def test_member_cannot_create_product(
-    client: AsyncClient, 
-    organization_member, 
+    client: AsyncClient,
+    organization_member,
     organization
 ):
     """Test that regular members cannot create products"""
@@ -234,8 +232,8 @@ async def test_member_cannot_create_product(
 
 @pytest.mark.anyio
 async def test_admin_can_create_product(
-    client: AsyncClient, 
-    organization_admin, 
+    client: AsyncClient,
+    organization_admin,
     organization
 ):
     """Test that admins can create products"""
@@ -271,7 +269,7 @@ async def test_admin_can_create_product(
 
 @pytest.mark.anyio
 async def test_owner_can_delete_product(
-    client: AsyncClient, 
+    client: AsyncClient,
     organization_owner
 ):
     """Test that owners can delete products"""
