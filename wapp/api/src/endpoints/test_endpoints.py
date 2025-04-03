@@ -136,7 +136,12 @@ async def add_test_secret_endpoint(
     org = test.feature.epic.product.organization
 
     # Check if user has access to the organization
-    await organization_services.verify_user_in_organization(current_user.id, org.id)
+    member = await organization_services.get_organization_member(org.id, current_user.id)
+    if not member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You must be a member of the organization to add test secrets",
+        )
 
     # Get the secret to verify it belongs to the same organization
     secret = await secret_services.get_secret(data.secret_id)
@@ -166,10 +171,7 @@ async def get_test_secrets_endpoint(
     org = test.feature.epic.product.organization
 
     # Check if user has access to the organization
-    await organization_services.verify_user_in_organization(current_user.id, org.id)
-
-    # Verify this is a valid organization member request
-    member = await organization_services.get_organization_member(current_user.id, org.id)
+    member = await organization_services.get_organization_member(org.id, current_user.id)
     if not member:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -199,7 +201,7 @@ async def delete_test_secret_endpoint(
     org = test.feature.epic.product.organization
 
     # Verify user has admin access to the organization
-    member = await organization_services.get_organization_member(current_user.id, org.id)
+    member = await organization_services.get_organization_member(org.id, current_user.id)
     if not member or member.role not in ["owner", "admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

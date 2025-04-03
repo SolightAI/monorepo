@@ -10,7 +10,6 @@ from dto.models import SecretAccess as SecretAccessModel
 from dto.schemas import SecretCreate, SecretUpdate, Secret, SecretWithValues
 from utils.encryption import encryption_service
 from services.crypto_service import crypto_service
-from dto.schemas import SecretType
 
 
 # Configure logging for get_encrypted_secrets
@@ -353,12 +352,7 @@ async def get_encrypted_secrets(
             # Add values to the result
             for key, value in secret_with_values.values.items():
                 # For username_password type, store directly
-                if secret_with_values.type == SecretType.USERNAME_PASSWORD:
-                    all_secrets[secret_with_values.type][key] = value
-                else:
-                    # For other types, prefix with secret name to avoid conflicts
-                    prefixed_key = f"{secret_with_values.name}_{key}"
-                    all_secrets[secret_with_values.type][prefixed_key] = value
+                all_secrets[secret_with_values.type][key] = value
         except Exception as e:
             logger.warning(f"Failed to get secret {secret.id}: {str(e)}")
 

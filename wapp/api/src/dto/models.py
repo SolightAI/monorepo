@@ -3,7 +3,7 @@ from .schemas import TestStatus, SeverityLevel, TestCategory, OrganizationRole, 
 
 
 class User(models.Model):
-    id = fields.IntField(pk=True)
+    id = fields.IntField(primary_key=True)
 
     username = fields.CharField(max_length=255, unique=False)
     email = fields.CharField(max_length=255, unique=True)
@@ -21,7 +21,7 @@ class User(models.Model):
 
 
 class Organization(models.Model):
-    id = fields.UUIDField(pk=True)
+    id = fields.UUIDField(primary_key=True)
     name = fields.CharField(max_length=255)
     description = fields.TextField(null=True)
     logo_url = fields.CharField(max_length=255, null=True)
@@ -40,7 +40,7 @@ class Organization(models.Model):
 
 
 class OrganizationMember(models.Model):
-    id = fields.UUIDField(pk=True)
+    id = fields.UUIDField(primary_key=True)
     joined_at = fields.DatetimeField(auto_now_add=True)
     role = fields.CharEnumField(OrganizationRole, max_length=255)
 
@@ -55,7 +55,7 @@ class OrganizationMember(models.Model):
 
 
 class Invitation(models.Model):
-    id = fields.UUIDField(pk=True)
+    id = fields.UUIDField(primary_key=True)
     code = fields.CharField(max_length=36, unique=True)
     email = fields.CharField(max_length=255, null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
@@ -74,7 +74,7 @@ class Invitation(models.Model):
 
 
 class Product(models.Model):
-    id = fields.UUIDField(pk=True)
+    id = fields.UUIDField(primary_key=True)
     url = fields.CharField(max_length=1024)
     name = fields.CharField(max_length=255)
     description = fields.TextField()  # summary of what we've ingested from the project
@@ -90,7 +90,7 @@ class Product(models.Model):
 
 
 class Epic(models.Model):
-    id = fields.UUIDField(pk=True)
+    id = fields.UUIDField(primary_key=True)
     name = fields.CharField(max_length=255)
     description = fields.TextField()
 
@@ -102,7 +102,7 @@ class Epic(models.Model):
 
 
 class Feature(models.Model):
-    id = fields.UUIDField(pk=True)
+    id = fields.UUIDField(primary_key=True)
     urls = fields.JSONField()  # where the feature is implemented
     name = fields.CharField(max_length=255)
     description = fields.TextField()
@@ -120,7 +120,7 @@ class Feature(models.Model):
 
 
 class UserStory(models.Model):
-    id = fields.UUIDField(pk=True)
+    id = fields.UUIDField(primary_key=True)
     name = fields.CharField(max_length=255)
     description = fields.TextField()
 
@@ -131,7 +131,7 @@ class UserStory(models.Model):
 
 
 class AcceptanceCriteria(models.Model):
-    id = fields.UUIDField(pk=True)
+    id = fields.UUIDField(primary_key=True)
     name = fields.CharField(max_length=255)
     description = fields.TextField()
 
@@ -143,7 +143,7 @@ class AcceptanceCriteria(models.Model):
 
 
 class Test(models.Model):
-    id = fields.UUIDField(pk=True)
+    id = fields.UUIDField(primary_key=True)
     url = fields.CharField(max_length=255)  # where to start the test
     name = fields.CharField(max_length=255)
     description = fields.TextField()
@@ -169,7 +169,7 @@ class Test(models.Model):
 
 class TestExecution(models.Model):
     """Model for storing each individual test execution."""
-    id = fields.UUIDField(pk=True)
+    id = fields.UUIDField(primary_key=True)
     status = fields.CharEnumField(TestStatus, max_length=255)
     environment = fields.CharField(max_length=50)  # dev, staging, production, etc.
     executor_type = fields.CharEnumField(ExecutorType, max_length=255)
@@ -191,7 +191,7 @@ class TestExecution(models.Model):
 
 
 class Bug(models.Model):
-    id = fields.UUIDField(pk=True)
+    id = fields.UUIDField(primary_key=True)
     name = fields.CharField(max_length=255)
     description = fields.TextField()
     severity = fields.CharEnumField(SeverityLevel, max_length=255)
@@ -211,7 +211,7 @@ class Bug(models.Model):
 
 
 class Secret(models.Model):
-    id = fields.UUIDField(pk=True)
+    id = fields.UUIDField(primary_key=True)
     name = fields.CharField(max_length=255)
     description = fields.TextField(null=True)
     type = fields.CharEnumField(SecretType, max_length=255)
@@ -232,7 +232,7 @@ class Secret(models.Model):
 
 
 class SecretValue(models.Model):
-    id = fields.UUIDField(pk=True)
+    id = fields.UUIDField(primary_key=True)
     key = fields.CharField(max_length=255)
     encrypted_value = fields.TextField()  # Encrypted value stored here
     is_required = fields.BooleanField(default=True)
@@ -248,7 +248,7 @@ class SecretValue(models.Model):
 
 
 class SecretAccess(models.Model):
-    id = fields.UUIDField(pk=True)
+    id = fields.UUIDField(primary_key=True)
     action = fields.CharField(max_length=50)  # "view", "create", "update", "delete"
     accessed_at = fields.DatetimeField(auto_now_add=True)
 
@@ -261,7 +261,7 @@ class SecretAccess(models.Model):
 
 
 class TestSecret(models.Model):
-    id = fields.UUIDField(pk=True)
+    id = fields.UUIDField(primary_key=True)
     created_at = fields.DatetimeField(auto_now_add=True)
 
     # Relations
