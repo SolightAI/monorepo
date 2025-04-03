@@ -25,14 +25,12 @@ def generate_s3_key(
     Returns:
         Formatted S3 key
     """
-    # Create timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     # Clean task name for use in path (remove special chars, spaces to underscores)
     clean_name = "".join(c if c.isalnum() else "_" for c in task_name).lower()
 
     # Base path
-    base_path = f"{task_type}/{clean_name}/{timestamp}_{task_id}"
+    base_path = f"{task_id}/{task_type}_{clean_name}"
 
     return f"{base_path}.gif"
 
