@@ -42,14 +42,10 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        os.getenv("APP_URL", "http://localhost:3000"),
-        "http://localhost:3000",
-        "https://localhost:3000"
-    ],  # Allow both HTTP and HTTPS for localhost
-    allow_credentials=True,
+        os.getenv("APP_URL", "http://localhost:3000"),],  
+allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
 )
 
 app.include_router(auth_router)

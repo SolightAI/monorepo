@@ -225,11 +225,8 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
         "sub": user.email,
     })
 
-    # Determine the redirect URL based on whether there was an invitation
+    # Always redirect to the main app with the token
     redirect_url = f"{os.getenv('APP_URL')}/auth/google/callback?token={jwt_token}"
-    if invitation_code:
-        redirect_url = f"{os.getenv('APP_URL')}/join-organization/{invitation_code}"
-
     print("REDIRECTING TO: ", redirect_url)
     redirect_response = RedirectResponse(url=redirect_url)
     set_auth_cookie(redirect_response, jwt_token)

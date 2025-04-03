@@ -18,6 +18,7 @@ async def login_google(invitation_code: Optional[str] = None) -> dict:
     state = {}
     if invitation_code:
         state["invitation_code"] = invitation_code
+        state["type"] = "organization"  # Always set type as organization for join-org flow
 
     state_param = f"&state={base64.urlsafe_b64encode(json.dumps(state).encode()).decode()}" if state else ""
 

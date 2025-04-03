@@ -12,6 +12,7 @@ from dto.schemas import (
     OrganizationMemberCreate,
     OrganizationMemberUpdate,
     OrganizationRole,
+    PublicOrganization,
 )
 from services import organization_services
 from services.invitation_services import validate_invitation, mark_invitation_used
@@ -327,11 +328,12 @@ async def get_member(
     return target_member
 
 
-@router.get("/public/{organization_id}", response_model=Organization)
+@router.get("/public/{organization_id}", response_model=PublicOrganization)
 async def get_organization_public(organization_id: UUID):
     """
     Get an organization by ID for invitation validation.
     This endpoint can be accessed without authentication.
+    Only returns public information about the organization.
     """
     organization = await organization_services.get_organization(organization_id)
     if not organization:
@@ -340,7 +342,7 @@ async def get_organization_public(organization_id: UUID):
             detail="Organization not found",
         )
 
-    return organization
+    return PublicOrganization.model_validate(organization)
 
 
 @router.post("/{organization_id}/join")

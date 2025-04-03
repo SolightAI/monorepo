@@ -209,57 +209,18 @@ export const AuthProvider = ({ children }) => {
 
   // Setup axios interceptors within AuthContext
   useEffect(() => {
-    // Keep track of redirect in progress to avoid loops
     let isRedirecting = false;
     let isCheckingAuth = false;
 
-    // Add a request interceptor to ensure credentials are always included
     const requestInterceptor = axios.interceptors.request.use(
-      config => {
-        // Always include credentials with every request
-        try {
-          const backendOrigin = new URL(API_URL).origin;
-          const requestOrigin = new URL(config.url, window.location.origin).origin;
-          if (requestOrigin === backendOrigin) {
-            config.withCredentials = true;
-          }
-        } catch (e) {
-          console.warn('Could not safely determine origin for credentials:', e);
-        }
-
-        // Check if user is authenticated but cookie is missing
-        // This could happen if cookie expires but local state hasn't been updated
-        const isAuthenticatedInState = localStorage.getItem('isAuthenticated') === 'true';
-        if (isAuthenticatedInState && !config.url.includes('/auth/check-auth')) {
-          try {
-            const backendOrigin = new URL(API_URL).origin;
-            const requestOrigin = new URL(config.url, window.location.origin).origin;
-
-            if (requestOrigin === backendOrigin) {
-              axios.get(`${API_URL}/auth/check-auth`, {
-                withCredentials: true,
-                timeout: 5000,
-              }).then((res) => {
-                if (!res.data.authenticated) {
-                  console.log('Auth check failed - session expired');
-                  setIsAuthenticated(false);
-                  setIsAdmin(false);
-                  localStorage.removeItem('isAuthenticated');
-                  localStorage.removeItem('isAdmin');
-                  window.location.href = '/login';
-                }
-              }).catch(() => {
-                console.log('Silent check-auth failed');
-              });
-            }
-          } catch (e) {
-            console.warn('Auth origin check failed:', e);
-          }
-        }
-
+      (config) => {
+        // Add withCredentials to all requests
+        config.withCredentials = true;
         return config;
       },
-      error => Promise.reject(error)
+      (error) => {
+        return Promise.reject(error);
+      }
     );
 
     const interceptor = axios.interceptors.response.use(
@@ -269,17 +230,36 @@ export const AuthProvider = ({ children }) => {
 
         if (error.response && !isRedirecting && !isCheckingAuth) {
           const status = error.response.status;
+          const currentPath = window.location.pathname;
+
+          // Don't redirect if we're already on the login page
+          if (currentPath === '/login') {
+            return Promise.reject(error);
+          }
 
           // Handle 401 errors directly and immediately, regardless of authentication state
           if (status === 401 && error.config && !error.config.__isRetryRequest) {
             // Avoid redirect loops
-            const currentPath = window.location.pathname;
             if (AUTH_ROUTES.some(route => currentPath.includes(route))) {
               return Promise.reject(error);
             }
 
+            // Get the current URL parameters
+            const currentUrl = new URL(window.location.href);
+            const invitationCode = currentUrl.searchParams.get('invitation_code');
+            const invitationType = currentUrl.searchParams.get('type');
+
+            // Construct the login URL with invitation code if present
+            let loginUrl = '/login';
+            if (invitationCode) {
+              loginUrl += `?invitation_code=${encodeURIComponent(invitationCode)}`;
+              if (invitationType) {
+                loginUrl += `&type=${encodeURIComponent(invitationType)}`;
+              }
+            }
+
             isRedirecting = true;
-            console.log('401 Authentication error detected, logging out and redirecting');
+            console.log('401 Authentication error detected, redirecting to login with invitation code');
 
             // Update authentication state
             setIsAuthenticated(false);
@@ -289,11 +269,9 @@ export const AuthProvider = ({ children }) => {
 
             // Use setTimeout to allow current execution to complete
             setTimeout(() => {
-              window.location.href = '/login';
+              window.location.href = loginUrl;
               isRedirecting = false;
             }, 100);
-
-            return Promise.reject(error);
           }
 
           // For other 4xx errors, verify authentication status if user is supposedly logged in
@@ -326,6 +304,20 @@ export const AuthProvider = ({ children }) => {
                 console.log('Authentication failed during hard-check, logging out');
                 isRedirecting = true;
 
+                // Get the current URL parameters
+                const currentUrl = new URL(window.location.href);
+                const invitationCode = currentUrl.searchParams.get('invitation_code');
+                const invitationType = currentUrl.searchParams.get('type');
+
+                // Construct the login URL with invitation code if present
+                let loginUrl = '/login';
+                if (invitationCode) {
+                  loginUrl += `?invitation_code=${encodeURIComponent(invitationCode)}`;
+                  if (invitationType) {
+                    loginUrl += `&type=${encodeURIComponent(invitationType)}`;
+                  }
+                }
+
                 // Update authentication state
                 setIsAuthenticated(false);
                 setIsAdmin(false);
@@ -334,7 +326,7 @@ export const AuthProvider = ({ children }) => {
 
                 // Use setTimeout to allow current execution to complete
                 setTimeout(() => {
-                  window.location.href = '/login';
+                  window.location.href = loginUrl;
                   isRedirecting = false;
                   isCheckingAuth = false;
                 }, 100);
@@ -344,6 +336,20 @@ export const AuthProvider = ({ children }) => {
               console.log('Hard-check failed, assuming user is not authenticated:', authCheckError);
               isRedirecting = true;
 
+              // Get the current URL parameters
+              const currentUrl = new URL(window.location.href);
+              const invitationCode = currentUrl.searchParams.get('invitation_code');
+              const invitationType = currentUrl.searchParams.get('type');
+
+              // Construct the login URL with invitation code if present
+              let loginUrl = '/login';
+              if (invitationCode) {
+                loginUrl += `?invitation_code=${encodeURIComponent(invitationCode)}`;
+                if (invitationType) {
+                  loginUrl += `&type=${encodeURIComponent(invitationType)}`;
+                }
+              }
+
               // Update authentication state
               setIsAuthenticated(false);
               setIsAdmin(false);
@@ -352,7 +358,7 @@ export const AuthProvider = ({ children }) => {
 
               // Use setTimeout to allow current execution to complete
               setTimeout(() => {
-                window.location.href = '/login';
+                window.location.href = loginUrl;
                 isRedirecting = false;
                 isCheckingAuth = false;
               }, 100);

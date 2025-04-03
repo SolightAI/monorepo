@@ -111,13 +111,6 @@ async def validate_invitation(code: str, email: Optional[str] = None) -> Invitat
             detail="Invalid invitation code"
         )
 
-    # Check if invitation is already used
-    if invitation.used:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invitation code has already been used"
-        )
-
     # Check if invitation has expired
     if invitation.expires_at and invitation.expires_at < datetime.now(timezone.utc):
         raise HTTPException(
@@ -146,6 +139,11 @@ async def mark_invitation_used(code: str, user_id: int) -> InvitationModel:
             detail="Invitation not found"
         )
 
+    # If the invitation is already used by the same user, return it without error
+    if invitation.used and invitation.used_by_id == user_id:
+        return invitation
+
+    # If the invitation is used by a different user, raise an error
     if invitation.used:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

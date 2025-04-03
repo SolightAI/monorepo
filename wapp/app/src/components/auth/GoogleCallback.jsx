@@ -20,8 +20,8 @@ function GoogleCallback() {
       // Update authentication state using context
       handleGoogleCallback(token);
 
-      // Redirect to the home page or dashboard
-      navigate('/');
+      // Always redirect to the main app
+      navigate('/', { replace: true });
     } else {
       // Handle error case
       let errorMessage = 'An error occurred during Google login.';
@@ -36,13 +36,19 @@ function GoogleCallback() {
         }
       }
 
-      // Redirect to login page with error message
-      navigate('/login', {
-        state: {
-          message: errorMessage,
-          requiresInvitationCode: errorMessage.includes('Invitation code required')
-        }
-      });
+      // Only redirect to login with error message if it's not a successful invitation processing
+      if (!errorMessage.includes('Failed to process organization invitation')) {
+        navigate('/login', {
+          state: {
+            message: errorMessage,
+            requiresInvitationCode: errorMessage.includes('Invitation code required')
+          },
+          replace: true
+        });
+      } else {
+        // If it's a successful invitation processing, just redirect to main app
+        navigate('/', { replace: true });
+      }
     }
   }, [navigate, location, handleGoogleCallback]);
 
