@@ -171,7 +171,7 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
             onClick={onNext}
             className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
           >
-            Continue to Secrets Setup
+            Continue to Test Credentials Setup
           </button>
         </div>
       ) : hasProducts ? (

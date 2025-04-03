@@ -105,7 +105,7 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
         'environment_variable': 'Environment Variables',
         'connection_string': 'Connection String',
         'oauth_credential': 'OAuth Credentials',
-        'other': 'Custom Secret'
+        'other': 'Custom Test Credential'
       };
 
       // Always update the type
@@ -118,7 +118,7 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
             prev.name === 'Environment Variables' ||
             prev.name === 'Connection String' ||
             prev.name === 'OAuth Credentials' ||
-            prev.name === 'Custom Secret') {
+            prev.name === 'Custom Test Credential') {
           // Update type and suggest appropriate name
           return {
             ...prev,
@@ -368,7 +368,7 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex justify-between items-center pb-3 border-b">
               <h3 className="text-lg leading-6 font-medium text-gray-900">
-                {isEditing ? 'Edit Secret' : 'Create New Secret'}
+                {isEditing ? 'Edit Test Credential' : 'Create New Test Credential'}
               </h3>
               <button
                 onClick={onClose}
@@ -429,7 +429,7 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
 
               <div className="mb-4">
                 <label htmlFor="type" className="block text-sm font-medium text-gray-700">
-                  Secret Type *
+                  Test Credential Type *
                 </label>
                 <select
                   id="type"
@@ -465,7 +465,7 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
                   <label className="block text-sm font-medium text-gray-700">
-                    Secret Values *
+                    Test Credential Values *
                   </label>
                   {formData.type === 'other' && (
                     <button
@@ -606,7 +606,7 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
                   {isEditing ? 'Updating...' : 'Creating...'}
                 </>
               ) : (
-                isEditing ? 'Update Secret' : 'Create Secret'
+                isEditing ? 'Update Test Credential' : 'Create Test Credential'
               )}
             </button>
             <button

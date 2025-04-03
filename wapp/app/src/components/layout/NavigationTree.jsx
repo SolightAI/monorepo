@@ -358,7 +358,7 @@ const NavigationTree = () => {
         </div>
       )}
 
-      {/* Secrets Management Link */}
+      {/* TestCredentials Management Link */}
       {selectedOrganization && (
         <div className="pt-2">
           <Link
@@ -370,7 +370,7 @@ const NavigationTree = () => {
             }`}
           >
             {getIconForType('secrets')}
-            <span className="ml-2">Secrets</span>
+            <span className="ml-2">Test Credentials</span>
           </Link>
         </div>
       )}
