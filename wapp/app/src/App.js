@@ -17,7 +17,7 @@ import Dashboard from './pages/Dashboard';
 import Home from './pages/common/Home';
 import EpicDetails from './pages/product/EpicDetails';
 import FeatureDetails from './pages/product/FeatureDetails';
-import Secrets from './pages/product/Secrets';
+import TestCredentials from './pages/product/TestCredentials';
 import TestsTable from './pages/product/TestsTable';
 import BugsTable from './pages/product/BugsTable';
 import { ProductProvider } from './context/ProductContext';
@@ -138,8 +138,8 @@ function AppContent() {
                   <Route path="/epics/:epicId" element={<EpicDetails />} />
                   {/* Feature details page */}
                   <Route path="/features/:featureId" element={<FeatureDetails />} />
-                  {/* Secrets Management page */}
-                  <Route path="/secrets" element={<Secrets />} />
+                  {/* TestCredentials Management page */}
+                  <Route path="/secrets" element={<TestCredentials />} />
                   {/* Tests Table page */}
                   <Route path="/tests" element={<TestsTable />} />
                   {/* Bugs Table page */}

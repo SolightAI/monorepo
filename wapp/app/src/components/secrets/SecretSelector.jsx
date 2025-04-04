@@ -6,50 +6,50 @@ const SecretSelector = ({
   onSecretSelect,
   selectedSecretIds = [],
   secretType = null,
-  label = "Select Secrets",
+  label = "Select TestCredentials",
   placeholder = "Choose secrets...",
   className = "",
   multiple = false
 }) => {
   const {
     secrets,
-    fetchSecrets,
+    fetchTestCredentials,
     getSecretWithValues,
     loading
   } = useSecret();
 
   const [isOpen, setIsOpen] = useState(false);
-  const [filteredSecrets, setFilteredSecrets] = useState([]);
-  const [selectedSecrets, setSelectedSecrets] = useState([]);
+  const [filteredTestCredentials, setFilteredTestCredentials] = useState([]);
+  const [selectedTestCredentials, setSelectedTestCredentials] = useState([]);
   const [revealValues, setRevealValues] = useState(false);
-  const [secretsValues, setSecretsValues] = useState({});
+  const [secretsValues, setTestCredentialsValues] = useState({});
   const [loadingValues, setLoadingValues] = useState(false);
 
   // Filter secrets by type if provided
   useEffect(() => {
     if (secretType) {
-      setFilteredSecrets(secrets.filter(secret => secret.type === secretType));
+      setFilteredTestCredentials(secrets.filter(secret => secret.type === secretType));
     } else {
-      setFilteredSecrets(secrets);
+      setFilteredTestCredentials(secrets);
     }
   }, [secrets, secretType]);
 
   // Load secrets on component mount
   useEffect(() => {
-    fetchSecrets();
-  }, [fetchSecrets]);
+    fetchTestCredentials();
+  }, [fetchTestCredentials]);
 
   // Find selected secrets in list
   useEffect(() => {
     if (selectedSecretIds && selectedSecretIds.length > 0) {
       const found = secrets.filter(s => selectedSecretIds.includes(s.id));
-      setSelectedSecrets(found);
+      setSelectedTestCredentials(found);
 
       // Load values for all selected secrets
       Promise.all(found.map(s => loadSecretValues(s.id)));
     } else {
-      setSelectedSecrets([]);
-      setSecretsValues({});
+      setSelectedTestCredentials([]);
+      setTestCredentialsValues({});
     }
   }, [selectedSecretIds, secrets]);
 
@@ -59,7 +59,7 @@ const SecretSelector = ({
     try {
       const secretWithValues = await getSecretWithValues(secretId);
       if (secretWithValues && secretWithValues.values) {
-        setSecretsValues(prev => ({
+        setTestCredentialsValues(prev => ({
           ...prev,
           [secretId]: secretWithValues.values
         }));
@@ -75,39 +75,39 @@ const SecretSelector = ({
   const handleSelectSecret = async (secret) => {
     if (multiple) {
       // For multiple selection mode
-      if (selectedSecrets.some(s => s.id === secret.id)) {
+      if (selectedTestCredentials.some(s => s.id === secret.id)) {
         // If already selected, remove it
-        setSelectedSecrets(selectedSecrets.filter(s => s.id !== secret.id));
+        setSelectedTestCredentials(selectedTestCredentials.filter(s => s.id !== secret.id));
 
         // Update secretsValues
         const updatedValues = { ...secretsValues };
         delete updatedValues[secret.id];
-        setSecretsValues(updatedValues);
+        setTestCredentialsValues(updatedValues);
 
         // Notify parent component
         if (onSecretSelect) {
-          const updatedIds = selectedSecrets
+          const updatedIds = selectedTestCredentials
             .filter(s => s.id !== secret.id)
             .map(s => s.id);
-          onSecretSelect(updatedIds, selectedSecrets.filter(s => s.id !== secret.id));
+          onSecretSelect(updatedIds, selectedTestCredentials.filter(s => s.id !== secret.id));
         }
       } else {
         // If not selected, add it
-        const updatedSecrets = [...selectedSecrets, secret];
-        setSelectedSecrets(updatedSecrets);
+        const updatedTestCredentials = [...selectedTestCredentials, secret];
+        setSelectedTestCredentials(updatedTestCredentials);
 
         // Load secret values
         await loadSecretValues(secret.id);
 
         // Notify parent component
         if (onSecretSelect) {
-          const updatedIds = updatedSecrets.map(s => s.id);
-          onSecretSelect(updatedIds, updatedSecrets);
+          const updatedIds = updatedTestCredentials.map(s => s.id);
+          onSecretSelect(updatedIds, updatedTestCredentials);
         }
       }
     } else {
       // For single selection mode
-      setSelectedSecrets([secret]);
+      setSelectedTestCredentials([secret]);
       setIsOpen(false);
 
       // Load secret values
@@ -140,18 +140,18 @@ const SecretSelector = ({
 
   // Remove a selected secret (for multiple mode)
   const removeSelectedSecret = (secretId) => {
-    setSelectedSecrets(selectedSecrets.filter(s => s.id !== secretId));
+    setSelectedTestCredentials(selectedTestCredentials.filter(s => s.id !== secretId));
 
     // Update secretsValues
     const updatedValues = { ...secretsValues };
     delete updatedValues[secretId];
-    setSecretsValues(updatedValues);
+    setTestCredentialsValues(updatedValues);
 
     // Notify parent component
     if (onSecretSelect) {
-      const updatedSecrets = selectedSecrets.filter(s => s.id !== secretId);
-      const updatedIds = updatedSecrets.map(s => s.id);
-      onSecretSelect(updatedIds, updatedSecrets);
+      const updatedTestCredentials = selectedTestCredentials.filter(s => s.id !== secretId);
+      const updatedIds = updatedTestCredentials.map(s => s.id);
+      onSecretSelect(updatedIds, updatedTestCredentials);
     }
   };
 
@@ -168,11 +168,11 @@ const SecretSelector = ({
                  focus:ring-blue-500 focus:border-blue-500 relative"
         onClick={() => setIsOpen(!isOpen)}
       >
-        {selectedSecrets.length === 0 ? (
+        {selectedTestCredentials.length === 0 ? (
           <div className="text-gray-400">{placeholder}</div>
         ) : multiple ? (
           <div className="flex flex-wrap gap-1">
-            {selectedSecrets.map(secret => (
+            {selectedTestCredentials.map(secret => (
               <span
                 key={secret.id}
                 className="bg-gray-100 text-gray-800 px-2 py-1 text-sm rounded-md flex items-center"
@@ -194,7 +194,7 @@ const SecretSelector = ({
         ) : (
           <div className="flex items-center">
             <HiKey className="mr-2 text-gray-500" />
-            <span>{selectedSecrets[0]?.name}</span>
+            <span>{selectedTestCredentials[0]?.name}</span>
           </div>
         )}
 
@@ -209,15 +209,15 @@ const SecretSelector = ({
                        border border-gray-200 max-h-60 overflow-auto">
           {loading ? (
             <div className="p-4 text-center text-gray-500">Loading...</div>
-          ) : filteredSecrets.length === 0 ? (
+          ) : filteredTestCredentials.length === 0 ? (
             <div className="p-4 text-center text-gray-500">No secrets found</div>
           ) : (
             <ul className="py-1">
-              {filteredSecrets.map(secret => (
+              {filteredTestCredentials.map(secret => (
                 <li
                   key={secret.id}
                   className={`px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between
-                            ${multiple && selectedSecrets.some(s => s.id === secret.id) ? 'bg-blue-50' : ''}`}
+                            ${multiple && selectedTestCredentials.some(s => s.id === secret.id) ? 'bg-blue-50' : ''}`}
                   onClick={() => handleSelectSecret(secret)}
                 >
                   <div className="flex items-center">
@@ -230,7 +230,7 @@ const SecretSelector = ({
                     </div>
                   </div>
 
-                  {multiple && selectedSecrets.some(s => s.id === secret.id) && (
+                  {multiple && selectedTestCredentials.some(s => s.id === secret.id) && (
                     <div className="h-2 w-2 rounded-full bg-blue-500"></div>
                   )}
                 </li>
@@ -241,11 +241,11 @@ const SecretSelector = ({
       )}
 
       {/* Display selected secret values */}
-      {selectedSecrets.length > 0 && (
+      {selectedTestCredentials.length > 0 && (
         <div className="mt-2 border rounded-md p-3 bg-gray-50">
           <div className="flex justify-between items-center mb-2">
             <div className="text-sm font-medium text-gray-500">
-              {multiple ? 'Selected Secrets' : 'Secret Values'}
+              {multiple ? 'Selected TestCredentials' : 'Test Credential Values'}
             </div>
             <button
               type="button"
@@ -268,7 +268,7 @@ const SecretSelector = ({
             <div className="text-center text-gray-500 text-sm py-2">Loading values...</div>
           ) : (
             <div className="space-y-3">
-              {selectedSecrets.map(secret => (
+              {selectedTestCredentials.map(secret => (
                 <div key={secret.id} className="border-t pt-2">
                   <div className="text-sm font-medium mb-1">
                     {secret.name} ({getSecretTypeDisplay(secret.type)})

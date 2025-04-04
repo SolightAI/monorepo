@@ -39,11 +39,11 @@ const FeaturesOverview = ({ onNext, onPrev, onSkip }) => {
         />
 
         <FeatureCard
-          title="Secure Secret Management"
+          title="Secure Test Credential Management"
           icon={<Key className="h-6 w-6 text-purple-500" />}
           description="Safely store and manage test credentials and sensitive information with encrypted storage and controlled access."
           links={[
-            { label: "Manage Secrets", path: "/secrets" }
+            { label: "Manage Test Credentials", path: "/secrets" }
           ]}
         />
 

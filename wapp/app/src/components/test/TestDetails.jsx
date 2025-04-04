@@ -114,7 +114,7 @@ function TestDetails({ test, onClose }) {
         {/* Display associated secrets */}
         {test.secrets && test.secrets.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">Associated Secrets</h3>
+            <h3 className="text-lg font-semibold mb-2">Associated Test Credentials</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {test.secrets.map((secret) => (
                 <div key={secret.id} className="bg-gray-50 p-3 rounded-lg border border-gray-200">

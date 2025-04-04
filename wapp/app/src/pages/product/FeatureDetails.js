@@ -913,8 +913,8 @@ const FeatureDetails = () => {
                       (!feature?.tests || feature.tests.length === 0)) && (
                       <button
                         onClick={handleSequentialGeneration}
-                        disabled={isGeneratingSequential || loading}
-                        className={`flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150 ${(isGeneratingSequential || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={isGeneratingSequential || generationState.isGenerating || loading}
+                        className={`flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150 ${(isGeneratingSequential || generationState.isGenerating || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <Zap size={18} className="mr-2" />
                         {isGeneratingSequential ? 'Generating...' : 'Generate All'}
@@ -1036,13 +1036,6 @@ const FeatureDetails = () => {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">Acceptance Criteria</h2>
                 <div className="flex space-x-2">
-                  <button
-                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
-                    onClick={handleAddAcceptanceCriteria}
-                  >
-                    <Plus size={18} className="mr-2" />
-                    Add Acceptance Criteria
-                  </button>
                   {userStories && userStories.length > 0 && (!acceptanceCriteria || acceptanceCriteria.length === 0) && (
                     <button
                       className={`flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150 ${(generationState.isGenerating && generationState.type === 'acceptance-criteria') ? 'opacity-80' : ''}`}
@@ -1057,6 +1050,13 @@ const FeatureDetails = () => {
                       {(generationState.isGenerating && generationState.type === 'acceptance-criteria') ? 'Generating...' : 'Generate Acceptance Criteria'}
                     </button>
                   )}
+                                    <button
+                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
+                    onClick={handleAddAcceptanceCriteria}
+                  >
+                    <Plus size={18} className="mr-2" />
+                    Add Acceptance Criteria
+                  </button>
                 </div>
               </div>
 

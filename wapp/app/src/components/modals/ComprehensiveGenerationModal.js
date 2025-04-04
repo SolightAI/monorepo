@@ -821,79 +821,110 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
 
         <InProgressGenerations />
 
-        <div {...getModalContainerProps(onClose)}>
-          <div {...getModalContentProps('w-full max-w-4xl')}>
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-gray-800">
-                {status === 'completed'
-                  ? 'Generation Complete'
-                  : status === 'error'
-                    ? 'Generation Error'
-                    : 'Generating Product Hierarchy'}
-              </h2>
-              <button
-                onClick={onClose}
-                className="text-gray-500 hover:text-gray-700 focus:outline-none"
-                disabled={isBlockingClose}
-              >
-                <X size={24} />
-              </button>
-            </div>
+    <div {...getModalContainerProps(onClose)}>
+      <div {...getModalContentProps('w-full max-w-4xl')}>
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+          <h2 className="text-xl font-semibold text-gray-800">
+            {status === 'completed'
+              ? 'Generation Complete'
+              : status === 'error'
+                ? 'Generation Error'
+                : 'Generating Product Hierarchy'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 focus:outline-none"
+            disabled={isBlockingClose}
+          >
+            <X size={24} />
+          </button>
+        </div>
 
+        <div className="px-6 py-4">
+          <div className="mb-6">
+            <p className="text-gray-600">
+              Product: <span className="font-medium">{productName}</span>
+            </p>
+          </div>
+
+          {status !== 'completed' && status !== 'error' && (
             <div className="mb-6">
-              <p className="text-gray-600">
-                Product: <span className="font-medium">{productName}</span>
-              </p>
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-600 transition-all duration-500 ease-out"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">{Math.round(progress)}% complete</p>
+
+              {detailedProgress && (
+                <p className="text-sm text-blue-600 mt-1 font-medium">{detailedProgress}</p>
+              )}
             </div>
+          )}
 
-            {status !== 'completed' && status !== 'error' && (
-              <div className="mb-6">
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-600 transition-all duration-500 ease-out"
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                </div>
-                <p className="text-sm text-gray-500 mt-2">{Math.round(progress)}% complete</p>
-
-                {detailedProgress && (
-                  <p className="text-sm text-blue-600 mt-1 font-medium">{detailedProgress}</p>
-                )}
+          <div className="mb-6">
+            {status === 'preparing' && (
+              <div className="flex items-center text-blue-600">
+                <Clock size={20} className="mr-2" />
+                <span>Preparing generation process...</span>
               </div>
             )}
 
-            <div className="mb-6">
-              {status === 'preparing' && (
-                <div className="flex items-center text-blue-600">
-                  <Clock size={20} className="mr-2" />
-                  <span>Preparing generation process...</span>
-                </div>
-              )}
+            {(status === 'generating-epics' ||
+              status === 'generating-features' ||
+              status === 'generating-user-stories' ||
+              status === 'generating-acceptance-criteria' ||
+              status === 'generating-tests') && (
+              <div className="flex items-center text-blue-600">
+                <Loader size={20} className="animate-spin mr-2" />
+                <span>{message}</span>
+              </div>
+            )}
 
-              {(status === 'generating-epics' ||
-                status === 'generating-features' ||
-                status === 'generating-user-stories' ||
-                status === 'generating-acceptance-criteria' ||
-                status === 'generating-tests') && (
-                <div className="flex items-center text-blue-600">
-                  <Loader size={20} className="animate-spin mr-2" />
-                  <span>{message}</span>
-                </div>
-              )}
+            {status === 'completed' && (
+              <div className="flex items-center text-green-600">
+                <Check size={20} className="mr-2" />
+                <span>{message}</span>
+              </div>
+            )}
 
-              {status === 'completed' && (
-                <div className="flex items-center text-green-600">
-                  <Check size={20} className="mr-2" />
-                  <span>{message}</span>
-                </div>
-              )}
+            {status === 'error' && (
+              <div className="flex items-center text-red-600">
+                <AlertTriangle size={20} className="mr-2" />
+                <span>{error || 'An error occurred during generation'}</span>
+              </div>
+            )}
+          </div>
 
-              {status === 'error' && (
-                <div className="flex items-center text-red-600">
-                  <AlertTriangle size={20} className="mr-2" />
-                  <span>{error || 'An error occurred during generation'}</span>
-                </div>
-              )}
+          {statusLogs.length > 0 && status !== 'error' && (
+            <div className="mb-6 border rounded-lg p-3 bg-gray-50 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+              <div className="flex justify-between items-center mb-2">
+                <p className="text-sm font-medium text-gray-700">Activity Log:</p>
+                <span className="text-xs text-gray-500">{statusLogs.length} {statusLogs.length === 1 ? 'entry' : 'entries'}</span>
+              </div>
+              <ul className="text-xs space-y-1">
+                {statusLogs.map((log, index) => {
+                  const messageColorClass =
+                    log.type === 'warning' ? 'text-amber-600' :
+                    log.type === 'error' ? 'text-red-600' :
+                    'text-gray-600';
+
+                  return (
+                    <li key={index} className={`${messageColorClass} py-1 border-b border-gray-100 last:border-b-0`}>
+                      <span className="text-gray-500 font-mono">{log.time}</span> - {log.message}
+                      {log.type === 'warning' && <span className="inline-block ml-1">⚠️</span>}
+                      {log.type === 'error' && <span className="inline-block ml-1">❌</span>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
+          {status === 'completed' && (
+            <div className="border rounded-lg p-4 bg-gray-50">
+              {generateSummary()}
             </div>
 
             {statusLogs.length > 0 && status !== 'error' && (

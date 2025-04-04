@@ -26,6 +26,9 @@ const Home = () => {
   const [selectedEpic, setSelectedEpic] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [epicToDelete, setEpicToDelete] = useState(null);
+  const [isGeneratingEpics, setIsGeneratingEpics] = useState(false);
+  const [isGeneratingEverything, setIsGeneratingEverything] = useState(false);
+  const [epicGenerationInProgress, setEpicGenerationInProgress] = useState(false);
 
   const navigate = useNavigate();
 
@@ -45,16 +48,28 @@ const Home = () => {
 
       if (productResponse.data.epics && productResponse.data.epics.length > 0) {
         setEpics(productResponse.data.epics);
+        if (epicGenerationInProgress) {
+          setEpicGenerationInProgress(false);
+          setIsGeneratingEpics(false);
+        }
       } else {
         setEpics([]);
+        if (!epicGenerationInProgress) {
+          setIsGeneratingEpics(false);
+          setIsGeneratingEverything(false);
+        }
       }
     } catch (err) {
       console.error('Error fetching product epics:', err);
       setError('Failed to fetch epics for this product. Please try again.');
+      if (!epicGenerationInProgress) {
+        setIsGeneratingEpics(false);
+        setIsGeneratingEverything(false);
+      }
     } finally {
       setLoading(false);
     }
-  }, [selectedProduct?.id, selectedOrganization?.id]);
+  }, [selectedProduct?.id, selectedOrganization?.id, epicGenerationInProgress]);
 
   // Fetch epics for the selected product
   useEffect(() => {
@@ -66,6 +81,24 @@ const Home = () => {
     }
   }, [selectedProduct, productLoading, fetchEpics]);
 
+  // Add polling effect for epic generation
+  useEffect(() => {
+    let interval;
+
+    if (epicGenerationInProgress) {
+      // Poll for epics every 5 seconds while generation is in progress
+      interval = setInterval(() => {
+        if (selectedProduct) {
+          fetchEpics();
+        }
+      }, 5000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [epicGenerationInProgress, fetchEpics, selectedProduct]);
+
   const handleEpicCreationComplete = async (createdEpics) => {
     setShowEpicModal(false);
     await fetchEpics();
@@ -73,19 +106,26 @@ const Home = () => {
 
   const handleEpicGenerationComplete = async (generatedEpics) => {
     setShowEpicGenerationModal(false);
+    // Keep the loading state active until fetching is complete
+    setIsGeneratingEpics(true);
+    setEpicGenerationInProgress(true);
     await fetchEpics();
   };
 
   const handleComprehensiveGenerationComplete = async () => {
     setShowComprehensiveGenerationModal(false);
+    // Keep the loading state active until fetching is complete
+    setIsGeneratingEverything(true);
     await fetchEpics();
   };
 
   const handleGenerateEpics = () => {
+    setIsGeneratingEpics(true);
     setShowEpicGenerationModal(true);
   };
 
   const handleGenerateEverything = () => {
+    setIsGeneratingEverything(true);
     setShowComprehensiveGenerationModal(true);
   };
 
@@ -172,30 +212,66 @@ const Home = () => {
             <div className="flex justify-center items-center py-20">
               <Loader size={40} className="text-blue-500 animate-spin" />
             </div>
-          ) : !selectedProduct ? (
-            <div className="text-center py-20 bg-white rounded-lg shadow">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">No Product Selected</h2>
-              <p className="text-gray-500 mb-6">Please use the product selector in the navigation bar to choose a product or create a new one.</p>
-              <div className="flex flex-col items-center">
-                <div className="mb-4">
-                  <Sparkles size={24} className="text-purple-500" />
-                </div>
-                <p className="text-sm text-gray-600">The product selector is located in the top navigation bar.</p>
+        ) : !selectedProduct ? (
+          <div className="text-center py-20 bg-white rounded-lg shadow">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">No Product Selected</h2>
+            <p className="text-gray-500 mb-6">Please use the product selector in the navigation bar to choose a product or create a new one.</p>
+            <div className="flex flex-col items-center">
+              <div className="mb-4">
+                <Sparkles size={24} className="text-purple-500" />
               </div>
+              <p className="text-sm text-gray-600">The product selector is located in the top navigation bar.</p>
             </div>
-          ) : (
-            <>
-              <div className="flex justify-between items-center mb-8">
+          </div>
+        ) : (
+          <>
+            <div className="mb-8">
+              <div className="flex justify-between items-center">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-800">{selectedProduct.name} Epics</h1>
                   {selectedProduct.description && (
-                    <p className="text-gray-600 mt-2">{selectedProduct.description}</p>
+                    <p className="text-gray-600 mt-2 max-h-64 overflow-y-auto">{selectedProduct.description}</p>
                   )}
                 </div>
-                <div className="flex space-x-3">
-                  {/* Only show generate buttons when no epics exist */}
-                  {epics.length === 0 && (
-                    <>
+                {epics.length === 0 ? null : (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setShowEpicModal(true)}
+                      className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                    >
+                      <Plus size={20} className="mr-2" />
+                      Add Epic
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Error message */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start">
+                <AlertCircle size={20} className="mr-2 flex-shrink-0 mt-1" />
+                <p>{error}</p>
+              </div>
+            )}
+
+            {/* Loading indicator */}
+            {loading || isGeneratingEpics || isGeneratingEverything || epicGenerationInProgress ? (
+              <div className="flex justify-center items-center py-20">
+                <Loader size={40} className="text-blue-500 animate-spin" />
+                {(isGeneratingEpics || epicGenerationInProgress) && (
+                  <p className="ml-4 text-blue-600">Generating epics...</p>
+                )}
+                {isGeneratingEverything && (
+                  <p className="ml-4 text-blue-600">Generating everything...</p>
+                )}
+              </div>
+            ) : (
+              <>
+                {epics.length === 0 ? (
+                  <div className="text-center py-20 bg-white rounded-lg shadow">
+                    <p className="text-gray-500 mb-4">No epics found for this product</p>
+                    <div className="flex justify-center space-x-4">
                       <button
                         onClick={handleGenerateEverything}
                         className="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg shadow hover:from-green-700 hover:to-blue-700 transition duration-150"
@@ -340,6 +416,8 @@ const Home = () => {
           productName={selectedProduct.name}
           onClose={() => {
             setShowEpicGenerationModal(false);
+            setIsGeneratingEpics(true);
+            setEpicGenerationInProgress(true);
             fetchEpics();
           }}
           onComplete={handleEpicGenerationComplete}
@@ -353,6 +431,7 @@ const Home = () => {
           productName={selectedProduct.name}
           onClose={() => {
             setShowComprehensiveGenerationModal(false);
+            setIsGeneratingEverything(true);
             fetchEpics();
           }}
           onComplete={handleComprehensiveGenerationComplete}

@@ -179,21 +179,6 @@ const OrganizationSetup = ({ onNext, onPrev, onSkip }) => {
                   </div>
 
                   <div>
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                      Description
-                    </label>
-                    <textarea
-                      id="description"
-                      name="description"
-                      rows="3"
-                      value={formData.description}
-                      onChange={handleChange}
-                      className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      placeholder="Briefly describe your organization (optional)"
-                    />
-                  </div>
-
-                  <div>
                     <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
                       Organization Type
                     </label>
@@ -305,21 +290,6 @@ const OrganizationSetup = ({ onNext, onPrev, onSkip }) => {
               <p className="mt-1 text-xs text-gray-500">
                 This will be the name displayed throughout the application.
               </p>
-            </div>
-
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                rows="3"
-                value={formData.description}
-                onChange={handleChange}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Briefly describe your organization (optional)"
-              />
             </div>
 
             <div>

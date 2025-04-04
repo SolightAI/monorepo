@@ -86,7 +86,7 @@ router = APIRouter(prefix="/generate-features")
 logger = getLogger(__name__)
 
 
-def _parse_features(features_text: str) -> list[dict[str, str]]:
+def _parse_features(task_id: str, features_text: str) -> list[dict[str, str]]:
     """Parse the text returned from LLM into a list of feature dictionaries."""
     # Use regex to extract features
     features = []
@@ -101,7 +101,7 @@ def _parse_features(features_text: str) -> list[dict[str, str]]:
         urls = re.findall(pattern, urls, re.DOTALL)
 
         if not urls:
-            raise Exception(f"No urls found for feature {match.group(3).strip()}")
+            raise Exception(f"[{task_id}] No urls found for feature {match.group(3).strip()}")
 
         feature = {
             'name': match.group(1).strip(),
@@ -211,7 +211,7 @@ async def _generate_features(
     )
 
     # Parse the test cases from the LLM response
-    features = _parse_features(result)
+    features = _parse_features(task_id, result)
 
     return [Feature(name=f['name'], description=f['description'], urls=f['urls']) for f in features]
 

@@ -137,7 +137,7 @@ const SecretList = () => {
     <div className="bg-white shadow rounded-lg p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-semibold text-gray-900">
-          Secrets Management
+        Test Credentials Management
           {selectedProduct && (
             <span className="ml-2 text-sm text-gray-500">
               for {selectedProduct.name}
@@ -157,7 +157,7 @@ const SecretList = () => {
             onClick={handleAddSecret}
             className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
           >
-            <HiPlusCircle className="mr-1" /> New Secret
+            <HiPlusCircle className="mr-1" /> New Test Credential
           </button>
         </div>
       </div>
@@ -201,7 +201,7 @@ const SecretList = () => {
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
             >
               <HiPlusCircle className="mr-2 -ml-1 h-5 w-5" />
-              New Secret
+              New Test Credential
             </button>
           </div>
         </div>
