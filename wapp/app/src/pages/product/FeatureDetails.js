@@ -1012,7 +1012,7 @@ const FeatureDetails = () => {
                         <div className="flex items-start">
                           <CheckSquare size={20} className="text-green-500 mr-3 mt-1 flex-shrink-0" />
                           <div>
-                            <h3 className="text-lg font-medium text-gray-800 mb-1 truncate max-w-[500px]" title={story.name}>{story.name}</h3>
+                            <h3 className="text-lg font-medium text-gray-800 mb-1 truncate max-w-[1000px]" title={story.name}>{story.name}</h3>
                             {story.description && (
                               <p className="text-gray-600 mb-2 break-words overflow-y-auto pr-2 break-all">{story.description}</p>
                             )}
@@ -1081,7 +1081,7 @@ const FeatureDetails = () => {
                         <div className="flex items-start">
                           <CheckSquare size={20} className="text-green-500 mr-3 mt-1 flex-shrink-0" />
                           <div>
-                            <h3 className="text-lg font-medium text-gray-800 mb-1 truncate max-w-[500px]" title={criteria.name}>{criteria.name}</h3>
+                            <h3 className="text-lg font-medium text-gray-800 mb-1 truncate max-w-[1000px]" title={criteria.name}>{criteria.name}</h3>
                             {criteria.description && (
                               <p className="text-gray-600 mb-2 break-words overflow-y-auto pr-2 break-all">{criteria.description}</p>
                             )}
