@@ -148,6 +148,11 @@ def upload_gif_to_s3(
     """
     Helper function to upload a GIF to S3. Returns None if S3 upload fails.
     """
+
+    if os.getenv("TEST_MODE", "false").lower() == "true":
+        logger.info(f"[{task_id}] Skipping S3 upload in test mode")
+        return None
+
     try:
         s3_manager = S3Manager()
         return s3_manager.upload_gif(task_id, file_path, task_type, task_name, additional_params)

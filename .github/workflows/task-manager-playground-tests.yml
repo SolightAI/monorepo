@@ -1,0 +1,110 @@
+name: Task Manager Playground Tests
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'task-manager/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'task-manager/**'
+  # Manual trigger
+  workflow_dispatch:
+
+jobs:
+
+  auth-session-tests:
+    runs-on: ubuntu-latest
+    container:
+      # Replace with your actual private Docker image
+      image: docker.pkg.github.com/laneoai/task-manager:latest
+      credentials:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    defaults:
+      run:
+        working-directory: ./task-manager
+
+    env:
+      # Azure OpenAI settings (required for the auth agent)
+      AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
+      AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+      # Playground settings
+      PLAYGROUND_URL: "https://playground.tm.laneo.io"
+      PYTHONPATH: ${{ github.workspace }}/task-manager
+      TEST_MODE: "true"
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: docker.pkg.github.com
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio pytest-cov browser-use
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: './task-manager/tests/playground/package-lock.json'
+
+    - name: Install Playwright browsers
+      run: |
+        npx playwright install chromium
+
+    - name: Install and build playground
+      run: |
+        cd tests/playground
+        npm ci
+        npm run build
+
+    - name: Start playground in background
+      run: |
+        cd tests/playground
+        npm start &
+        # Wait for the server to be ready
+        node -e "
+          const http = require('http');
+          const checkServer = () => {
+            http.get('http://localhost:3000', (res) => {
+              if (res.statusCode === 200) {
+                console.log('Server is up and running!');
+                process.exit(0);
+              } else {
+                setTimeout(checkServer, 1000);
+              }
+            }).on('error', (err) => {
+              console.log('Server not ready yet, retrying...');
+              setTimeout(checkServer, 1000);
+            });
+          };
+          checkServer();
+        "
+
+    - name: Run auth session tests
+      run: |
+        pytest tests/test_auth_session.py -vvv --repeat 3 -n 5 --cov=src.fixtures.generate_auth_session --cov-report=xml:coverage-auth-session.xml
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./task-manager/coverage-auth-session.xml
+        flags: task-manager-auth-session
