@@ -125,6 +125,13 @@ async def validate_invitation(code: str, email: Optional[str] = None) -> Invitat
             detail="Invitation code is not valid for this email address"
         )
 
+    # Check if the invitation has already been used
+    if invitation.used:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invitation has already been used"
+        )
+
     return invitation
 
 
