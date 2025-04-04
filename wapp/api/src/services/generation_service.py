@@ -636,3 +636,27 @@ async def wait_for_task_completion(
     # Timed out
     logger.error(f"Timed out waiting for {task_type} task {task_id} to complete")
     return False
+
+
+async def get_in_progress_generations() -> List[Dict[str, Any]]:
+    """
+    Get all currently in-progress generations.
+
+    Returns:
+        List of dictionaries containing information about in-progress generations
+    """
+    in_progress = []
+    
+    # Check all task statuses
+    for task_id, status_data in task_status.items():
+        if status_data["status"] == "in_progress":
+            in_progress.append({
+                "task_id": task_id,
+                "scope": status_data["scope"],
+                "scope_id": status_data["scope_id"],
+                "current_item": status_data["current_item"],
+                "completed_items": status_data["completed_items"],
+                "errors": status_data["errors"]
+            })
+    
+    return in_progress
