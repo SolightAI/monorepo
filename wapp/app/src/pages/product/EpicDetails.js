@@ -333,7 +333,7 @@ const EpicDetails = () => {
           Back to Product
         </button>
 
-        {/* Error message */}
+        {/* Error message*/}
         {error && (
           <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start">
             <AlertCircle size={20} className="mr-2 flex-shrink-0 mt-1" />
