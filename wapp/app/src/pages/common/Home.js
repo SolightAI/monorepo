@@ -180,7 +180,7 @@ const Home = () => {
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">{selectedProduct.name} Epics</h1>
                 {selectedProduct.description && (
-                  <p className="text-gray-600 mt-2">{selectedProduct.description}</p>
+                  <p className="text-gray-600 mt-2 max-h-64 overflow-y-auto">{selectedProduct.description}</p>
                 )}
               </div>
               <div className="flex space-x-3">
