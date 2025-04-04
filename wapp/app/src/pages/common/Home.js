@@ -176,41 +176,22 @@ const Home = () => {
           </div>
         ) : (
           <>
-            <div className="flex justify-between items-center mb-8">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800">{selectedProduct.name} Epics</h1>
-                {selectedProduct.description && (
-                  <p className="text-gray-600 mt-2 max-h-64 overflow-y-auto">{selectedProduct.description}</p>
-                )}
-              </div>
-              <div className="flex space-x-3">
-                {/* Only show generate buttons when no epics exist */}
-                {epics.length === 0 && (
-                  <>
-                    <button
-                      onClick={handleGenerateEverything}
-                      className="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg shadow hover:from-green-700 hover:to-blue-700 transition duration-150"
-                    >
-                      <Rocket size={20} className="mr-2" />
-                      Generate Everything
-                    </button>
-                    <button
-                      onClick={handleGenerateEpics}
-                      className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-150"
-                    >
-                      <Zap size={20} className="mr-2" />
-                      Generate Epics
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => setShowEpicModal(true)}
-                  className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
-                >
-                  <Plus size={20} className="mr-2" />
-                  Add Epic
-                </button>
-              </div>
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-800">{selectedProduct.name} Epics</h1>
+              {selectedProduct.description && (
+                <p className="text-gray-600 mt-2 max-h-64 overflow-y-auto">{selectedProduct.description}</p>
+              )}
+              {epics.length !== 0 && (
+                <div className="flex justify-end mt-8">
+                  <button
+                    onClick={() => setShowEpicModal(true)}
+                    className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                  >
+                    <Plus size={20} className="mr-2" />
+                    Add Epic
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Error message */}
