@@ -118,6 +118,13 @@ async def validate_invitation(code: str, email: Optional[str] = None) -> Invitat
             detail="Invitation code has expired"
         )
 
+    # Check if invitation has been used
+    if invitation.used:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invitation has already been used"
+        )
+
     # Check if the invitation is for a specific email
     if invitation.email and email and invitation.email.lower() != email.lower():
         raise HTTPException(
