@@ -25,16 +25,9 @@ async def handle_organization_invitation(invitation_code: str, user) -> Tuple[bo
         )
 
     try:
-        # First validate the invitation without checking email
-        invitation = await validate_invitation(invitation_code)
+        # First validate the invitation with email check and used check
+        invitation = await validate_invitation(invitation_code, user.email, check_used=True)
         
-        # Then check if the email matches
-        if invitation.email and invitation.email.lower() != user.email.lower():
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"This invitation is for {invitation.email}. Please log in with that email address."
-            )
-
         if invitation.organization_id and invitation.role:
             # Check if user is already a member
             existing_member = await get_organization_member(

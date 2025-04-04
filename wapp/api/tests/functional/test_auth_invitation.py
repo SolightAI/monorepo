@@ -130,6 +130,7 @@ async def test_validate_used_invitation(client: AsyncClient, used_invitation, ad
     # Create admin token
     token = create_token(admin_user.email)
 
+    # First validate the invitation - this should succeed now
     headers = {"Cookie": f"access_token=Bearer {token}"}
     response = await client.get(
         f"/invitations/validate/{used_invitation.code}/",
@@ -137,8 +138,19 @@ async def test_validate_used_invitation(client: AsyncClient, used_invitation, ad
         headers=headers
     )
 
-    assert response.status_code == 400
-    assert "already been used" in response.json()["detail"].lower()
+    assert response.status_code == 200
+    data = response.json()
+    assert data["code"] == used_invitation.code
+
+    # Now try to join the organization - this should fail because the invitation is used
+    if used_invitation.organization_id:
+        response = await client.post(
+            f"/organizations/{used_invitation.organization_id}/join",
+            params={"invitation_code": used_invitation.code},
+            headers=headers
+        )
+        assert response.status_code == 400
+        assert "already been used" in response.json()["detail"].lower()
 
 
 @pytest.mark.anyio
