@@ -16,12 +16,7 @@ jobs:
 
   auth-session-tests:
     runs-on: ubuntu-latest
-    container:
-      image: laneoai/task-manager:latest
-      credentials:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-
+    
     defaults:
       run:
         working-directory: ./task-manager
@@ -38,6 +33,18 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./task-manager
+        file: ./task-manager/Dockerfile
+        push: false
+        load: true
+        tags: task-manager:test
 
     - name: Set up Python 3.10
       uses: actions/setup-python@v4
@@ -92,8 +99,9 @@ jobs:
         "
 
     - name: Run auth session tests
+      # Use the built Docker image
       run: |
-        pytest tests/test_auth_session.py -vvv --repeat 3 -n 5 --cov=src.fixtures.generate_auth_session --cov-report=xml:coverage-auth-session.xml
+        docker run --network host -e AZURE_OPENAI_KEY -e AZURE_OPENAI_ENDPOINT -e PLAYGROUND_URL -e TEST_MODE -v ${{ github.workspace }}/task-manager:/app task-manager:test pytest tests/test_auth_session.py -vvv --repeat 3 -n 5 --cov=src.fixtures.generate_auth_session --cov-report=xml:coverage-auth-session.xml
 
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
