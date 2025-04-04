@@ -3,6 +3,12 @@ import ReactMarkdown from 'react-markdown'
 import BugDetailsModal from "./BugDetailsModal.jsx"
 import ContactFormModal from "./ContactFormModal.jsx"
 
+
+const NEVER_RESTRICTED_DOMAINS = [
+  "smith.ai",
+]
+
+
 function AiDetectedBugs({ bugs }) {
   const [selectedBug, setSelectedBug] = useState(null)
   const [showContactForm, setShowContactForm] = useState(false)
@@ -81,7 +87,7 @@ function AiDetectedBugs({ bugs }) {
 
   // Add a function to handle bug selection with restrictions
   const handleBugSelect = (bug, index) => {
-    if (restrictedStatus[index]) {
+    if (restrictedStatus[index] && !NEVER_RESTRICTED_DOMAINS.some(domain => bug.page.includes(domain))) {
       setShowContactForm(true);
     } else {
       setSelectedBug(bug);
@@ -126,7 +132,7 @@ function AiDetectedBugs({ bugs }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {sortedBugs.map((bug, index) => {
-          const isRestricted = restrictedStatus[index];
+          const isRestricted = restrictedStatus[index] && !NEVER_RESTRICTED_DOMAINS.some(domain => bug.page.includes(domain));
           return (
             <div
               key={bug.id}
