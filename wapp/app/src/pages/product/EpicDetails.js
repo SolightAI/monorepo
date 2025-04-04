@@ -326,22 +326,24 @@ const EpicDetails = () => {
     <div className="container mx-auto px-4 py-8">
       <InProgressGenerations />
       
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center mb-6 text-gray-600 hover:text-blue-600 transition-colors"
-          >
-            <ArrowLeft size={20} className="mr-2" />
-            Back to Product
-          </button>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Back button to return to home */}
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center mb-6 text-gray-600 hover:text-blue-600 transition-colors"
+        >
+          <ArrowLeft size={20} className="mr-2" />
+          Back to Product
+        </button>
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start">
-              <AlertCircle size={20} className="mr-2 flex-shrink-0 mt-1" />
-              <p>{error}</p>
-            </div>
-          )}
+        {/* Error message*/}
+        {error && (
+          <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start">
+            <AlertCircle size={20} className="mr-2 flex-shrink-0 mt-1" />
+            <p>{error}</p>
+          </div>
+        )}
 
           {successMessage && (
             <div className="mb-6 p-4 bg-green-100 border border-green-200 text-green-700 rounded-lg flex items-start">
