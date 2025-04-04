@@ -159,7 +159,7 @@ export default function Layout() {
               </div>
             </div>
 
-            {/* Arrow pointing to the Secrets tab */}
+            {/* Arrow pointing to the TestCredentials tab */}
             <div className="absolute left-48 top-[118px]">
               <svg
                 xmlns="http://www.w3.org/2000/svg"

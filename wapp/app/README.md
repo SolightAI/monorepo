@@ -43,9 +43,9 @@ The application is structured as follows:
   - AcceptanceCriteria - Specific conditions for a user story
   - Test - Actual tests associated with acceptance criteria
   - Bug - Issues detected during testing
-  - Secret - Manages encrypted credentials for testing
-  - SecretValue - Individual encrypted values within a secret
-  - SecretAccess - Logs access to secrets for audit purposes
+  - TestCredential - Manages encrypted credentials for testing
+  - TestCredentialValue - Individual encrypted values within a secret
+  - TestCredentialAccess - Logs access to secrets for audit purposes
 
 - **API Endpoints**
   - `/auth` - Authentication endpoints
@@ -58,7 +58,7 @@ The application is structured as follows:
   - `/acceptance-criteria` - Acceptance criteria management
   - `/tests` - Test management
   - `/bugs` - Bug reporting and tracking
-  - `/secrets` - Secret management for test credentials
+  - `/secrets` - TestCredential management for test credentials
   - `/dashboard` - Dashboard data endpoints
 
 - **Services**
@@ -84,7 +84,7 @@ The application supports multi-tenant architecture with organizations:
 - Associate products with specific organizations
 - Role-based access control for resources
 
-## Secret Management
+## TestCredential Management
 
 The system includes secure secrets management for handling sensitive test credentials:
 - Encrypted storage of secret values

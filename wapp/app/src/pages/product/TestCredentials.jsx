@@ -4,14 +4,14 @@ import { useProduct } from '../../context/ProductContext';
 import SecretList from '../../components/secrets/SecretList';
 import { HiLockClosed } from 'react-icons/hi';
 
-const Secrets = () => {
+const TestCredentials = () => {
   const { selectedOrganization } = useOrganization();
   const { selectedProduct } = useProduct();
 
   useEffect(() => {
     document.name = selectedProduct
-      ? `Secrets - ${selectedProduct.name}`
-      : 'Secrets Management';
+      ? `TestCredentials - ${selectedProduct.name}`
+      : 'Test Credentials Management';
   }, [selectedProduct]);
 
   // If no organization is selected, show a message
@@ -36,7 +36,7 @@ const Secrets = () => {
       {/* Page header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
-          Secrets Management
+        Test Credentials Management
           {selectedProduct && (
             <span className="ml-2 text-xl text-gray-600">
               for {selectedProduct.name}
@@ -54,11 +54,11 @@ const Secrets = () => {
       {/* Documentation section */}
       <div className="mt-8 bg-white shadow rounded-lg p-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">
-          About Secrets Management
+          About Test Credentials Management
         </h2>
         <div className="prose max-w-none">
           <p>
-            Secrets Management allows you to securely store sensitive informations. These secrets can be referenced in your tests without exposing the actual values.
+            Test Credentials Management allows you to securely store sensitive informations. These secrets can be referenced in your tests without exposing the actual values.
             <br />
             Only users with the appropriate permissions can view, create, edit, and delete secrets.
           </p>
@@ -68,4 +68,4 @@ const Secrets = () => {
   );
 };
 
-export default Secrets;
+export default TestCredentials;

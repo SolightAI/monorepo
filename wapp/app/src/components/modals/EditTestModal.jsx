@@ -257,7 +257,7 @@ const EditTestModal = ({ onClose, test, onTestUpdated }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Secrets
+                Test Credentials
               </label>
             </div>
           </div>
