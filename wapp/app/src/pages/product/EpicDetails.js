@@ -389,32 +389,13 @@ const EpicDetails = () => {
                     </button>
                   )}
                   {/* Generate All button - only show if NO features exist */}
-                  {(!epic?.features || epic.features.length === 0) && (
-                    <button
-                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150"
-                      onClick={handleGenerateAll}
-                    >
-                      <Zap size={18} className="mr-2" />
-                      Generate All
-                    </button>
-                  )}
-                  {/* Generate Features button - only show if NO features exist */}
-                  {(!epic?.features || epic.features.length === 0) && (
-                    <button
-                      className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
-                      onClick={() => setIsGenerateFeatureModalOpen(true)}
-                    >
-                      <Sparkles size={18} className="mr-2" />
-                      Generate Features
-                    </button>
-                  )}
-                  <button
+                  {epic?.features.length !== 0 && (<button
                     className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
                     onClick={() => setIsAddFeatureModalOpen(true)}
                   >
                     <Plus size={18} className="mr-2" />
                     Add Feature
-                  </button>
+                  </button>)}
                 </div>
               </div>
 
@@ -423,11 +404,18 @@ const EpicDetails = () => {
                   <p className="text-gray-500 mb-4">No features found for this epic</p>
                   <div className="flex justify-center space-x-4">
                     <button
+                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150"
+                      onClick={handleGenerateAll}
+                    >
+                      <Zap size={18} className="mr-2" />
+                      Generate All
+                    </button>
+                    <button
                       className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
                       onClick={() => setIsGenerateFeatureModalOpen(true)}
                     >
                       <Sparkles size={18} className="mr-2 inline-block" />
-                      Generate features automatically
+                      Generate features
                     </button>
                     <button
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
