@@ -358,15 +358,15 @@ const EpicDetails = () => {
             {/* Epic header */}
             {epic && (
               <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <div className="flex items-center mb-4">
-                  <Sparkles size={24} className="text-purple-500 mr-3" />
-                  <h1 className="text-3xl font-bold text-gray-800">{epic.name}</h1>
+                <div className="flex items-center mb-4 flex-wrap">
+                  <Sparkles size={24} className="text-purple-500 mr-3 flex-shrink-0" />
+                  <h1 className="text-3xl font-bold text-gray-800 break-words overflow-hidden">{epic.name}</h1>
                 </div>
                 {epic.description && (
-                  <p className="text-gray-700 mb-4">{epic.description}</p>
+                  <p className="text-gray-700 mb-4 break-words overflow-hidden max-h-40 overflow-y-auto">{epic.description}</p>
                 )}
                 {selectedProduct && (
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-500 break-words overflow-hidden">
                     Product: {selectedProduct.name}
                   </div>
                 )}
@@ -389,32 +389,13 @@ const EpicDetails = () => {
                     </button>
                   )}
                   {/* Generate All button - only show if NO features exist */}
-                  {(!epic?.features || epic.features.length === 0) && (
-                    <button
-                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150"
-                      onClick={handleGenerateAll}
-                    >
-                      <Zap size={18} className="mr-2" />
-                      Generate All
-                    </button>
-                  )}
-                  {/* Generate Features button - only show if NO features exist */}
-                  {(!epic?.features || epic.features.length === 0) && (
-                    <button
-                      className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
-                      onClick={() => setIsGenerateFeatureModalOpen(true)}
-                    >
-                      <Sparkles size={18} className="mr-2" />
-                      Generate Features
-                    </button>
-                  )}
-                  <button
+                  {epic?.features.length !== 0 && (<button
                     className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
                     onClick={() => setIsAddFeatureModalOpen(true)}
                   >
                     <Plus size={18} className="mr-2" />
                     Add Feature
-                  </button>
+                  </button>)}
                 </div>
               </div>
 
@@ -423,11 +404,18 @@ const EpicDetails = () => {
                   <p className="text-gray-500 mb-4">No features found for this epic</p>
                   <div className="flex justify-center space-x-4">
                     <button
+                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150"
+                      onClick={handleGenerateAll}
+                    >
+                      <Zap size={18} className="mr-2" />
+                      Generate All
+                    </button>
+                    <button
                       className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
                       onClick={() => setIsGenerateFeatureModalOpen(true)}
                     >
                       <Sparkles size={18} className="mr-2 inline-block" />
-                      Generate features automatically
+                      Generate features
                     </button>
                     <button
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
@@ -461,7 +449,9 @@ const EpicDetails = () => {
                           onClick={() => navigate(`/features/${feature.id}`)}
                         >
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{feature.name}</div>
+                            <div className="text-sm font-medium text-gray-900 truncate max-w-[300px]" title={feature.name}>
+                              {feature.name}
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-500 truncate max-w-xs">{feature.description}</div>

@@ -826,118 +826,121 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
           </button>
         </div>
 
-        <div className="mb-6">
-          <p className="text-gray-600">
-            Product: <span className="font-medium">{productName}</span>
-          </p>
-        </div>
-
-        {/* Progress bar */}
-        {status !== 'completed' && status !== 'error' && (
+        {/* Main content area with padding */}
+        <div className="px-6 py-4">
           <div className="mb-6">
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-blue-600 transition-all duration-500 ease-out"
-                style={{ width: `${progress}%` }}
-              ></div>
-            </div>
-            <p className="text-sm text-gray-500 mt-2">{Math.round(progress)}% complete</p>
+            <p className="text-gray-600">
+              Product: <span className="font-medium">{productName}</span>
+            </p>
+          </div>
 
-            {/* Detailed progress for long-running operations */}
-            {detailedProgress && (
-              <p className="text-sm text-blue-600 mt-1 font-medium">{detailedProgress}</p>
+          {/* Progress bar */}
+          {status !== 'completed' && status !== 'error' && (
+            <div className="mb-6">
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-600 transition-all duration-500 ease-out"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">{Math.round(progress)}% complete</p>
+
+              {/* Detailed progress for long-running operations */}
+              {detailedProgress && (
+                <p className="text-sm text-blue-600 mt-1 font-medium">{detailedProgress}</p>
+              )}
+            </div>
+          )}
+
+          {/* Status and Messages */}
+          <div className="mb-6">
+            {status === 'preparing' && (
+              <div className="flex items-center text-blue-600">
+                <Clock size={20} className="mr-2" />
+                <span>Preparing generation process...</span>
+              </div>
+            )}
+
+            {(status === 'generating-epics' ||
+              status === 'generating-features' ||
+              status === 'generating-user-stories' ||
+              status === 'generating-acceptance-criteria' ||
+              status === 'generating-tests') && (
+              <div className="flex items-center text-blue-600">
+                <Loader size={20} className="animate-spin mr-2" />
+                <span>{message}</span>
+              </div>
+            )}
+
+            {status === 'completed' && (
+              <div className="flex items-center text-green-600">
+                <Check size={20} className="mr-2" />
+                <span>{message}</span>
+              </div>
+            )}
+
+            {status === 'error' && (
+              <div className="flex items-center text-red-600">
+                <AlertTriangle size={20} className="mr-2" />
+                <span>{error || 'An error occurred during generation'}</span>
+              </div>
             )}
           </div>
-        )}
 
-        {/* Status and Messages */}
-        <div className="mb-6">
-          {status === 'preparing' && (
-            <div className="flex items-center text-blue-600">
-              <Clock size={20} className="mr-2" />
-              <span>Preparing generation process...</span>
+          {/* Status Logs - Only show logs if we have any and there's no error */}
+          {statusLogs.length > 0 && status !== 'error' && (
+            <div className="mb-6 border rounded-lg p-3 bg-gray-50 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+              <div className="flex justify-between items-center mb-2">
+                <p className="text-sm font-medium text-gray-700">Activity Log:</p>
+                <span className="text-xs text-gray-500">{statusLogs.length} {statusLogs.length === 1 ? 'entry' : 'entries'}</span>
+              </div>
+              <ul className="text-xs space-y-1">
+                {statusLogs.map((log, index) => {
+                  // Determine class based on log type
+                  const messageColorClass =
+                    log.type === 'warning' ? 'text-amber-600' :
+                    log.type === 'error' ? 'text-red-600' :
+                    'text-gray-600';
+
+                  return (
+                    <li key={index} className={`${messageColorClass} py-1 border-b border-gray-100 last:border-b-0`}>
+                      <span className="text-gray-500 font-mono">{log.time}</span> - {log.message}
+                      {log.type === 'warning' && <span className="inline-block ml-1">⚠️</span>}
+                      {log.type === 'error' && <span className="inline-block ml-1">❌</span>}
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           )}
 
-          {(status === 'generating-epics' ||
-            status === 'generating-features' ||
-            status === 'generating-user-stories' ||
-            status === 'generating-acceptance-criteria' ||
-            status === 'generating-tests') && (
-            <div className="flex items-center text-blue-600">
-              <Loader size={20} className="animate-spin mr-2" />
-              <span>{message}</span>
-            </div>
-          )}
-
+          {/* Display generation summary if completed */}
           {status === 'completed' && (
-            <div className="flex items-center text-green-600">
-              <Check size={20} className="mr-2" />
-              <span>{message}</span>
+            <div className="border rounded-lg p-4 bg-gray-50">
+              {generateSummary()}
             </div>
           )}
 
-          {status === 'error' && (
-            <div className="flex items-center text-red-600">
-              <AlertTriangle size={20} className="mr-2" />
-              <span>{error || 'An error occurred during generation'}</span>
-            </div>
-          )}
-        </div>
+          {/* Action Buttons */}
+          <div className="mt-6 flex justify-end">
+            {status === 'completed' && (
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Done
+              </button>
+            )}
 
-        {/* Status Logs - Only show logs if we have any and there's no error */}
-        {statusLogs.length > 0 && status !== 'error' && (
-          <div className="mb-6 border rounded-lg p-3 bg-gray-50 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-            <div className="flex justify-between items-center mb-2">
-              <p className="text-sm font-medium text-gray-700">Activity Log:</p>
-              <span className="text-xs text-gray-500">{statusLogs.length} {statusLogs.length === 1 ? 'entry' : 'entries'}</span>
-            </div>
-            <ul className="text-xs space-y-1">
-              {statusLogs.map((log, index) => {
-                // Determine class based on log type
-                const messageColorClass =
-                  log.type === 'warning' ? 'text-amber-600' :
-                  log.type === 'error' ? 'text-red-600' :
-                  'text-gray-600';
-
-                return (
-                  <li key={index} className={`${messageColorClass} py-1 border-b border-gray-100 last:border-b-0`}>
-                    <span className="text-gray-500 font-mono">{log.time}</span> - {log.message}
-                    {log.type === 'warning' && <span className="inline-block ml-1">⚠️</span>}
-                    {log.type === 'error' && <span className="inline-block ml-1">❌</span>}
-                  </li>
-                );
-              })}
-            </ul>
+            {status === 'error' && (
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              >
+                Close
+              </button>
+            )}
           </div>
-        )}
-
-        {/* Display generation summary if completed */}
-        {status === 'completed' && (
-          <div className="border rounded-lg p-4 bg-gray-50">
-            {generateSummary()}
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="mt-6 flex justify-end">
-          {status === 'completed' && (
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Done
-            </button>
-          )}
-
-          {status === 'error' && (
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-            >
-              Close
-            </button>
-          )}
         </div>
       </div>
     </div>

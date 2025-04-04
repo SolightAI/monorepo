@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { X, AlertCircle } from 'lucide-react';
 import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
+import { MAX_NAME_LENGTH } from '@/constants/validation';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -110,10 +111,14 @@ const AddUserStoryModal = ({ onClose, featureId, featureName, onUserStoryAdded }
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
+                maxLength={MAX_NAME_LENGTH}
                 placeholder="As a [user], I want to [action] so that [benefit]"
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 required
               />
+              <div className="mt-1 text-xs text-gray-500 flex justify-end">
+                {formData.name.length}/{MAX_NAME_LENGTH} characters
+              </div>
             </div>
 
             <div className="mb-4">

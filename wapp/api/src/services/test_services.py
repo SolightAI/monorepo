@@ -6,7 +6,7 @@ import uuid
 
 from fastapi import HTTPException
 from dto.models import Test as TestModel, TestSecret as TestSecretModel, Secret as SecretModel
-from dto.schemas import TestCreate as TestCreateSchema, TestStatus, TestUpdate as TestUpdateSchema, SecretType
+from dto.schemas import TestCreate as TestCreateSchema, TestStatus, TestUpdate as TestUpdateSchema
 from typing import List, Dict
 from uuid import UUID
 from services.product_services import get_product_by_url_path
@@ -218,12 +218,7 @@ async def get_test_secrets_with_values(test_id: UUID4) -> Dict[str, Dict[str, st
         # Add values to the result
         for key, value in secret_with_values.values.items():
             # For username_password type, store directly
-            if secret_with_values.type == SecretType.USERNAME_PASSWORD:
-                result[secret_with_values.type][key] = value
-            else:
-                # For other types, prefix with secret name to avoid conflicts
-                prefixed_key = f"{secret_with_values.name}_{key}"
-                result[secret_with_values.type][prefixed_key] = value
+            result[secret_with_values.type][key] = value
 
     return result
 

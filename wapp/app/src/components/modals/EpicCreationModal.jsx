@@ -4,6 +4,7 @@ import { X, AlertCircle, Loader } from 'lucide-react';
 import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+const MAX_EPIC_NAME_LENGTH = 255;
 
 const EpicCreationModal = ({
   productId,
@@ -20,6 +21,11 @@ const EpicCreationModal = ({
 
     if (!epic.name.trim()) {
       setError('Please provide an epic name.');
+      return;
+    }
+
+    if (epic.name.length > MAX_EPIC_NAME_LENGTH) {
+      setError(`Epic name cannot exceed ${MAX_EPIC_NAME_LENGTH} characters.`);
       return;
     }
 
@@ -93,7 +99,11 @@ const EpicCreationModal = ({
                 onChange={(e) => setEpic({ ...epic, name: e.target.value })}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 placeholder="E.g., User Authentication, Payment Processing"
+                maxLength={MAX_EPIC_NAME_LENGTH}
               />
+              <div className="mt-1 text-xs text-gray-500 flex justify-end">
+                {epic.name.length}/{MAX_EPIC_NAME_LENGTH} characters
+              </div>
             </div>
 
             <div className="mb-6">

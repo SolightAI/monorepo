@@ -66,6 +66,22 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
               revealed: false
             }));
 
+            // Ensure proper order for credentials fields
+            valueArray.sort((a, b) => {
+              if (formData.type === 'oauth_credential') {
+                // For OAuth credentials: provider -> username -> password
+                if (a.key === 'provider') return -1;
+                if (b.key === 'provider') return 1;
+                if (a.key === 'username' && b.key === 'password') return -1;
+                if (a.key === 'password' && b.key === 'username') return 1;
+              } else {
+                // For all other types: username -> password
+                if (a.key === 'username' && b.key === 'password') return -1;
+                if (a.key === 'password' && b.key === 'username') return 1;
+              }
+              return 0; // Keep original order for other keys
+            });
+
             // If no values, add an empty row
             setSecretValues(valueArray.length ? valueArray : [{
               id: uuidv4(), key: '', value: '', revealed: false

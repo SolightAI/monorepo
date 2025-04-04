@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { updateTest } from '@/services/testService';
+import { MAX_NAME_LENGTH } from '@/constants/validation';
 
 
 const EditTestModal = ({ onClose, test, onTestUpdated }) => {
@@ -139,10 +140,14 @@ const EditTestModal = ({ onClose, test, onTestUpdated }) => {
                 id="name"
                 name="name"
                 required
+                maxLength={MAX_NAME_LENGTH}
                 value={formData.name}
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               />
+              <div className="mt-1 text-xs text-gray-500 flex justify-end">
+                {formData.name.length}/{MAX_NAME_LENGTH} characters
+              </div>
             </div>
 
             <div>

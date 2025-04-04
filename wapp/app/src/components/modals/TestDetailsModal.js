@@ -316,11 +316,11 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
       >
         {/* Modal header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center">
+          <div className="flex items-center flex-grow overflow-hidden">
             {getStatusIconLarge(testData.status)}
-            <h2 className="text-xl font-semibold text-gray-800 ml-3">{testData.name}</h2>
+            <h2 className="text-xl font-semibold text-gray-800 ml-3 truncate">{testData.name}</h2>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 flex-shrink-0">
             <button
               onClick={handleClose}
               className="text-gray-500 hover:text-gray-700 focus:outline-none"
@@ -428,8 +428,8 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
                     </span>
                   )}
                 </h3>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-800 whitespace-pre-line">{testData.description}</p>
+                <div className="bg-gray-50 p-4 rounded-lg max-h-[200px] overflow-y-auto">
+                  <p className="text-gray-800 whitespace-pre-line break-words">{testData.description}</p>
                 </div>
               </div>
 
@@ -437,14 +437,14 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Steps</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-gray-800 whitespace-pre-line">{testData.steps}</p>
+                  <div className="bg-gray-50 p-4 rounded-lg max-h-[200px] overflow-y-auto">
+                    <p className="text-gray-800 whitespace-pre-line break-words">{testData.steps}</p>
                   </div>
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Expected Results</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-gray-800 whitespace-pre-line">{testData.expected_results}</p>
+                  <div className="bg-gray-50 p-4 rounded-lg max-h-[200px] overflow-y-auto">
+                    <p className="text-gray-800 whitespace-pre-line break-words">{testData.expected_results}</p>
                   </div>
                 </div>
               </div>
@@ -452,8 +452,8 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
               {/* Assertions section */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2">Assertions</h3>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-800 whitespace-pre-line">{testData.assertions}</p>
+                <div className="bg-gray-50 p-4 rounded-lg max-h-[200px] overflow-y-auto">
+                  <p className="text-gray-800 whitespace-pre-line break-words">{testData.assertions}</p>
                 </div>
               </div>
 

@@ -25,6 +25,9 @@ const Home = () => {
   const [selectedEpic, setSelectedEpic] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [epicToDelete, setEpicToDelete] = useState(null);
+  const [isGeneratingEpics, setIsGeneratingEpics] = useState(false);
+  const [isGeneratingEverything, setIsGeneratingEverything] = useState(false);
+  const [epicGenerationInProgress, setEpicGenerationInProgress] = useState(false);
 
   const navigate = useNavigate();
 
@@ -44,16 +47,28 @@ const Home = () => {
 
       if (productResponse.data.epics && productResponse.data.epics.length > 0) {
         setEpics(productResponse.data.epics);
+        if (epicGenerationInProgress) {
+          setEpicGenerationInProgress(false);
+          setIsGeneratingEpics(false);
+        }
       } else {
         setEpics([]);
+        if (!epicGenerationInProgress) {
+          setIsGeneratingEpics(false);
+          setIsGeneratingEverything(false);
+        }
       }
     } catch (err) {
       console.error('Error fetching product epics:', err);
       setError('Failed to fetch epics for this product. Please try again.');
+      if (!epicGenerationInProgress) {
+        setIsGeneratingEpics(false);
+        setIsGeneratingEverything(false);
+      }
     } finally {
       setLoading(false);
     }
-  }, [selectedProduct?.id, selectedOrganization?.id]);
+  }, [selectedProduct?.id, selectedOrganization?.id, epicGenerationInProgress]);
 
   // Fetch epics for the selected product
   useEffect(() => {
@@ -65,6 +80,24 @@ const Home = () => {
     }
   }, [selectedProduct, productLoading, fetchEpics]);
 
+  // Add polling effect for epic generation
+  useEffect(() => {
+    let interval;
+
+    if (epicGenerationInProgress) {
+      // Poll for epics every 5 seconds while generation is in progress
+      interval = setInterval(() => {
+        if (selectedProduct) {
+          fetchEpics();
+        }
+      }, 5000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [epicGenerationInProgress, fetchEpics, selectedProduct]);
+
   const handleEpicCreationComplete = async (createdEpics) => {
     setShowEpicModal(false);
     await fetchEpics();
@@ -72,19 +105,26 @@ const Home = () => {
 
   const handleEpicGenerationComplete = async (generatedEpics) => {
     setShowEpicGenerationModal(false);
+    // Keep the loading state active until fetching is complete
+    setIsGeneratingEpics(true);
+    setEpicGenerationInProgress(true);
     await fetchEpics();
   };
 
   const handleComprehensiveGenerationComplete = async () => {
     setShowComprehensiveGenerationModal(false);
+    // Keep the loading state active until fetching is complete
+    setIsGeneratingEverything(true);
     await fetchEpics();
   };
 
   const handleGenerateEpics = () => {
+    setIsGeneratingEpics(true);
     setShowEpicGenerationModal(true);
   };
 
   const handleGenerateEverything = () => {
+    setIsGeneratingEverything(true);
     setShowComprehensiveGenerationModal(true);
   };
 
@@ -176,41 +216,22 @@ const Home = () => {
           </div>
         ) : (
           <>
-            <div className="flex justify-between items-center mb-8">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800">{selectedProduct.name} Epics</h1>
-                {selectedProduct.description && (
-                  <p className="text-gray-600 mt-2">{selectedProduct.description}</p>
-                )}
-              </div>
-              <div className="flex space-x-3">
-                {/* Only show generate buttons when no epics exist */}
-                {epics.length === 0 && (
-                  <>
-                    <button
-                      onClick={handleGenerateEverything}
-                      className="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg shadow hover:from-green-700 hover:to-blue-700 transition duration-150"
-                    >
-                      <Rocket size={20} className="mr-2" />
-                      Generate Everything
-                    </button>
-                    <button
-                      onClick={handleGenerateEpics}
-                      className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-150"
-                    >
-                      <Zap size={20} className="mr-2" />
-                      Generate Epics
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => setShowEpicModal(true)}
-                  className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
-                >
-                  <Plus size={20} className="mr-2" />
-                  Add Epic
-                </button>
-              </div>
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-800">{selectedProduct.name} Epics</h1>
+              {selectedProduct.description && (
+                <p className="text-gray-600 mt-2 max-h-64 overflow-y-auto">{selectedProduct.description}</p>
+              )}
+              {epics.length !== 0 && (
+                <div className="flex justify-end mt-8">
+                  <button
+                    onClick={() => setShowEpicModal(true)}
+                    className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                  >
+                    <Plus size={20} className="mr-2" />
+                    Add Epic
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Error message */}
@@ -222,9 +243,11 @@ const Home = () => {
             )}
 
             {/* Loading indicator */}
-            {loading ? (
+            {loading || isGeneratingEpics || isGeneratingEverything || epicGenerationInProgress ? (
               <div className="flex justify-center items-center py-20">
                 <Loader size={40} className="text-blue-500 animate-spin" />
+                {(isGeneratingEpics || epicGenerationInProgress) && <p className="ml-4 text-blue-600">Generating epics...</p>}
+                {isGeneratingEverything && <p className="ml-4 text-blue-600">Generating everything...</p>}
               </div>
             ) : (
               <>
@@ -330,6 +353,8 @@ const Home = () => {
           productName={selectedProduct.name}
           onClose={() => {
             setShowEpicGenerationModal(false);
+            setIsGeneratingEpics(true);
+            setEpicGenerationInProgress(true);
             fetchEpics();
           }}
           onComplete={handleEpicGenerationComplete}
@@ -343,6 +368,7 @@ const Home = () => {
           productName={selectedProduct.name}
           onClose={() => {
             setShowComprehensiveGenerationModal(false);
+            setIsGeneratingEverything(true);
             fetchEpics();
           }}
           onComplete={handleComprehensiveGenerationComplete}

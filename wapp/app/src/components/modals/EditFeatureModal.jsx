@@ -3,9 +3,11 @@ import axios from 'axios';
 import { X, AlertCircle } from 'lucide-react';
 import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
 import { isValidUrl } from '@/utils/urlUtils';
+import { MAX_NAME_LENGTH } from '@/constants/validation';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+const MAX_FEATURE_NAME_LENGTH = 255;
 
 const EditFeatureModal = ({ onClose, feature, onFeatureUpdated }) => {
   const [formData, setFormData] = useState({
@@ -106,6 +108,11 @@ const EditFeatureModal = ({ onClose, feature, onFeatureUpdated }) => {
       return;
     }
 
+    if (formData.name.length > MAX_NAME_LENGTH) {
+      setError(`Feature name cannot exceed ${MAX_NAME_LENGTH} characters.`);
+      return;
+    }
+
     // Filter out empty URLs
     const filteredUrls = formData.urls.filter(url => url.trim() !== '');
 
@@ -199,7 +206,11 @@ const EditFeatureModal = ({ onClose, feature, onFeatureUpdated }) => {
                 onChange={handleInputChange}
                 className={`w-full p-2 border ${touched.name && !isNameValid ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-md focus:ring-blue-500 focus:border-blue-500`}
                 required
+                maxLength={MAX_NAME_LENGTH}
               />
+              <div className="mt-1 text-xs text-gray-500 flex justify-end">
+                {formData.name.length}/{MAX_NAME_LENGTH} characters
+              </div>
             </div>
 
             <div className="mb-4">
