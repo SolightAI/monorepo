@@ -167,8 +167,8 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
 
         # Validate the invitation code and check email match
         try:
-            invitation = await validate_invitation(invitation_code)
-            # Check if the email matches
+            invitation = await validate_invitation(invitation_code, check_used=False)
+            # Check if the email matches for individual invitations
             if invitation.email and invitation.email.lower() != user_info["email"].lower():
                 redirect_response = RedirectResponse(
                     url=f"{os.getenv('APP_URL')}/auth/google/callback?error=email_mismatch&error_description=This invitation is for {invitation.email}. Please log in with that email address."
@@ -192,7 +192,7 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
         await mark_invitation_used(invitation.code, user.id)
 
         # If the invitation has an organization, add the user to it
-        if invitation.organization_id and invitation.role:
+        if invitation.organization_id:
             try:
                 success, message = await handle_organization_invitation(invitation_code, user)
                 if not success:
