@@ -87,6 +87,7 @@ async def check_is_logged_in(
         cookies_file=os.getenv("COOKIES_FILE", None),
         minimum_wait_page_load_time=1,
         viewport_expansion=0,
+        wait_between_actions=0,  # Not an env var cause we want to make sure it's always 0
     ))
 
     # First navigate to the URL to initialize the session
@@ -182,6 +183,7 @@ async def generate_auth_session(
         cookies_file=os.getenv("COOKIES_FILE", None),
         minimum_wait_page_load_time=1,
         viewport_expansion=0,
+        wait_between_actions=0,  # Not an env var cause we want to make sure it's always 0
     ))
 
     if gif_output_path:
@@ -194,6 +196,8 @@ async def generate_auth_session(
         initial_actions=[{'go_to_url': {'url': url}}, {'go_to_url': {'url': url}}],  # twice cause it some case we have a redirect at the first try
         browser_context=context,
         # generate_gif=gif_output_path,  # NOTE: deactivated cause it leads to thread blocking
+        use_vision_for_planner=False,
+        use_vision=False,
     )
 
     try:

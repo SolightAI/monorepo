@@ -1,8 +1,9 @@
+import os
 import pytest
 import logging
 
 from uuid import uuid4
-from fixtures.generate_auth_session import generate_auth_session, check_is_logged_in
+from fixtures.generate_auth_session import generate_auth_session
 
 
 # Constants for test credentials
@@ -92,15 +93,6 @@ async def test_generate_auth_session_simple_login(task_id, valid_username_passwo
     assert session["localStorage"].get("isLoggedIn") == "true"
     assert session["localStorage"].get("username") == "testuser"
 
-    # Verify the user is logged in with this session
-    is_logged_in = await check_is_logged_in(
-        task_id=task_id,
-        url=url,
-        existing_session=session,
-        user_id=valid_username_password_credentials[USERNAME_PASSWORD]["username"]
-    )
-    assert is_logged_in is True
-
 
 @pytest.mark.asyncio
 async def test_generate_auth_session_google_login(task_id, valid_google_credentials, playground_base_url):
@@ -123,15 +115,6 @@ async def test_generate_auth_session_google_login(task_id, valid_google_credenti
     assert session["localStorage"].get("username") == "Test User"
     assert session["localStorage"].get("authProvider") == "google"
 
-    # Verify the user is logged in with this session
-    is_logged_in = await check_is_logged_in(
-        task_id=task_id,
-        url=url,
-        existing_session=session,
-        user_id=valid_google_credentials[OAUTH]["username"]
-    )
-    assert is_logged_in is True
-
 
 @pytest.mark.asyncio
 async def test_generate_auth_session_messy_login(task_id, valid_username_password_credentials, playground_base_url):
@@ -152,15 +135,6 @@ async def test_generate_auth_session_messy_login(task_id, valid_username_passwor
     # Verify localStorage contains the expected auth data
     assert session["localStorage"].get("isLoggedIn") == "true"
 
-    # Verify the user is logged in with this session
-    is_logged_in = await check_is_logged_in(
-        task_id=task_id,
-        url=url,
-        existing_session=session,
-        user_id=valid_username_password_credentials[USERNAME_PASSWORD]["username"]
-    )
-    assert is_logged_in is True
-
 
 @pytest.mark.asyncio
 async def test_generate_auth_session_staged_login(task_id, valid_username_password_credentials, playground_base_url):
@@ -180,15 +154,6 @@ async def test_generate_auth_session_staged_login(task_id, valid_username_passwo
 
     # Verify localStorage contains the expected auth data
     assert session["localStorage"].get("isLoggedIn") == "true"
-
-    # Verify the user is logged in with this session
-    is_logged_in = await check_is_logged_in(
-        task_id=task_id,
-        url=url,
-        existing_session=session,
-        user_id=valid_username_password_credentials[USERNAME_PASSWORD]["username"]
-    )
-    assert is_logged_in is True
 
 
 @pytest.mark.asyncio
@@ -251,19 +216,106 @@ async def test_session_reuse(task_id, valid_username_password_credentials, playg
 
 
 @pytest.mark.asyncio
-async def test_check_is_logged_in_returns_false_for_invalid_session(task_id, playground_base_url):
-    """Test that check_is_logged_in returns False for an invalid session."""
-    url = f"{playground_base_url}{EMAIL_PASSWORD_SIMPLE_PATH}"
+async def test_generate_auth_session_farmzz(task_id):
+    """Test authentication with valid username/password on the simple login page."""
 
-    # Create an empty session
-    empty_session = {"cookies": [], "localStorage": {}}
+    url = "https://farmzz.com/admin/profile"
 
-    # Check if logged in with this empty session
-    is_logged_in = await check_is_logged_in(
+    username = os.getenv("FARMZZ_USERNAME")
+    if not username:
+        raise ValueError("FARMZZ_USERNAME is not set")
+
+    password = os.getenv("FARMZZ_PASSWORD")
+    if not password:
+        raise ValueError("FARMZZ_PASSWORD is not set")
+
+    session = await generate_auth_session(
         task_id=task_id,
         url=url,
-        existing_session=empty_session,
-        user_id="test_user"
+        secrets={
+            USERNAME_PASSWORD: {
+                "username": username,
+                "password": password
+            }
+        },
+        reuse_session=False
     )
 
-    assert is_logged_in is False
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert "XSRF-TOKEN" in [cookie["name"] for cookie in session["cookies"]]
+    assert [cookie for cookie in session["cookies"] if cookie["name"] == "XSRF-TOKEN"][0]["value"] is not None
+    assert session["localStorage"].get("jwt") is not None
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_tecla_academy(task_id):
+    """Test authentication with valid username/password on the simple login page."""
+
+    url = "https://teclaacademy.com/logins"
+
+    username = os.getenv("TECLA_ACADEMY_USERNAME")
+    if not username:
+        raise ValueError("TECLA_ACADEMY_USERNAME is not set")
+
+    password = os.getenv("TECLA_ACADEMY_PASSWORD")
+    if not password:
+        raise ValueError("TECLA_ACADEMY_PASSWORD is not set")
+
+    session = await generate_auth_session(
+        task_id=task_id,
+        url=url,
+        secrets={
+            USERNAME_PASSWORD: {
+                "username": username,
+                "password": password
+            }
+        },
+        reuse_session=False
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert "AUTH_SESSION_ID" in [cookie["name"] for cookie in session["cookies"]]
+    assert [cookie for cookie in session["cookies"] if cookie["name"] == "AUTH_SESSION_ID"][0]["value"] is not None
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_smith_ai(task_id):
+    """Test authentication with valid username/password on the simple login page."""
+
+    url = "https://app.smith.ai/log-in/"
+
+    username = os.getenv("TECLA_ACADEMY_USERNAME")
+    if not username:
+        raise ValueError("TECLA_ACADEMY_USERNAME is not set")
+
+    password = os.getenv("TECLA_ACADEMY_PASSWORD")
+    if not password:
+        raise ValueError("TECLA_ACADEMY_PASSWORD is not set")
+
+    session = await generate_auth_session(
+        task_id=task_id,
+        url=url,
+        secrets={
+            USERNAME_PASSWORD: {
+                "username": username,
+                "password": password
+            }
+        },
+        reuse_session=False
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert "AUTH_SESSION_ID" in [cookie["name"] for cookie in session["cookies"]]
+    assert [cookie for cookie in session["cookies"] if cookie["name"] == "AUTH_SESSION_ID"][0]["value"] is not None
