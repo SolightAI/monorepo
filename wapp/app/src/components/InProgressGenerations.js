@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Loader, AlertCircle, ChevronDown, ChevronRight, ToggleLeft, ToggleRight } from 'lucide-react';
 import useInProgressGenerations from '@/hooks/useInProgressGenerations';
+import { 
+  GENERATION_TYPES, 
+  LOADING_MESSAGES, 
+  UI 
+} from '@/constants/generations';
 
 const InProgressGenerations = ({ onComplete }) => {
-  const { generations, loading, error } = useInProgressGenerations(onComplete);
-  const [expandedItems, setExpandedItems] = useState(new Set());
   const [showGenerations, setShowGenerations] = useState(false);
+  const { generations, loading, error } = useInProgressGenerations(onComplete, showGenerations);
+  const [expandedItems, setExpandedItems] = useState(new Set());
 
   const toggleItem = (id) => {
     setExpandedItems(prev => {
@@ -19,12 +24,59 @@ const InProgressGenerations = ({ onComplete }) => {
     });
   };
 
+  // Memoize the grouped generations logic
+  const groupedGenerations = useMemo(() => {
+    return generations.reduce((acc, generation) => {
+      if (!acc[generation.product_name]) {
+        acc[generation.product_name] = {
+          product: generation.product_name,
+          epics: [],
+          features: [],
+          userStories: []
+        };
+      }
+
+      switch (generation.type) {
+        case GENERATION_TYPES.EPIC:
+        case GENERATION_TYPES.EPIC_ALL:
+          acc[generation.product_name].epics.push(generation);
+          break;
+        case GENERATION_TYPES.FEATURE:
+        case GENERATION_TYPES.FEATURE_ALL:
+          acc[generation.product_name].features.push(generation);
+          break;
+        case GENERATION_TYPES.USER_STORY:
+        case GENERATION_TYPES.USER_STORY_ALL:
+          acc[generation.product_name].userStories.push(generation);
+          break;
+      }
+
+      return acc;
+    }, {});
+  }, [generations]);
+
+  // Memoize the generation details function
+  const getGenerationDetails = useMemo(() => (generation) => {
+    switch (generation.type) {
+      case GENERATION_TYPES.EPIC_ALL:
+        return `${generation.details} ${generation.product_name}`;
+      case GENERATION_TYPES.FEATURE:
+      case GENERATION_TYPES.FEATURE_ALL:
+        return `${generation.details} ${generation.epic_name}`;
+      case GENERATION_TYPES.USER_STORY:
+      case GENERATION_TYPES.USER_STORY_ALL:
+        return `${generation.details} ${generation.feature_name}`;
+      default:
+        return generation.details;
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="mb-6 p-4 bg-blue-50 rounded-lg">
         <div className="flex items-center text-blue-600">
           <Loader size={20} className="animate-spin mr-2" />
-          <span>Checking for in-progress generations...</span>
+          <span>{LOADING_MESSAGES.CHECKING}</span>
         </div>
       </div>
     );
@@ -45,50 +97,6 @@ const InProgressGenerations = ({ onComplete }) => {
     return null;
   }
 
-  // Group generations by product
-  const groupedGenerations = generations.reduce((acc, generation) => {
-    if (!acc[generation.product_name]) {
-      acc[generation.product_name] = {
-        product: generation.product_name,
-        epics: [],
-        features: [],
-        userStories: []
-      };
-    }
-
-    switch (generation.type) {
-      case 'epic':
-      case 'epic_all':
-        acc[generation.product_name].epics.push(generation);
-        break;
-      case 'feature':
-      case 'feature_all':
-        acc[generation.product_name].features.push(generation);
-        break;
-      case 'user_story':
-      case 'user_story_all':
-        acc[generation.product_name].userStories.push(generation);
-        break;
-    }
-
-    return acc;
-  }, {});
-
-  const getGenerationDetails = (generation) => {
-    switch (generation.type) {
-      case 'epic_all':
-        return `${generation.details} ${generation.product_name}`;
-      case 'feature':
-      case 'feature_all':
-        return `${generation.details} ${generation.epic_name}`;
-      case 'user_story':
-      case 'user_story_all':
-        return `${generation.details} ${generation.feature_name}`;
-      default:
-        return generation.details;
-    }
-  };
-
   return (
     <div className="mb-6">
       {/* Toggle Button */}
@@ -102,7 +110,7 @@ const InProgressGenerations = ({ onComplete }) => {
           <ToggleLeft size={24} className="mr-3" />
         )}
         <span className="font-medium text-base">
-          {showGenerations ? 'Hide In Progress Generations' : 'Show In Progress Generations'}
+          {showGenerations ? UI.TOGGLE_BUTTON.HIDE : UI.TOGGLE_BUTTON.SHOW}
         </span>
       </button>
 
@@ -137,7 +145,7 @@ const InProgressGenerations = ({ onComplete }) => {
                         onClick={() => toggleItem(`epics-${group.product}`)}
                         className="w-full flex items-center justify-between p-2 hover:bg-gray-50 rounded"
                       >
-                        <span className="font-medium text-gray-700">Epics</span>
+                        <span className="font-medium text-gray-700">{UI.SECTIONS.EPICS}</span>
                         {expandedItems.has(`epics-${group.product}`) ? (
                           <ChevronDown size={16} className="text-gray-500" />
                         ) : (
@@ -164,7 +172,7 @@ const InProgressGenerations = ({ onComplete }) => {
                         onClick={() => toggleItem(`features-${group.product}`)}
                         className="w-full flex items-center justify-between p-2 hover:bg-gray-50 rounded"
                       >
-                        <span className="font-medium text-gray-700">Features</span>
+                        <span className="font-medium text-gray-700">{UI.SECTIONS.FEATURES}</span>
                         {expandedItems.has(`features-${group.product}`) ? (
                           <ChevronDown size={16} className="text-gray-500" />
                         ) : (
@@ -191,7 +199,7 @@ const InProgressGenerations = ({ onComplete }) => {
                         onClick={() => toggleItem(`userStories-${group.product}`)}
                         className="w-full flex items-center justify-between p-2 hover:bg-gray-50 rounded"
                       >
-                        <span className="font-medium text-gray-700">User Stories</span>
+                        <span className="font-medium text-gray-700">{UI.SECTIONS.USER_STORIES}</span>
                         {expandedItems.has(`userStories-${group.product}`) ? (
                           <ChevronDown size={16} className="text-gray-500" />
                         ) : (

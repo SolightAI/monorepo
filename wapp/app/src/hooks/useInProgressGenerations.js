@@ -1,14 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { API_URL } from '@/config';
+import { 
+  GENERATIONS_API, 
+  POLLING, 
+  ERROR_MESSAGES 
+} from '@/constants/generations';
 
 /**
  * Custom hook for checking in-progress generations
  * 
  * @param {Function} onComplete - Callback function to be called when all generations are completed
+ * @param {boolean} isVisible - Whether the component is currently visible
  * @returns {Object} Object containing in-progress generations and loading state
  */
-export const useInProgressGenerations = (onComplete) => {
+export const useInProgressGenerations = (onComplete, isVisible = true) => {
   const [generations, setGenerations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,7 +22,7 @@ export const useInProgressGenerations = (onComplete) => {
 
   const fetchGenerations = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/generations/in-progress`);
+      const response = await axios.get(`${API_URL}${GENERATIONS_API.IN_PROGRESS}`);
       setGenerations(response.data);
       setError(null);
     } catch (err) {
@@ -28,24 +34,24 @@ export const useInProgressGenerations = (onComplete) => {
         // that falls out of the range of 2xx
         switch (err.response.status) {
           case 404:
-            setError('No in-progress generations found');
+            setError(ERROR_MESSAGES.NOT_FOUND);
             break;
           case 401:
           case 403:
-            setError('Please log in to view in-progress generations');
+            setError(ERROR_MESSAGES.UNAUTHORIZED);
             break;
           case 500:
-            setError('Server error while fetching generations');
+            setError(ERROR_MESSAGES.SERVER_ERROR);
             break;
           default:
-            setError('Error loading generations');
+            setError(ERROR_MESSAGES.DEFAULT_ERROR);
         }
       } else if (err.request) {
         // The request was made but no response was received
-        setError('Unable to connect to the server');
+        setError(ERROR_MESSAGES.CONNECTION_ERROR);
       } else {
         // Something happened in setting up the request that triggered an Error
-        setError('Error checking for in-progress generations');
+        setError(ERROR_MESSAGES.CHECKING_ERROR);
       }
       
       setGenerations([]);
@@ -70,12 +76,19 @@ export const useInProgressGenerations = (onComplete) => {
     // Initial fetch
     fetchGenerations();
 
-    // Set up polling every 3 seconds
-    const interval = setInterval(fetchGenerations, 3000);
+    // Only set up polling if the component is visible
+    let interval;
+    if (isVisible) {
+      interval = setInterval(fetchGenerations, POLLING.INTERVAL);
+    }
 
-    // Cleanup interval on unmount
-    return () => clearInterval(interval);
-  }, []);
+    // Cleanup interval on unmount or when visibility changes
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isVisible]);
 
   return { generations, loading, error };
 };
