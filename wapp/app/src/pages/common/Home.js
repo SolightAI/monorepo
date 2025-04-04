@@ -25,6 +25,9 @@ const Home = () => {
   const [selectedEpic, setSelectedEpic] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [epicToDelete, setEpicToDelete] = useState(null);
+  const [isGeneratingEpics, setIsGeneratingEpics] = useState(false);
+  const [isGeneratingEverything, setIsGeneratingEverything] = useState(false);
+  const [epicGenerationInProgress, setEpicGenerationInProgress] = useState(false);
 
   const navigate = useNavigate();
 
@@ -44,16 +47,28 @@ const Home = () => {
 
       if (productResponse.data.epics && productResponse.data.epics.length > 0) {
         setEpics(productResponse.data.epics);
+        if (epicGenerationInProgress) {
+          setEpicGenerationInProgress(false);
+          setIsGeneratingEpics(false);
+        }
       } else {
         setEpics([]);
+        if (!epicGenerationInProgress) {
+          setIsGeneratingEpics(false);
+          setIsGeneratingEverything(false);
+        }
       }
     } catch (err) {
       console.error('Error fetching product epics:', err);
       setError('Failed to fetch epics for this product. Please try again.');
+      if (!epicGenerationInProgress) {
+        setIsGeneratingEpics(false);
+        setIsGeneratingEverything(false);
+      }
     } finally {
       setLoading(false);
     }
-  }, [selectedProduct?.id, selectedOrganization?.id]);
+  }, [selectedProduct?.id, selectedOrganization?.id, epicGenerationInProgress]);
 
   // Fetch epics for the selected product
   useEffect(() => {
@@ -65,6 +80,24 @@ const Home = () => {
     }
   }, [selectedProduct, productLoading, fetchEpics]);
 
+  // Add polling effect for epic generation
+  useEffect(() => {
+    let interval;
+
+    if (epicGenerationInProgress) {
+      // Poll for epics every 5 seconds while generation is in progress
+      interval = setInterval(() => {
+        if (selectedProduct) {
+          fetchEpics();
+        }
+      }, 5000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [epicGenerationInProgress, fetchEpics, selectedProduct]);
+
   const handleEpicCreationComplete = async (createdEpics) => {
     setShowEpicModal(false);
     await fetchEpics();
@@ -72,19 +105,26 @@ const Home = () => {
 
   const handleEpicGenerationComplete = async (generatedEpics) => {
     setShowEpicGenerationModal(false);
+    // Keep the loading state active until fetching is complete
+    setIsGeneratingEpics(true);
+    setEpicGenerationInProgress(true);
     await fetchEpics();
   };
 
   const handleComprehensiveGenerationComplete = async () => {
     setShowComprehensiveGenerationModal(false);
+    // Keep the loading state active until fetching is complete
+    setIsGeneratingEverything(true);
     await fetchEpics();
   };
 
   const handleGenerateEpics = () => {
+    setIsGeneratingEpics(true);
     setShowEpicGenerationModal(true);
   };
 
   const handleGenerateEverything = () => {
+    setIsGeneratingEverything(true);
     setShowComprehensiveGenerationModal(true);
   };
 
@@ -203,9 +243,11 @@ const Home = () => {
             )}
 
             {/* Loading indicator */}
-            {loading ? (
+            {loading || isGeneratingEpics || isGeneratingEverything || epicGenerationInProgress ? (
               <div className="flex justify-center items-center py-20">
                 <Loader size={40} className="text-blue-500 animate-spin" />
+                {(isGeneratingEpics || epicGenerationInProgress) && <p className="ml-4 text-blue-600">Generating epics...</p>}
+                {isGeneratingEverything && <p className="ml-4 text-blue-600">Generating everything...</p>}
               </div>
             ) : (
               <>
@@ -311,6 +353,8 @@ const Home = () => {
           productName={selectedProduct.name}
           onClose={() => {
             setShowEpicGenerationModal(false);
+            setIsGeneratingEpics(true);
+            setEpicGenerationInProgress(true);
             fetchEpics();
           }}
           onComplete={handleEpicGenerationComplete}
@@ -324,6 +368,7 @@ const Home = () => {
           productName={selectedProduct.name}
           onClose={() => {
             setShowComprehensiveGenerationModal(false);
+            setIsGeneratingEverything(true);
             fetchEpics();
           }}
           onComplete={handleComprehensiveGenerationComplete}
