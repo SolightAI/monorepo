@@ -188,6 +188,7 @@ async def test_generate_auth_session_invalid_google_credentials(task_id, invalid
     assert "[AN ERROR OCCURED]" in str(excinfo.value)
 
 
+@pytest.mark.skip(reason="Requires a Redis instance to be running")
 @pytest.mark.asyncio
 async def test_session_reuse(task_id, valid_username_password_credentials, playground_base_url):
     """Test that sessions can be reused."""
