@@ -1,9 +1,11 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Success from './pages/Success';
+import Error from './pages/Error';
 import SimpleLoginPage from './pages/auth/SimpleLoginPage';
 import MessyLoginPage from './pages/auth/MessyLoginPage';
 import HomePage from './pages/HomePage';
+import RestrictedPage from './pages/generations/WebAppInvisibleLoginBanner';
 
 // Import our test pages
 import MarketingLanding from './pages/page_category/MarketingLanding';
@@ -37,7 +39,14 @@ function App() {
         <Route path="/category/analytics" element={<AnalyticsDashboard />} />
         <Route path="/category/blog" element={<BlogLanding />} />
 
+        {/* Epic generation test route with invisible login banner */}
+        <Route path="/epic/hidden-auth-banner" element={<RestrictedPage />} />
+
         <Route path="/success" element={<Success />} />
+        <Route path="/error" element={<Error />} />
+
+        {/* All other routes should redirect to the error page */}
+        <Route path="*" element={<Navigate to="/error" />} />
 
       </Routes>
     </BrowserRouter>

@@ -190,6 +190,7 @@ async def _generate_acceptance_criteria(
         initial_actions=[{'go_to_url': {'url': feature.urls[0]}}, {'go_to_url': {'url': feature.urls[0]}}],
         browser_context=context,
         # generate_gif=gif_output_path,  # deactivated cause it leads to thread blocking
+        enable_memory=False,
     )
 
     try:

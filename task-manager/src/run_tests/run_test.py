@@ -150,6 +150,7 @@ async def _run_test(
         llm=LLM_CLIENT,
         initial_actions=[{'go_to_url': {'url': test.url}}, {'go_to_url': {'url': test.url}}],
         browser_context=context,
+        enable_memory=False,
         # generate_gif=gif_output_path,  # deactivated cause it leads to thread blocking
     )
 

@@ -4,7 +4,7 @@ pydantic
 requests>=2.32.3
 pydantic==2.10.6
 pydantic_core==2.27.2
-git+https://github.com/browser-use/browser-use.git@e8ef8ea6223a9bad34c00dd1b710f8b1e2ea897d
+git+https://github.com/browser-use/browser-use.git@2615e1286df523e52afec0033181b0a27cf0274b
 retry
 pyperclip==1.9.0
 gradio==5.10.0

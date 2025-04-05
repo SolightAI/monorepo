@@ -3,12 +3,8 @@ import pytest
 import logging
 
 from uuid import uuid4
-from fixtures.generate_auth_session import generate_auth_session
+from fixtures.generate_auth_session import generate_auth_session, USERNAME_PASSWORD, OAUTH
 
-
-# Constants for test credentials
-USERNAME_PASSWORD = "username_password"
-OAUTH = "oauth_credential"
 
 # Auth paths in the playground
 EMAIL_PASSWORD_SIMPLE_PATH = "/auth/email_password/simple"

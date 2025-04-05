@@ -33,10 +33,12 @@ RUN pip install -U pip \
 
 # Copy the rest of the application
 COPY src/ /app/src/
+COPY install_dependencies.sh /app/install_dependencies.sh
 COPY entrypoint.sh /app/entrypoint.sh
 
 # Make sure entrypoint script is executable
 RUN chmod +x /app/entrypoint.sh
+RUN chmod +x /app/install_dependencies.sh
 
 # Expose the port the app runs on
 EXPOSE 9000
