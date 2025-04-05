@@ -99,8 +99,15 @@ async def get_all_invitations(organization_id: Optional[uuid.UUID] = None) -> Li
     return await query
 
 
-async def validate_invitation(code: str, email: Optional[str] = None) -> InvitationModel:
-    """Validate an invitation code."""
+async def validate_invitation(code: str, email: Optional[str] = None, check_used: bool = True) -> InvitationModel:
+    """
+    Validate an invitation code.
+    
+    Args:
+        code: The invitation code to validate
+        email: Optional email to validate against
+        check_used: Whether to check if the invitation has been used (default: True)
+    """
     # Get the invitation
     invitation = await InvitationModel.get_or_none(code=code)
 
@@ -118,18 +125,18 @@ async def validate_invitation(code: str, email: Optional[str] = None) -> Invitat
             detail="Invitation code has expired"
         )
 
-    # Check if invitation has been used
-    if invitation.used:
+    # Check if invitation has been used (only if check_used is True)
+    if check_used and invitation.used:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invitation has already been used"
         )
 
-    # Check if the invitation is for a specific email
-    if invitation.email and email and invitation.email.lower() != email.lower():
+    # If email is provided, validate it matches (but only for individual invitations)
+    if email and invitation.email and invitation.email.lower() != email.lower():
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invitation code is not valid for this email address"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"This invitation is for {invitation.email}. Please use that email address."
         )
 
     # Check if the invitation has already been used
