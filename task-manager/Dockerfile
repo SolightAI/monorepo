@@ -43,7 +43,7 @@ RUN chmod +x /app/install_dependencies.sh
 # Expose the port the app runs on
 EXPOSE 9000
 
-WORKDIR /app/src
+WORKDIR /app/
 
 # Set environment variable for Playwright browsers path
 ENV PLAYWRIGHT_BROWSERS_PATH=/tmp/playwright-browsers
