@@ -34,6 +34,7 @@ jobs:
       TECLA_ACADEMY_PASSWORD: ${{ secrets.TECLA_ACADEMY_PASSWORD }}
       TECLA_ACADEMY_USERNAME: ${{ secrets.TECLA_ACADEMY_USERNAME }}
       S3_BUCKET_NAME: task-manager-github-actions
+      AWS_ENDPOINT_URL: https://minio-n0ooc44wsgk0kkkwoksw48ck.34.155.147.62.sslip.io
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
@@ -93,6 +94,7 @@ jobs:
           -e TECLA_ACADEMY_PASSWORD \
           -e TECLA_ACADEMY_USERNAME \
           -e S3_BUCKET_NAME \
+          -e AWS_ENDPOINT_URL \
           -e AWS_ACCESS_KEY_ID \
           -e AWS_SECRET_ACCESS_KEY \
           -v ${{ github.workspace }}/task-manager:/app \
