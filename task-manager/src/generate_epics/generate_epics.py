@@ -165,6 +165,9 @@ async def _generate_epics(
         llm=LLM_CLIENT,
         initial_actions=[{'go_to_url': {'url': product.url}}, {'go_to_url': {'url': product.url}}],
         browser_context=context,
+        use_vision=False,
+        use_vision_for_planner=False,
+        enable_memory=False,
     )
 
     try:
@@ -255,7 +258,6 @@ async def background_generate_epics(
 
     if page_type == PageType.MARKETING:
         raise Exception(get_marketing_page_error_message(task_id))
-
 
     auth_session = await generate_auth_session(
         task_id=task_id,

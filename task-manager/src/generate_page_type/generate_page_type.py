@@ -143,6 +143,7 @@ async def analyze_page_type(
             llm=LLM_CLIENT,
             initial_actions=[{'go_to_url': {'url': product.url}}, {'go_to_url': {'url': product.url}}],
             browser_context=context,
+            enable_memory=False,
         )
 
         history = await agent.run(max_steps=30)

@@ -5,7 +5,7 @@ from tempfile import NamedTemporaryFile
 from logging import getLogger
 from pydantic import SecretStr
 from langchain_openai import AzureChatOpenAI
-from browser_use import Agent, Browser, BrowserConfig
+from browser_use import Agent, Browser, BrowserConfig, Controller
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from typing import Optional
 from utils.session_manager import get_cached_session, cache_session, update_session_timestamp
@@ -28,9 +28,11 @@ Determine which authentication method to use based on the type of credentials pr
 If the provided credentials are invalid, you should raise an error message that must include "[AN ERROR OCCURED]".
 In case of invalid credentials, you will probably see an error message on screen.
 However, if the credentials are valid, you will not see any message on screen confirming the login. It's up to you to detect if the login was successful.
+If you're not sure if the login was successful, you can use the action "Check if the user is logged in based on the vision" to check if the user is logged in.
 
 Note that some '{USERNAME_PASSWORD}' credentials might be done in two steps where the you would first need to past the username, then click on a button to continue to the password input.
 """.strip().format(USERNAME_PASSWORD=USERNAME_PASSWORD, OAUTH=OAUTH)
+
 
 CHECK_LOGIN_PROMPT = """
 You are an AI assistant acting as a test automation engineer. Your task is to check if the user is logged in to the application.
@@ -38,6 +40,16 @@ You are an AI assistant acting as a test automation engineer. Your task is to ch
 Look at the current page and determine if the user is logged in.
 If the user is logged in, say "User is logged in".
 If the user is not logged in, say "User is not logged in".
+""".strip()
+
+
+IS_LOGGED_VISION_PROMPT = """
+You are an AI assistant acting as a test automation engineer. Your task is to check if the user is logged in to the application.
+
+Look at the current page and determine if the user is logged in.
+- If the user is logged in, output "[YES]".
+- If the user is not logged in, output "[NO]".
+- If you are not sure, output "[MAYBE]".
 """.strip()
 
 
@@ -55,16 +67,51 @@ CLIENT = AzureChatOpenAI(
     api_key=SecretStr(azure_openai_key),
     temperature=0.0,
 )
+controller = Controller()
 
 
 logger = getLogger(__name__)
+
+
+@controller.action("Check if the user is logged in based on the vision")
+async def is_logged_based_on_vision(browser: Browser) -> str:
+    page = await browser.get_current_page()
+    screenshot = await page.screenshot()
+
+    with open("/tmp/screenshot.png", "wb") as f:
+        f.write(screenshot)
+
+    import base64
+    from langchain_core.messages import HumanMessage
+
+    image_data = base64.b64encode(screenshot).decode('utf-8')
+
+    message = HumanMessage(
+        content=[
+            {"type": "text", "text": IS_LOGGED_VISION_PROMPT},
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},
+            },
+        ],
+    )
+
+    response = CLIENT.invoke([message]).content
+
+    if "[NO]" in response:
+        return "The user is NOT logged in."
+    elif "[YES]" in response:
+        return "The user is logged in."
+    elif "[MAYBE]" in response:
+        return "The action could not determine if the user is logged in."
+    else:
+        raise Exception(f"Unexpected response from the LLM: {response}")
 
 
 async def check_is_logged_in(
     task_id: str,
     url: str,
     existing_session: Optional[dict[str, dict[str, str]]],
-    user_id: str,
 ) -> bool:
     """
     Check if the user is still logged in to the webapp
@@ -118,6 +165,7 @@ async def check_is_logged_in(
         llm=CLIENT,
         initial_actions=[{'go_to_url': {'url': url}}],
         browser_context=context,
+        enable_memory=False,
     )
 
     try:
@@ -125,7 +173,7 @@ async def check_is_logged_in(
         result = history.final_result()
 
         is_logged_in = result is not None and "User is logged in".lower() in result.lower()
-        logger.info(f"[{task_id}] Login check result for user {user_id}: {'Logged in' if is_logged_in else 'Not logged in'}")
+        logger.info(f"[{task_id}] Login check result: {'Logged in' if is_logged_in else 'Not logged in'}")
         return is_logged_in
     finally:
         await context.close()
@@ -160,7 +208,7 @@ async def generate_auth_session(
         cached_session = await get_cached_session(url, user_id)
         if cached_session:
             logger.info(f"[{task_id}] Found cached session for {url} (user: {user_id}), checking if still valid...")
-            if await check_is_logged_in(task_id, url, cached_session, user_id):
+            if await check_is_logged_in(task_id, url, cached_session):
                 logger.info(f"[{task_id}] Cached session for user {user_id} is still valid, reusing it")
                 await update_session_timestamp(url, user_id)
                 return cached_session
@@ -199,7 +247,9 @@ async def generate_auth_session(
         browser_context=context,
         # generate_gif=gif_output_path,  # NOTE: deactivated cause it leads to thread blocking
         use_vision_for_planner=False,
-        use_vision=False,
+        use_vision=True,
+        controller=controller,
+        enable_memory=False,
     )
 
     try:
