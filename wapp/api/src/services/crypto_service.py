@@ -100,9 +100,9 @@ class CryptoService:
             bool: True if initialized, False otherwise
         """
         # If we've never attempted to initialize or don't have a key, try to get one
-        if not self.initialization_attempted or self.public_key is None:
-            return self.refresh_public_key()
-        return self.public_key is not None
+        # if not self.initialization_attempted or self.public_key is None:
+        return self.refresh_public_key()  # NOTE: for now, we refresh the key on every request
+        # return self.public_key is not None
 
     def encrypt(self, value: str) -> Optional[str]:
         """
@@ -159,7 +159,7 @@ class CryptoService:
             logger.warning("Cannot encrypt secrets because task-manager public key is unavailable")
             return False, None
 
-        encrypted_secrets = {}
+        encrypted_secrets: Dict[str, Dict[str, str]] = {}
 
         try:
             for secret_type, secret_values in secrets.items():
