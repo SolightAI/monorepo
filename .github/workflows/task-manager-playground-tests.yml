@@ -28,7 +28,7 @@ jobs:
       # Playground settings
       PLAYGROUND_URL: "https://playground.tm.laneo.io"
       PYTHONPATH: ${{ github.workspace }}/task-manager
-      TEST_MODE: "true"
+      TEST_MODE: "false"  # we want to upload the results to S3
       FARMZZ_PASSWORD: ${{ secrets.FARMZZ_PASSWORD }}
       FARMZZ_USERNAME: ${{ secrets.FARMZZ_USERNAME }}
       TECLA_ACADEMY_PASSWORD: ${{ secrets.TECLA_ACADEMY_PASSWORD }}
