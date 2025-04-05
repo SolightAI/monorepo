@@ -49,4 +49,13 @@ jobs:
     - name: Run auth session tests
       # Use the built Docker image
       run: |
-        docker run --network host -e AZURE_OPENAI_KEY -e AZURE_OPENAI_ENDPOINT -e PLAYGROUND_URL -e TEST_MODE -v ${{ github.workspace }}/task-manager:/app -v /tmp/playwright-browsers:/root/.cache/ms-playwright task-manager:test pytest tests/test_auth_session.py -vvv --repeat 3 -n 5 --cov=src.fixtures.generate_auth_session --cov-report=xml:coverage-auth-session.xml
+        docker run \
+          --network host \
+          -e AZURE_OPENAI_KEY \
+          -e AZURE_OPENAI_ENDPOINT \
+          -e PLAYGROUND_URL \
+          -e TEST_MODE \
+          -v ${{ github.workspace }}/task-manager:/app \
+          -v /tmp/playwright-browsers:/root/.cache/ms-playwright \
+          task-manager:test \
+          bash -c "cd .. ; pytest -vvv"
