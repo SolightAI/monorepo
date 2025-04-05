@@ -166,6 +166,8 @@ async def generate_auth_session(
                 return cached_session
             else:
                 logger.info(f"[{task_id}] Cached session for user {user_id} is no longer valid, generating a new one")
+        else:
+            logger.info(f"[{task_id}] No cached session found for {url} (user: {user_id}), generating a new one")
 
     # Validate that we have at least one valid credential type
     if USERNAME_PASSWORD not in secrets and OAUTH not in secrets:
