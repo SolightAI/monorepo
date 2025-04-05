@@ -158,12 +158,6 @@ const GoogleOAuth = ({ onSuccess, onFailure }) => {
                   Next
                 </button>
               </div>
-
-              <div className="mt-8 text-sm text-center text-gray-500">
-                <p>For test purposes, use:</p>
-                <p>Email: testuser@gmail.com</p>
-                <p>Password: password123</p>
-              </div>
             </form>
           </div>
         </div>
