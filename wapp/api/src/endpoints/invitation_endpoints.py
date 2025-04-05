@@ -88,7 +88,7 @@ async def validate_invitation_endpoint(
     email: Optional[str] = None
 ) -> Invitation:
     """Validate an invitation code. Can be used without authentication."""
-    return await validate_invitation(code, email)
+    return await validate_invitation(code, email, check_used=False)
 
 
 @router.post("/mark-used/{code}/")

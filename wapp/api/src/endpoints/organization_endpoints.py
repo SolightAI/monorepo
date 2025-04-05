@@ -355,8 +355,8 @@ async def join_organization(
     Join an organization through an invitation.
     This endpoint can be used by users who have received an invitation.
     """
-    # Validate the invitation and check if it's for this user's email
-    invitation = await validate_invitation(invitation_code, current_user.email)
+    # Validate the invitation and check if it's used since we're actually joining now
+    invitation = await validate_invitation(invitation_code, current_user.email, check_used=True)
     
     # Check if the invitation is for this organization
     if invitation.organization_id != organization_id:
