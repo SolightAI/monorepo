@@ -26,6 +26,3 @@ fi
 
 # Give rights to the user to use the all Playwright binary
 chmod -R 755 $PLAYWRIGHT_BROWSERS_PATH
-
-# Run the application
-exec uvicorn main:app --host 0.0.0.0 --port 9000 --reload
