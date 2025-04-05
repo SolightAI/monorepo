@@ -16,7 +16,7 @@ jobs:
 
   auth-session-tests:
     runs-on: ubuntu-latest
-    
+
     defaults:
       run:
         working-directory: ./task-manager
@@ -33,22 +33,23 @@ jobs:
       FARMZZ_USERNAME: ${{ secrets.FARMZZ_USERNAME }}
       TECLA_ACADEMY_PASSWORD: ${{ secrets.TECLA_ACADEMY_PASSWORD }}
       TECLA_ACADEMY_USERNAME: ${{ secrets.TECLA_ACADEMY_USERNAME }}
-      PLAYWRIGHT_BROWSERS_PATH: "/tmp/playwright-browsers"
 
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-      
-    - name: Check for cached Playwright browsers
-      id: playwright-cache
-      uses: actions/cache@v3
-      with:
-        path: /tmp/playwright-browsers
-        key: playwright-browsers-${{ hashFiles('task-manager/install_dependencies.sh') }}
-    
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
+
+    - name: Cache Playwright Browsers
+      uses: actions/cache@v3
+      id: playwright-cache
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('task-manager/Dockerfile') }}
+        restore-keys: |
+          playwright-${{ runner.os }}-
 
     - name: Build Docker image
       uses: docker/build-push-action@v5
@@ -58,20 +59,25 @@ jobs:
         push: false
         load: true
         tags: task-manager:test
+        build-args: |
+          SKIP_PLAYWRIGHT_INSTALL=true
 
-    - name: Install Playwright dependencies if needed
-      if: steps.playwright-cache.outputs.cache-hit != 'true'
+    - name: Install Playwright in Docker
       run: |
-        mkdir -p /tmp/playwright-browsers
-        docker run --rm \
-          -v /tmp/playwright-browsers:/tmp/playwright-browsers \
-          -e PLAYWRIGHT_BROWSERS_PATH=/tmp/playwright-browsers \
+        # Create a container to install Playwright and save its state
+        docker run --name playwright-setup \
+          -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
           task-manager:test \
           bash -c "cd /app && pip install playwright && playwright install --with-deps"
-        chmod -R 755 /tmp/playwright-browsers
+
+        # Commit the container with installed Playwright to a new image
+        docker commit playwright-setup task-manager:with-playwright
+
+        # Remove the temporary container
+        docker rm playwright-setup
 
     - name: Run auth session tests
-      # Use the built Docker image
+      # Use the built Docker image with Playwright installed
       run: |
         docker run \
           --network host \
@@ -83,8 +89,7 @@ jobs:
           -e FARMZZ_USERNAME \
           -e TECLA_ACADEMY_PASSWORD \
           -e TECLA_ACADEMY_USERNAME \
-          -e PLAYWRIGHT_BROWSERS_PATH=/tmp/playwright-browsers \
           -v ${{ github.workspace }}/task-manager:/app \
-          -v /tmp/playwright-browsers:/tmp/playwright-browsers \
-          task-manager:test \
-          bash -c "cd .. ; pytest -vvv"
+          -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+          task-manager:with-playwright \
+          bash -c "cd /app && python -m pytest -vvs"
