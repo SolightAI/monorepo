@@ -1,0 +1,103 @@
+name: Task Manager Playground Tests
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'task-manager/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'task-manager/**'
+  # Manual trigger
+  workflow_dispatch:
+
+jobs:
+
+  auth-session-tests:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./task-manager
+
+    env:
+      # Azure OpenAI settings (required for the auth agent)
+      AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
+      AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+      # Playground settings
+      PLAYGROUND_URL: "https://playground.tm.laneo.io"
+      PYTHONPATH: ${{ github.workspace }}/task-manager
+      TEST_MODE: "false"  # we want to upload the results to S3
+      FARMZZ_PASSWORD: ${{ secrets.FARMZZ_PASSWORD }}
+      FARMZZ_USERNAME: ${{ secrets.FARMZZ_USERNAME }}
+      TECLA_ACADEMY_PASSWORD: ${{ secrets.TECLA_ACADEMY_PASSWORD }}
+      TECLA_ACADEMY_USERNAME: ${{ secrets.TECLA_ACADEMY_USERNAME }}
+      S3_BUCKET_NAME: task-manager-github-actions
+      AWS_ENDPOINT_URL: https://minio-n0ooc44wsgk0kkkwoksw48ck.34.155.147.62.sslip.io
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Cache Playwright Browsers
+      uses: actions/cache@v3
+      id: playwright-cache
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('task-manager/Dockerfile') }}
+        restore-keys: |
+          playwright-${{ runner.os }}-
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./task-manager
+        file: ./task-manager/Dockerfile
+        push: false
+        load: true
+        tags: task-manager:test
+        build-args: |
+          SKIP_PLAYWRIGHT_INSTALL=true
+
+    - name: Install Playwright in Docker
+      run: |
+        # Create a container to install Playwright and save its state
+        docker run --name playwright-setup \
+          -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+          task-manager:test \
+          bash -c "cd /app && pip install playwright && playwright install --with-deps"
+
+        # Commit the container with installed Playwright to a new image
+        docker commit playwright-setup task-manager:with-playwright
+
+        # Remove the temporary container
+        docker rm playwright-setup
+
+    - name: Run auth session tests
+      # Use the built Docker image with Playwright installed
+      run: |
+        docker run \
+          --network host \
+          -e AZURE_OPENAI_KEY \
+          -e AZURE_OPENAI_ENDPOINT \
+          -e PLAYGROUND_URL \
+          -e TEST_MODE \
+          -e FARMZZ_PASSWORD \
+          -e FARMZZ_USERNAME \
+          -e TECLA_ACADEMY_PASSWORD \
+          -e TECLA_ACADEMY_USERNAME \
+          -e S3_BUCKET_NAME \
+          -e AWS_ENDPOINT_URL \
+          -e AWS_ACCESS_KEY_ID \
+          -e AWS_SECRET_ACCESS_KEY \
+          -v ${{ github.workspace }}/task-manager:/app \
+          -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+          task-manager:with-playwright \
+          bash -c "cd /app && python -m pytest -vvs"
