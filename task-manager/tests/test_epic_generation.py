@@ -11,7 +11,7 @@ from utils.dto import Product
 
 
 # Path to our restricted page with invisible login banner
-INVISIBLE_LOGIN_BANNER_PATH = "epic/hidden-auth-banner"
+INVISIBLE_LOGIN_BANNER_PATH = "/epic/hidden-auth-banner"
 
 
 logger = logging.getLogger(__name__)
