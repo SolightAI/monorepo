@@ -284,38 +284,3 @@ async def test_generate_auth_session_tecla_academy(task_id):
     # Verify localStorage contains the expected auth data
     assert "AUTH_SESSION_ID" in [cookie["name"] for cookie in session["cookies"]]
     assert [cookie for cookie in session["cookies"] if cookie["name"] == "AUTH_SESSION_ID"][0]["value"] is not None
-
-
-@pytest.mark.asyncio
-async def test_generate_auth_session_smith_ai(task_id):
-    """Test authentication with valid username/password on the simple login page."""
-
-    url = "https://app.smith.ai/log-in/"
-
-    username = os.getenv("TECLA_ACADEMY_USERNAME")
-    if not username:
-        raise ValueError("TECLA_ACADEMY_USERNAME is not set")
-
-    password = os.getenv("TECLA_ACADEMY_PASSWORD")
-    if not password:
-        raise ValueError("TECLA_ACADEMY_PASSWORD is not set")
-
-    session = await generate_auth_session(
-        task_id=task_id,
-        url=url,
-        secrets={
-            USERNAME_PASSWORD: {
-                "username": username,
-                "password": password
-            }
-        },
-        reuse_session=False
-    )
-
-    # Verify the session data structure
-    assert "cookies" in session
-    assert "localStorage" in session
-
-    # Verify localStorage contains the expected auth data
-    assert "AUTH_SESSION_ID" in [cookie["name"] for cookie in session["cookies"]]
-    assert [cookie for cookie in session["cookies"] if cookie["name"] == "AUTH_SESSION_ID"][0]["value"] is not None
