@@ -92,6 +92,9 @@ jobs:
           -e FARMZZ_USERNAME \
           -e TECLA_ACADEMY_PASSWORD \
           -e TECLA_ACADEMY_USERNAME \
+          -e S3_BUCKET_NAME \
+          -e AWS_ACCESS_KEY_ID \
+          -e AWS_SECRET_ACCESS_KEY \
           -v ${{ github.workspace }}/task-manager:/app \
           -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
           task-manager:with-playwright \
