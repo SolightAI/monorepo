@@ -7,19 +7,40 @@ on:
       - 'task-manager/**'
   pull_request:
     branches: [ main ]
+    # paths:
+    #   - 'task-manager/**'
+  # Manual trigger
   workflow_dispatch:
 
 jobs:
-  build-images:
+
+  auth-session-tests:
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: ./task-manager
 
     env:
+      # Azure OpenAI settings (required for the auth agent)
+      AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
+      AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+      # Playground settings
+      PLAYGROUND_URL: "http://playground:3000" # use container endpoint
+      PYTHONPATH: ${{ github.workspace }}/task-manager
+      TEST_MODE: "false"  # we want to upload the results to S3
+      FARMZZ_PASSWORD: ${{ secrets.FARMZZ_PASSWORD }}
+      FARMZZ_USERNAME: ${{ secrets.FARMZZ_USERNAME }}
+      TECLA_ACADEMY_PASSWORD: ${{ secrets.TECLA_ACADEMY_PASSWORD }}
+      TECLA_ACADEMY_USERNAME: ${{ secrets.TECLA_ACADEMY_USERNAME }}
+      S3_BUCKET_NAME: task-manager-github-actions
+      AWS_ENDPOINT_URL: https://minio-n0ooc44wsgk0kkkwoksw48ck.34.155.147.62.sslip.io
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       DOCKER_REGISTRY: docker.io
       DOCKER_USERNAME_CI: ${{ secrets.DOCKER_USERNAME_CI }}
       DOCKER_PASSWORD_CI: ${{ secrets.DOCKER_PASSWORD_CI }}
+      PLAYWRIGHT_IMAGE: laneoai/task-manager:with-playwright
 
     steps:
     - name: Checkout code
@@ -46,13 +67,13 @@ jobs:
         tags: task-manager:test
         build-args: |
           SKIP_PLAYWRIGHT_INSTALL=true
-        cache-from: type=registry,ref=laneoai/task-manager:cache
-        cache-to: type=registry,ref=laneoai/task-manager:cache,mode=max
 
     - name: Get image hash and set Playwright image tag
       id: image-hash
       run: |
+        # Get the image hash
         IMAGE_HASH=$(docker inspect task-manager:test --format='{{.Id}}' | cut -d':' -f2 | cut -c1-12)
+        # Set the Playwright image name with the hash
         echo "PLAYWRIGHT_IMAGE=laneoai/task-manager:with-playwright-$IMAGE_HASH" >> $GITHUB_ENV
 
     - name: Check if Playwright image exists
@@ -64,17 +85,6 @@ jobs:
           echo "exists=false" >> $GITHUB_OUTPUT
         fi
 
-    - name: Install Playwright in Docker
-      if: steps.check-image.outputs.exists == 'false'
-      run: |
-        docker run --name playwright-setup \
-          task-manager:test \
-          bash -c "cd /app && pip install playwright pytest-xdist && playwright install --with-deps"
-
-        docker commit playwright-setup ${{ env.PLAYWRIGHT_IMAGE }}
-        docker push ${{ env.PLAYWRIGHT_IMAGE }}
-        docker rm playwright-setup
-
     - name: Build playground Docker image
       uses: docker/build-push-action@v5
       with:
@@ -83,50 +93,29 @@ jobs:
         push: false
         load: true
         tags: playground:test
-        cache-from: type=registry,ref=laneoai/task-manager:playground-cache
-        cache-to: type=registry,ref=laneoai/task-manager:playground-cache,mode=max
 
-  run-tests:
-    needs: build-images
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        test-group: [1, 2, 3]  # Split tests into 3 groups
-      fail-fast: false
-
-    defaults:
-      run:
-        working-directory: ./task-manager
-
-    env:
-      AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
-      AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
-      PLAYGROUND_URL: "http://playground:3000"
-      PYTHONPATH: ${{ github.workspace }}/task-manager
-      TEST_MODE: "false"
-      FARMZZ_PASSWORD: ${{ secrets.FARMZZ_PASSWORD }}
-      FARMZZ_USERNAME: ${{ secrets.FARMZZ_USERNAME }}
-      TECLA_ACADEMY_PASSWORD: ${{ secrets.TECLA_ACADEMY_PASSWORD }}
-      TECLA_ACADEMY_USERNAME: ${{ secrets.TECLA_ACADEMY_USERNAME }}
-      S3_BUCKET_NAME: task-manager-github-actions
-      AWS_ENDPOINT_URL: https://minio-n0ooc44wsgk0kkkwoksw48ck.34.155.147.62.sslip.io
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      PLAYWRIGHT_IMAGE: ${{ needs.build-images.outputs.playwright-image }}
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Login to Docker Hub
+    - name: Install Playwright in Docker
+      if: steps.check-image.outputs.exists == 'false'
       run: |
-        echo ${{ secrets.DOCKER_PASSWORD_CI }} | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ secrets.DOCKER_USERNAME_CI }} --password-stdin
+        # Create a container to install Playwright and save its state
+        docker run --name playwright-setup \
+          -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+          task-manager:test \
+          bash -c "cd /app && pip install playwright pytest-xdist && playwright install --with-deps"
 
-    - name: Pull Playwright image
-      run: docker pull ${{ env.PLAYWRIGHT_IMAGE }}
+        # Commit the container with installed Playwright to a new image
+        docker commit playwright-setup ${{ env.PLAYWRIGHT_IMAGE }}
+
+        # Push the image to registry
+        docker push ${{ env.PLAYWRIGHT_IMAGE }}
+
+        # Remove the temporary container
+        docker rm playwright-setup
+
+    - name: Pull Playwright image if exists
+      if: steps.check-image.outputs.exists == 'true'
+      run: |
+        docker pull ${{ env.PLAYWRIGHT_IMAGE }}
 
     - name: Create Docker network
       run: docker network create test-network
@@ -171,8 +160,9 @@ jobs:
           -e AWS_ACCESS_KEY_ID \
           -e AWS_SECRET_ACCESS_KEY \
           -v ${{ github.workspace }}/task-manager:/app \
+          -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
           ${{ env.PLAYWRIGHT_IMAGE }} \
-          bash -c "cd /app && python -m pytest -vvs -n auto --dist=loadfile tests/test_auth_session.py::test_group_${{ matrix.test-group }}"
+          bash -c "cd /app && python -m pytest -vvs -n auto"
 
     - name: Cleanup
       if: always()
