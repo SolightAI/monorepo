@@ -7,28 +7,28 @@ on:
       - 'task-manager/**'
   pull_request:
     branches: [ main ]
-    # paths:
-    #   - 'task-manager/**'
-  # Manual trigger
   workflow_dispatch:
 
 jobs:
-
-  auth-session-tests:
+  tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-group: [1, 2, 3]  # Run tests in parallel
+      fail-fast: false  # Don't stop other jobs if one fails
 
     defaults:
       run:
         working-directory: ./task-manager
 
     env:
-      # Azure OpenAI settings (required for the auth agent)
+      # Azure OpenAI settings
       AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
       AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
       # Playground settings
-      PLAYGROUND_URL: "http://playground:3000" # use container endpoint
+      PLAYGROUND_URL: "http://localhost:3000"
       PYTHONPATH: ${{ github.workspace }}/task-manager
-      TEST_MODE: "false"  # we want to upload the results to S3
+      TEST_MODE: "false"
       FARMZZ_PASSWORD: ${{ secrets.FARMZZ_PASSWORD }}
       FARMZZ_USERNAME: ${{ secrets.FARMZZ_USERNAME }}
       TECLA_ACADEMY_PASSWORD: ${{ secrets.TECLA_ACADEMY_PASSWORD }}
@@ -46,17 +46,38 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Docker Buildx
+    - name: Setup Docker Buildx
       uses: docker/setup-buildx-action@v3
+      with:
+        buildkitd-flags: --debug
 
     - name: Login to Docker Hub
-      run: |
-        echo "Attempting to login to Docker Hub"
-        echo ${{ secrets.DOCKER_PASSWORD_CI }} | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ secrets.DOCKER_USERNAME_CI }} --password-stdin || {
-          echo "Failed to login to Docker Hub"
-          exit 1
-        }
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.DOCKER_REGISTRY }}
+        username: ${{ secrets.DOCKER_USERNAME_CI }}
+        password: ${{ secrets.DOCKER_PASSWORD_CI }}
 
+    # Check if Playwright Docker image exists
+    - name: Check if Playwright image exists
+      id: check-image
+      run: |
+        if docker manifest inspect ${{ env.PLAYWRIGHT_IMAGE }} > /dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    # Cache dependencies for faster Docker builds
+    - name: Cache Docker layers
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+
+    # Build test Docker image with cache
     - name: Build test Docker image
       uses: docker/build-push-action@v5
       with:
@@ -67,24 +88,36 @@ jobs:
         tags: task-manager:test
         build-args: |
           SKIP_PLAYWRIGHT_INSTALL=true
+        cache-from: |
+          type=local,src=/tmp/.buildx-cache
+        cache-to: |
+          type=local,dest=/tmp/.buildx-cache-new
 
-    - name: Get image hash and set Playwright image tag
-      id: image-hash
+    # Move cache
+    - name: Move cache
       run: |
-        # Get the image hash
-        IMAGE_HASH=$(docker inspect task-manager:test --format='{{.Id}}' | cut -d':' -f2 | cut -c1-12)
-        # Set the Playwright image name with the hash
-        echo "PLAYWRIGHT_IMAGE=laneoai/task-manager:with-playwright-$IMAGE_HASH" >> $GITHUB_ENV
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-    - name: Check if Playwright image exists
-      id: check-image
+    # Install Playwright only if image doesn't exist
+    - name: Install Playwright in Docker
+      if: steps.check-image.outputs.exists == 'false'
       run: |
-        if docker manifest inspect ${{ env.PLAYWRIGHT_IMAGE }} > /dev/null 2>&1; then
-          echo "exists=true" >> $GITHUB_OUTPUT
-        else
-          echo "exists=false" >> $GITHUB_OUTPUT
-        fi
+        docker run --name playwright-setup \
+          task-manager:test \
+          bash -c "cd /app && pip install playwright pytest-xdist && playwright install --with-deps chromium firefox webkit"
 
+        docker commit playwright-setup ${{ env.PLAYWRIGHT_IMAGE }}
+        docker push ${{ env.PLAYWRIGHT_IMAGE }}
+        docker rm playwright-setup
+
+    # Pull existing image if it exists
+    - name: Pull Playwright image if exists
+      if: steps.check-image.outputs.exists == 'true'
+      run: |
+        docker pull ${{ env.PLAYWRIGHT_IMAGE }}
+
+    # Build playground in parallel with Playwright install/pull
     - name: Build playground Docker image
       uses: docker/build-push-action@v5
       with:
@@ -93,43 +126,24 @@ jobs:
         push: false
         load: true
         tags: playground:test
+        cache-from: |
+          type=local,src=/tmp/.buildx-cache
+        cache-to: |
+          type=local,dest=/tmp/.buildx-cache-new,mode=max
 
-    - name: Install Playwright in Docker
-      if: steps.check-image.outputs.exists == 'false'
+    # Create network and start playground
+    - name: Setup test environment
       run: |
-        # Create a container to install Playwright and save its state
-        docker run --name playwright-setup \
-          -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
-          task-manager:test \
-          bash -c "cd /app && pip install playwright pytest-xdist && playwright install --with-deps"
-
-        # Commit the container with installed Playwright to a new image
-        docker commit playwright-setup ${{ env.PLAYWRIGHT_IMAGE }}
-
-        # Push the image to registry
-        docker push ${{ env.PLAYWRIGHT_IMAGE }}
-
-        # Remove the temporary container
-        docker rm playwright-setup
-
-    - name: Pull Playwright image if exists
-      if: steps.check-image.outputs.exists == 'true'
-      run: |
-        docker pull ${{ env.PLAYWRIGHT_IMAGE }}
-
-    - name: Create Docker network
-      run: docker network create test-network
-
-    - name: Run playground container
-      run: |
+        docker network create test-network
+        
+        # Run playground in background
         docker run -d \
           --name playground \
           --network test-network \
           -p 3000:3000 \
           playground:test
-
-    - name: Wait for playground to be ready
-      run: |
+        
+        # Wait for playground to be ready
         timeout=20
         counter=0
         until curl -s http://localhost:3000 > /dev/null; do
@@ -143,13 +157,24 @@ jobs:
         done
         echo "Playground is ready!"
 
-    - name: Run auth session tests
+    # Run tests in parallel with matrix
+    - name: Run tests (group ${{ matrix.test-group }})
       run: |
+        # Determine which tests to run based on matrix group
+        if [ "${{ matrix.test-group }}" == "1" ]; then
+          TEST_PATTERN="tests/test_auth_session.py::test_group_1"
+        elif [ "${{ matrix.test-group }}" == "2" ]; then
+          TEST_PATTERN="tests/test_auth_session.py::test_group_2"
+        else
+          TEST_PATTERN="tests/test_auth_session.py::test_group_3"
+        fi
+        
+        # Run the tests
         docker run \
           --network test-network \
           -e AZURE_OPENAI_KEY \
           -e AZURE_OPENAI_ENDPOINT \
-          -e PLAYGROUND_URL \
+          -e PLAYGROUND_URL=http://playground:3000 \
           -e TEST_MODE \
           -e FARMZZ_PASSWORD \
           -e FARMZZ_USERNAME \
@@ -160,10 +185,10 @@ jobs:
           -e AWS_ACCESS_KEY_ID \
           -e AWS_SECRET_ACCESS_KEY \
           -v ${{ github.workspace }}/task-manager:/app \
-          -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
           ${{ env.PLAYWRIGHT_IMAGE }} \
-          bash -c "cd /app && python -m pytest -vvs -n auto"
+          bash -c "cd /app && python -m pytest -vvs -n auto --dist=loadfile $TEST_PATTERN"
 
+    # Always clean up resources
     - name: Cleanup
       if: always()
       run: |
