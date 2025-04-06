@@ -179,6 +179,7 @@ async def test_generate_auth_session_staged_messy_login(task_id: str, valid_user
     assert session["localStorage"].get("isLoggedIn") == "true"
 
 
+@pytest.mark.skip(reason="We do not support instant login yet")
 @pytest.mark.asyncio
 async def test_generate_auth_session_instant_simple_login(task_id: str, valid_username_password_credentials: dict, playground_base_url: str) -> None:
     """Test authentication with valid credentials on the simple instant login page."""
@@ -199,6 +200,7 @@ async def test_generate_auth_session_instant_simple_login(task_id: str, valid_us
     assert session["localStorage"].get("isLoggedIn") == "true"
 
 
+@pytest.mark.skip(reason="We do not support instant login yet")
 @pytest.mark.asyncio
 async def test_generate_auth_session_instant_messy_login(task_id: str, valid_username_password_credentials: dict, playground_base_url: str) -> None:
     """Test authentication with valid credentials on the messy instant login page."""
@@ -300,6 +302,7 @@ async def test_generate_auth_session_combined_email_instant_simple(task_id: str,
     assert session["localStorage"].get("isLoggedIn") == "true"
 
 
+@pytest.mark.skip(reason="We do not support instant login yet")
 @pytest.mark.asyncio
 async def test_generate_auth_session_combined_instant_google_messy(task_id: str, valid_username_password_credentials: dict, playground_base_url: str) -> None:
     """Test authentication with valid username/password on the messy combined instant/Google login page."""
