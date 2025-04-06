@@ -37,7 +37,6 @@ jobs:
       AWS_ENDPOINT_URL: https://minio-n0ooc44wsgk0kkkwoksw48ck.34.155.147.62.sslip.io
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      # Docker registry settings
       DOCKER_REGISTRY: docker.io
       DOCKER_USERNAME_CI: ${{ secrets.DOCKER_USERNAME_CI }}
       DOCKER_PASSWORD_CI: ${{ secrets.DOCKER_PASSWORD_CI }}
