@@ -20,10 +20,14 @@ USERNAME_PASSWORD = "username_password"
 PROMPT = """
 You are an AI assistant acting as a test automation engineer. Your task is to login to the application.
 
-Determine which authentication method to use based on the type of credentials provided:
+Always start by determining which authentication method to use based on the type of credentials provided in the sensitive data:
 - If '{USERNAME_PASSWORD}' credentials are provided, use the email/password login flow.
 - If '{OAUTH}' credentials are provided with 'provider' set to 'Google', use the Google OAuth login flow.
-- If both types are available, prioritize using the '{USERNAME_PASSWORD}' credentials.
+- If you have access to both types of credentials in the sensitive data, prioritize using the '{USERNAME_PASSWORD}' credentials.
+- No other authentication method is supported (e.g. instant login is not supported, etc.)
+
+In your case you have access to the following credentials:
+{{login_methods}}
 
 If the provided credentials are invalid, you should raise an error message that must include "[AN ERROR OCCURED]".
 In case of invalid credentials, you will probably see an error message on screen.
@@ -239,8 +243,15 @@ async def generate_auth_session(
     if gif_output_path:
         os.makedirs(os.path.dirname(gif_output_path), exist_ok=True)
 
+    login_methods = []
+    if any(USERNAME_PASSWORD in k for k in secrets.keys()):
+        login_methods.append(f"- {USERNAME_PASSWORD}")
+    if any(OAUTH in k for k in secrets.keys()):
+        login_methods.append(f"- {OAUTH}")
+    login_methods = "\n".join(login_methods)
+
     agent = Agent(
-        task=PROMPT,
+        task=PROMPT.format(login_methods=login_methods),
         llm=CLIENT,
         sensitive_data=sensitive_data,
         initial_actions=[{'go_to_url': {'url': url}}, {'go_to_url': {'url': url}}],  # twice cause it some case we have a redirect at the first try
