@@ -38,10 +38,11 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       # Docker registry settings
-      DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+      DOCKER_REGISTRY: docker.io
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      PLAYWRIGHT_IMAGE: task-manager:with-playwright
+      DOCKER_ORG: laneoai
+      PLAYWRIGHT_IMAGE: ${{ env.DOCKER_ORG }}/task-manager:with-playwright
 
     steps:
     - name: Checkout code
@@ -50,14 +51,18 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Login to Docker Registry
+    - name: Login to Docker Hub
       run: |
-        echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin ${{ secrets.DOCKER_REGISTRY }}
+        echo "Attempting to login to Docker Hub"
+        echo ${{ secrets.DOCKER_PASSWORD }} | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ secrets.DOCKER_USERNAME }} --password-stdin || {
+          echo "Failed to login to Docker Hub"
+          exit 1
+        }
 
     - name: Check if Playwright image exists
       id: check-image
       run: |
-        if docker manifest inspect ${{ env.DOCKER_REGISTRY }}/${{ env.PLAYWRIGHT_IMAGE }} > /dev/null 2>&1; then
+        if docker manifest inspect ${{ env.PLAYWRIGHT_IMAGE }} > /dev/null 2>&1; then
           echo "exists=true" >> $GITHUB_OUTPUT
         else
           echo "exists=false" >> $GITHUB_OUTPUT
@@ -105,8 +110,7 @@ jobs:
         docker commit playwright-setup ${{ env.PLAYWRIGHT_IMAGE }}
 
         # Push the image to registry
-        docker tag ${{ env.PLAYWRIGHT_IMAGE }} ${{ env.DOCKER_REGISTRY }}/${{ env.PLAYWRIGHT_IMAGE }}
-        docker push ${{ env.DOCKER_REGISTRY }}/${{ env.PLAYWRIGHT_IMAGE }}
+        docker push ${{ env.PLAYWRIGHT_IMAGE }}
 
         # Remove the temporary container
         docker rm playwright-setup
@@ -114,8 +118,7 @@ jobs:
     - name: Pull Playwright image if exists
       if: steps.check-image.outputs.exists == 'true'
       run: |
-        docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.PLAYWRIGHT_IMAGE }}
-        docker tag ${{ env.DOCKER_REGISTRY }}/${{ env.PLAYWRIGHT_IMAGE }} ${{ env.PLAYWRIGHT_IMAGE }}
+        docker pull ${{ env.PLAYWRIGHT_IMAGE }}
 
     - name: Create Docker network
       run: docker network create test-network
