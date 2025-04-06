@@ -7,8 +7,8 @@ on:
       - 'task-manager/**'
   pull_request:
     branches: [ main ]
-    # paths:
-    #   - 'task-manager/**'
+    paths:
+      - 'task-manager/**'
   # Manual trigger
   workflow_dispatch:
 
@@ -101,10 +101,18 @@ jobs:
 
     - name: Wait for playground to be ready
       run: |
+        timeout=20
+        counter=0
         until curl -s http://localhost:3000 > /dev/null; do
-          echo "Waiting for playground to be ready..."
+          echo "Waiting for playground to be ready... ($counter seconds elapsed)"
           sleep 2
+          counter=$((counter + 2))
+          if [ $counter -ge $timeout ]; then
+            echo "Error: Playground failed to start within $timeout seconds"
+            exit 1
+          fi
         done
+        echo "Playground is ready!"
 
     - name: Run auth session tests
       run: |
