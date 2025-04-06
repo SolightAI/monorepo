@@ -434,10 +434,11 @@ async def test_generate_auth_session_farmzz(task_id: str) -> None:
     assert "cookies" in session
     assert "localStorage" in session
 
-    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("jwt") is not None
+
+    # Verify cookies contains the expected auth data
     assert "XSRF-TOKEN" in [cookie["name"] for cookie in session["cookies"]]
     assert [cookie for cookie in session["cookies"] if cookie["name"] == "XSRF-TOKEN"][0]["value"] is not None
-    assert session["localStorage"].get("jwt") is not None
 
 
 @pytest.mark.asyncio
@@ -470,9 +471,81 @@ async def test_generate_auth_session_tecla_academy(task_id: str) -> None:
     assert "cookies" in session
     assert "localStorage" in session
 
-    # Verify localStorage contains the expected auth data
+    # Verify cookies contains the expected auth data
     assert "AUTH_SESSION_ID" in [cookie["name"] for cookie in session["cookies"]]
     assert [cookie for cookie in session["cookies"] if cookie["name"] == "AUTH_SESSION_ID"][0]["value"] is not None
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_sesame_hr(task_id: str) -> None:
+    """Test authentication with valid username/password on the simple login page."""
+
+    url = "https://app.sesametime.com/"
+
+    username = os.getenv("SESAME_HR_USERNAME")
+    if not username:
+        raise ValueError("SESAME_HR_USERNAME is not set")
+
+    password = os.getenv("SESAME_HR_PASSWORD")
+    if not password:
+        raise ValueError("SESAME_HR_PASSWORD is not set")
+
+    session = await generate_auth_session(
+        task_id=task_id,
+        url=url,
+        secrets={
+            USERNAME_PASSWORD: {
+                "username": username,
+                "password": password
+            }
+        },
+        reuse_session=False
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    assert session["localStorage"].get("sesame-auth") is not None
+
+    # Verify cookies contains the expected auth data
+    assert "USID" in [cookie["name"] for cookie in session["cookies"]]
+    assert [cookie for cookie in session["cookies"] if cookie["name"] == "USID"][0]["value"] is not None
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_meandwho(task_id: str) -> None:
+    """Test authentication with valid username/password on the simple login page."""
+
+    url = "https://me.andwho.ai/"
+
+    username = os.getenv("MEANDWHO_USERNAME")
+    if not username:
+        raise ValueError("MEANDWHO_USERNAME is not set")
+
+    password = os.getenv("MEANDWHO_PASSWORD")
+    if not password:
+        raise ValueError("MEANDWHO_PASSWORD is not set")
+
+    session = await generate_auth_session(
+        task_id=task_id,
+        url=url,
+        secrets={
+            USERNAME_PASSWORD: {
+                "username": username,
+                "password": password
+            }
+        },
+        reuse_session=False
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify cookies contains the expected auth data
+    assert "__client" in [cookie["name"] for cookie in session["cookies"]]
+    assert [cookie for cookie in session["cookies"] if cookie["name"] == "__client"][0]["value"] is not None
 
 
 @pytest.mark.asyncio
