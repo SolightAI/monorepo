@@ -1,7 +1,8 @@
 import os
 import json
-from tempfile import NamedTemporaryFile
+import base64
 
+from tempfile import NamedTemporaryFile
 from logging import getLogger
 from pydantic import SecretStr
 from langchain_openai import AzureChatOpenAI
@@ -11,11 +12,13 @@ from typing import Optional
 from utils.session_manager import get_cached_session, cache_session, update_session_timestamp
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_gif_to_s3
+from langchain_core.messages import HumanMessage
 
 
 OAUTH = "oauth_credential"
 USERNAME_PASSWORD = "username_password"
 
+ACTION_CHECK_LOGIN = "Check if the user is logged in based on the vision"
 
 PROMPT = """
 You are an AI assistant acting as a test automation engineer. Your task is to login to the application.
@@ -29,13 +32,14 @@ Always start by determining which authentication method to use based on the type
 In your case you have access to the following credentials:
 {{login_methods}}
 
-If the provided credentials are invalid, you should raise an error message that must include "[AN ERROR OCCURED]".
-In case of invalid credentials, you will probably see an error message on screen.
-However, if the credentials are valid, you will not see any message on screen confirming the login. It's up to you to detect if the login was successful.
-If you're not sure if the login was successful, you can use the action "Check if the user is logged in based on the vision" to check if the user is logged in.
+What to do next:
+- If the credentials are valid, you will not see any message on screen confirming the login. It's up to you to detect if the login was successful.
+- If the provided credentials are invalid, you will see an error message on screen, and you must raise an error message that must include "[AN ERROR OCCURED]".
+- Before raising any error, you must use the action "{ACTION_CHECK_LOGIN}".
 
-Note that some '{USERNAME_PASSWORD}' credentials might be done in two steps where the you would first need to past the username, then click on a button to continue to the password input.
-""".strip().format(USERNAME_PASSWORD=USERNAME_PASSWORD, OAUTH=OAUTH)
+Informations to take into account:
+- Some '{USERNAME_PASSWORD}' credentials might be done in three steps where the you would first need to past the username, then click on a button (i.e 'Next'), and then past the password.
+""".strip().format(USERNAME_PASSWORD=USERNAME_PASSWORD, OAUTH=OAUTH, ACTION_CHECK_LOGIN=ACTION_CHECK_LOGIN)
 
 
 CHECK_LOGIN_PROMPT = """
@@ -77,16 +81,13 @@ controller = Controller()
 logger = getLogger(__name__)
 
 
-@controller.action("Check if the user is logged in based on the vision")
+@controller.action(ACTION_CHECK_LOGIN)
 async def is_logged_based_on_vision(browser: Browser) -> str:
+
+    logger.info("Checking if the user is logged in based on the vision")
+
     page = await browser.get_current_page()
     screenshot = await page.screenshot()
-
-    with open("/tmp/screenshot.png", "wb") as f:
-        f.write(screenshot)
-
-    import base64
-    from langchain_core.messages import HumanMessage
 
     image_data = base64.b64encode(screenshot).decode('utf-8')
 
@@ -101,6 +102,8 @@ async def is_logged_based_on_vision(browser: Browser) -> str:
     )
 
     response = CLIENT.invoke([message]).content
+
+    logger.info("The LLM response is: %s", response)
 
     if "[NO]" in response:
         return "The user is NOT logged in."
