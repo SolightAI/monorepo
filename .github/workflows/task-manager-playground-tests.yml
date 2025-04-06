@@ -96,11 +96,12 @@ jobs:
         docker run -d \
           --name playground \
           --network test-network \
+          -p 3000:3000 \
           playground:test
 
     - name: Wait for playground to be ready
       run: |
-        until curl -s http://playground:3000 > /dev/null; do
+        until curl -s http://localhost:3000 > /dev/null; do
           echo "Waiting for playground to be ready..."
           sleep 2
         done
