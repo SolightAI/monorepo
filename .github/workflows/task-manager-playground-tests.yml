@@ -41,8 +41,7 @@ jobs:
       DOCKER_REGISTRY: docker.io
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      DOCKER_ORG: laneoai
-      PLAYWRIGHT_IMAGE: ${{ env.DOCKER_ORG }}/task-manager:with-playwright
+      PLAYWRIGHT_IMAGE: laneoai/task-manager:with-playwright
 
     steps:
     - name: Checkout code
