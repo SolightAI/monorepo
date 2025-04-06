@@ -57,15 +57,6 @@ jobs:
           exit 1
         }
 
-    - name: Check if Playwright image exists
-      id: check-image
-      run: |
-        if docker manifest inspect ${{ env.PLAYWRIGHT_IMAGE }} > /dev/null 2>&1; then
-          echo "exists=true" >> $GITHUB_OUTPUT
-        else
-          echo "exists=false" >> $GITHUB_OUTPUT
-        fi
-
     - name: Cache Playwright Browsers
       uses: actions/cache@v3
       id: playwright-cache
@@ -85,6 +76,23 @@ jobs:
         tags: task-manager:test
         build-args: |
           SKIP_PLAYWRIGHT_INSTALL=true
+
+    - name: Get image hash and set Playwright image tag
+      id: image-hash
+      run: |
+        # Get the image hash
+        IMAGE_HASH=$(docker inspect task-manager:test --format='{{.Id}}' | cut -d':' -f2 | cut -c1-12)
+        # Set the Playwright image name with the hash
+        echo "PLAYWRIGHT_IMAGE=laneoai/task-manager:with-playwright-$IMAGE_HASH" >> $GITHUB_ENV
+
+    - name: Check if Playwright image exists
+      id: check-image
+      run: |
+        if docker manifest inspect ${{ env.PLAYWRIGHT_IMAGE }} > /dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
 
     - name: Build playground Docker image
       uses: docker/build-push-action@v5
