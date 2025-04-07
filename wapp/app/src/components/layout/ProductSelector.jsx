@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Plus, Sparkles, Edit, Trash, X, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProduct } from '@/context/ProductContext';
-import { useOrganization } from '@/context/OrganizationContext';
+import { useOrganization, ORGANIZATION_CHANGED_EVENT } from '@/context/OrganizationContext';
 import { isValidUrl } from '@/utils/urlUtils';
 import axios from 'axios';
 
@@ -43,6 +43,27 @@ const ProductSelector = ({ isMobile = false }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Listen for organization changes
+  useEffect(() => {
+    const handleOrganizationChange = () => {
+      // Close dropdown when organization changes
+      setIsOpen(false);
+      
+      // Also close modal if it's open
+      if (isModalOpen) {
+        handleModalClose();
+      }
+      
+      console.log("Organization changed - ProductSelector UI updated");
+    };
+    
+    window.addEventListener(ORGANIZATION_CHANGED_EVENT, handleOrganizationChange);
+    
+    return () => {
+      window.removeEventListener(ORGANIZATION_CHANGED_EVENT, handleOrganizationChange);
+    };
+  }, [isModalOpen]);
 
   // Update products when organization changes
   useEffect(() => {
