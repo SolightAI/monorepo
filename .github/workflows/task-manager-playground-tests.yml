@@ -28,7 +28,7 @@ jobs:
     env:
       AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
       AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
-      PLAYGROUND_URL: "http://playground:3001" # use container endpoint
+      PLAYGROUND_URL: "http://playground:3000" # use container endpoint
       PYTHONPATH: ${{ github.workspace }}/task-manager
       TEST_MODE: "false"  # we want to upload the results to S3
       FARMZZ_PASSWORD: ${{ secrets.FARMZZ_PASSWORD }}
@@ -39,18 +39,10 @@ jobs:
       AWS_ENDPOINT_URL: https://minio-n0ooc44wsgk0kkkwoksw48ck.34.155.147.62.sslip.io
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      # Use the current user's UID and GID to avoid permission issues
-      HOST_UID: $(id -u)
-      HOST_GID: $(id -g)
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-
-    - name: Setup environment variables
-      run: |
-        echo "HOST_UID=$(id -u)" >> $GITHUB_ENV
-        echo "HOST_GID=$(id -g)" >> $GITHUB_ENV
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -142,7 +134,6 @@ jobs:
           -e AWS_SECRET_ACCESS_KEY \
           -v ${{ github.workspace }}/task-manager:/app \
           -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
-          --user ${{ env.HOST_UID }}:${{ env.HOST_GID }} \
           task-manager:with-playwright \
           bash -c "cd /app && python -m pytest -vvs"
 
