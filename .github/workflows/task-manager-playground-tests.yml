@@ -133,26 +133,10 @@ jobs:
         docker run -d \
           --name $CONTAINER_NAME \
           --network ${{ env.NETWORK_NAME }} \
-          -p 3001:3000 \
           ${{ env.PLAYGROUND_IMAGE }}
           
         # Update environment variable to point to the new container name
         echo "PLAYGROUND_URL=http://$CONTAINER_NAME:3000" >> $GITHUB_ENV
-
-    - name: Wait for playground to be ready
-      run: |
-        timeout=20
-        counter=0
-        until curl -s http://localhost:3001 > /dev/null; do
-          echo "Waiting for playground to be ready... ($counter seconds elapsed)"
-          sleep 2
-          counter=$((counter + 2))
-          if [ $counter -ge $timeout ]; then
-            echo "Error: Playground failed to start within $timeout seconds"
-            exit 1
-          fi
-        done
-        echo "Playground is ready!"
 
     - name: Run auth session tests
       run: |
