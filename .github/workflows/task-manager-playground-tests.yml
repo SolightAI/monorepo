@@ -159,7 +159,14 @@ jobs:
           --user $(id -u):$(id -g) \
           -e PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright \
           ${{ env.PLAYWRIGHT_IMAGE }} \
-          bash -c "cd /app && python -m pytest -vvs"
+          bash -c "cd /app && python -m pytest -vvs -W ignore::RuntimeWarning:pydantic.main"
+
+# ignore::RuntimeWarning:pydantic.main
+# /usr/local/lib/python3.11/site-packages/pydantic/main.py:901: RuntimeWarning: coroutine 'Agent._verify_llm_connection' was never awaited
+#     _object_setattr(self, name, value)
+#   Enable tracemalloc to get traceback where the object was allocated.
+#   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+# -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 
     - name: Cleanup
       if: always()
