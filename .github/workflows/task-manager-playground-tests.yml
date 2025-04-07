@@ -7,8 +7,8 @@ on:
       - 'task-manager/**'
   pull_request:
     branches: [ main ]
-    # paths:
-    #   - 'task-manager/**'
+    paths:
+      - 'task-manager/**'
   # Manual trigger
   workflow_dispatch:
 
@@ -161,7 +161,7 @@ jobs:
           ${{ env.PLAYWRIGHT_IMAGE }} \
           bash -c "cd /app && python -m pytest -vvs -W ignore::RuntimeWarning:pydantic.main"
 
-# ignore::RuntimeWarning:pydantic.main
+#ignore::RuntimeWarning:pydantic.main
 # /usr/local/lib/python3.11/site-packages/pydantic/main.py:901: RuntimeWarning: coroutine 'Agent._verify_llm_connection' was never awaited
 #     _object_setattr(self, name, value)
 #   Enable tracemalloc to get traceback where the object was allocated.
