@@ -7,12 +7,11 @@ on:
       - 'task-manager/**'
   pull_request:
     branches: [ main ]
-    # paths:
-    #   - 'task-manager/**'
+    paths:
+      - 'task-manager/**'
   # Manual trigger
   workflow_dispatch:
 
-# Cancel in-progress runs on the same branch
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -42,10 +41,6 @@ jobs:
       AWS_ENDPOINT_URL: https://minio-n0ooc44wsgk0kkkwoksw48ck.34.155.147.62.sslip.io
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      # Define local image tags
-      TASK_MANAGER_IMAGE: task-manager:test
-      PLAYGROUND_IMAGE: playground:test
-      PLAYWRIGHT_IMAGE: task-manager:with-playwright
 
     steps:
     - name: Checkout code
@@ -54,6 +49,15 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
+    - name: Cache Playwright Browsers
+      uses: actions/cache@v3
+      id: playwright-cache
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('task-manager/Dockerfile') }}
+        restore-keys: |
+          playwright-${{ runner.os }}-
+
     - name: Build test Docker image
       uses: docker/build-push-action@v5
       with:
@@ -61,7 +65,7 @@ jobs:
         file: ./task-manager/Dockerfile
         push: false
         load: true
-        tags: ${{ env.TASK_MANAGER_IMAGE }}
+        tags: task-manager:test
         build-args: |
           SKIP_PLAYWRIGHT_INSTALL=true
 
@@ -72,33 +76,18 @@ jobs:
         file: ./task-manager/tests/playground/Dockerfile
         push: false
         load: true
-        tags: ${{ env.PLAYGROUND_IMAGE }}
+        tags: playground:test
 
-    - name: Setup Playwright if needed
+    - name: Install Playwright in Docker
       run: |
-        # Define persistent volume for Playwright
-        PLAYWRIGHT_VOLUME="/var/playwright-data"
-        
-        # Check if Playwright is already installed in the persistent volume
-        if [ -d "$PLAYWRIGHT_VOLUME/ms-playwright" ] && [ "$(ls -A $PLAYWRIGHT_VOLUME/ms-playwright 2>/dev/null)" ]; then
-          echo "Playwright is already installed in persistent volume"
-          PLAYWRIGHT_INSTALLED=true
-        else
-          echo "Playwright not found in persistent volume, will install it"
-          # Make sure volume directory exists
-          sudo mkdir -p $PLAYWRIGHT_VOLUME
-          sudo chmod 777 $PLAYWRIGHT_VOLUME
-          PLAYWRIGHT_INSTALLED=false
-        fi
-
-        # Create a container to install Playwright if needed
+        # Create a container to install Playwright and save its state
         docker run --name playwright-setup \
-          -v $PLAYWRIGHT_VOLUME:/root/.cache/ms-playwright \
-          ${{ env.TASK_MANAGER_IMAGE }} \
-          bash -c "cd /app && pip install playwright pytest-xdist && if [ ! $PLAYWRIGHT_INSTALLED ]; then playwright install --with-deps; fi"
+          -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+          task-manager:test \
+          bash -c "cd /app && pip install playwright && playwright install --with-deps"
 
         # Commit the container with installed Playwright to a new image
-        docker commit playwright-setup ${{ env.PLAYWRIGHT_IMAGE }}
+        docker commit playwright-setup task-manager:with-playwright
 
         # Remove the temporary container
         docker rm playwright-setup
@@ -112,8 +101,8 @@ jobs:
           --name playground \
           --network test-network \
           -p 3000:3000 \
-          ${{ env.PLAYGROUND_IMAGE }}
-          
+          playground:test
+
     - name: Wait for playground to be ready
       run: |
         timeout=20
@@ -146,9 +135,9 @@ jobs:
           -e AWS_ACCESS_KEY_ID \
           -e AWS_SECRET_ACCESS_KEY \
           -v ${{ github.workspace }}/task-manager:/app \
-          -v /var/playwright-data:/root/.cache/ms-playwright \
-          ${{ env.PLAYWRIGHT_IMAGE }} \
-          bash -c "cd /app && python -m pytest -vvs -n auto"
+          -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+          task-manager:with-playwright \
+          bash -c "cd /app && python -m pytest -vvs"
 
     - name: Cleanup
       if: always()
