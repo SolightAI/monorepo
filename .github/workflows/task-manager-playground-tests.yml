@@ -100,4 +100,4 @@ jobs:
           -v ${{ github.workspace }}/task-manager:/app \
           -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
           task-manager:with-playwright \
-          bash -c "cd /app && python -m pytest -vvs"
+          bash -c "cd /app && python -m pytest -vvs -n 4"
