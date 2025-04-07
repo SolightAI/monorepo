@@ -18,41 +18,6 @@ Low,Excessive vertical spacing in the hero section on mobile,"The hero section u
 Low,Fixed header overlay potentially obscuring page content,"The header uses a fixed-top position. On mobile, it obscures top content unless properly offset or padded. This hampers readability and user interaction.",https://www.predictiveindex.com/software/,predictiveindex.com,https://screenshot-pi.s3.fr-par.scw.cloud/nine.png,-,-,,,,,,,,,,,,,,,,,,
 Medium,Overly Large Hero Heading Font Size,"The main hero heading font size (50px) is too large, causing excessive text wrapping and potentially pushing other elements off-screen on mobile.",https://www.predictiveindex.com/software/,predictiveindex.com,https://screenshot-pi.s3.fr-par.scw.cloud/ten.png,-,-,,,,,,,,,,,,,,,,,,
 Medium,Table Layout Horizontal Overflow,"Table in “Get Even More with PI Inspire” section causes horizontal overflow, forcing horizontal scrolling.",https://www.predictiveindex.com/software/managing/,predictiveindex.com,https://screenshot-pi.s3.fr-par.scw.cloud/eleven.png,-,-,,,,,,,,,,,,,,,,,,
-Medium,Back button redirects inconsistently from Inspiration records,"When a user opens a record from the Inspiration section and clicks the Back button, the navigation behavior is inconsistent. In some cases, the user is correctly redirected back to the Inspiration page, while in other cases, they are redirected to the Gammas page.",https://gamma.app/#inspiration,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/eight.png,-,Ensure that the Back button consistently returns users to the Inspiration page after viewing a record. Check the routing logic and confirm that all records have the correct navigation behavior.,,,,,,,,,,,,,,,,,,
-Medium,"Templates, Themes, and Custom Fonts missing on mobile","On desktop, the homepage navigation panel includes options for Templates, Themes, and Custom Fonts to allow customization. However, these options are completely missing on mobile, with no menu or alternative access.",https://gamma.app/,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/six.png,-,"Implement a mobile-accessible menu or navigation panel to allow users to access Templates, Themes, and Custom Fonts.",,,,,,,,,,,,,,,,,,
-Medium,Search Icon and Placeholder Text Overlap in Search Bar,"On the Templates page, when clicking on the search bar, the search icon and the placeholder text overlap, making the text difficult to read and affecting the input experience.",https://gamma.app/templates,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/one.png,"Desktop - Mobile
-Chrome - Firefox - Edge - Safari","1. Adjust the positioning of the search icon and placeholder text to prevent overlap.
-
-2. Ensure proper padding and alignment within the search bar for different screen sizes.",,,,,,,,,,,,,,,,,,
-Low,Incorrect Validation Message for Non-Existing Account on Forgot Password Page,"When a user attempts to reset the password for a non-existing account, the system displays a generic error message:
-""We had a problem sending your reset password link. Please try again later.""
-Instead of informing the user that the email is not associated with any account, the message may mislead users into thinking there is a system issue rather than an invalid email entry.",https://gamma.app/forgot,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/two.png,"Desktop - Mobile
-Chrome - Firefox - Edge - Safari","1. Display a more informative validation message, such as:
-""This email is not associated with any account. Please check your email or sign up.""
-
-2. Ensure validation messages provide clear and actionable feedback to users.",,,,,,,,,,,,,,,,,,
-Low,Cursor Jumps to Start When Clicking Eye Icon in Password Field,"When a user clicks the eye icon to toggle password visibility in the Password field (both on the Login and Account Creation pages), the cursor unexpectedly moves to the beginning of the input field instead of retaining its current position. This disrupts the user experience, making it difficult to edit or review the password properly.",https://gamma.app/signin,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/three.png,-,"1. Ensure that toggling the eye icon does not alter the cursor position.
-
-2. Maintain the cursor's current placement when switching between masked and visible password states.",,,,,,,,,,,,,,,,,,
-High,"""New from Blank"" and ""Import"" dropdowns missing on mobile","In the ""Gammas"" section, the ""New from Blank"" and ""Import"" dropdowns allow users to create new projects or import existing ones on desktop. However, these options are missing on mobile with no alternative access method, preventing users from starting new projects or importing content.",https://gamma.app/,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/four.png,-,"Provide an alternative way to access these options on mobile, such as placing them in a collapsible menu or an accessible section.",,,,,,,,,,,,,,,,,,
-High,"""Publish/Present"" button, Theme button, and AI Icon missing on mobile","On desktop, the ""Publish"" and ""Present"" buttons appear in the top-right corner, allowing users to publish or present their work. These buttons contain dropdown options such as:
-
-1. Publish Dropdown:
-- Publish Site
-- Add Custom Domain
-- Publish Current Page
-- Preview Current Page
-
-2. Present Dropdown:
-- In this Tab
-- Full Screen
-- Presenter View
-- Share a Follow Link
-
-Additionally, the Theme Button, which allows users to change the appearance of their presentations, and the AI Icon (Edit All Cards with AI), which provides AI-powered editing features, are also missing on mobile. There is no alternative way to access these functions.",https://gamma.app/,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/five.png,-,"Implement a mobile-friendly version of the Publish/Present buttons, Theme button, and AI editing icon, either in a dropdown or a dedicated mobile menu.",,,,,,,,,,,,,,,,,,
-Low,Broken Image Icon Appears After Deleting All AI-Generated Images,"When all AI-generated images are deleted from the side panel in the AI Images section, the panel turns blank, but a broken image icon appears in the top-left corner instead of a proper placeholder or reset state.",https://gamma.app/#images,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/seven.png,-,"1. Implement a proper placeholder or message indicating no images are available.
-
-2. Ensure that after all images are deleted, the UI resets cleanly without referencing a missing image.",,,,,,,,,,,,,,,,,,
 High,API response is shown from sign up page,"User is shown the API response, when tries to sign-up using existing email",https://smith.ai/receptionists/almost-there?utm_source=top_banner&utm_medium=website&utm_campaign=happycallers,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/3.png,,,,,,,,,,,,,,,,,,,,
 Medium,20 characters requirement not enforced,"20 characters are required, but the system accepts 6–7 characters and still updates the opening hours",https://app.smith.ai/vr/va-business-info/,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/6.png,-,-,,,,,,,,,,,,,,,,,,
 Low,The show passoword option gets triggered when user clicks on the enter from the keyboard,"If user clicks enter from keyboard after entering email and password, instead of hit on the login button, the password visibility option gets triggered",https://app.smith.ai/log-in/,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/1.png,,,,,,,,,,,,,,,,,,,,
@@ -121,8 +86,7 @@ Medium,Validation message on Login page is cropped on mobile and not fully visib
 2. Allow scrolling or zooming to view the full message.
 
 3. Adjust the font size or container width to prevent cropping.",,,,,,,,,,,,,,,,
-Medium,Some External Article Links Display a 404 Error,"Certain external article links on the Press Releases page lead to a ""404 Not Found"" error, indicating that the content is either missing or has been removed from the source website.
-",https://smith.ai/press,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/eight.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"Users attempting to access these articles encounter dead links, which reduces credibility and disrupts the experience of accessing relevant press coverage.",Regularly audit external links and either update them with working URLs or remove broken ones to maintain a seamless user experience.,,,,,,,,,,,,,,,,
+Medium,Some External Article Links Display a 404 Error,"Certain external article links on the Press Releases page lead to a ""404 Not Found"" error, indicating that the content is either missing or has been removed from the source website.",https://smith.ai/press,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/eight.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"Users attempting to access these articles encounter dead links, which reduces credibility and disrupts the experience of accessing relevant press coverage.",Regularly audit external links and either update them with working URLs or remove broken ones to maintain a seamless user experience.,,,,,,,,,,,,,,,,
 High,Buy Button on Branding page leads to a page not found error,"On the Branding Page inside Settings, clicking the text Button leads to an error. 'Page Not Found'",https://app.squareup.com/dashboard/payment-links/settings/branding,squareup,https://screenshots-square.s3.fr-par.scw.cloud/1.png,"Desktop & Mobile, Chrome, Firefox, Edge, Safari",Investigate the handling between pages,,,,,,,,,,,,,,,,,,
 Medium,Large Businesses Page 404,"On the Home Page, clicking on the 'Large Businesses' link leads to a 404",https://squareup.com/us/en,squareup,https://screenshots-square.s3.fr-par.scw.cloud/2.png,"Desktop & Mobile, all major browsers",-,,,,,,,,,,,,,,,,,,
 Medium,Learn more Button redirect to the Home Page,On the Sign in Page when user the user Click on Learn More it does not show any content and redirects to the Home Page,https://app.squareup.com/login?lang_code=en-us,squareup,https://screenshots-square.s3.fr-par.scw.cloud/3.png,"Desktop & Mobile, all browsers","include the Content for ""Page"" For Learn More",,,,,,,,,,,,,,,,,,
