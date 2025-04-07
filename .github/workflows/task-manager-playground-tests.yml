@@ -39,6 +39,12 @@ jobs:
       AWS_ENDPOINT_URL: https://minio-n0ooc44wsgk0kkkwoksw48ck.34.155.147.62.sslip.io
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      # Create unique identifiers for this run
+      RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      NETWORK_NAME: test-network-${{ github.run_id }}-${{ github.run_attempt }}
+      TEST_IMAGE: task-manager-test-${{ github.run_id }}-${{ github.run_attempt }}
+      PLAYWRIGHT_IMAGE: task-manager-playwright-${{ github.run_id }}-${{ github.run_attempt }}
+      PLAYGROUND_IMAGE: playground-test-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
     - name: Checkout code
@@ -63,7 +69,7 @@ jobs:
         file: ./task-manager/Dockerfile
         push: false
         load: true
-        tags: task-manager:test
+        tags: ${{ env.TEST_IMAGE }}
         build-args: |
           SKIP_PLAYWRIGHT_INSTALL=true
 
@@ -74,7 +80,7 @@ jobs:
         file: ./task-manager/tests/playground/Dockerfile
         push: false
         load: true
-        tags: playground:test
+        tags: ${{ env.PLAYGROUND_IMAGE }}
 
     - name: Install Playwright in Docker
       run: |
@@ -91,14 +97,14 @@ jobs:
           # Just create the container with the existing cache
           docker run --name playwright-setup \
             -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
-            task-manager:test \
+            ${{ env.TEST_IMAGE }} \
             bash -c "cd /app && pip install playwright && ls -la /root/.cache/ms-playwright"
         else
           echo "Installing Playwright and browsers..."
           # Create a container to install Playwright and save its state
           docker run --name playwright-setup \
             -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
-            task-manager:test \
+            ${{ env.TEST_IMAGE }} \
             bash -c "cd /app && pip install playwright && PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright install --with-deps && ls -la /root/.cache/ms-playwright"
         fi
         
@@ -107,21 +113,31 @@ jobs:
         ls -la ~/.cache/ms-playwright
         
         # Commit the container with installed Playwright to a new image
-        docker commit playwright-setup task-manager:with-playwright
+        docker commit playwright-setup ${{ env.PLAYWRIGHT_IMAGE }}
         
         # Remove the temporary container
         docker rm playwright-setup
 
     - name: Create Docker network
-      run: docker network create test-network
+      run: |
+        # Create the network with unique name
+        echo "Creating network: ${{ env.NETWORK_NAME }}"
+        docker network create ${{ env.NETWORK_NAME }}
 
     - name: Run playground container
       run: |
+        # Use unique name based on run ID
+        CONTAINER_NAME="playground-${{ env.RUN_ID }}"
+        echo "Starting container: $CONTAINER_NAME"
+        
         docker run -d \
-          --name playground \
-          --network test-network \
+          --name $CONTAINER_NAME \
+          --network ${{ env.NETWORK_NAME }} \
           -p 3001:3000 \
-          playground:test
+          ${{ env.PLAYGROUND_IMAGE }}
+          
+        # Update environment variable to point to the new container name
+        echo "PLAYGROUND_URL=http://$CONTAINER_NAME:3000" >> $GITHUB_ENV
 
     - name: Wait for playground to be ready
       run: |
@@ -141,7 +157,7 @@ jobs:
     - name: Run auth session tests
       run: |
         docker run \
-          --network test-network \
+          --network ${{ env.NETWORK_NAME }} \
           -e AZURE_OPENAI_KEY \
           -e AZURE_OPENAI_ENDPOINT \
           -e PLAYGROUND_URL \
@@ -158,11 +174,21 @@ jobs:
           -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
           --user $(id -u):$(id -g) \
           -e PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright \
-          task-manager:with-playwright \
+          ${{ env.PLAYWRIGHT_IMAGE }} \
           bash -c "cd /app && python -m pytest -vvs"
 
     - name: Cleanup
       if: always()
       run: |
-        docker rm -f playground || true
-        docker network rm test-network || true
+        # Use variables for container and network names
+        CONTAINER_NAME="playground-${{ env.RUN_ID }}"
+        echo "Cleaning up container: $CONTAINER_NAME"
+        docker rm -f $CONTAINER_NAME || true
+        
+        echo "Cleaning up network: ${{ env.NETWORK_NAME }}"
+        docker network rm ${{ env.NETWORK_NAME }} || true
+        
+        # Clean up Docker images
+        echo "Cleaning up Docker images"
+        docker rmi ${{ env.TEST_IMAGE }} ${{ env.PLAYWRIGHT_IMAGE }} ${{ env.PLAYGROUND_IMAGE }} || true
+      
