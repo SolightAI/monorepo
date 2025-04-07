@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+Pillow==11.1.0
 requests>=2.32.3
 pydantic==2.10.6
 pydantic_core==2.27.2
