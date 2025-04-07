@@ -22,10 +22,8 @@ jobs:
         working-directory: ./task-manager
 
     env:
-      # Azure OpenAI settings (required for the auth agent)
       AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
       AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
-      # Playground settings
       PLAYGROUND_URL: "http://playground:3000" # use container endpoint
       PYTHONPATH: ${{ github.workspace }}/task-manager
       TEST_MODE: "false"  # we want to upload the results to S3
@@ -37,7 +35,6 @@ jobs:
       AWS_ENDPOINT_URL: https://minio-n0ooc44wsgk0kkkwoksw48ck.34.155.147.62.sslip.io
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      # Define local image tags
       TASK_MANAGER_IMAGE: task-manager:test
       PLAYGROUND_IMAGE: playground:test
       PLAYWRIGHT_IMAGE: task-manager:with-playwright
