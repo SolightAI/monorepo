@@ -6,6 +6,9 @@ import { useAuth } from './AuthContext';
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL;
 
+// Custom event for organization changes
+export const ORGANIZATION_CHANGED_EVENT = 'organizationChanged';
+
 const OrganizationContext = createContext();
 
 export const useOrganization = () => useContext(OrganizationContext);
@@ -99,9 +102,32 @@ export const OrganizationProvider = ({ children }) => {
 
   // Function to select an organization
   const selectOrganization = useCallback((organization) => {
+    // Don't do anything if the organization is the same
+    if (selectedOrganization && selectedOrganization.id === organization.id) {
+      return;
+    }
+    
+    // Store the previous organization for event
+    const previousOrganization = selectedOrganization;
+    
+    // Update state and localStorage
     setSelectedOrganization(organization);
     localStorage.setItem('selectedOrganizationId', organization.id);
-  }, []);
+    
+    // Remove product selection when organization changes
+    localStorage.removeItem('selectedProductId');
+    
+    // Dispatch custom event for organization change
+    const event = new CustomEvent(ORGANIZATION_CHANGED_EVENT, { 
+      detail: { 
+        organization, 
+        previousOrganization 
+      } 
+    });
+    window.dispatchEvent(event);
+    
+    console.log(`Organization changed to: ${organization.name}`);
+  }, [selectedOrganization]);
 
   // Function to create a new organization
   const createOrganization = useCallback(async (organizationData) => {
