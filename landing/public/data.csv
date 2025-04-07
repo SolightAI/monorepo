@@ -18,53 +18,12 @@ Low,Excessive vertical spacing in the hero section on mobile,"The hero section u
 Low,Fixed header overlay potentially obscuring page content,"The header uses a fixed-top position. On mobile, it obscures top content unless properly offset or padded. This hampers readability and user interaction.",https://www.predictiveindex.com/software/,predictiveindex.com,https://screenshot-pi.s3.fr-par.scw.cloud/nine.png,-,-,,,,,,,,,,,,,,,,,,
 Medium,Overly Large Hero Heading Font Size,"The main hero heading font size (50px) is too large, causing excessive text wrapping and potentially pushing other elements off-screen on mobile.",https://www.predictiveindex.com/software/,predictiveindex.com,https://screenshot-pi.s3.fr-par.scw.cloud/ten.png,-,-,,,,,,,,,,,,,,,,,,
 Medium,Table Layout Horizontal Overflow,"Table in “Get Even More with PI Inspire” section causes horizontal overflow, forcing horizontal scrolling.",https://www.predictiveindex.com/software/managing/,predictiveindex.com,https://screenshot-pi.s3.fr-par.scw.cloud/eleven.png,-,-,,,,,,,,,,,,,,,,,,
-Medium,Back button redirects inconsistently from Inspiration records,"When a user opens a record from the Inspiration section and clicks the Back button, the navigation behavior is inconsistent. In some cases, the user is correctly redirected back to the Inspiration page, while in other cases, they are redirected to the Gammas page.",https://gamma.app/#inspiration,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/eight.png,-,Ensure that the Back button consistently returns users to the Inspiration page after viewing a record. Check the routing logic and confirm that all records have the correct navigation behavior.,,,,,,,,,,,,,,,,,,
-Medium,"Templates, Themes, and Custom Fonts missing on mobile","On desktop, the homepage navigation panel includes options for Templates, Themes, and Custom Fonts to allow customization. However, these options are completely missing on mobile, with no menu or alternative access.",https://gamma.app/,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/six.png,-,"Implement a mobile-accessible menu or navigation panel to allow users to access Templates, Themes, and Custom Fonts.",,,,,,,,,,,,,,,,,,
-Medium,Search Icon and Placeholder Text Overlap in Search Bar,"On the Templates page, when clicking on the search bar, the search icon and the placeholder text overlap, making the text difficult to read and affecting the input experience.",https://gamma.app/templates,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/one.png,"Desktop - Mobile
-Chrome - Firefox - Edge - Safari","1. Adjust the positioning of the search icon and placeholder text to prevent overlap.
-
-2. Ensure proper padding and alignment within the search bar for different screen sizes.",,,,,,,,,,,,,,,,,,
-Low,Incorrect Validation Message for Non-Existing Account on Forgot Password Page,"When a user attempts to reset the password for a non-existing account, the system displays a generic error message:
-""We had a problem sending your reset password link. Please try again later.""
-Instead of informing the user that the email is not associated with any account, the message may mislead users into thinking there is a system issue rather than an invalid email entry.",https://gamma.app/forgot,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/two.png,"Desktop - Mobile
-Chrome - Firefox - Edge - Safari","1. Display a more informative validation message, such as:
-""This email is not associated with any account. Please check your email or sign up.""
-
-2. Ensure validation messages provide clear and actionable feedback to users.",,,,,,,,,,,,,,,,,,
-Low,Cursor Jumps to Start When Clicking Eye Icon in Password Field,"When a user clicks the eye icon to toggle password visibility in the Password field (both on the Login and Account Creation pages), the cursor unexpectedly moves to the beginning of the input field instead of retaining its current position. This disrupts the user experience, making it difficult to edit or review the password properly.",https://gamma.app/signin,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/three.png,-,"1. Ensure that toggling the eye icon does not alter the cursor position.
-
-2. Maintain the cursor's current placement when switching between masked and visible password states.",,,,,,,,,,,,,,,,,,
-High,"""New from Blank"" and ""Import"" dropdowns missing on mobile","In the ""Gammas"" section, the ""New from Blank"" and ""Import"" dropdowns allow users to create new projects or import existing ones on desktop. However, these options are missing on mobile with no alternative access method, preventing users from starting new projects or importing content.",https://gamma.app/,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/four.png,-,"Provide an alternative way to access these options on mobile, such as placing them in a collapsible menu or an accessible section.",,,,,,,,,,,,,,,,,,
-High,"""Publish/Present"" button, Theme button, and AI Icon missing on mobile","On desktop, the ""Publish"" and ""Present"" buttons appear in the top-right corner, allowing users to publish or present their work. These buttons contain dropdown options such as:
-
-1. Publish Dropdown:
-- Publish Site
-- Add Custom Domain
-- Publish Current Page
-- Preview Current Page
-
-2. Present Dropdown:
-- In this Tab
-- Full Screen
-- Presenter View
-- Share a Follow Link
-
-Additionally, the Theme Button, which allows users to change the appearance of their presentations, and the AI Icon (Edit All Cards with AI), which provides AI-powered editing features, are also missing on mobile. There is no alternative way to access these functions.",https://gamma.app/,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/five.png,-,"Implement a mobile-friendly version of the Publish/Present buttons, Theme button, and AI editing icon, either in a dropdown or a dedicated mobile menu.",,,,,,,,,,,,,,,,,,
-Low,Broken Image Icon Appears After Deleting All AI-Generated Images,"When all AI-generated images are deleted from the side panel in the AI Images section, the panel turns blank, but a broken image icon appears in the top-left corner instead of a proper placeholder or reset state.",https://gamma.app/#images,gamma.app,https://screenshots-gamma.s3.fr-par.scw.cloud/seven.png,-,"1. Implement a proper placeholder or message indicating no images are available.
-
-2. Ensure that after all images are deleted, the UI resets cleanly without referencing a missing image.",,,,,,,,,,,,,,,,,,
 High,API response is shown from sign up page,"User is shown the API response, when tries to sign-up using existing email",https://smith.ai/receptionists/almost-there?utm_source=top_banner&utm_medium=website&utm_campaign=happycallers,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/3.png,,,,,,,,,,,,,,,,,,,,
 Medium,20 characters requirement not enforced,"20 characters are required, but the system accepts 6–7 characters and still updates the opening hours",https://app.smith.ai/vr/va-business-info/,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/6.png,-,-,,,,,,,,,,,,,,,,,,
 Low,The show passoword option gets triggered when user clicks on the enter from the keyboard,"If user clicks enter from keyboard after entering email and password, instead of hit on the login button, the password visibility option gets triggered",https://app.smith.ai/log-in/,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/1.png,,,,,,,,,,,,,,,,,,,,
 Medium,The 'Name' field in team directory does not have a validation process,"The system accepts numeric and random text inputs, causing data inconsistency",https://app.smith.ai/vr/call-handling/,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/2.png,,,,,,,,,,,,,,,,,,,,
 Low,The 'Friendly Name' field in direct transfers does not have a validation process,"The system accepts numeric and random text inputs, causing data inconsistency",https://app.smith.ai/vr/call-handling/,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/4.png,,,,,,,,,,,,,,,,,,,,
-Low,Inconsistent Font Size Between Bullet Point Headings and Numbering,"On the following pages:
-
-1. Terms of Service (https://smith.ai/receptionists/terms )
-2. Terms of Service (https://smith.ai/privacy)
-3. Privacy Policy ( https://smith.ai/privacy )
-
-The content is displayed in bullet points, where each bullet point has a heading. The font size of the headings is 32px, while the numbering preceding the headings is 18px. This results in a visual inconsistency where the numbering appears disproportionately small compared to the heading text.",https://smith.ai/receptionists/terms,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/one.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. The inconsistent font sizes reduce the readability and aesthetic uniformity of the pages.
+Low,Inconsistent Font Size Between Bullet Point Headings and Numbering,"The content is displayed in bullet points, where each bullet point has a heading. The font size of the headings is 32px, while the numbering preceding the headings is 18px. This results in a visual inconsistency where the numbering appears disproportionately small compared to the heading text.",https://smith.ai/receptionists/terms,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/one.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. The inconsistent font sizes reduce the readability and aesthetic uniformity of the pages.
 
 2. The numbering appears misaligned and less noticeable compared to the headings, which may affect the clarity of structured content.
 
@@ -98,7 +57,7 @@ Medium,"Low Contrast on ""Return to Login"" Button Makes Text Hard to Read","On 
 3. Creates an inconsistent user experience compared to other buttons on the site.","1. Increase contrast by changing either the font color or button background color to ensure readability.
 
 2. Follow WCAG (Web Content Accessibility Guidelines) by maintaining a minimum 4.5:1 contrast ratio for text against its background.",,,,,,,,,,,,,,,,
-High,"""Learn More"" button above the footer on Industry & Company sections is non-functional",3,https://smith.ai/industries/legal-law-firms-answering-service,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/seven.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. User Confusion – Clicking the button does not lead anywhere, leading to a poor user experience.
+High,"""Learn More"" button above the footer on Industry & Company sections is non-functional",The ‘Learn More’ button does not direct to anything.,https://smith.ai/industries/legal-law-firms-answering-service,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/seven.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. User Confusion – Clicking the button does not lead anywhere, leading to a poor user experience.
 
 2. Navigation Issue – If this button is meant to provide additional information, its non-functionality prevents users from accessing that content.
 
@@ -107,15 +66,7 @@ High,"""Learn More"" button above the footer on Industry & Company sections is n
 2. If no additional content exists, consider removing the button to avoid confusion.
 
 3. Verify that JavaScript or CSS issues are not preventing the button from functioning.",,,,,,,,,,,,,,,,
-High,Invalid Email/Mobile Input Displays Raw API Response Instead of UI Error Message on the following pages,"On the Smith.ai Sign-up Page, when a user enters invalid data in both the Email Address and Mobile Number fields and clicks the ""Get Started Now"" button, they are redirected to a blank page displaying a raw API response in JSON format instead of a proper error message.
-
-Error Message Shown:
-{ 
-""contact_email"": [""Enter a valid email address.""], 
-""contact_phone"": [""Please enter a valid phone #""], 
-""__all__"": [""Either email or contact_email is required""] 
-} 
-Additionally, there is a ""Pretty-print"" checkbox above this message, which appears to be a debug feature meant for developers.",https://smith.ai/receptionists/almost-there,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/five.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. Poor User Experience: Regular users will not understand JSON error messages.
+High,Invalid Email/Mobile Input Displays Raw API Response Instead of UI Error Message on the following pages,"When a user enters invalid data in both the Email Address and Mobile Number fields and clicks the ""Get Started Now"" button, they are redirected to a blank page displaying a raw API response in JSON format instead of a proper error message.",https://smith.ai/receptionists/almost-there,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/five.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. Poor User Experience: Regular users will not understand JSON error messages.
 
 2. Unprofessional Display: Exposing internal API responses on the front end makes the system look unpolished.
 
@@ -135,31 +86,7 @@ Medium,Validation message on Login page is cropped on mobile and not fully visib
 2. Allow scrolling or zooming to view the full message.
 
 3. Adjust the font size or container width to prevent cropping.",,,,,,,,,,,,,,,,
-Medium,Some External Article Links Display a 404 Error,"Certain external article links on the Press Releases page lead to a ""404 Not Found"" error, indicating that the content is either missing or has been removed from the source website.
-
-Examples:
-https://tracxn.com/d/emerging-startups/top-chatbots-startups-2021
-https://www.roionline.com/podcast/maddy-martin-on-using-digital-marketing-to-thrive-in-business-the-roi-online-podcast-ep.-90
-https://www.makethemfamous.fm/episode/how-to-create-value-with-your-partners-for-both-marketing-and-partnerships-kpis-w-maddy-vp-of-marketing-at-smith-ai",https://smith.ai/press,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/eight.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"Users attempting to access these articles encounter dead links, which reduces credibility and disrupts the experience of accessing relevant press coverage.",Regularly audit external links and either update them with working URLs or remove broken ones to maintain a seamless user experience.,,,,,,,,,,,,,,,,
-Medium,"Users can restart the signup process for the same email, sometimes leading to a blank error page","After completing the initial signup on Smith.ai, users reach the ""Wonderful! Let’s get you started!"" page, which provides setup options. However, they can manually navigate back to the Signup page, enter the same email, and restart the signup process.
-
-This leads to two issues:
-
-1. The system allows users to restart the signup process for an already registered email instead of detecting and preventing duplicate signups.
-
-2. Sometimes, instead of redirecting to the correct setup page, users are taken to a blank page displaying only this JSON error message along with a Pretty-print checkbox:
-{""contact_email"": [""You have already signed up""], ""__all__"": [""Either email or contact_email is required""]}
-
-This behavior creates confusion and disrupts the signup flow.",https://smith.ai/receptionists/almost-there,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/nine.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"1. User Confusion – Users may not realize they have already signed up and might attempt the process multiple times.
-
-2. Poor User Experience – Seeing a JSON error message on a blank page is not user-friendly.
-
-3. Data Inconsistencies – Allowing repeated submissions could lead to backend conflicts.","1. Prevent duplicate signup attempts by detecting if an email has already been used.
-
-2. Redirect users to the appropriate setup page instead of allowing them to restart the process.
-
-3. Replace the raw JSON error message with a user-friendly alert, such as:
-""You have already signed up. Please continue your setup or log in.""",,,,,,,,,,,,,,,,
+Medium,Some External Article Links Display a 404 Error,"Certain external article links on the Press Releases page lead to a ""404 Not Found"" error, indicating that the content is either missing or has been removed from the source website.",https://smith.ai/press,smith.ai,https://screenshots-smithai.s3.fr-par.scw.cloud/eight.png,Desktop - Mobile,Chrome - Firefox - Edge - Safari,"Users attempting to access these articles encounter dead links, which reduces credibility and disrupts the experience of accessing relevant press coverage.",Regularly audit external links and either update them with working URLs or remove broken ones to maintain a seamless user experience.,,,,,,,,,,,,,,,,
 High,Buy Button on Branding page leads to a page not found error,"On the Branding Page inside Settings, clicking the text Button leads to an error. 'Page Not Found'",https://app.squareup.com/dashboard/payment-links/settings/branding,squareup,https://screenshots-square.s3.fr-par.scw.cloud/1.png,"Desktop & Mobile, Chrome, Firefox, Edge, Safari",Investigate the handling between pages,,,,,,,,,,,,,,,,,,
 Medium,Large Businesses Page 404,"On the Home Page, clicking on the 'Large Businesses' link leads to a 404",https://squareup.com/us/en,squareup,https://screenshots-square.s3.fr-par.scw.cloud/2.png,"Desktop & Mobile, all major browsers",-,,,,,,,,,,,,,,,,,,
 Medium,Learn more Button redirect to the Home Page,On the Sign in Page when user the user Click on Learn More it does not show any content and redirects to the Home Page,https://app.squareup.com/login?lang_code=en-us,squareup,https://screenshots-square.s3.fr-par.scw.cloud/3.png,"Desktop & Mobile, all browsers","include the Content for ""Page"" For Learn More",,,,,,,,,,,,,,,,,,
@@ -190,3 +117,10 @@ Medium,URLs in Privacy Policy page are not clickable,The Privacy Policy page con
 Medium,Footer content misaligned with spacing issues on mobile,"The footer content is not properly aligned and has uneven spacing on mobile screens, affecting readability and visual balance.",https://www.theodo.co.uk/,theodo,https://screenshots-theodo.s3.fr-par.scw.cloud/ten.png,"Mobile devices, all browsers",Adjust the footer layout to ensure proper alignment and consistent spacing across mobile devices.,,,,,,,,,,,,,,,,,,
 Low,Inconsistent alignment and stretched card images on mobile (Services page),"On the Services page, some content is center-aligned on mobile instead of right-aligned, card images are stretching, and sections lack equal spacing, causing layout inconsistency.",https://www.theodo.co.uk/services,theodo,https://screenshots-theodo.s3.fr-par.scw.cloud/seven.png,"Mobile devices, all browsers","Ensure proper alignment as per the design, maintain image aspect ratios to prevent stretching, and apply consistent spacing across sections.",,,,,,,,,,,,,,,,,,
 Low,Excessive blank spaces in sections on mobile (Careers page),"On the Careers page, sections contain excessive blank spaces on mobile screens, leading to an unbalanced layout and unnecessary scrolling.",https://www.theodo.co.uk/careers,theodo,https://screenshots-theodo.s3.fr-par.scw.cloud/six.png,"Mobile devices, all browsers",Adjust spacing and padding to ensure a more compact and visually appealing layout on mobile screens.,,,,,,,,,,,,,,,,,,
+Medium,Invalid Career Offer Link,The career offer on the Full Stack Engineer AI page is not working – clicking the offer does not navigate to the correct page.,https://careers.gamma.app/full-stack-engineer-ai,gamma.ai,https://screenshots-gammarketing.s3.fr-par.scw.cloud/one.png,,,,,,,,,,,,,,,,,,,,
+High,Input error on point 5 in 'Test Results Overview' session,On the 'Test Results Overview' is unintended and unexpectedly long.,https://staging.gamma.app/docs/Care-Recipient-Profile-Kamal-l6i0yi8z5loehj0?mode=doc,gamma.ai,https://screenshots-gammarketing.s3.fr-par.scw.cloud/two.png,,,,,,,,,,,,,,,,,,,,
+Medium,Wrong Redirection from Back Redirect on Careers Page,The Careers page does not redirect back to the home page when expected.,https://jobs.ashbyhq.com/gamma,gamma.ai,https://screenshots-gammarketing.s3.fr-par.scw.cloud/three.png,,,,,,,,,,,,,,,,,,,,
+Medium,Help Page Back Navigation Issue,The Help page fails to redirect back to the home page.,https://help.gamma.app/en/collections/4020401-getting-started-with-gamma,gamma.ai,https://screenshots-gammarketing.s3.fr-par.scw.cloud/four.png,,,,,,,,,,,,,,,,,,,,
+Low,Privacy Policy Language Mismatch,"After changing the website language, the Privacy Policy remains in English instead of updating to the selected language.",https://staging.gamma.app/privacy,gamma.ai,https://screenshots-gammarketing.s3.fr-par.scw.cloud/five.png,,,,,,,,,,,,,,,,,,,,
+Medium,Inconsistent Language options across website pages,"The ""Products,"" ""Solutions,"" and ""About Us"" pages offer fewer language options compared to the homepage and other sections of the website",https://staging.gamma.app/,gamma.ai,https://screenshots-gammarketing.s3.fr-par.scw.cloud/six.png,,,,,,,,,,,,,,,,,,,,
+Low,Error and Success messages on Sign-In page not translated,"On the Sign-In page, all error and success messages are displayed only in English, regardless of the language selected by the user.",https://staging.gamma.app/signin,gamma.ai,https://screenshots-gammarketing.s3.fr-par.scw.cloud/seven.png,,,,,,,,,,,,,,,,,,,,
