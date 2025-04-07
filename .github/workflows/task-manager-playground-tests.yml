@@ -138,7 +138,8 @@ jobs:
       run: |
         # Debug environment variables
         echo "Checking AZURE_OPENAI_KEY (first few chars): ${AZURE_OPENAI_KEY:0:5}..."
-        
+        echo "Checking FARMZZ_PASSWORD (first few chars): ${FARMZZ_PASSWORD:0:5}..."
+
         # Create an environment file for Docker
         cat > .env.test << EOF
         AZURE_OPENAI_KEY=$AZURE_OPENAI_KEY
