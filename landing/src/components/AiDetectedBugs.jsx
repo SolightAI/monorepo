@@ -6,7 +6,8 @@ import ContactFormModal from "./ContactFormModal.jsx"
 
 const NEVER_RESTRICTED_DOMAINS = [
   "smith.ai",
-  "gamma.ai"
+  "gamma",
+
 ]
 
 
