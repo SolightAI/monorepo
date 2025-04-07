@@ -26,7 +26,7 @@ jobs:
       AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
       AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
       # Playground settings
-      PLAYGROUND_URL: "https://playground.tm.laneo.io"
+      PLAYGROUND_URL: "http://playground:3000" # use container endpoint
       PYTHONPATH: ${{ github.workspace }}/task-manager
       TEST_MODE: "false"  # we want to upload the results to S3
       FARMZZ_PASSWORD: ${{ secrets.FARMZZ_PASSWORD }}
@@ -37,7 +37,6 @@ jobs:
       AWS_ENDPOINT_URL: https://minio-n0ooc44wsgk0kkkwoksw48ck.34.155.147.62.sslip.io
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
 
     steps:
     - name: Checkout code
@@ -55,7 +54,7 @@ jobs:
         restore-keys: |
           playwright-${{ runner.os }}-
 
-    - name: Build Docker image
+    - name: Build test Docker image
       uses: docker/build-push-action@v5
       with:
         context: ./task-manager
@@ -65,6 +64,15 @@ jobs:
         tags: task-manager:test
         build-args: |
           SKIP_PLAYWRIGHT_INSTALL=true
+
+    - name: Build playground Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./task-manager/tests/playground
+        file: ./task-manager/tests/playground/Dockerfile
+        push: false
+        load: true
+        tags: playground:test
 
     - name: Install Playwright in Docker
       run: |
@@ -80,11 +88,36 @@ jobs:
         # Remove the temporary container
         docker rm playwright-setup
 
+    - name: Create Docker network
+      run: docker network create test-network
+
+    - name: Run playground container
+      run: |
+        docker run -d \
+          --name playground \
+          --network test-network \
+          -p 3000:3000 \
+          playground:test
+
+    - name: Wait for playground to be ready
+      run: |
+        timeout=20
+        counter=0
+        until curl -s http://localhost:3000 > /dev/null; do
+          echo "Waiting for playground to be ready... ($counter seconds elapsed)"
+          sleep 2
+          counter=$((counter + 2))
+          if [ $counter -ge $timeout ]; then
+            echo "Error: Playground failed to start within $timeout seconds"
+            exit 1
+          fi
+        done
+        echo "Playground is ready!"
+
     - name: Run auth session tests
-      # Use the built Docker image with Playwright installed
       run: |
         docker run \
-          --network host \
+          --network test-network \
           -e AZURE_OPENAI_KEY \
           -e AZURE_OPENAI_ENDPOINT \
           -e PLAYGROUND_URL \
@@ -101,3 +134,9 @@ jobs:
           -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
           task-manager:with-playwright \
           bash -c "cd /app && python -m pytest -vvs"
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker rm -f playground || true
+        docker network rm test-network || true
