@@ -34,7 +34,7 @@ In your case you have access to the following credentials:
 
 What to do next:
 - If the credentials are valid, you will not see any message on screen confirming the login. It's up to you to detect if the login was successful.
-- If the provided credentials are invalid, you will see an error message on screen, and you must raise an error message that must include "[AN ERROR OCCURED]".
+- If the provided credentials are invalid, you will see an error message on screen, and you must raise an error message that must include "[AN ERROR OCCURRED]".
 - Before raising any error, you must use the action "{ACTION_CHECK_LOGIN}".
 
 Informations to take into account:
@@ -310,7 +310,7 @@ async def generate_auth_session(
         task_id=task_id,
         history=history,
         task_name=f"login to {url}",
-        error_markers=["[AN ERROR OCCURED]"],
+        error_markers=["[AN ERROR OCCURRED]"],
         empty_result_is_ok=True,
     )
 
