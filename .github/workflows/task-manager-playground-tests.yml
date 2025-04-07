@@ -7,8 +7,8 @@ on:
       - 'task-manager/**'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'task-manager/**'
+    # paths:
+    #   - 'task-manager/**'
   # Manual trigger
   workflow_dispatch:
 
@@ -78,15 +78,27 @@ jobs:
 
     - name: Install Playwright in Docker
       run: |
+        # Create directories for cache with correct permissions
+        mkdir -p ~/.cache/ms-playwright
+        
+        # Debug: Show cache directory before
+        echo "Cache directory contents before install:"
+        ls -la ~/.cache/ms-playwright || echo "Directory is empty"
+        
         # Create a container to install Playwright and save its state
         docker run --name playwright-setup \
           -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+          --user $(id -u):$(id -g) \
           task-manager:test \
-          bash -c "cd /app && pip install playwright && playwright install --with-deps"
-
+          bash -c "cd /app && pip install playwright && PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright install --with-deps && ls -la /root/.cache/ms-playwright"
+        
+        # Debug: Show cache directory after
+        echo "Cache directory contents after install:"
+        ls -la ~/.cache/ms-playwright
+        
         # Commit the container with installed Playwright to a new image
         docker commit playwright-setup task-manager:with-playwright
-
+        
         # Remove the temporary container
         docker rm playwright-setup
 
@@ -134,6 +146,8 @@ jobs:
           -e AWS_SECRET_ACCESS_KEY \
           -v ${{ github.workspace }}/task-manager:/app \
           -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+          --user $(id -u):$(id -g) \
+          -e PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright \
           task-manager:with-playwright \
           bash -c "cd /app && python -m pytest -vvs"
 
