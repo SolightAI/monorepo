@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { useOrganization, ORGANIZATION_CHANGED_EVENT } from './OrganizationContext';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -13,6 +14,7 @@ export const ProductProvider = ({ children }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { selectedOrganization } = useOrganization();
 
   // Memoize fetchProducts to avoid unnecessary re-renders
   const fetchProducts = useCallback(async (organizationId) => {
@@ -40,12 +42,13 @@ export const ProductProvider = ({ children }) => {
           const foundProduct = response.data.find(p => p.id === storedProductId);
           if (foundProduct) {
             setSelectedProduct(foundProduct);
-          } else if (response.data.length > 0 && !storedProductId) {
-            // Only auto-select first product if we don't have a stored ID
+          } else if (response.data.length > 0) {
+            // If stored product not found, select first product
             setSelectedProduct(response.data[0]);
             localStorage.setItem('selectedProductId', response.data[0].id);
           }
-        } else if (response.data.length > 0 && !storedProductId) {
+        } else if (response.data.length > 0) {
+          // If no stored product, select first product
           setSelectedProduct(response.data[0]);
           localStorage.setItem('selectedProductId', response.data[0].id);
         } else {
@@ -66,6 +69,40 @@ export const ProductProvider = ({ children }) => {
       setLoading(false);
     }
   }, []);
+
+  // Listen for organization changes
+  useEffect(() => {
+    const handleOrganizationChange = (event) => {
+      console.log("Organization changed, refreshing products");
+      
+      // Clear current product selection
+      setSelectedProduct(null);
+      
+      // Clear products while we're loading
+      setProducts([]);
+      
+      // Fetch products for new organization
+      const { organization } = event.detail;
+      if (organization && organization.id) {
+        fetchProducts(organization.id);
+      }
+    };
+    
+    // Add event listener
+    window.addEventListener(ORGANIZATION_CHANGED_EVENT, handleOrganizationChange);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener(ORGANIZATION_CHANGED_EVENT, handleOrganizationChange);
+    };
+  }, [fetchProducts]);
+  
+  // Update products when selectedOrganization changes
+  useEffect(() => {
+    if (selectedOrganization && selectedOrganization.id) {
+      fetchProducts(selectedOrganization.id);
+    }
+  }, [selectedOrganization, fetchProducts]);
 
   // Function to select a product
   const selectProduct = useCallback((product) => {
@@ -104,12 +141,13 @@ export const ProductProvider = ({ children }) => {
           const foundProduct = response.data.find(p => p.id === storedProductId);
           if (foundProduct) {
             setSelectedProduct(foundProduct);
-          } else if (response.data.length > 0 && !storedProductId) {
-            // Only auto-select first product if we don't have a stored ID
+          } else if (response.data.length > 0) {
+            // If stored product not found, select first product
             setSelectedProduct(response.data[0]);
             localStorage.setItem('selectedProductId', response.data[0].id);
           }
-        } else if (response.data.length > 0 && !storedProductId) {
+        } else if (response.data.length > 0) {
+          // If no stored product, select first product
           setSelectedProduct(response.data[0]);
           localStorage.setItem('selectedProductId', response.data[0].id);
         } else {
