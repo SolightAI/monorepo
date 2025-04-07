@@ -100,14 +100,14 @@ jobs:
         docker run -d \
           --name playground \
           --network test-network \
-          -p 3001:3001 \
+          -p 3001:3000 \
           playground:test
 
     - name: Wait for playground to be ready
       run: |
         timeout=20
         counter=0
-        until curl -s http://localhost:3001 > /dev/null; do
+        until curl -s http://localhost:3000 > /dev/null; do
           echo "Waiting for playground to be ready... ($counter seconds elapsed)"
           sleep 2
           counter=$((counter + 2))
