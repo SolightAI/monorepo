@@ -39,10 +39,18 @@ jobs:
       AWS_ENDPOINT_URL: https://minio-n0ooc44wsgk0kkkwoksw48ck.34.155.147.62.sslip.io
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      # Use the current user's UID and GID to avoid permission issues
+      HOST_UID: $(id -u)
+      HOST_GID: $(id -g)
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
+
+    - name: Setup environment variables
+      run: |
+        echo "HOST_UID=$(id -u)" >> $GITHUB_ENV
+        echo "HOST_GID=$(id -g)" >> $GITHUB_ENV
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -134,6 +142,7 @@ jobs:
           -e AWS_SECRET_ACCESS_KEY \
           -v ${{ github.workspace }}/task-manager:/app \
           -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+          --user ${{ env.HOST_UID }}:${{ env.HOST_GID }} \
           task-manager:with-playwright \
           bash -c "cd /app && python -m pytest -vvs"
 
@@ -142,3 +151,7 @@ jobs:
       run: |
         docker rm -f playground || true
         docker network rm test-network || true
+        
+        # Fix permissions for future runs
+        find ${{ github.workspace }}/task-manager -type d -exec chmod 755 {} \; || true
+        find ${{ github.workspace }}/task-manager -type f -exec chmod 644 {} \; || true
