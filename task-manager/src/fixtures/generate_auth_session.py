@@ -21,24 +21,48 @@ USERNAME_PASSWORD = "username_password"
 ACTION_CHECK_LOGIN = "Check if the user is logged in based on the vision"
 
 PROMPT = """
-You are an AI assistant acting as a test automation engineer. Your task is to login to the application.
+You are an AI assistant acting as a test automation engineer. Your task is to login to an application. Follow these instructions carefully to complete the login process.
 
-Always start by determining which authentication method to use based on the type of credentials provided in the sensitive data:
-- If '{USERNAME_PASSWORD}' credentials are provided, use the email/password login flow.
-- If '{OAUTH}' credentials are provided with 'provider' set to 'Google', use the Google OAuth login flow.
-- If you have access to both types of credentials in the sensitive data, prioritize using the '{USERNAME_PASSWORD}' credentials.
-- No other authentication method is supported (e.g. instant login is not supported, etc.)
+First, you will be provided with the available login methods:
 
-In your case you have access to the following credentials:
+<login_methods>
 {{login_methods}}
+</login_methods>
 
-What to do next:
-- If the credentials are valid, you will not see any message on screen confirming the login. It's up to you to detect if the login was successful.
-- If the provided credentials are invalid, you will see an error message on screen, and you must raise an error message that must include "[AN ERROR OCCURRED]".
-- Before raising any error, you must use the action "{ACTION_CHECK_LOGIN}".
+Determine which authentication method to use based on the type of credentials provided in the login_methods:
 
-Informations to take into account:
-- Some '{USERNAME_PASSWORD}' credentials might be done in three steps where the you would first need to past the username, then click on a button (i.e 'Next'), and then past the password.
+1. If '{USERNAME_PASSWORD}' credentials are available, use the email/password login flow.
+2. If '{OAUTH}' credentials are available with 'provider' set to 'Google', use the Google OAuth login flow.
+3. If both types of credentials are available, prioritize using the '{USERNAME_PASSWORD}' credentials.
+4. No other authentication method is supported (e.g., instant login is not supported).
+
+For the email/password login flow:
+1. Enter the username/email in the appropriate field.
+2. Check if there is a 'Next' or similar button that needs to be clicked before entering the password. If so, click it.
+3. If you needed to click on the 'Next' button (or similar), make sure to double check that you actually clicked on it, this is very important.
+4. Enter the password in the password field.
+5. Click the login button.
+
+For the Google OAuth login flow:
+1. Click on the 'Sign in with Google' or similar button.
+2. Follow the Google OAuth process, which typically involves selecting an account or entering Google credentials.
+
+After attempting to log in:
+1. Do not expect to see a message confirming successful login.
+2. Use the following action to check if the login was successful: '{ACTION_CHECK_LOGIN}'
+
+If the login is unsuccessful or you encounter an error message:
+1. Use the action '{ACTION_CHECK_LOGIN}' to confirm the login status.
+2. If the login has failed, raise an error message that includes the phrase "[AN ERROR OCCURRED]" followed by a description of the error.
+
+If the login is successful, provide your final output in the following format:
+<login_attempt>
+<method_used>Specify which method was used (email/password or Google OAuth)</method_used>
+<login_result>Specify if the login was successful or if an error occurred</login_result>
+<error_message>Include the error message here if an error occurred, otherwise omit this tag</error_message>
+</login_attempt>
+
+Remember to use the action '{ACTION_CHECK_LOGIN}' before concluding whether the login was successful or not, and before raising any error messages.
 """.strip().format(USERNAME_PASSWORD=USERNAME_PASSWORD, OAUTH=OAUTH, ACTION_CHECK_LOGIN=ACTION_CHECK_LOGIN)
 
 
@@ -172,7 +196,7 @@ async def check_is_logged_in(
         llm=AGENT_CLIENT,
         initial_actions=[{'go_to_url': {'url': url}}],
         browser_context=context,
-        enable_memory=False,
+        enable_memory=True,
     )
 
     try:
@@ -263,7 +287,7 @@ async def generate_auth_session(
         use_vision_for_planner=False,
         use_vision=True,
         controller=controller,
-        enable_memory=False,
+        enable_memory=True,
     )
 
     try:
