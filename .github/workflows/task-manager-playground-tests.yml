@@ -85,12 +85,22 @@ jobs:
         echo "Cache directory contents before install:"
         ls -la ~/.cache/ms-playwright || echo "Directory is empty"
         
-        # Create a container to install Playwright and save its state
-        docker run --name playwright-setup \
-          -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
-          --user $(id -u):$(id -g) \
-          task-manager:test \
-          bash -c "cd /app && pip install playwright && PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright install --with-deps && ls -la /root/.cache/ms-playwright"
+        # Check if Playwright browsers are already installed
+        if [ -d ~/.cache/ms-playwright/firefox* ] || [ -d ~/.cache/ms-playwright/webkit* ] || [ -d ~/.cache/ms-playwright/chromium* ]; then
+          echo "Playwright browsers already installed, skipping installation"
+          # Just create the container with the existing cache
+          docker run --name playwright-setup \
+            -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+            task-manager:test \
+            bash -c "cd /app && pip install playwright && ls -la /root/.cache/ms-playwright"
+        else
+          echo "Installing Playwright and browsers..."
+          # Create a container to install Playwright and save its state
+          docker run --name playwright-setup \
+            -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+            task-manager:test \
+            bash -c "cd /app && pip install playwright && PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright install --with-deps && ls -la /root/.cache/ms-playwright"
+        fi
         
         # Debug: Show cache directory after
         echo "Cache directory contents after install:"
@@ -156,7 +166,3 @@ jobs:
       run: |
         docker rm -f playground || true
         docker network rm test-network || true
-        
-        # Fix permissions for future runs
-        find ${{ github.workspace }}/task-manager -type d -exec chmod 755 {} \; || true
-        find ${{ github.workspace }}/task-manager -type f -exec chmod 644 {} \; || true
