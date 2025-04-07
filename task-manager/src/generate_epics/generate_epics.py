@@ -69,7 +69,7 @@ LLM_CLIENT = AzureChatOpenAI(
     api_version='2024-10-21',
     azure_endpoint=azure_openai_endpoint,
     api_key=SecretStr(azure_openai_key),
-    temperature=0.0,
+    temperature=0.1,
 )
 
 

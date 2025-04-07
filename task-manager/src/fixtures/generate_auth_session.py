@@ -2,13 +2,13 @@ import os
 import json
 import base64
 
-from tempfile import NamedTemporaryFile
+from typing import Optional
 from logging import getLogger
 from pydantic import SecretStr
+from tempfile import NamedTemporaryFile
 from langchain_openai import AzureChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig, Controller
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
-from typing import Optional
 from utils.session_manager import get_cached_session, cache_session, update_session_timestamp
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_gif_to_s3
@@ -68,16 +68,16 @@ if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
     raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
 
 
-CLIENT = AzureChatOpenAI(
+AGENT_CLIENT = AzureChatOpenAI(
     model="gpt-4o",
     api_version='2024-10-21',
     azure_endpoint=azure_openai_endpoint,
     api_key=SecretStr(azure_openai_key),
-    temperature=0.0,
+    temperature=0.1,
 )
+
+
 controller = Controller()
-
-
 logger = getLogger(__name__)
 
 
@@ -101,7 +101,7 @@ async def is_logged_based_on_vision(browser: Browser) -> str:
         ],
     )
 
-    response = CLIENT.invoke([message]).content
+    response = AGENT_CLIENT.invoke([message]).content
 
     logger.info("The LLM response is: %s", response)
 
@@ -169,7 +169,7 @@ async def check_is_logged_in(
 
     agent = Agent(
         task=CHECK_LOGIN_PROMPT,
-        llm=CLIENT,
+        llm=AGENT_CLIENT,
         initial_actions=[{'go_to_url': {'url': url}}],
         browser_context=context,
         enable_memory=False,
@@ -255,7 +255,7 @@ async def generate_auth_session(
 
     agent = Agent(
         task=PROMPT.format(login_methods=login_methods),
-        llm=CLIENT,
+        llm=AGENT_CLIENT,
         sensitive_data=sensitive_data,
         initial_actions=[{'go_to_url': {'url': url}}, {'go_to_url': {'url': url}}],  # twice cause it some case we have a redirect at the first try
         browser_context=context,
