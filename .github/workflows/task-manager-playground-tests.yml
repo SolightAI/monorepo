@@ -26,10 +26,8 @@ jobs:
         working-directory: ./task-manager
 
     env:
-      # Azure OpenAI settings (required for the auth agent)
       AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
       AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
-      # Playground settings
       PLAYGROUND_URL: "http://playground:3000" # use container endpoint
       PYTHONPATH: ${{ github.workspace }}/task-manager
       TEST_MODE: "false"  # we want to upload the results to S3
