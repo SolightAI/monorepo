@@ -105,7 +105,7 @@ jobs:
           --network test-network \
           -p 3000:3000 \
           ${{ env.PLAYGROUND_IMAGE }}
-
+          
     - name: Wait for playground to be ready
       run: |
         timeout=20
