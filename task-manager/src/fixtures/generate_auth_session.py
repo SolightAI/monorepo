@@ -50,7 +50,9 @@ For the Google OAuth login flow:
 
 After attempting to log in:
 1. Do not expect to see a message confirming successful login.
-2. Use the following action to check if the login was successful: '{ACTION_CHECK_LOGIN}'
+2. Wait for the full page to load before concluding the login was successful.
+3. If the loaded page is completly different from the page you started with, it's a good sign that the login was successful.
+4. If you don't see any error message related to the login, it's a good sign that the login was successful.
 
 If the login is unsuccessful or you encounter an error message:
 1. Use the action '{ACTION_CHECK_LOGIN}' to confirm the login status.
