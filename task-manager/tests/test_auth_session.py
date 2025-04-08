@@ -4,6 +4,7 @@ import logging
 
 from uuid import uuid4
 from fixtures.generate_auth_session import generate_auth_session, USERNAME_PASSWORD, OAUTH
+from validate_url.validate_url import validate_url_task
 
 
 # Auth paths in the playground
@@ -443,6 +444,63 @@ async def test_generate_auth_session_farmzz(task_id: str) -> None:
     # Verify cookies contains the expected auth data
     assert "XSRF-TOKEN" in [cookie["name"] for cookie in session["cookies"]]
     assert [cookie for cookie in session["cookies"] if cookie["name"] == "XSRF-TOKEN"][0]["value"] is not None
+
+
+@pytest.mark.asyncio
+async def test_validate_url_login_farmzz(task_id: str) -> None:
+    """
+    Test validating the farmzz.com URL to find a login page,
+    then attempt login with credentials.
+    
+    This test:
+    1. Validates the farmzz.com URL to find the login page
+    2. Uses the detected login page URL for authentication
+    3. Confirms successful authentication
+    """
+    # First, validate the URL
+    base_url = "https://farmzz.com"
+    
+    # Run the validation task directly
+    validation_result = await validate_url_task(task_id, base_url)
+    
+    # Verify that validation found a login page
+    assert validation_result["valid"] is True
+    assert validation_result["login_url"] is not None
+    assert validation_result["confidence"] in ["high", "medium"]
+    assert validation_result["source"] == "validation"
+    
+    # Get the login URL from the validation result
+    login_url = validation_result["login_url"]
+    logger.info(f"[{task_id}] Detected login URL: {login_url}")
+    
+    # Now try to login using the detected login URL
+    username = os.getenv("FARMZZ_USERNAME")
+    if not username:
+        raise ValueError("FARMZZ_USERNAME is not set")
+
+    password = os.getenv("FARMZZ_PASSWORD")
+    if not password:
+        raise ValueError("FARMZZ_PASSWORD is not set")
+
+    session = await generate_auth_session(
+        task_id=task_id,
+        url=login_url,  # Use the detected login URL
+        secrets={
+            USERNAME_PASSWORD: {
+                "username": username,
+                "password": password
+            }
+        },
+        reuse_session=False
+    )
+
+    # Verify successful authentication
+    assert "cookies" in session
+    assert "localStorage" in session
+    assert session["localStorage"].get("jwt") is not None
+    assert "XSRF-TOKEN" in [cookie["name"] for cookie in session["cookies"]]
+    
+    logger.info(f"[{task_id}] ✅ Successfully validated URL and authenticated on: {login_url}")
 
 
 @pytest.mark.asyncio

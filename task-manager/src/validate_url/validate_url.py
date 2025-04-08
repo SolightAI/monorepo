@@ -5,6 +5,7 @@ import traceback
 import functools
 import logging
 import re
+import json
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel, Field
@@ -13,12 +14,19 @@ from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from langchain_openai import AzureChatOpenAI
 from pydantic import SecretStr
+from urllib.parse import urlparse
+from utils.session_manager import get_redis
 
 # Setup logging
 logger = logging.getLogger(__name__)
 
 # Create router
 router = APIRouter(prefix="/validate-url", tags=["validate_url"])
+
+# Redis key prefix for login pages
+LOGIN_PAGE_REDIS_PREFIX = "login_page:"
+# Key expiration time in seconds (30 days)
+LOGIN_PAGE_EXPIRY = 60 * 60 * 24 * 30
 
 # Define models
 class URLValidationRequest(BaseModel):
@@ -27,6 +35,124 @@ class URLValidationRequest(BaseModel):
 class URLValidationResponse(BaseModel):
     task_id: str = Field(..., description="ID to track the validation task")
     status: str = Field("pending", description="Status of the validation task")
+
+class LoginPageCacheRequest(BaseModel):
+    domain: str = Field(..., description="Domain to get the cached login page for")
+
+class LoginPageCacheResponse(BaseModel):
+    found: bool = Field(..., description="Whether a login page was found")
+    login_url: Optional[str] = Field(None, description="URL of the login page if found")
+    confidence: str = Field("low", description="Confidence level of the result")
+    source: str = Field("cache", description="Source of the login page info")
+
+# Extract domain from a URL 
+def extract_domain(url: str) -> str:
+    """
+    Extract the domain from a URL.
+    
+    Args:
+        url: The URL to extract the domain from
+        
+    Returns:
+        The domain name
+    """
+    parsed_url = urlparse(url)
+    domain = parsed_url.netloc
+    
+    # If no netloc (domain) was found, try the path - might be a domain without scheme
+    if not domain and parsed_url.path:
+        domain = parsed_url.path.split('/')[0]
+    
+    # Remove port if present
+    domain = domain.split(':')[0]
+    
+    # Remove www. prefix if present
+    if domain.startswith('www.'):
+        domain = domain[4:]
+    
+    return domain.lower()
+
+# Save login page to cache
+async def save_login_page_to_cache(url: str, login_url: str, confidence: str) -> None:
+    """
+    Save a discovered login page to Redis cache.
+    
+    Args:
+        url: The original URL that was validated
+        login_url: The URL of the discovered login page
+        confidence: Confidence level of the discovery (high, medium, low)
+    """
+    domain = extract_domain(url)
+    if not domain:
+        logger.warning(f"Could not extract domain from URL: {url}")
+        return
+    
+    logger.info(f"Saving login page for domain {domain}: {login_url} (confidence: {confidence})")
+    
+    cache_key = f"{LOGIN_PAGE_REDIS_PREFIX}{domain}"
+    
+    data = {
+        "login_url": login_url,
+        "original_url": url,
+        "confidence": confidence,
+        "found": "true"
+    }
+    
+    try:
+        # Get Redis client
+        redis_client = await get_redis()
+        
+        # Store as a hash in Redis
+        await redis_client.setex(cache_key, LOGIN_PAGE_EXPIRY, json.dumps(data))
+        logger.info(f"Login page for domain {domain} cached successfully")
+    except Exception as e:
+        logger.error(f"Error caching login page for domain {domain}: {str(e)}")
+
+# Get login page from cache
+async def get_login_page_from_cache(url: str) -> Dict[str, Any]:
+    """
+    Get a login page from Redis cache based on domain.
+    
+    Args:
+        url: The URL to get the login page for
+        
+    Returns:
+        Dictionary with login page data if found, None otherwise
+    """
+    domain = extract_domain(url)
+    if not domain:
+        logger.warning(f"Could not extract domain from URL: {url}")
+        return None
+    
+    logger.info(f"Checking cache for login page for domain: {domain}")
+    
+    cache_key = f"{LOGIN_PAGE_REDIS_PREFIX}{domain}"
+    
+    try:
+        # Get Redis client
+        redis_client = await get_redis()
+        
+        # Get data from Redis
+        data = await redis_client.get(cache_key)
+        if data:
+            # Redis returns bytes, decode and parse JSON
+            cached_data = json.loads(data.decode('utf-8') if isinstance(data, bytes) else data)
+            if cached_data.get("found") == "true":
+                logger.info(f"Login page for domain {domain} found in cache: {cached_data.get('login_url')}")
+                return {
+                    "valid": True,
+                    "login_url": cached_data.get("login_url"),
+                    "confidence": cached_data.get("confidence", "medium"),
+                    "explanation": f"Login page was retrieved from cache for domain {domain}",
+                    "message": "Login page found successfully (from cache)",
+                    "original_url": cached_data.get("original_url", url),
+                    "source": "cache"
+                }
+    except Exception as e:
+        logger.error(f"Error retrieving login page from cache for domain {domain}: {str(e)}")
+    
+    logger.info(f"No login page found in cache for domain {domain}")
+    return None
 
 # Setup Azure OpenAI client
 if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
@@ -115,6 +241,15 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
     """
     logger.info(f"[{task_id}] Starting URL validation for: {url}")
     
+    # First, check the cache
+    cached_result = await get_login_page_from_cache(url)
+    if cached_result:
+        logger.info(f"[{task_id}] Login page found in cache for {url}: {cached_result.get('login_url')}")
+        return cached_result
+    
+    # If not in cache, proceed with validation
+    logger.info(f"[{task_id}] No cached login page found for {url}, running validation")
+    
     # Initialize browser
     browser = Browser(
         config=BrowserConfig(
@@ -176,6 +311,10 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
                 logger.debug(f"[{task_id}] Explanation: {explanation}")
                 logger.debug(f"[{task_id}] Raw result: {result}")
                 
+                # Save the login page to cache if found
+                if login_url:
+                    await save_login_page_to_cache(url, login_url, confidence)
+                
             # Prepare the response
             response = {
                 "valid": found,
@@ -184,6 +323,7 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
                 "explanation": explanation,
                 "message": "Login page found successfully" if found else "Login page could not be found",
                 "original_url": url,  # Include the original URL in the response
+                "source": "validation"
             }
             
             # Log the validation outcome
@@ -203,7 +343,8 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
                 "explanation": "The page took too long to respond. Please check that the URL is correct and accessible.",
                 "message": "Login page not found - page load timeout",
                 "original_url": url,
-                "error_type": "timeout"
+                "error_type": "timeout",
+                "source": "validation"
             }
         except Exception as e:
             if "timeout" in str(e).lower() or "timed out" in str(e).lower():
@@ -215,7 +356,8 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
                     "explanation": f"The page took too long to respond: {str(e)}",
                     "message": "Login page not found - page load timeout",
                     "original_url": url,
-                    "error_type": "timeout"
+                    "error_type": "timeout",
+                    "source": "validation"
                 }
             else:
                 # Re-raise other exceptions to be caught by the outer try/except
@@ -233,7 +375,8 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
                 "explanation": f"The page took too long to respond: {error_message}",
                 "message": "Login page not found - page load timeout",
                 "original_url": url,
-                "error_type": "timeout"
+                "error_type": "timeout",
+                "source": "validation"
             }
         # Return detailed error information
         return {
@@ -243,7 +386,8 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
             "explanation": f"Error during validation: {error_message}",
             "message": "Failed to validate login page",
             "original_url": url,
-            "error_type": "error"
+            "error_type": "error",
+            "source": "validation"
         }
     finally:
         # Clean up resources
@@ -273,6 +417,52 @@ async def validate_url_endpoint(
     background_tasks.add_task(validate_url_task, task_id, request.url)
     
     return URLValidationResponse(task_id=task_id)
+
+
+@router.get("/cache/{domain}")
+async def get_cached_login_page(
+    domain: str,
+) -> LoginPageCacheResponse:
+    """
+    Get a cached login page for a domain.
+    
+    Args:
+        domain: Domain to get the login page for
+        
+    Returns:
+        Dictionary with login page data if found
+    """
+    cache_key = f"{LOGIN_PAGE_REDIS_PREFIX}{domain.lower()}"
+    
+    try:
+        # Get Redis client
+        redis_client = await get_redis()
+        
+        # Get data from Redis
+        data = await redis_client.get(cache_key)
+        if data:
+            # Redis returns bytes, decode and parse JSON
+            cached_data = json.loads(data.decode('utf-8') if isinstance(data, bytes) else data)
+            if cached_data.get("found") == "true":
+                return LoginPageCacheResponse(
+                    found=True,
+                    login_url=cached_data.get("login_url"),
+                    confidence=cached_data.get("confidence", "medium"),
+                    source="cache"
+                )
+        
+        return LoginPageCacheResponse(
+            found=False,
+            login_url=None,
+            confidence="low",
+            source="cache"
+        )
+    except Exception as e:
+        logger.error(f"Error retrieving login page from cache for domain {domain}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving login page from cache: {str(e)}"
+        )
 
 
 @router.get("/status/{task_id}")
