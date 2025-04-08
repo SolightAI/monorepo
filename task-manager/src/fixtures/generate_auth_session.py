@@ -196,7 +196,7 @@ async def check_is_logged_in(
         llm=AGENT_CLIENT,
         initial_actions=[{'go_to_url': {'url': url}}],
         browser_context=context,
-        enable_memory=True,
+        enable_memory=False,
     )
 
     try:
@@ -287,7 +287,7 @@ async def generate_auth_session(
         use_vision_for_planner=False,
         use_vision=True,
         controller=controller,
-        enable_memory=True,
+        enable_memory=False,
     )
 
     try:
