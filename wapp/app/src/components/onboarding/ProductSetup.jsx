@@ -4,7 +4,6 @@ import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import { isValidUrl } from '@/utils/urlUtils';
 import axios from 'axios';
-import UrlValidationNotification from '@/components/common/UrlValidationNotification';
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
@@ -28,7 +27,6 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
   // State for URL validation
   const [validationTaskId, setValidationTaskId] = useState(null);
   const [validatingProductId, setValidatingProductId] = useState(null);
-  const [showValidationNotification, setShowValidationNotification] = useState(false);
 
   // States for tracking URL validation success
   const [loginPageFound, setLoginPageFound] = useState(false);
@@ -122,7 +120,6 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
         // Store the task ID and product ID for validation monitoring
         setValidationTaskId(response.data.task_id);
         setValidatingProductId(response.data.id);
-        setShowValidationNotification(true);
         console.log("URL validation initiated with task ID:", response.data.task_id);
       }
 
@@ -160,7 +157,6 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
   
   // Close validation notification
   const handleCloseValidation = () => {
-    setShowValidationNotification(false);
     setValidationTaskId(null);
     setValidatingProductId(null);
   };
@@ -168,6 +164,11 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
   // Check if URL is valid for testing
   const validateUrl = async (url) => {
     try {
+      // Skip validation if already in progress or if login page was already found
+      if (validationTaskId || loginPageFound) {
+        return false;
+      }
+      
       if (!isValidUrl(url)) {
         return false;
       }
@@ -182,7 +183,6 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
       if (response.data && response.data.task_id) {
         // Store the task ID for validation monitoring
         setValidationTaskId(response.data.task_id);
-        setShowValidationNotification(true);
         console.log("URL validation initiated with task ID:", response.data.task_id);
         return true;
       }
@@ -213,6 +213,8 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
           response.data.results && response.data.results.valid) {
         setLoginPageFound(true);
         setDetectedLoginUrl(response.data.results.login_url || '');
+        // Clear the task ID since validation is complete and successful
+        setValidationTaskId(null);
         return true;
       }
       return false;
@@ -245,16 +247,6 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
 
   return (
     <div className="p-6 space-y-6">
-      {/* URL Validation Notification */}
-      {showValidationNotification && validationTaskId && (
-        <UrlValidationNotification
-          taskId={validationTaskId}
-          productId={validatingProductId}
-          onClose={handleCloseValidation}
-          onUrlUpdate={handleUrlUpdate}
-        />
-      )}
-      
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-3">Set Up Your First Product</h2>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -378,17 +370,23 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                             onChange={handleChange}
                             onBlur={handleUrlBlur}
                             className={`appearance-none rounded-md relative block w-full px-3 py-2 pr-10 border ${
+                              loginPageFound ? 'border-green-300 bg-green-50' :
                               validationTaskId ? 'border-blue-300 bg-blue-50' : 'border-gray-300'
                             } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
                             placeholder="https://example.com"
                           />
-                          {validationTaskId && (
+                          {validationTaskId && !loginPageFound && (
                             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                               <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                             </div>
                           )}
+                          {loginPageFound && (
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                            </div>
+                          )}
                         </div>
-                        {formData.url && isValidUrl(formData.url) && !validationTaskId && (
+                        {formData.url && isValidUrl(formData.url) && !validationTaskId && !loginPageFound && (
                           <button
                             type="button"
                             onClick={() => validateUrl(formData.url)}
@@ -398,10 +396,20 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                           </button>
                         )}
                       </div>
-                      {validationTaskId && (
-                        <p className="mt-1 text-sm text-blue-600">
-                          Validating URL and searching for login page...
-                        </p>
+                      {validationTaskId && !loginPageFound && (
+                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                          <div className="flex items-center">
+                            <div className="animate-spin mr-3 h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                            <div>
+                              <p className="text-sm font-medium text-blue-700">
+                                Validating URL and searching for login page...
+                              </p>
+                              <p className="text-xs text-blue-600 mt-1">
+                                This may take a few moments. We're checking if this website has a login page we can use for testing.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       )}
                       {loginPageFound && (
                         <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
@@ -601,17 +609,23 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                       onChange={handleChange}
                       onBlur={handleUrlBlur}
                       className={`appearance-none rounded-md relative block w-full px-3 py-2 pr-10 border ${
+                        loginPageFound ? 'border-green-300 bg-green-50' :
                         validationTaskId ? 'border-blue-300 bg-blue-50' : 'border-gray-300'
                       } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
                       placeholder="https://example.com"
                     />
-                    {validationTaskId && (
+                    {validationTaskId && !loginPageFound && (
                       <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                         <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                       </div>
                     )}
+                    {loginPageFound && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      </div>
+                    )}
                   </div>
-                  {formData.url && isValidUrl(formData.url) && !validationTaskId && (
+                  {formData.url && isValidUrl(formData.url) && !validationTaskId && !loginPageFound && (
                     <button
                       type="button"
                       onClick={() => validateUrl(formData.url)}
@@ -621,10 +635,20 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                     </button>
                   )}
                 </div>
-                {validationTaskId && (
-                  <p className="mt-1 text-sm text-blue-600">
-                    Validating URL and searching for login page...
-                  </p>
+                {validationTaskId && !loginPageFound && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="flex items-center">
+                      <div className="animate-spin mr-3 h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                      <div>
+                        <p className="text-sm font-medium text-blue-700">
+                          Validating URL and searching for login page...
+                        </p>
+                        <p className="text-xs text-blue-600 mt-1">
+                          This may take a few moments. We're checking if this website has a login page we can use for testing.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 )}
                 {loginPageFound && (
                   <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
