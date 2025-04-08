@@ -8,6 +8,7 @@ import { generateAcceptanceCriteria, getAcceptanceCriteriaGenerationStatus } fro
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
+import InProgressGenerations from '@/components/InProgressGenerations';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -806,53 +807,29 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
   };
 
   return (
-    <div {...getModalContainerProps(onClose)}>
-      <div {...getModalContentProps('w-full max-w-4xl')}>
-        {/* Modal header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-800">
-            {status === 'completed'
-              ? 'Generation Complete'
-              : status === 'error'
-                ? 'Generation Error'
-                : 'Generating Product Hierarchy'}
-          </h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold text-gray-800">Comprehensive Generation</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 focus:outline-none"
-            disabled={isBlockingClose}
+            className="text-gray-500 hover:text-gray-700"
+            disabled={status !== 'completed' && isBlockingClose}
           >
             <X size={24} />
           </button>
         </div>
 
-        {/* Main content area with padding */}
-        <div className="px-6 py-4">
+        <InProgressGenerations />
+
+        <div className="p-6">
           <div className="mb-6">
             <p className="text-gray-600">
               Product: <span className="font-medium">{productName}</span>
             </p>
           </div>
 
-          {/* Progress bar */}
-          {status !== 'completed' && status !== 'error' && (
-            <div className="mb-6">
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-600 transition-all duration-500 ease-out"
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
-              <p className="text-sm text-gray-500 mt-2">{Math.round(progress)}% complete</p>
-
-              {/* Detailed progress for long-running operations */}
-              {detailedProgress && (
-                <p className="text-sm text-blue-600 mt-1 font-medium">{detailedProgress}</p>
-              )}
-            </div>
-          )}
-
-          {/* Status and Messages */}
+          {/* Status message */}
           <div className="mb-6">
             {status === 'preparing' && (
               <div className="flex items-center text-blue-600">
@@ -887,7 +864,24 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
             )}
           </div>
 
-          {/* Status Logs - Only show logs if we have any and there's no error */}
+          {/* Progress bar */}
+          {status !== 'completed' && status !== 'error' && (
+            <div className="mb-6">
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-sm text-gray-500 mt-2">{Math.round(progress)}% complete</p>
+
+              {detailedProgress && (
+                <p className="text-sm text-blue-600 mt-1 font-medium">{detailedProgress}</p>
+              )}
+            </div>
+          )}
+
+          {/* Activity Log Section */}
           {statusLogs.length > 0 && status !== 'error' && (
             <div className="mb-6 border rounded-lg p-3 bg-gray-50 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
               <div className="flex justify-between items-center mb-2">
@@ -896,7 +890,6 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
               </div>
               <ul className="text-xs space-y-1">
                 {statusLogs.map((log, index) => {
-                  // Determine class based on log type
                   const messageColorClass =
                     log.type === 'warning' ? 'text-amber-600' :
                     log.type === 'error' ? 'text-red-600' :
@@ -914,15 +907,14 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
             </div>
           )}
 
-          {/* Display generation summary if completed */}
           {status === 'completed' && (
             <div className="border rounded-lg p-4 bg-gray-50">
               {generateSummary()}
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="mt-6 flex justify-end">
+          {/* Close button */}
+          <div className="flex justify-end mt-6">
             {status === 'completed' && (
               <button
                 onClick={onClose}
@@ -938,6 +930,20 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
                 className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
               >
                 Close
+              </button>
+            )}
+
+            {status !== 'completed' && status !== 'error' && (
+              <button
+                onClick={onClose}
+                className={`px-4 py-2 rounded-md ${
+                  !isBlockingClose
+                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                }`}
+                disabled={isBlockingClose}
+              >
+                Cancel
               </button>
             )}
           </div>

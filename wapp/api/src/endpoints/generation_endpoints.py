@@ -1,15 +1,34 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
-from typing import Dict, Any, Literal
+from typing import Dict, Any, Literal, List, Optional
 from pydantic import UUID4
 
 from services.generation_service import (
     trigger_full_generation,
-    get_generation_status
+    get_generation_status,
+    get_in_progress_generations
 )
 from dependencies import get_current_user_dependency
 
 # Centralize auth dependency at the router level
 router = APIRouter(prefix="/generation", tags=["generation"], dependencies=[Depends(get_current_user_dependency)])
+
+
+@router.get("/in-progress")
+async def get_in_progress_generations_endpoint(
+    organization_id: Optional[UUID4] = None,
+    product_id: Optional[UUID4] = None
+) -> List[Dict[str, Any]]:
+    """
+    Get all currently in-progress generations, optionally filtered by organization and product.
+
+    Args:
+        organization_id: Optional organization ID to filter by
+        product_id: Optional product ID to filter by
+
+    Returns:
+        List of dictionaries containing information about in-progress generations
+    """
+    return await get_in_progress_generations(organization_id, product_id)
 
 
 @router.post("/full")
