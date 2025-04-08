@@ -29,8 +29,14 @@ function App() {
         <Route path="/auth/google/messy" element={<MessyLoginPage showEmailPassword={false} showGoogleAuth={true} />} />
         <Route path="/auth/staged/simple" element={<SimpleLoginPage showStagedLogin={true} showGoogleAuth={false} />} />
         <Route path="/auth/staged/messy" element={<MessyLoginPage showStagedLogin={true} showGoogleAuth={false} />} />
-        <Route path="/auth/combined/simple" element={<SimpleLoginPage showEmailPassword={true} showGoogleAuth={true} />} />
-        <Route path="/auth/combined/messy" element={<MessyLoginPage showEmailPassword={true} showGoogleAuth={true} />} />
+        <Route path="/auth/instant/simple" element={<SimpleLoginPage showInstantLogin={true} showGoogleAuth={false} />} />
+        <Route path="/auth/instant/messy" element={<MessyLoginPage showInstantLogin={true} showGoogleAuth={false} />} />
+        <Route path="/auth/combined/classic_google/simple" element={<SimpleLoginPage showEmailPassword={true} showGoogleAuth={true} />} />
+        <Route path="/auth/combined/classic_google/messy" element={<MessyLoginPage showEmailPassword={true} showGoogleAuth={true} />} />
+        <Route path="/auth/combined/classic_instant/simple" element={<SimpleLoginPage showCombinedInstantLogin={true} showGoogleAuth={false} />} />
+        <Route path="/auth/combined/classic_instant/messy" element={<MessyLoginPage showInstantLogin={true} showGoogleAuth={true} />} />
+
+        {/* Instant Login test routes */}
 
         {/* Marketing vs Webapp test routes */}
         <Route path="/category/marketing" element={<MarketingLanding />} />

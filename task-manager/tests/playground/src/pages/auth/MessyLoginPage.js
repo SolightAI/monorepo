@@ -3,8 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import LoginForm from '../../components/LoginForm';
 import GoogleOAuth from '../../components/GoogleOAuth';
 import StagedLoginForm from '../../components/StagedLoginForm';
+import InstantLoginForm from '../../components/InstantLoginForm';
+import LoginWithInstantOption from '../../components/LoginWithInstantOption';
 
-const MessyLoginPage = ({ showEmailPassword = false, showGoogleAuth = false, showStagedLogin = false }) => {
+const MessyLoginPage = ({
+  showEmailPassword = false,
+  showGoogleAuth = false,
+  showStagedLogin = false,
+  showInstantLogin = false,
+  showCombinedInstantLogin = false
+}) => {
   const navigate = useNavigate();
   const [counter, setCounter] = useState(0);
   const [fakeNotifications, setFakeNotifications] = useState([]);
@@ -145,6 +153,17 @@ const MessyLoginPage = ({ showEmailPassword = false, showGoogleAuth = false, sho
 
   const handleLoginSuccess = () => {
     navigate('/success');
+  };
+
+  const handleSwitchToRegular = () => {
+    if (showEmailPassword) {
+      // This would be handled by component state in a real app
+      // For this demo, just reload the page with the email_password route
+      navigate('/auth/email_password/messy');
+    } else {
+      // Otherwise redirect to error
+      navigate('/error');
+    }
   };
 
   const generateRandomColorText = (text) => {
@@ -309,12 +328,23 @@ const MessyLoginPage = ({ showEmailPassword = false, showGoogleAuth = false, sho
             </div>
 
             {/* Conditional rendering of auth components */}
-            {showEmailPassword && !showStagedLogin && (
+            {showEmailPassword && !showStagedLogin && !showInstantLogin && !showCombinedInstantLogin && (
               <LoginForm onLoginSuccess={handleLoginSuccess} />
             )}
 
-            {showStagedLogin && (
+            {showStagedLogin && !showInstantLogin && !showCombinedInstantLogin && (
               <StagedLoginForm onLoginSuccess={handleLoginSuccess} />
+            )}
+
+            {showInstantLogin && !showCombinedInstantLogin && (
+              <InstantLoginForm
+                onLoginSuccess={handleLoginSuccess}
+                onSwitchToRegular={handleSwitchToRegular}
+              />
+            )}
+
+            {showCombinedInstantLogin && (
+              <LoginWithInstantOption onLoginSuccess={handleLoginSuccess} />
             )}
 
             {showGoogleAuth && (
