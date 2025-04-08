@@ -7,6 +7,7 @@ import AddFeatureModal from '@/components/modals/AddFeatureModal';
 import FeatureGenerationModal from '@/components/modals/FeatureGenerationModal';
 import EditFeatureModal from '@/components/modals/EditFeatureModal';
 import GenerationProgressModal from '@/components/modals/GenerationProgressModal';
+import InProgressGenerations from '@/components/InProgressGenerations';
 import { triggerFullGeneration } from '@/services/generationService';
 import { generateFeatures, getFeatureGenerationStatus } from '@/api/featureGeneration';
 
@@ -322,6 +323,9 @@ const EpicDetails = () => {
   };
 
   return (
+    <div className="container mx-auto px-4 py-8">
+      <InProgressGenerations />
+      
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Back button to return to home */}
@@ -341,52 +345,31 @@ const EpicDetails = () => {
           </div>
         )}
 
-        {/* Success message */}
-        {successMessage && (
-          <div className="mb-6 p-4 bg-green-100 border border-green-200 text-green-700 rounded-lg flex items-start">
-            <p>{successMessage}</p>
-          </div>
-        )}
+          {successMessage && (
+            <div className="mb-6 p-4 bg-green-100 border border-green-200 text-green-700 rounded-lg flex items-start">
+              <p>{successMessage}</p>
+            </div>
+          )}
 
-        {/* Loading indicator */}
-        {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <Loader size={40} className="text-blue-500 animate-spin" />
-          </div>
-        ) : (
-          <>
-            {/* Epic header */}
-            {epic && (
-              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <div className="flex items-center mb-4 flex-wrap">
-                  <Sparkles size={24} className="text-purple-500 mr-3 flex-shrink-0" />
-                  <h1 className="text-3xl font-bold text-gray-800 break-words overflow-hidden">{epic.name}</h1>
-                </div>
-                {epic.description && (
-                  <p className="text-gray-700 mb-4 break-words overflow-hidden max-h-40 overflow-y-auto">{epic.description}</p>
-                )}
-                {selectedProduct && (
-                  <div className="text-sm text-gray-500 break-words overflow-hidden">
-                    Product: {selectedProduct.name}
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <Loader size={40} className="text-blue-500 animate-spin" />
+            </div>
+          ) : (
+            <>
+              {epic && (
+                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                  <div className="flex items-center mb-4 flex-wrap">
+                    <Sparkles size={24} className="text-purple-500 mr-3 flex-shrink-0" />
+                    <h1 className="text-3xl font-bold text-gray-800 break-words overflow-hidden">{epic.name}</h1>
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Features section */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-800">Features</h2>
-                <div className="flex space-x-3">
-                  {/* Run All Tests button - only show if features exist */}
-                  {epic?.features && epic.features.length > 0 && (
-                    <button
-                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150"
-                      onClick={handleRunAllTests}
-                    >
-                      <Play size={18} className="mr-2" />
-                      Run All Tests
-                    </button>
+                  {epic.description && (
+                    <p className="text-gray-700 mb-4 break-words overflow-hidden max-h-40 overflow-y-auto">{epic.description}</p>
+                  )}
+                  {selectedProduct && (
+                    <div className="text-sm text-gray-500 break-words overflow-hidden">
+                      Product: {selectedProduct.name}
+                    </div>
                   )}
                   {/* Generate All button - only show if NO features exist */}
                   {epic?.features.length !== 0 && (<button
@@ -397,12 +380,39 @@ const EpicDetails = () => {
                     Add Feature
                   </button>)}
                 </div>
-              </div>
+              )}
 
-              {!epic?.features || epic.features.length === 0 ? (
-                <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
-                  <p className="text-gray-500 mb-4">No features found for this epic</p>
-                  <div className="flex justify-center space-x-4">
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold text-gray-800">Features</h2>
+                  <div className="flex space-x-3">
+                    {epic?.features && epic.features.length > 0 && (
+                      <button
+                        className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150"
+                        onClick={handleRunAllTests}
+                      >
+                        <Play size={18} className="mr-2" />
+                        Run All Tests
+                      </button>
+                    )}
+                    {(!epic?.features || epic.features.length === 0) && (
+                      <button
+                        className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150"
+                        onClick={handleGenerateAll}
+                      >
+                        <Zap size={18} className="mr-2" />
+                        Generate All
+                      </button>
+                    )}
+                    {(!epic?.features || epic.features.length === 0) && (
+                      <button
+                        className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                        onClick={() => setIsGenerateFeatureModalOpen(true)}
+                      >
+                        <Sparkles size={18} className="mr-2" />
+                        Generate Features
+                      </button>
+                    )}
                     <button
                       className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150"
                       onClick={handleGenerateAll}
@@ -421,84 +431,106 @@ const EpicDetails = () => {
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
                       onClick={() => setIsAddFeatureModalOpen(true)}
                     >
-                      Create feature manually
+                      <Plus size={18} className="mr-2" />
+                      Add Feature
                     </button>
                   </div>
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Name
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Description
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          URLs
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {epic.features.map((feature) => (
-                        <tr
-                          key={feature.id}
-                          className="hover:bg-gray-50 cursor-pointer"
-                          onClick={() => navigate(`/features/${feature.id}`)}
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900 truncate max-w-[300px]" title={feature.name}>
-                              {feature.name}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-500 truncate max-w-xs">{feature.description}</div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex flex-col gap-1">
-                              {feature.urls?.map((url, index) => (
-                                <a
-                                  key={index}
-                                  href={url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-blue-600 hover:text-blue-800 truncate max-w-xs"
-                                  onClick={(e) => e.stopPropagation()} // Prevent row click when clicking link
-                                >
-                                  {url}
-                                </a>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={(e) => handleEditFeature(feature, e)}
-                                className="flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition duration-150"
-                              >
-                                <Edit size={14} className="mr-1" />
-                                Edit
-                              </button>
-                              <button
-                                onClick={(e) => handleDeleteFeature(feature, e)}
-                                className="flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition duration-150"
-                              >
-                                <Trash2 size={14} className="mr-1" />
-                                Delete
-                              </button>
-                            </div>
-                          </td>
+
+                {!epic?.features || epic.features.length === 0 ? (
+                  <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
+                    <p className="text-gray-500 mb-4">No features found for this epic</p>
+                    <div className="flex justify-center space-x-4">
+                      <button
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                        onClick={() => setIsGenerateFeatureModalOpen(true)}
+                      >
+                        <Sparkles size={18} className="mr-2 inline-block" />
+                        Generate features automatically
+                      </button>
+                      <button
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-150"
+                        onClick={() => setIsAddFeatureModalOpen(true)}
+                      >
+                        Create feature manually
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Name
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Description
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            URLs
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </>
-        )}
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {epic.features.map((feature) => (
+                          <tr
+                            key={feature.id}
+                            className="hover:bg-gray-50 cursor-pointer"
+                            onClick={() => navigate(`/features/${feature.id}`)}
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900 truncate max-w-[300px]" title={feature.name}>
+                                {feature.name}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="text-sm text-gray-500 truncate max-w-xs">{feature.description}</div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col gap-1">
+                                {feature.urls?.map((url, index) => (
+                                  <a
+                                    key={index}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-blue-600 hover:text-blue-800 truncate max-w-xs"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {url}
+                                  </a>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={(e) => handleEditFeature(feature, e)}
+                                  className="flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition duration-150"
+                                >
+                                  <Edit size={14} className="mr-1" />
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={(e) => handleDeleteFeature(feature, e)}
+                                  className="flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition duration-150"
+                                >
+                                  <Trash2 size={14} className="mr-1" />
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Add Feature Modal */}
@@ -546,10 +578,10 @@ const EpicDetails = () => {
             setIsGenerateAllModalOpen(false);
             fetchEpicDetails();
           }}
+          onComplete={handleGenerationComplete}
         />
       )}
 
-      {/* Delete Feature Confirmation */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">

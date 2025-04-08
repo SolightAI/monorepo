@@ -8,6 +8,7 @@ import EpicCreationModal from '@/components/modals/EpicCreationModal';
 import EpicGenerationModal from '@/components/modals/EpicGenerationModal';
 import ComprehensiveGenerationModal from '@/components/modals/ComprehensiveGenerationModal';
 import EditEpicModal from '@/components/modals/EditEpicModal';
+import InProgressGenerations from '@/components/InProgressGenerations';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -161,6 +162,11 @@ const Home = () => {
     }
   };
 
+  const handleGenerationsComplete = () => {
+    console.log('Generations completed, refreshing product list...');
+    fetchEpics(); // Refresh the product list
+  };
+
   // If we're loading organizations, show a loading indicator
   if (organizationLoading) {
     return (
@@ -197,12 +203,15 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {productLoading ? (
-          <div className="flex justify-center items-center py-20">
-            <Loader size={40} className="text-blue-500 animate-spin" />
-          </div>
+    <div className="container mx-auto px-4 py-8">
+      <InProgressGenerations onComplete={handleGenerationsComplete} />
+      
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          {productLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <Loader size={40} className="text-blue-500 animate-spin" />
+            </div>
         ) : !selectedProduct ? (
           <div className="text-center py-20 bg-white rounded-lg shadow">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">No Product Selected</h2>
@@ -217,21 +226,25 @@ const Home = () => {
         ) : (
           <>
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-800">{selectedProduct.name} Epics</h1>
-              {selectedProduct.description && (
-                <p className="text-gray-600 mt-2 max-h-64 overflow-y-auto">{selectedProduct.description}</p>
-              )}
-              {epics.length !== 0 && (
-                <div className="flex justify-end mt-8">
-                  <button
-                    onClick={() => setShowEpicModal(true)}
-                    className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
-                  >
-                    <Plus size={20} className="mr-2" />
-                    Add Epic
-                  </button>
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-800">{selectedProduct.name} Epics</h1>
+                  {selectedProduct.description && (
+                    <p className="text-gray-600 mt-2 max-h-64 overflow-y-auto">{selectedProduct.description}</p>
+                  )}
                 </div>
-              )}
+                {epics.length === 0 ? null : (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setShowEpicModal(true)}
+                      className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                    >
+                      <Plus size={20} className="mr-2" />
+                      Add Epic
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Error message */}
@@ -246,36 +259,41 @@ const Home = () => {
             {loading || isGeneratingEpics || isGeneratingEverything || epicGenerationInProgress ? (
               <div className="flex justify-center items-center py-20">
                 <Loader size={40} className="text-blue-500 animate-spin" />
-                {(isGeneratingEpics || epicGenerationInProgress) && <p className="ml-4 text-blue-600">Generating epics...</p>}
-                {isGeneratingEverything && <p className="ml-4 text-blue-600">Generating everything...</p>}
+                {(isGeneratingEpics || epicGenerationInProgress) && (
+                  <p className="ml-4 text-blue-600">Generating epics...</p>
+                )}
+                {isGeneratingEverything && (
+                  <p className="ml-4 text-blue-600">Generating everything...</p>
+                )}
               </div>
             ) : (
               <>
-                {/* Epic cards */}
                 {epics.length === 0 ? (
                   <div className="text-center py-20 bg-white rounded-lg shadow">
                     <p className="text-gray-500 mb-4">No epics found for this product</p>
                     <div className="flex justify-center space-x-4">
                       <button
                         onClick={handleGenerateEverything}
-                        className="px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg shadow hover:from-green-700 hover:to-blue-700 transition duration-150 flex items-center"
+                        className="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg shadow hover:from-green-700 hover:to-blue-700 transition duration-150"
                       >
-                        <Rocket size={18} className="mr-2" />
-                        Generate everything
+                        <Rocket size={20} className="mr-2" />
+                        Generate Everything
                       </button>
                       <button
                         onClick={handleGenerateEpics}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-150 flex items-center"
+                        className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-150"
                       >
-                        <Zap size={18} className="mr-2" />
-                        Generate epics
+                        <Zap size={20} className="mr-2" />
+                        Generate Epics
                       </button>
+                    </div>
+                    <div className="mt-4">
                       <button
                         onClick={() => setShowEpicModal(true)}
-                        className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150 flex items-center"
+                        className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
                       >
-                        <Plus size={18} className="mr-2" />
-                        Create epics manually
+                        <Plus size={20} className="mr-2" />
+                        Add Epic
                       </button>
                     </div>
                   </div>
@@ -328,6 +346,7 @@ const Home = () => {
             )}
           </>
         )}
+        </div>
       </div>
 
       {/* Epic Creation Modal */}
