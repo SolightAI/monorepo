@@ -167,7 +167,6 @@ async def _generate_epics(
         browser_context=context,
         use_vision=False,
         use_vision_for_planner=False,
-        enable_memory=False,
     )
 
     try:

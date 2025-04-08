@@ -5,9 +5,9 @@ requests>=2.32.3
 pydantic==2.10.6
 pydantic_core==2.27.2
 httpx==0.28.1
-langchain==0.3.22
 openai==1.70.0
-git+https://github.com/browser-use/browser-use.git@2615e1286df523e52afec0033181b0a27cf0274b
+git+https://github.com/browser-use/browser-use.git@e8ef8ea6223a9bad34c00dd1b710f8b1e2ea897d
+langchain==0.3.19
 pyperclip==1.9.0
 json-repair
 cryptography>=44.0.2

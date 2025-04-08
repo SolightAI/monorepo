@@ -155,7 +155,6 @@ async def _generate_user_stories(
         llm=LLM_CLIENT,
         initial_actions=[{'go_to_url': {'url': feature.urls[0]}}, {'go_to_url': {'url': feature.urls[0]}}],
         browser_context=context,
-        enable_memory=False,
         # generate_gif=gif_output_path,  # deactivated cause it leads to thread blocking
     )
 
