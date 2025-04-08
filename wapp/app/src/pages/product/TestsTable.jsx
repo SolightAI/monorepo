@@ -6,13 +6,11 @@ import {
   ChevronDown,
   Calendar,
   Beaker,
-  Layers,
   FileText,
   Play,
   Plus,
   Edit,
   Trash2,
-  MoreVertical
 } from 'lucide-react';
 import axios from 'axios';
 import { getTestsByFeature, getTestsByEpic, getTestsByProduct, triggerFeatureTestGeneration, getTestGenerationStatus } from '@/services/testService';
@@ -31,12 +29,6 @@ import { formatDate } from '@/utils/dateUtils';
  */
 const TestsTable = () => {
   const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
-
-  // Debug function for state updates
-  const debugStateUpdate = (stateName, value) => {
-    console.log(`State update for ${stateName}:`, value);
-    return value; // Return the value so it can be used in the state setter
-  };
 
   const [tests, setTests] = useState([]);
   const [filteredTests, setFilteredTests] = useState([]);
@@ -59,7 +51,6 @@ const TestsTable = () => {
   const [isEditFeatureModalOpen, setIsEditFeatureModalOpen] = useState(false);
   const [selectedFeatureForEdit, setSelectedFeatureForEdit] = useState(null);
   const [showFeatureActionMenu, setShowFeatureActionMenu] = useState(null); // ID of feature with open action menu
-  const featureMenuRef = useRef(null);
   const [isFeatureDropdownOpen, setIsFeatureDropdownOpen] = useState(false);
   const featureDropdownRef = useRef(null);
   const [isGeneratingTests, setIsGeneratingTests] = useState(false);
@@ -588,13 +579,13 @@ const TestsTable = () => {
     try {
       setIsGeneratingTests(true);
       setError(null);
-      setSuccessMessage(debugStateUpdate('successMessage', 'Starting test generation. This may take a minute...'));
+      setSuccessMessage('Starting test generation. This may take a minute...');
 
       // Call the API to generate tests
       console.log('Triggering test generation for feature:', selectedFeature);
       const taskId = await triggerFeatureTestGeneration(selectedFeature);
       console.log('Test generation task ID received:', taskId);
-      setTestGenerationTaskId(debugStateUpdate('testGenerationTaskId', taskId));
+      setTestGenerationTaskId(taskId);
 
       // Clear any existing interval
       if (pollingIntervalRef.current) {
@@ -609,22 +600,22 @@ const TestsTable = () => {
           console.log('Test generation status response:', response);
 
           // Update success message with current status
-          setSuccessMessage(debugStateUpdate('successMessage',
+          setSuccessMessage(
             `Test generation in progress. Status: ${response.status || 'pending'}${response.progress ? ` (${response.progress})` : ''}`
-          ));
+          );
 
           if (response.status === 'completed') {
             console.log('Test generation completed successfully:', response);
             clearInterval(pollingIntervalRef.current);
             pollingIntervalRef.current = null;
-            setIsGeneratingTests(debugStateUpdate('isGeneratingTests', false));
-            setTestGenerationTaskId(debugStateUpdate('testGenerationTaskId', null));
+            setIsGeneratingTests(false);
+            setTestGenerationTaskId(null);
 
             // Refresh tests and show success
             await fetchTestsWithCurrentFilters();
-            setSuccessMessage(debugStateUpdate('successMessage',
+            setSuccessMessage(
               `Successfully generated ${response.results?.length || 0} tests for the selected feature.`
-            ));
+            );
 
             // Clear success message after 5 seconds
             setTimeout(() => {
@@ -634,9 +625,9 @@ const TestsTable = () => {
             console.error('Test generation failed with error:', response.error);
             clearInterval(pollingIntervalRef.current);
             pollingIntervalRef.current = null;
-            setIsGeneratingTests(debugStateUpdate('isGeneratingTests', false));
-            setTestGenerationTaskId(debugStateUpdate('testGenerationTaskId', null));
-            setError(debugStateUpdate('error', `Failed to generate tests: ${response.error || 'Unknown error occurred'}`));
+            setIsGeneratingTests(false);
+            setTestGenerationTaskId(null);
+            setError(`Failed to generate tests: ${response.error || 'Unknown error occurred'}`);
             setSuccessMessage(null);
           }
           // If pending, continue polling
@@ -644,17 +635,17 @@ const TestsTable = () => {
           console.error('Error checking test generation status:', err);
           clearInterval(pollingIntervalRef.current);
           pollingIntervalRef.current = null;
-          setIsGeneratingTests(debugStateUpdate('isGeneratingTests', false));
-          setTestGenerationTaskId(debugStateUpdate('testGenerationTaskId', null));
-          setError(debugStateUpdate('error', 'Failed to check test generation status. Please try again.'));
+          setIsGeneratingTests(false);
+          setTestGenerationTaskId(null);
+          setError('Failed to check test generation status. Please try again.');
           setSuccessMessage(null);
         }
       }, 3000); // Check every 3 seconds
 
     } catch (err) {
       console.error('Error generating tests:', err);
-      setIsGeneratingTests(debugStateUpdate('isGeneratingTests', false));
-      setTestGenerationTaskId(debugStateUpdate('testGenerationTaskId', null));
+      setIsGeneratingTests(false);
+      setTestGenerationTaskId(null);
       setError('Failed to start test generation. Please try again.');
       setSuccessMessage(null);
     }
@@ -676,8 +667,8 @@ const TestsTable = () => {
       }
       if (testGenerationTaskId) {
         console.log('Cleaning up test generation polling on unmount or feature change');
-        setIsGeneratingTests(debugStateUpdate('isGeneratingTests', false));
-        setTestGenerationTaskId(debugStateUpdate('testGenerationTaskId', null));
+        setIsGeneratingTests(false);
+        setTestGenerationTaskId(null);
       }
     };
   }, [selectedFeature]);
