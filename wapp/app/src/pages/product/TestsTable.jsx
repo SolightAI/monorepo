@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Filter,
   Search,
@@ -6,16 +6,21 @@ import {
   ChevronDown,
   Calendar,
   Beaker,
-  Layers,
   FileText,
-  Play
+  Play,
+  Plus,
+  Edit,
+  Trash2,
 } from 'lucide-react';
 import axios from 'axios';
-import { getTestsByFeature, getTestsByEpic, getTestsByProduct } from '@/services/testService';
+import { getTestsByFeature, getTestsByEpic, getTestsByProduct, triggerFeatureTestGeneration, getTestGenerationStatus } from '@/services/testService';
 import { getAllEpics, getFeaturesByEpic } from '@/services/productService';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import TestDetailsModal from '@/components/modals/TestDetailsModal';
+import AddFeatureModal from '@/components/modals/AddFeatureModal';
+import EditFeatureModal from '@/components/modals/EditFeatureModal';
+import AddTestModal from '@/components/modals/AddTestModal';
 import { getStatusIconLarge, formatStatus, getStatusColorClasses } from '@/utils/testExecutionUtils';
 import { formatDate } from '@/utils/dateUtils';
 
@@ -35,12 +40,22 @@ const TestsTable = () => {
   const [selectedTest, setSelectedTest] = useState(null);
   const [epics, setEpics] = useState([]);
   const [features, setFeatures] = useState([]);
-  const [selectedEpic, setSelectedEpic] = useState('all');
+  const [selectedEpic, setSelectedEpic] = useState('all'); // Will be updated to first epic when data loads
   const [selectedFeature, setSelectedFeature] = useState('all');
   const [epicFeaturesMap, setEpicFeaturesMap] = useState({});
   const [loadingEpics, setLoadingEpics] = useState(false);
   const [loadingFeatures, setLoadingFeatures] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [isAddFeatureModalOpen, setIsAddFeatureModalOpen] = useState(false);
+  const [isAddTestModalOpen, setIsAddTestModalOpen] = useState(false);
+  const [isEditFeatureModalOpen, setIsEditFeatureModalOpen] = useState(false);
+  const [selectedFeatureForEdit, setSelectedFeatureForEdit] = useState(null);
+  const [showFeatureActionMenu, setShowFeatureActionMenu] = useState(null); // ID of feature with open action menu
+  const [isFeatureDropdownOpen, setIsFeatureDropdownOpen] = useState(false);
+  const featureDropdownRef = useRef(null);
+  const [isGeneratingTests, setIsGeneratingTests] = useState(false);
+  const [testGenerationTaskId, setTestGenerationTaskId] = useState(null);
+  const pollingIntervalRef = useRef(null);
 
   const { selectedProduct } = useProduct();
   const { selectedOrganization } = useOrganization();
@@ -57,6 +72,14 @@ const TestsTable = () => {
   // Add console logs for epics and features state changes
   useEffect(() => {
     console.log('Epics updated:', epics);
+
+    // When epics are loaded, select the first epic by default if available
+    if (epics.length > 0 && selectedEpic === 'all') {
+      const firstEpicId = epics[0].id;
+      console.log('Setting first epic as default:', firstEpicId);
+      setSelectedEpic(firstEpicId);
+      // Features will be fetched in the other useEffect when selectedEpic changes
+    }
   }, [epics]);
 
   useEffect(() => {
@@ -165,6 +188,7 @@ const TestsTable = () => {
   const handleFetchError = (action, err) => {
     console.error(`Error ${action}:`, err);
     setError(`Failed to ${action}. Please try again later.`);
+    setSuccessMessage(null);
     setLoading(false);
   };
 
@@ -374,6 +398,383 @@ const TestsTable = () => {
     }
   };
 
+  // Function to handle feature creation completion
+  const handleFeatureAdded = (newFeature) => {
+    // Update the features list
+    if (newFeature.epic_id === selectedEpic || selectedEpic === 'all') {
+      setFeatures(prevFeatures => [...prevFeatures, newFeature]);
+
+      // Update the epicFeaturesMap
+      const updatedMap = { ...epicFeaturesMap };
+      if (updatedMap[newFeature.epic_id]) {
+        updatedMap[newFeature.epic_id] = [...updatedMap[newFeature.epic_id], newFeature];
+      } else {
+        updatedMap[newFeature.epic_id] = [newFeature];
+      }
+      setEpicFeaturesMap(updatedMap);
+
+      // Automatically select the newly created feature
+      setSelectedFeature(newFeature.id);
+    }
+
+    // Show success message - truncate long feature names
+    const displayName = newFeature.name.length > 30 ? `${newFeature.name.substring(0, 30)}...` : newFeature.name;
+    setSuccessMessage(`Feature "${displayName}" created successfully`);
+
+    // Clear success message after 3 seconds
+    setTimeout(() => {
+      setSuccessMessage(null);
+    }, 3000);
+  };
+
+  // Function to handle test creation button click
+  const handleCreateTestClick = () => {
+    // Check if there are any features
+    if (features.length === 0) {
+      // Show a prompt to create features first
+      setError('Please create at least one feature before adding tests.');
+
+      // Open the dropdown to access the create feature button
+      setIsFeatureDropdownOpen(true);
+
+      // Highlight the feature dropdown
+      const featureDropdown = document.querySelector('[data-feature-dropdown]');
+      if (featureDropdown) {
+        // Add a pulse animation class
+        featureDropdown.classList.add('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
+
+        // Remove the animation after 5 seconds
+        setTimeout(() => {
+          featureDropdown.classList.remove('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
+        }, 5000);
+      }
+
+      // Automatically clear the error after 6 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 6000);
+
+      // Scroll to top to make sure error is visible
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      return;
+    }
+    // Check if a feature is selected
+    else if (selectedFeature === 'all') {
+      // Show a prompt to select a feature first
+
+      // Highlight the feature dropdown
+      const featureDropdown = document.querySelector('[data-feature-dropdown]');
+      if (featureDropdown) {
+        // Add a pulse animation class
+        featureDropdown.classList.add('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
+
+        // Remove the animation after 5 seconds
+        setTimeout(() => {
+          featureDropdown.classList.remove('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
+        }, 5000);
+      }
+
+      // Open the dropdown to show options
+      setIsFeatureDropdownOpen(true);
+
+      // Automatically clear the error after 6 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 6000);
+
+      // Scroll to top to make sure error is visible
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      return;
+    }
+
+    // If a feature is selected, open the test creation modal
+    setIsAddTestModalOpen(true);
+  };
+
+  // Function to dismiss error message
+  const dismissError = () => {
+    setError(null);
+  };
+
+  // Function to handle test creation completion
+  const handleTestAdded = async (newTest) => {
+    try {
+      // Make API call to save the test
+      const testData = {
+        ...newTest
+      };
+
+      // Add the appropriate ID based on the current selection
+      if (selectedFeature !== 'all') {
+        testData.feature_id = selectedFeature;
+      } else if (selectedEpic !== 'all') {
+        testData.epic_id = selectedEpic;
+      } else if (selectedProduct) {
+        testData.epic_id = epics[0]?.id; // Use first epic as a fallback
+      }
+
+      const response = await axios.post(
+        `${API_URL}/tests/`,
+        testData,
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      // Show success message - truncate long test names
+      const displayName = response.data.name.length > 30 ? `${response.data.name.substring(0, 30)}...` : response.data.name;
+      setSuccessMessage(`Test "${displayName}" created successfully`);
+
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+
+      // Refresh tests list
+      fetchTestsWithCurrentFilters();
+    } catch (err) {
+      console.error('Error saving test:', err);
+      setError('Failed to create test. Please try again.');
+      setSuccessMessage(null);
+    }
+  };
+
+  // Function to handle test generation for the selected feature
+  const handleGenerateTests = async () => {
+    // Check if a feature is selected
+    if (selectedFeature === 'all') {
+      // Show error message
+
+      // Highlight the feature dropdown
+      const featureDropdown = document.querySelector('[data-feature-dropdown]');
+      if (featureDropdown) {
+        // Add a pulse animation class
+        featureDropdown.classList.add('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
+
+        // Remove the animation after 5 seconds
+        setTimeout(() => {
+          featureDropdown.classList.remove('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
+        }, 5000);
+      }
+
+      // Open the dropdown to show options
+      setIsFeatureDropdownOpen(true);
+
+      // Automatically clear the error after 6 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 6000);
+
+      // Scroll to top to make sure error is visible
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      return;
+    }
+
+    try {
+      setIsGeneratingTests(true);
+      setError(null);
+      setSuccessMessage('Starting test generation. This may take a minute...');
+
+      // Call the API to generate tests
+      console.log('Triggering test generation for feature:', selectedFeature);
+      const taskId = await triggerFeatureTestGeneration(selectedFeature);
+      console.log('Test generation task ID received:', taskId);
+      setTestGenerationTaskId(taskId);
+
+      // Clear any existing interval
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+
+      // Poll for status
+      pollingIntervalRef.current = setInterval(async () => {
+        try {
+          console.log('Polling test generation status for task:', taskId);
+          const response = await getTestGenerationStatus(taskId);
+          console.log('Test generation status response:', response);
+
+          // Update success message with current status
+          setSuccessMessage(
+            `Test generation in progress. Status: ${response.status || 'pending'}${response.progress ? ` (${response.progress})` : ''}`
+          );
+
+          if (response.status === 'completed') {
+            console.log('Test generation completed successfully:', response);
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+            setIsGeneratingTests(false);
+            setTestGenerationTaskId(null);
+
+            // Refresh tests and show success
+            await fetchTestsWithCurrentFilters();
+            setSuccessMessage(
+              `Successfully generated ${response.results?.length || 0} tests for the selected feature.`
+            );
+
+            // Clear success message after 5 seconds
+            setTimeout(() => {
+              setSuccessMessage(null);
+            }, 5000);
+          } else if (response.status === 'error') {
+            console.error('Test generation failed with error:', response.error);
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+            setIsGeneratingTests(false);
+            setTestGenerationTaskId(null);
+            setError(`Failed to generate tests: ${response.error || 'Unknown error occurred'}`);
+            setSuccessMessage(null);
+          }
+          // If pending, continue polling
+        } catch (err) {
+          console.error('Error checking test generation status:', err);
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+          setIsGeneratingTests(false);
+          setTestGenerationTaskId(null);
+          setError('Failed to check test generation status. Please try again.');
+          setSuccessMessage(null);
+        }
+      }, 3000); // Check every 3 seconds
+
+    } catch (err) {
+      console.error('Error generating tests:', err);
+      setIsGeneratingTests(false);
+      setTestGenerationTaskId(null);
+      setError('Failed to start test generation. Please try again.');
+      setSuccessMessage(null);
+    }
+  };
+
+  // Add useEffect for cleanup of polling interval
+  useEffect(() => {
+    // Log when the polling is started/active
+    if (pollingIntervalRef.current) {
+      console.log('Polling is active for test generation task:', testGenerationTaskId);
+    }
+
+    // Cleanup function to stop polling when component unmounts or feature changes
+    return () => {
+      if (pollingIntervalRef.current) {
+        console.log('Stopping polling for test generation task:', testGenerationTaskId);
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      if (testGenerationTaskId) {
+        console.log('Cleaning up test generation polling on unmount or feature change');
+        setIsGeneratingTests(false);
+        setTestGenerationTaskId(null);
+      }
+    };
+  }, [selectedFeature]);
+
+  // Function to handle feature editing
+  const handleEditFeature = (feature) => {
+    setSelectedFeatureForEdit(feature);
+    setIsEditFeatureModalOpen(true);
+    setShowFeatureActionMenu(null); // Close the menu
+  };
+
+  // Function to handle feature deletion
+  const handleDeleteFeature = async (featureId) => {
+    if (!featureId) return;
+
+    if (!window.confirm('Are you sure you want to delete this feature? This will also delete all associated tests.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await axios.delete(`${API_URL}/features/${featureId}`, {
+        withCredentials: true
+      });
+
+      // Update the features state by removing the deleted feature
+      setFeatures(prevFeatures => prevFeatures.filter(f => f.id !== featureId));
+
+      // Update the epicFeaturesMap
+      const updatedMap = { ...epicFeaturesMap };
+      Object.keys(updatedMap).forEach(epicId => {
+        updatedMap[epicId] = updatedMap[epicId].filter(f => f.id !== featureId);
+      });
+      setEpicFeaturesMap(updatedMap);
+
+      // If the deleted feature was the selected one, reset to 'all'
+      if (selectedFeature === featureId) {
+        setSelectedFeature('all');
+      }
+
+      // Show success message
+      setSuccessMessage('Feature deleted successfully');
+      setTimeout(() => setSuccessMessage(null), 3000);
+
+      // Refresh tests
+      fetchTestsWithCurrentFilters();
+
+    } catch (err) {
+      console.error('Error deleting feature:', err);
+      setError('Failed to delete feature. Please try again.');
+      setSuccessMessage(null);
+    } finally {
+      setLoading(false);
+      setShowFeatureActionMenu(null); // Close the menu
+    }
+  };
+
+  // Function to handle feature update completion
+  const handleFeatureUpdated = (updatedFeature) => {
+    // Update the features list
+    setFeatures(prevFeatures =>
+      prevFeatures.map(f => f.id === updatedFeature.id ? updatedFeature : f)
+    );
+
+    // Update the epicFeaturesMap
+    const updatedMap = { ...epicFeaturesMap };
+    if (updatedMap[updatedFeature.epic_id]) {
+      updatedMap[updatedFeature.epic_id] = updatedMap[updatedFeature.epic_id]
+        .map(f => f.id === updatedFeature.id ? updatedFeature : f);
+    }
+    setEpicFeaturesMap(updatedMap);
+
+    // Show success message - truncate long feature names
+    const displayName = updatedFeature.name.length > 30 ? `${updatedFeature.name.substring(0, 30)}...` : updatedFeature.name;
+    setSuccessMessage(`Feature "${displayName}" updated successfully`);
+
+    setTimeout(() => setSuccessMessage(null), 3000);
+
+    // Close the modal
+    setIsEditFeatureModalOpen(false);
+    setSelectedFeatureForEdit(null);
+  };
+
+  // Function to toggle feature action menu
+  const toggleFeatureActionMenu = (featureId) => {
+    if (showFeatureActionMenu === featureId) {
+      setShowFeatureActionMenu(null);
+    } else {
+      setShowFeatureActionMenu(featureId);
+    }
+  };
+
+  // Close feature dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (featureDropdownRef.current && !featureDropdownRef.current.contains(event.target)) {
+        setIsFeatureDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center p-12">
@@ -383,7 +784,8 @@ const TestsTable = () => {
     );
   }
 
-  if (error) {
+  // Only show error page for critical/loading errors that prevent displaying the main UI
+  if (error && loading) {
     return (
       <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-red-700 max-w-4xl mx-auto">
         <h2 className="text-xl font-semibold mb-2">Error</h2>
@@ -409,6 +811,42 @@ const TestsTable = () => {
         />
       )}
 
+      {/* Add Feature Modal */}
+      {isAddFeatureModalOpen && selectedEpic !== 'all' && (
+        <AddFeatureModal
+          epicId={selectedEpic}
+          epicName={epics.find(epic => epic.id === selectedEpic)?.name || 'Selected Epic'}
+          onClose={() => setIsAddFeatureModalOpen(false)}
+          onFeatureAdded={handleFeatureAdded}
+        />
+      )}
+
+      {/* Add Test Modal */}
+      {isAddTestModalOpen && (
+        <AddTestModal
+          onClose={() => setIsAddTestModalOpen(false)}
+          onAddTest={handleTestAdded}
+          defaultType={selectedFeature !== 'all' ? 'Feature' : selectedEpic !== 'all' ? 'Epic' : 'Epic'}
+          epicId={selectedEpic !== 'all' ? selectedEpic : epics[0]?.id}
+          featureId={selectedFeature !== 'all' ? selectedFeature : undefined}
+          defaultUrl={selectedFeature !== 'all' && features.length > 0
+            ? features.find(f => f.id === selectedFeature)?.urls?.[0]
+            : undefined}
+        />
+      )}
+
+      {/* Edit Feature Modal */}
+      {isEditFeatureModalOpen && selectedFeatureForEdit && (
+        <EditFeatureModal
+          onClose={() => {
+            setIsEditFeatureModalOpen(false);
+            setSelectedFeatureForEdit(null);
+          }}
+          feature={selectedFeatureForEdit}
+          onFeatureUpdated={handleFeatureUpdated}
+        />
+      )}
+
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800 flex items-center">
           <Beaker className="mr-2" size={24} />
@@ -416,10 +854,38 @@ const TestsTable = () => {
         </h1>
       </div>
 
+      {/* Error message display */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start justify-between">
+          <p>{error}</p>
+          <button
+            onClick={dismissError}
+            className="ml-4 text-red-500 hover:text-red-700"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Add success message display */}
       {successMessage && (
-        <div className="mb-6 p-4 bg-green-100 border border-green-200 text-green-700 rounded-lg flex items-start">
-          <p>{successMessage}</p>
+        <div className={`mb-6 p-4 ${isGeneratingTests ? 'bg-blue-100 border-blue-200 text-blue-700' : 'bg-green-100 border-green-200 text-green-700'} border rounded-lg flex items-start justify-between`}>
+          <div className="flex-1 break-words overflow-hidden">
+            {isGeneratingTests && (
+              <div className="flex items-center mb-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+                <p className="font-medium">Test Generation in Progress</p>
+              </div>
+            )}
+            <p>{successMessage}</p>
+          </div>
+          {isGeneratingTests && testGenerationTaskId && (
+            <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded ml-2 whitespace-nowrap">
+              Task ID: {testGenerationTaskId.substring(0, 8)}...
+            </div>
+          )}
         </div>
       )}
 
@@ -469,7 +935,7 @@ const TestsTable = () => {
         </div>
 
         {/* Epic filter */}
-        <div className="relative w-full sm:w-64">
+        {/* <div className="relative w-full sm:w-64">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Layers size={18} className="text-gray-400" />
           </div>
@@ -479,7 +945,7 @@ const TestsTable = () => {
             disabled={loadingEpics}
             className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
           >
-            <option value="all">All Epics</option>
+            <option value="all">{loadingEpics ? 'Loading epics...' : 'All Epics'}</option>
             {Array.isArray(epics) && epics.length > 0 ? (
               epics.map(epic => {
                 console.log('Rendering epic option:', epic);
@@ -493,33 +959,153 @@ const TestsTable = () => {
               <option value="" disabled>No epics available</option>
             )}
           </select>
-        </div>
+        </div> */}
 
-        {/* Feature filter */}
-        <div className="relative w-full sm:w-64">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <FileText size={18} className="text-gray-400" />
-          </div>
-          <select
-            value={selectedFeature}
-            onChange={(e) => handleFeatureChange(e.target.value)}
-            disabled={loadingFeatures}
-            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
-          >
-            <option value="all">All Features</option>
-            {Array.isArray(features) && features.length > 0 ? (
-              features.map(feature => {
-                console.log('Rendering feature option:', feature);
-                return (
-                  <option key={feature.id} value={feature.id}>
-                    {feature.name || 'Unnamed Feature'}
-                  </option>
-                );
-              })
-            ) : (
-              <option value="" disabled>No features available</option>
+        {/* Feature filter and Add Feature button group */}
+        <div className="flex flex-row w-full sm:w-auto gap-2">
+          {/* Feature filter - Custom dropdown */}
+          <div className="relative w-full min-w-[200px] max-w-[300px] flex-1" ref={featureDropdownRef}>
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FileText size={18} className="text-gray-400" />
+            </div>
+            <button
+              onClick={() => setIsFeatureDropdownOpen(!isFeatureDropdownOpen)}
+              disabled={loadingFeatures}
+              className="flex w-full justify-between pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left"
+              data-feature-dropdown
+            >
+              <span className="block truncate">
+                {loadingFeatures
+                  ? 'Loading features...'
+                  : selectedFeature === 'all'
+                    ? (features.length > 0 ? 'All Features' : 'Create your first feature')
+                    : features.find(f => f.id === selectedFeature)?.name || 'Select Feature'
+                }
+              </span>
+              <ChevronDown size={18} className={`flex-shrink-0 ml-1 text-gray-400 transition-transform ${isFeatureDropdownOpen ? 'transform rotate-180' : ''}`} />
+            </button>
+
+            {/* Custom dropdown menu */}
+            {isFeatureDropdownOpen && (
+              <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                {/* Create Feature button - only show when an Epic is selected */}
+                {selectedEpic !== 'all' && (
+                  <div className="py-2 px-4 hover:bg-blue-50 cursor-pointer">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsAddFeatureModalOpen(true);
+                        setIsFeatureDropdownOpen(false);
+                      }}
+                      className="w-full flex items-center text-blue-600 font-medium"
+                      title="Add new feature to selected epic"
+                      data-create-feature-button
+                    >
+                      <Plus size={18} className="mr-2" />
+                      Create Feature
+                    </button>
+                  </div>
+                )}
+
+                <div className="border-t border-gray-200"></div>
+
+                { features.length > 0 && (
+                  <>
+                    <div
+                      className="py-2 px-4 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        handleFeatureChange('all');
+                    setIsFeatureDropdownOpen(false);
+                  }}
+                >
+                  All Features
+                    </div>
+                    <div className="border-t border-gray-200"></div>
+                  </>
+                )}
+
+                {features.length === 0 ? (
+                  <div className="py-2 px-4 text-gray-500 italic">No features available</div>
+                ) : (
+                  features.map(feature => (
+                    <div
+                      key={feature.id}
+                      className="py-2 px-4 hover:bg-gray-100 flex justify-between items-center"
+                    >
+                      <div
+                        className="cursor-pointer flex-grow truncate mr-2"
+                        onClick={() => {
+                          handleFeatureChange(feature.id);
+                          setIsFeatureDropdownOpen(false);
+                        }}
+                      >
+                        {feature.name || 'Unnamed Feature'}
+                      </div>
+                      <div className="flex items-center flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditFeature(feature);
+                            setIsFeatureDropdownOpen(false);
+                          }}
+                          className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full flex-shrink-0"
+                          title="Edit feature"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteFeature(feature.id);
+                            setIsFeatureDropdownOpen(false);
+                          }}
+                          className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full ml-1 flex-shrink-0"
+                          title="Delete feature"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             )}
-          </select>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-2">
+            {/* Generate Tests button */}
+            <button
+              onClick={handleGenerateTests}
+              disabled={isGeneratingTests}
+              className="flex items-center px-3 py-2 bg-purple-600 text-white rounded-md shadow hover:bg-purple-700 transition duration-150 disabled:bg-purple-300 disabled:cursor-not-allowed"
+              title="Generate tests for selected feature using AI"
+            >
+              {isGeneratingTests ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Beaker size={18} className="mr-2" />
+                  Generate Tests with AI
+                </>
+              )}
+            </button>
+
+            {/* Add Test button */}
+            <button
+              onClick={handleCreateTestClick}
+              className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition duration-150"
+              title="Add new test to selected feature"
+            >
+              <Plus size={18} className="mr-2" />
+              Add Test To Feature
+            </button>
+          </div>
         </div>
       </div>
 
@@ -529,14 +1115,16 @@ const TestsTable = () => {
           <div className="text-sm text-gray-500">
             {filteredTests.length} tests selected
           </div>
-          <button
-            onClick={handleRunSelectedTests}
-            disabled={filteredTests.length === 0}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150 disabled:bg-green-300 disabled:cursor-not-allowed"
-          >
-            <Play size={18} className="mr-2" />
-            Run Tests
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleRunSelectedTests}
+              disabled={filteredTests.length === 0}
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150 disabled:bg-green-300 disabled:cursor-not-allowed"
+            >
+              <Play size={18} className="mr-2" />
+              Run Tests
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">

@@ -160,7 +160,7 @@ export default function Layout() {
             </div>
 
             {/* Arrow pointing to the TestCredentials tab */}
-            <div className="absolute left-48 top-[118px]">
+            <div className="absolute left-48 top-[140px]">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 shapeRendering="geometricPrecision"

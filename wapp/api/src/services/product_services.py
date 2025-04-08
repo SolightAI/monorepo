@@ -6,6 +6,7 @@ from typing import Optional, List
 from urllib.parse import urlparse
 from logging import getLogger
 from uuid import UUID
+from services.epic_services import create_epic, EpicCreateSchema
 
 
 logger = getLogger(__name__)
@@ -95,8 +96,16 @@ async def create_product(product: ProductCreateSchema) -> ProductModel:
     Returns:
         The created product with epics properly loaded
     """
+
     # Create the product
     created_product = await ProductModel.create(**product.model_dump())
+
+    # We temporarily create a default epic for the product
+    await create_epic(epic=EpicCreateSchema(
+        name="Default Epic",
+        description="Default Epic",
+        product_id=created_product.id,
+    ))
 
     # Fetch the product with epics properly loaded
     return await get_product(created_product.id)
