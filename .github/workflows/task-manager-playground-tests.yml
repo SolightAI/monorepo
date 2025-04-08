@@ -21,6 +21,9 @@ jobs:
   auth-session-tests:
     runs-on: self-hosted
 
+    timeout-minutes: 60
+
+
     defaults:
       run:
         working-directory: ./task-manager
@@ -35,6 +38,12 @@ jobs:
       FARMZZ_USERNAME: ${{ secrets.FARMZZ_USERNAME }}
       TECLA_ACADEMY_PASSWORD: ${{ secrets.TECLA_ACADEMY_PASSWORD }}
       TECLA_ACADEMY_USERNAME: ${{ secrets.TECLA_ACADEMY_USERNAME }}
+
+      SESAME_HR_PASSWORD: ${{ secrets.SESAME_HR_PASSWORD }}
+      SESAME_HR_USERNAME: ${{ secrets.SESAME_HR_USERNAME }}
+      MEANDWHO_USERNAME: ${{ secrets.MEANDWHO_USERNAME }}
+      MEANDWHO_PASSWORD: ${{ secrets.MEANDWHO_PASSWORD }}
+
       S3_BUCKET_NAME: task-manager-github-actions
       AWS_ENDPOINT_URL: https://minio-n0ooc44wsgk0kkkwoksw48ck.34.155.147.62.sslip.io
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -131,27 +140,42 @@ jobs:
         echo "PLAYGROUND_URL=http://$CONTAINER_NAME:3000" >> $GITHUB_ENV
 
     - name: Run auth session tests
+      timeout-minutes: 30
       run: |
+        cat > .env.test << EOF
+        AZURE_OPENAI_KEY=$AZURE_OPENAI_KEY
+        AZURE_OPENAI_ENDPOINT=$AZURE_OPENAI_ENDPOINT
+        OPENAI_API_KEY=$AZURE_OPENAI_KEY
+        OPENAI_ENDPOINT=$AZURE_OPENAI_ENDPOINT
+        PLAYGROUND_URL=$PLAYGROUND_URL
+        TEST_MODE=$TEST_MODE
+        FARMZZ_PASSWORD=$FARMZZ_PASSWORD
+        FARMZZ_USERNAME=$FARMZZ_USERNAME
+        TECLA_ACADEMY_PASSWORD=$TECLA_ACADEMY_PASSWORD
+        TECLA_ACADEMY_USERNAME=$TECLA_ACADEMY_USERNAME
+        SESAME_HR_PASSWORD=$SESAME_HR_PASSWORD
+        SESAME_HR_USERNAME=$SESAME_HR_USERNAME
+        MEANDWHO_USERNAME=$MEANDWHO_USERNAME
+        MEANDWHO_PASSWORD=$MEANDWHO_PASSWORD
+        S3_BUCKET_NAME=$S3_BUCKET_NAME
+        AWS_ENDPOINT_URL=$AWS_ENDPOINT_URL
+        AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+        AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+        EOF
+        
         docker run \
           --network ${{ env.NETWORK_NAME }} \
-          -e AZURE_OPENAI_KEY \
-          -e AZURE_OPENAI_ENDPOINT \
-          -e PLAYGROUND_URL \
-          -e TEST_MODE \
-          -e FARMZZ_PASSWORD \
-          -e FARMZZ_USERNAME \
-          -e TECLA_ACADEMY_PASSWORD \
-          -e TECLA_ACADEMY_USERNAME \
-          -e S3_BUCKET_NAME \
-          -e AWS_ENDPOINT_URL \
-          -e AWS_ACCESS_KEY_ID \
-          -e AWS_SECRET_ACCESS_KEY \
+          --env-file .env.test \
           -v ${{ github.workspace }}/task-manager:/app \
           -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
           --user $(id -u):$(id -g) \
           -e PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright \
           ${{ env.PLAYWRIGHT_IMAGE }} \
           bash -c "cd /app && python -m pytest -vvs -W ignore::RuntimeWarning:pydantic.main"
+
+        # Clean up env file
+        rm .env.test
+
 
 #ignore::RuntimeWarning:pydantic.main
 # /usr/local/lib/python3.11/site-packages/pydantic/main.py:901: RuntimeWarning: coroutine 'Agent._verify_llm_connection' was never awaited

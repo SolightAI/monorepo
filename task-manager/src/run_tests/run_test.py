@@ -22,7 +22,7 @@ from utils.s3_utils import upload_gif_to_s3
 
 TEST_SUCCESS_MESSAGE = "[TEST SUCCESSFUL]"  # when the test is successful
 TEST_FAILED_MESSAGE = "[TEST FAILED]"  # when the test is failed
-AN_ERROR_OCCURED_MESSAGE = "[AN ERROR OCCURED]"  # when an error occurs
+AN_ERROR_OCCURED_MESSAGE = "[AN ERROR OCCURRED]"  # when an error occurs
 PRECONDITION_NOT_MET_MESSAGE = "[PRECONDITION NOT MET]"  # when the precondition is not met
 UNEXISTING_FEATURE_MESSAGE = "[UNEXISTING FEATURE]"  # when the agent is unable to locaate the feature on the page
 AGENT_LIMITATION_MESSAGE = "[AGENT LIMITATION]"  # when the test cannot be completed due to agent limitations

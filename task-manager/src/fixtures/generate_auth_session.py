@@ -1,37 +1,71 @@
 import os
 import json
-from tempfile import NamedTemporaryFile
+import base64
 
+from typing import Optional
 from logging import getLogger
 from pydantic import SecretStr
+from tempfile import NamedTemporaryFile
 from langchain_openai import AzureChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig, Controller
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
-from typing import Optional
 from utils.session_manager import get_cached_session, cache_session, update_session_timestamp
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_gif_to_s3
+from langchain_core.messages import HumanMessage
 
 
 OAUTH = "oauth_credential"
 USERNAME_PASSWORD = "username_password"
 
+ACTION_CHECK_LOGIN = "Check if the user is logged in based on the vision"
 
 PROMPT = """
-You are an AI assistant acting as a test automation engineer. Your task is to login to the application.
+You are an AI assistant acting as a test automation engineer. Your task is to login to an application. Follow these instructions carefully to complete the login process.
 
-Determine which authentication method to use based on the type of credentials provided:
-- If '{USERNAME_PASSWORD}' credentials are provided, use the email/password login flow.
-- If '{OAUTH}' credentials are provided with 'provider' set to 'Google', use the Google OAuth login flow.
-- If both types are available, prioritize using the '{USERNAME_PASSWORD}' credentials.
+First, you will be provided with the available login methods:
 
-If the provided credentials are invalid, you should raise an error message that must include "[AN ERROR OCCURED]".
-In case of invalid credentials, you will probably see an error message on screen.
-However, if the credentials are valid, you will not see any message on screen confirming the login. It's up to you to detect if the login was successful.
-If you're not sure if the login was successful, you can use the action "Check if the user is logged in based on the vision" to check if the user is logged in.
+<login_methods>
+{{login_methods}}
+</login_methods>
 
-Note that some '{USERNAME_PASSWORD}' credentials might be done in two steps where the you would first need to past the username, then click on a button to continue to the password input.
-""".strip().format(USERNAME_PASSWORD=USERNAME_PASSWORD, OAUTH=OAUTH)
+Determine which authentication method to use based on the type of credentials provided in the login_methods:
+
+1. If '{USERNAME_PASSWORD}' credentials are available, use the email/password login flow.
+2. If '{OAUTH}' credentials are available with 'provider' set to 'Google', use the Google OAuth login flow.
+3. If both types of credentials are available, prioritize using the '{USERNAME_PASSWORD}' credentials.
+4. No other authentication method is supported (e.g., instant login is not supported).
+
+For the email/password login flow:
+1. Enter the username/email in the appropriate field.
+2. Check if there is a 'Next' or similar button that needs to be clicked before entering the password. If so, click it.
+3. If you needed to click on the 'Next' button (or similar), make sure to double check that you actually clicked on it, this is very important.
+4. Enter the password in the password field.
+5. Click the login button.
+
+
+For the Google OAuth login flow:
+1. Click on the 'Sign in with Google' or similar button.
+2. Follow the Google OAuth process, which typically involves selecting an account or entering Google credentials.
+
+After attempting to log in:
+1. Do not expect to see a message confirming successful login.
+2. Use the following action to check if the login was successful: '{ACTION_CHECK_LOGIN}'
+
+If the login is unsuccessful or you encounter an error message:
+1. Use the action '{ACTION_CHECK_LOGIN}' to confirm the login status.
+2. If the login has failed, raise an error message that includes the phrase "[AN ERROR OCCURRED]" followed by a description of the error.
+
+If the login is successful, provide your final output in the following format:
+<login_attempt>
+<method_used>Specify which method was used (email/password or Google OAuth)</method_used>
+<login_result>Specify if the login was successful or if an error occurred</login_result>
+<error_message>Include the error message here if an error occurred, otherwise omit this tag</error_message>
+</login_attempt>
+
+Remember to use the action '{ACTION_CHECK_LOGIN}' before concluding whether the login was successful or not, and before raising any error messages.
+""".strip().format(USERNAME_PASSWORD=USERNAME_PASSWORD, OAUTH=OAUTH, ACTION_CHECK_LOGIN=ACTION_CHECK_LOGIN)
+
 
 
 CHECK_LOGIN_PROMPT = """
@@ -60,7 +94,7 @@ if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
     raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
 
 
-CLIENT = AzureChatOpenAI(
+AGENT_CLIENT = AzureChatOpenAI(
     model="gpt-4o",
     api_version='2024-10-21',
     azure_endpoint=azure_openai_endpoint,
@@ -70,19 +104,18 @@ CLIENT = AzureChatOpenAI(
 controller = Controller()
 
 
+controller = Controller()
 logger = getLogger(__name__)
 
 
-@controller.action("Check if the user is logged in based on the vision")
+
+@controller.action(ACTION_CHECK_LOGIN)
 async def is_logged_based_on_vision(browser: Browser) -> str:
+
+    logger.info("Checking if the user is logged in based on the vision")
+
     page = await browser.get_current_page()
     screenshot = await page.screenshot()
-
-    with open("/tmp/screenshot.png", "wb") as f:
-        f.write(screenshot)
-
-    import base64
-    from langchain_core.messages import HumanMessage
 
     image_data = base64.b64encode(screenshot).decode('utf-8')
 
@@ -96,7 +129,10 @@ async def is_logged_based_on_vision(browser: Browser) -> str:
         ],
     )
 
-    response = CLIENT.invoke([message]).content
+
+    response = AGENT_CLIENT.invoke([message]).content
+
+    logger.info("The LLM response is: %s", response)
 
     if "[NO]" in response:
         return "The user is NOT logged in."
@@ -162,7 +198,7 @@ async def check_is_logged_in(
 
     agent = Agent(
         task=CHECK_LOGIN_PROMPT,
-        llm=CLIENT,
+        llm=AGENT_CLIENT,
         initial_actions=[{'go_to_url': {'url': url}}],
         browser_context=context,
         enable_memory=False,
@@ -239,9 +275,16 @@ async def generate_auth_session(
     if gif_output_path:
         os.makedirs(os.path.dirname(gif_output_path), exist_ok=True)
 
+    login_methods = []
+    if any(USERNAME_PASSWORD in k for k in secrets.keys()):
+        login_methods.append(f"- {USERNAME_PASSWORD}")
+    if any(OAUTH in k for k in secrets.keys()):
+        login_methods.append(f"- {OAUTH}")
+    login_methods = "\n".join(login_methods)
+
     agent = Agent(
-        task=PROMPT,
-        llm=CLIENT,
+        task=PROMPT.format(login_methods=login_methods),
+        llm=AGENT_CLIENT,
         sensitive_data=sensitive_data,
         initial_actions=[{'go_to_url': {'url': url}}, {'go_to_url': {'url': url}}],  # twice cause it some case we have a redirect at the first try
         browser_context=context,
@@ -296,7 +339,7 @@ async def generate_auth_session(
         task_id=task_id,
         history=history,
         task_name=f"login to {url}",
-        error_markers=["[AN ERROR OCCURED]"],
+        error_markers=["[AN ERROR OCCURRED]"],
         empty_result_is_ok=True,
     )
 

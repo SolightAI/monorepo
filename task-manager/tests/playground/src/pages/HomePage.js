@@ -25,8 +25,19 @@ const HomePage = () => {
         { name: "Messy Google Auth", path: "/auth/google/messy", description: "Cluttered Google authentication with distractions" },
         { name: "Simple Staged Login", path: "/auth/staged/simple", description: "Clean, minimalist staged login with username then password" },
         { name: "Messy Staged Login", path: "/auth/staged/messy", description: "Cluttered staged login with distractions" },
-        { name: "Simple Combined Auth", path: "/auth/combined/simple", description: "Clean UI with both email/password and Google options" },
-        { name: "Messy Combined Auth", path: "/auth/combined/messy", description: "Cluttered UI with both email/password and Google options" }
+        { name: "Simple Instant Login", path: "/auth/instant/simple", description: "Clean, minimalist instant login interface" },
+        { name: "Messy Instant Login", path: "/auth/instant/messy", description: "Cluttered instant login with distractions" },
+        { name: "Simple Combined (Email/Google)", path: "/auth/combined/classic_google/simple", description: "Clean UI with both email/password and Google options" },
+        { name: "Messy Combined (Email/Google)", path: "/auth/combined/classic_google/messy", description: "Cluttered UI with both email/password and Google options" },
+        { name: "Simple Combined (Email/Instant)", path: "/auth/combined/classic_instant/simple", description: "Clean UI with both email/password and instant login options" },
+        { name: "Messy Combined (Instant/Google)", path: "/auth/combined/classic_instant/messy", description: "Cluttered UI with both instant login and Google options" }
+      ]
+    },
+    {
+      title: "Epic Generation",
+      description: "Test cases for epic generation",
+      items: [
+        { name: "Task Dashboard with Hidden Auth Banner", path: "/epic/hidden-auth-banner", description: "Normal-looking task dashboard page with a non-visible authentication banner in the markup" },
       ]
     },
     {
