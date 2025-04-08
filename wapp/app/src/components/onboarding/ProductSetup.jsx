@@ -30,6 +30,10 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
   const [validatingProductId, setValidatingProductId] = useState(null);
   const [showValidationNotification, setShowValidationNotification] = useState(false);
 
+  // States for tracking URL validation success
+  const [loginPageFound, setLoginPageFound] = useState(false);
+  const [detectedLoginUrl, setDetectedLoginUrl] = useState('');
+
   // Update form when organization changes
   useEffect(() => {
     if (selectedOrganization) {
@@ -146,8 +150,12 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
   // Handle URL update request from validation notification
   const handleUrlUpdate = (productId) => {
     // In onboarding, we don't have a way to edit the product directly
-    // So we'll just show a message to the user
-    setError('Please remember to update the product URL after completing onboarding.');
+    // So we'll just show a message to the user and allow them to update the URL in the form
+    setError('Please update the URL below and resubmit the form.');
+    
+    // Show the URL field prominently
+    document.getElementById('url')?.focus();
+    document.getElementById('url')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
   
   // Close validation notification
@@ -157,8 +165,96 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
     setValidatingProductId(null);
   };
 
+  // Check if URL is valid for testing
+  const validateUrl = async (url) => {
+    try {
+      if (!isValidUrl(url)) {
+        return false;
+      }
+      
+      // Direct validation of URL without creating a product
+      const response = await axios.post(
+        `${API_URL}/products/validate-url/`,
+        { url },
+        { withCredentials: true }
+      );
+      
+      if (response.data && response.data.task_id) {
+        // Store the task ID for validation monitoring
+        setValidationTaskId(response.data.task_id);
+        setShowValidationNotification(true);
+        console.log("URL validation initiated with task ID:", response.data.task_id);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Error validating URL:', err);
+      return false;
+    }
+  };
+  
+  // Handle URL field blur - validate URL when user finishes typing
+  const handleUrlBlur = async (e) => {
+    const url = e.target.value;
+    if (url && isValidUrl(url)) {
+      await validateUrl(url);
+    }
+  };
+
+  // Function to check validation status
+  const checkValidationStatus = async (taskId) => {
+    try {
+      const response = await axios.get(
+        `${API_URL}/products/url-validation-status/${taskId}`,
+        { withCredentials: true }
+      );
+      
+      if (response.data && response.data.status === 'completed' && 
+          response.data.results && response.data.results.valid) {
+        setLoginPageFound(true);
+        setDetectedLoginUrl(response.data.results.login_url || '');
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Error checking validation status:', err);
+      return false;
+    }
+  };
+  
+  // Poll for validation results when taskId is available
+  useEffect(() => {
+    if (!validationTaskId) return;
+    
+    let intervalId;
+    const pollValidation = () => {
+      intervalId = setInterval(async () => {
+        const success = await checkValidationStatus(validationTaskId);
+        if (success) {
+          clearInterval(intervalId);
+        }
+      }, 5000); // Check every 5 seconds
+    };
+    
+    pollValidation();
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [validationTaskId]);
+
   return (
     <div className="p-6 space-y-6">
+      {/* URL Validation Notification */}
+      {showValidationNotification && validationTaskId && (
+        <UrlValidationNotification
+          taskId={validationTaskId}
+          productId={validatingProductId}
+          onClose={handleCloseValidation}
+          onUrlUpdate={handleUrlUpdate}
+        />
+      )}
+      
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-3">Set Up Your First Product</h2>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -266,28 +362,77 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                     />
                   </div>
 
-                  <div>
+                  <div className="mb-4">
                     <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
-                      Product URL*
+                      Product URL <span className="text-red-500">*</span>
                     </label>
-                    <div className="flex items-center">
-                      <div className="mr-2">
-                        <LinkIcon className="h-5 w-5 text-gray-400" />
+                    <div className="relative">
+                      <div className="flex items-center">
+                        <div className="relative flex-grow">
+                          <input
+                            type="url"
+                            id="url"
+                            name="url"
+                            required
+                            value={formData.url}
+                            onChange={handleChange}
+                            onBlur={handleUrlBlur}
+                            className={`appearance-none rounded-md relative block w-full px-3 py-2 pr-10 border ${
+                              validationTaskId ? 'border-blue-300 bg-blue-50' : 'border-gray-300'
+                            } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                            placeholder="https://example.com"
+                          />
+                          {validationTaskId && (
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                              <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                            </div>
+                          )}
+                        </div>
+                        {formData.url && isValidUrl(formData.url) && !validationTaskId && (
+                          <button
+                            type="button"
+                            onClick={() => validateUrl(formData.url)}
+                            className="ml-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-md text-sm hover:bg-blue-200 whitespace-nowrap"
+                          >
+                            Validate URL
+                          </button>
+                        )}
                       </div>
-                      <input
-                        id="url"
-                        name="url"
-                        type="url"
-                        required
-                        value={formData.url}
-                        onChange={handleChange}
-                        className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="https://example.com"
-                      />
+                      {validationTaskId && (
+                        <p className="mt-1 text-sm text-blue-600">
+                          Validating URL and searching for login page...
+                        </p>
+                      )}
+                      {loginPageFound && (
+                        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                          <div className="flex items-start">
+                            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-green-800">Login page detected!</p>
+                              {detectedLoginUrl && (
+                                <div className="mt-1 flex items-center text-sm text-green-700">
+                                  <LinkIcon className="h-4 w-4 mr-1 flex-shrink-0" />
+                                  <a 
+                                    href={detectedLoginUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="underline hover:text-green-800"
+                                  >
+                                    {detectedLoginUrl}
+                                  </a>
+                                </div>
+                              )}
+                              <p className="text-xs text-green-600 mt-1">
+                                We'll use this for automated testing. You'll be able to add login credentials in the next step.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      <p className="mt-1 text-xs text-gray-500">
+                        Enter the URL of your product's website. We'll automatically check if there's a login page.
+                      </p>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">
-                      The URL where this product can be accessed
-                    </p>
                   </div>
 
                   <div>
@@ -378,24 +523,33 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                     <ArrowLeft className="mr-2 h-5 w-5" />
                     Back
                   </button>
+                  
                   <button
                     type="submit"
-                    disabled={isLoading}
-                    className={`px-5 py-2 rounded-md flex items-center transition-colors ${
-                      isLoading ? 'bg-blue-400 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
+                    disabled={isLoading || (validationTaskId && !loginPageFound)}
+                    className={`px-5 py-2 rounded-md flex items-center 
+                      ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 
+                        loginPageFound ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'} 
+                      text-white transition-colors`}
                   >
                     {isLoading ? (
                       <>
-                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
                         Creating...
+                      </>
+                    ) : validationTaskId && !loginPageFound ? (
+                      <>
+                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        Validating URL...
+                      </>
+                    ) : loginPageFound ? (
+                      <>
+                        Create Product with Login Page
+                        <CheckCircle className="ml-2 h-5 w-5" />
                       </>
                     ) : (
                       <>
-                        Create New Product
+                        Create Product
                         <ArrowRight className="ml-2 h-5 w-5" />
                       </>
                     )}
@@ -431,28 +585,77 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
               />
             </div>
 
-            <div>
+            <div className="mb-4">
               <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
-                Product URL*
+                Product URL <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center">
-                <div className="mr-2">
-                  <LinkIcon className="h-5 w-5 text-gray-400" />
+              <div className="relative">
+                <div className="flex items-center">
+                  <div className="relative flex-grow">
+                    <input
+                      type="url"
+                      id="url"
+                      name="url"
+                      required
+                      value={formData.url}
+                      onChange={handleChange}
+                      onBlur={handleUrlBlur}
+                      className={`appearance-none rounded-md relative block w-full px-3 py-2 pr-10 border ${
+                        validationTaskId ? 'border-blue-300 bg-blue-50' : 'border-gray-300'
+                      } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                      placeholder="https://example.com"
+                    />
+                    {validationTaskId && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                      </div>
+                    )}
+                  </div>
+                  {formData.url && isValidUrl(formData.url) && !validationTaskId && (
+                    <button
+                      type="button"
+                      onClick={() => validateUrl(formData.url)}
+                      className="ml-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-md text-sm hover:bg-blue-200 whitespace-nowrap"
+                    >
+                      Validate URL
+                    </button>
+                  )}
                 </div>
-                <input
-                  id="url"
-                  name="url"
-                  type="url"
-                  required
-                  value={formData.url}
-                  onChange={handleChange}
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="https://example.com"
-                />
+                {validationTaskId && (
+                  <p className="mt-1 text-sm text-blue-600">
+                    Validating URL and searching for login page...
+                  </p>
+                )}
+                {loginPageFound && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                    <div className="flex items-start">
+                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-green-800">Login page detected!</p>
+                        {detectedLoginUrl && (
+                          <div className="mt-1 flex items-center text-sm text-green-700">
+                            <LinkIcon className="h-4 w-4 mr-1 flex-shrink-0" />
+                            <a 
+                              href={detectedLoginUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="underline hover:text-green-800"
+                            >
+                              {detectedLoginUrl}
+                            </a>
+                          </div>
+                        )}
+                        <p className="text-xs text-green-600 mt-1">
+                          We'll use this for automated testing. You'll be able to add login credentials in the next step.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter the URL of your product's website. We'll automatically check if there's a login page.
+                </p>
               </div>
-              <p className="mt-1 text-xs text-gray-500">
-                The URL where this product can be accessed
-              </p>
             </div>
 
             <div>
@@ -545,18 +748,26 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
             </button>
             <button
               type="submit"
-              disabled={isLoading}
-              className={`px-5 py-2 rounded-md flex items-center transition-colors ${
-                isLoading ? 'bg-blue-400 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
+              disabled={isLoading || (validationTaskId && !loginPageFound)}
+              className={`px-5 py-2 rounded-md flex items-center 
+                ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 
+                  loginPageFound ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'} 
+                text-white transition-colors`}
             >
               {isLoading ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
                   Creating...
+                </>
+              ) : validationTaskId && !loginPageFound ? (
+                <>
+                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  Validating URL...
+                </>
+              ) : loginPageFound ? (
+                <>
+                  Create Product with Login Page
+                  <CheckCircle className="ml-2 h-5 w-5" />
                 </>
               ) : (
                 <>
@@ -567,16 +778,6 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
             </button>
           </div>
         </form>
-      )}
-
-      {/* URL Validation Notification */}
-      {showValidationNotification && validationTaskId && (
-        <UrlValidationNotification
-          taskId={validationTaskId}
-          productId={validatingProductId}
-          onClose={handleCloseValidation}
-          onUrlUpdate={handleUrlUpdate}
-        />
       )}
     </div>
   );
