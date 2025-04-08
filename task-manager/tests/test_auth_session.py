@@ -26,15 +26,12 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture
 def task_id() -> str:
-
     """Generate a unique task ID for each test."""
     return str(uuid4())
 
 
 @pytest.fixture
-
 def valid_username_password_credentials() -> dict:
-
     """Fixture for valid username/password credentials."""
     return {
         USERNAME_PASSWORD: {
@@ -45,9 +42,7 @@ def valid_username_password_credentials() -> dict:
 
 
 @pytest.fixture
-
 def valid_google_credentials() -> dict:
-
     """Fixture for valid Google OAuth credentials."""
     return {
         OAUTH: {
@@ -59,9 +54,7 @@ def valid_google_credentials() -> dict:
 
 
 @pytest.fixture
-
 def invalid_username_password_credentials() -> dict:
-
     """Fixture for invalid username/password credentials."""
     return {
         USERNAME_PASSWORD: {
@@ -72,9 +65,7 @@ def invalid_username_password_credentials() -> dict:
 
 
 @pytest.fixture
-
 def invalid_google_credentials() -> dict:
-
     """Fixture for invalid Google OAuth credentials."""
     return {
         OAUTH: {
@@ -86,9 +77,7 @@ def invalid_google_credentials() -> dict:
 
 
 @pytest.mark.asyncio
-
 async def test_generate_auth_session_simple_login(task_id: str, valid_username_password_credentials: dict, playground_base_url: str) -> None:
-
     """Test authentication with valid username/password on the simple login page."""
     url = f"{playground_base_url}{EMAIL_PASSWORD_SIMPLE_PATH}"
 
@@ -109,9 +98,7 @@ async def test_generate_auth_session_simple_login(task_id: str, valid_username_p
 
 
 @pytest.mark.asyncio
-
 async def test_generate_auth_session_google_login(task_id: str, valid_google_credentials: dict, playground_base_url: str) -> None:
-
     """Test authentication with valid Google OAuth credentials on the simple login page."""
     url = f"{playground_base_url}{GOOGLE_SIMPLE_PATH}"
 
@@ -132,11 +119,9 @@ async def test_generate_auth_session_google_login(task_id: str, valid_google_cre
     assert session["localStorage"].get("authProvider") == "google"
 
 
-
 @pytest.mark.skip(reason="Messy logins are too unpredictable to test")
 @pytest.mark.asyncio
 async def test_generate_auth_session_messy_login(task_id: str, valid_username_password_credentials: dict, playground_base_url: str) -> None:
-
     """Test authentication with valid username/password on the messy login page."""
     url = f"{playground_base_url}{EMAIL_PASSWORD_MESSY_PATH}"
 
@@ -156,7 +141,6 @@ async def test_generate_auth_session_messy_login(task_id: str, valid_username_pa
 
 
 @pytest.mark.asyncio
-
 async def test_generate_auth_session_staged_login(task_id: str, valid_username_password_credentials: dict, playground_base_url: str) -> None:
     """Test authentication with valid username/password on the staged login page."""
     url = f"{playground_base_url}{STAGED_SIMPLE_PATH}"
@@ -342,7 +326,6 @@ async def test_generate_auth_session_combined_instant_google_messy(task_id: str,
     assert session["localStorage"].get("isLoggedIn") == "true"
 
 
-
 @pytest.mark.skip(reason="Messy logins are too unpredictable to test")
 @pytest.mark.asyncio
 async def test_generate_auth_session_combined_instant_google_messy_google_auth(task_id: str, valid_google_credentials: dict, playground_base_url: str) -> None:
@@ -367,7 +350,6 @@ async def test_generate_auth_session_combined_instant_google_messy_google_auth(t
 
 @pytest.mark.asyncio
 async def test_generate_auth_session_invalid_credentials(task_id: str, invalid_username_password_credentials: dict, playground_base_url: str) -> None:
-
     """Test authentication with invalid username/password credentials."""
     url = f"{playground_base_url}{EMAIL_PASSWORD_SIMPLE_PATH}"
 
@@ -378,13 +360,11 @@ async def test_generate_auth_session_invalid_credentials(task_id: str, invalid_u
             secrets=invalid_username_password_credentials,
             reuse_session=False
         )
-
     assert "[AN ERROR OCCURRED]" in str(excinfo.value)
 
 
 @pytest.mark.asyncio
 async def test_generate_auth_session_invalid_google_credentials(task_id: str, invalid_google_credentials: str, playground_base_url: str) -> None:
-
     """Test authentication with invalid Google credentials."""
     url = f"{playground_base_url}{GOOGLE_SIMPLE_PATH}"
 
@@ -397,16 +377,12 @@ async def test_generate_auth_session_invalid_google_credentials(task_id: str, in
         )
         logger.error(f"[{task_id}] Returned session but should have raised an error: {session}")
 
-
     assert "[AN ERROR OCCURRED]" in str(excinfo.value)
-
 
 
 @pytest.mark.skip(reason="Requires a Redis instance to be running")
 @pytest.mark.asyncio
-
 async def test_session_reuse(task_id: str, valid_username_password_credentials: dict, playground_base_url: str) -> None:
-
     """Test that sessions can be reused."""
     url = f"{playground_base_url}{EMAIL_PASSWORD_SIMPLE_PATH}"
 
@@ -433,9 +409,7 @@ async def test_session_reuse(task_id: str, valid_username_password_credentials: 
 
 
 @pytest.mark.asyncio
-
 async def test_generate_auth_session_farmzz(task_id: str) -> None:
-
     """Test authentication with valid username/password on the simple login page."""
 
     url = "https://farmzz.com/admin/profile"
@@ -464,7 +438,6 @@ async def test_generate_auth_session_farmzz(task_id: str) -> None:
     assert "cookies" in session
     assert "localStorage" in session
 
-
     assert session["localStorage"].get("jwt") is not None
 
     # Verify cookies contains the expected auth data
@@ -474,7 +447,6 @@ async def test_generate_auth_session_farmzz(task_id: str) -> None:
 
 @pytest.mark.asyncio
 async def test_generate_auth_session_tecla_academy(task_id: str) -> None:
-
     """Test authentication with valid username/password on the simple login page."""
 
     url = "https://teclaacademy.com/logins"
@@ -502,7 +474,6 @@ async def test_generate_auth_session_tecla_academy(task_id: str) -> None:
     # Verify the session data structure
     assert "cookies" in session
     assert "localStorage" in session
-
 
     # Verify cookies contains the expected auth data
     assert "AUTH_SESSION_ID" in [cookie["name"] for cookie in session["cookies"]]

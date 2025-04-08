@@ -43,7 +43,6 @@ For the email/password login flow:
 4. Enter the password in the password field.
 5. Click the login button.
 
-
 For the Google OAuth login flow:
 1. Click on the 'Sign in with Google' or similar button.
 2. Follow the Google OAuth process, which typically involves selecting an account or entering Google credentials.
@@ -67,7 +66,6 @@ If the login is successful, provide your final output in the following format:
 
 Remember to use the action '{ACTION_CHECK_LOGIN}' before concluding whether the login was successful or not, and before raising any error messages.
 """.strip().format(USERNAME_PASSWORD=USERNAME_PASSWORD, OAUTH=OAUTH, ACTION_CHECK_LOGIN=ACTION_CHECK_LOGIN)
-
 
 
 CHECK_LOGIN_PROMPT = """
@@ -109,7 +107,6 @@ controller = Controller()
 logger = getLogger(__name__)
 
 
-
 @controller.action(ACTION_CHECK_LOGIN)
 async def is_logged_based_on_vision(browser: Browser) -> str:
 
@@ -129,7 +126,6 @@ async def is_logged_based_on_vision(browser: Browser) -> str:
             },
         ],
     )
-
 
     response = AGENT_CLIENT.invoke([message]).content
 

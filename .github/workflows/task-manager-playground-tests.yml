@@ -169,10 +169,8 @@ jobs:
           -e PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright \
           ${{ env.PLAYWRIGHT_IMAGE }} \
           bash -c "cd /app && python -m pytest -vvs -W ignore::RuntimeWarning:pydantic.main"
-
         # Clean up env file
         rm .env.test
-
 
 #ignore::RuntimeWarning:pydantic.main
 # /usr/local/lib/python3.11/site-packages/pydantic/main.py:901: RuntimeWarning: coroutine 'Agent._verify_llm_connection' was never awaited
