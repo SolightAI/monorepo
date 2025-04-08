@@ -342,7 +342,7 @@ const NavigationTree = () => {
     <nav className="w-full p-2">
 
       {/* Dashboard Link */}
-      {selectedOrganization && (
+      {/* {selectedOrganization && (
         <div className="pt-2">
           <Link
             to="/dashboard"
@@ -356,61 +356,10 @@ const NavigationTree = () => {
             <span className="ml-2">Dashboard</span>
           </Link>
         </div>
-      )}
-
-      {/* TestCredentials Management Link */}
-      {selectedOrganization && (
-        <div className="pt-2">
-          <Link
-            to="/secrets"
-            className={`flex items-center text-sm px-3 py-2 rounded-md ${
-              location.pathname.startsWith('/secrets')
-                ? 'bg-blue-50 text-blue-600 font-medium'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            {getIconForType('secrets')}
-            <span className="ml-2">Test Credentials</span>
-          </Link>
-        </div>
-      )}
-
-      {/* Tests Table Link */}
-      {selectedOrganization && (
-        <div className="pt-2">
-          <Link
-            to="/tests"
-            className={`flex items-center text-sm px-3 py-2 rounded-md ${
-              location.pathname.startsWith('/tests')
-                ? 'bg-blue-50 text-blue-600 font-medium'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            {getIconForType('test')}
-            <span className="ml-2">Tests</span>
-          </Link>
-        </div>
-      )}
-
-      {/* Bugs Table Link */}
-      {selectedOrganization && (
-        <div className="pt-2">
-          <Link
-            to="/bugs"
-            className={`flex items-center text-sm px-3 py-2 rounded-md ${
-              location.pathname.startsWith('/bugs')
-                ? 'bg-blue-50 text-blue-600 font-medium'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            {getIconForType('bug')}
-            <span className="ml-2">Bugs</span>
-          </Link>
-        </div>
-      )}
+      )} */}
 
       {/* Vertical Navigation Tree */}
-      {breadcrumbs.length > 0 && (
+      {/* {breadcrumbs.length > 0 && (
         <ul className="space-y-1 pt-2">
           {breadcrumbs.map((crumb, index) => (
             <li
@@ -441,12 +390,10 @@ const NavigationTree = () => {
                 )}
               </Link>
 
-              {/* Display child items with indentation */}
               {index < breadcrumbs.length - 1 && (
                 <ul className="pl-6 mt-1 space-y-1">
                   {breadcrumbs.slice(index + 1, index + 2).map((childCrumb, childIndex) => (
                     <li key={`${index}-${childIndex}`} className="ml-2 border-l-2 border-gray-200 pl-2">
-                      {/* We don't need to render anything here, as all items are already in the main list */}
                     </li>
                   ))}
                 </ul>
@@ -454,7 +401,59 @@ const NavigationTree = () => {
             </li>
           ))}
         </ul>
+      )} */}
+
+      {/* Tests Table Link */}
+      {selectedOrganization && (
+        <div className="pt-2">
+          <Link
+            to="/tests"
+            className={`flex items-center text-sm px-3 py-2 rounded-md ${
+              location.pathname.startsWith('/tests')
+                ? 'bg-blue-50 text-blue-600 font-medium'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            {getIconForType('test')}
+            <span className="ml-2">Tests</span>
+          </Link>
+        </div>
       )}
+
+      {/* TestCredentials Management Link */}
+      {selectedOrganization && (
+        <div className="pt-2">
+          <Link
+            to="/secrets"
+            className={`flex items-center text-sm px-3 py-2 rounded-md ${
+              location.pathname.startsWith('/secrets')
+                ? 'bg-blue-50 text-blue-600 font-medium'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            {getIconForType('secrets')}
+            <span className="ml-2">Test Credentials</span>
+          </Link>
+        </div>
+      )}
+
+      {/* Bugs Table Link */}
+      {/* {selectedOrganization && (
+        <div className="pt-2">
+          <Link
+            to="/bugs"
+            className={`flex items-center text-sm px-3 py-2 rounded-md ${
+              location.pathname.startsWith('/bugs')
+                ? 'bg-blue-50 text-blue-600 font-medium'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            {getIconForType('bug')}
+            <span className="ml-2">Bugs</span>
+          </Link>
+        </div>
+      )} */}
+
     </nav>
   );
 };

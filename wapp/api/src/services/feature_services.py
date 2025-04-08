@@ -3,6 +3,9 @@ from dto.models import Feature as FeatureModel, Epic as EpicModel
 from dto.schemas import FeatureCreate as FeatureCreateSchema, FeatureUpdate as FeatureUpdateSchema
 from uuid import UUID
 from pydantic import UUID4
+from services.user_story_services import create_user_story
+from services.acceptance_criteria_services import create_acceptance_criteria
+from dto.schemas import UserStoryCreate as UserStoryCreateSchema, AcceptanceCriteriaCreate as AcceptanceCriteriaCreateSchema
 
 
 async def get_feature(feature_id: str | UUID) -> FeatureModel:
@@ -21,6 +24,10 @@ async def create_feature(feature: FeatureCreateSchema) -> FeatureModel:
         raise HTTPException(status_code=404, detail=f"Epic with ID {feature.epic_id} not found")
 
     feature_model = await FeatureModel.create(**feature.model_dump())
+
+    # Add a default user story and acceptance criteria to the feature
+    await create_user_story(UserStoryCreateSchema(feature_id=feature_model.id, name="Default User Story", description="This is a default user story for the feature"))
+    await create_acceptance_criteria(AcceptanceCriteriaCreateSchema(feature_id=feature_model.id, name="Default Acceptance Criteria", description="This is a default acceptance criteria for the feature"))
 
     return await get_feature(feature_model.id)  # NOTE: a bit dirty, but it works (prevents issue with ManyToManyField)
 

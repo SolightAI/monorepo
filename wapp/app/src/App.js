@@ -120,7 +120,8 @@ function AppContent() {
                 {/* Protected routes with Layout */}
                 <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                   {/* Home page showing epics of selected product */}
-                  <Route path="/" element={<Home />} />
+                  {/* <Route path="/" element={<Home />} /> */}
+                  <Route path="/" element={<Navigate to="/tests" replace />} />  {/* Redirects to /tests*/}
 
                   {/* Dashboard Routes */}
                   <Route path="/dashboard" element={
