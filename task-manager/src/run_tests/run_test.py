@@ -159,7 +159,6 @@ async def _run_test(
         await context.close()
         await browser.close()
 
-
     result = history.final_result()
 
     base_ouput = {
@@ -287,7 +286,7 @@ def handle_background_task_errors(func):
             error_message = str(e)
             error_traceback = traceback.format_exc()
             logger.error(f"[{task_id}] Error in background task: {error_message}")
-            logger.debug(f"[{task_id}] Traceback: {error_traceback}")
+            logger.error(f"[{task_id}] Traceback: {error_traceback}")
 
             # Update task_ids to indicate failure
             task_ids[task_id] = {
