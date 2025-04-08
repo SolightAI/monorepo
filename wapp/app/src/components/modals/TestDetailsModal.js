@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Loader, Play, Trash2, Edit, Server } from 'lucide-react';
+import { X, Loader, Play, Trash2, Edit, Server, AlertTriangle } from 'lucide-react';
 import TestExecutionHistory from '../test/TestExecutionHistory';
 import TestExecutionDetail from '../test/TestExecutionDetail';
 import { getTestExecutions, createTestExecution } from '@/services/testExecutionService';
 import { deleteTest } from '@/services/testService';
+import { useSecret } from '@/context/SecretContext';
 import EditTestModal from './EditTestModal';
 import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
 import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus, getStatusIconLarge } from '@/utils/testExecutionUtils';
@@ -98,6 +99,14 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const modalRef = useRef(null);
+
+  // Get secrets/credentials from the context
+  const { secrets, fetchSecrets } = useSecret();
+
+  // Fetch secrets when component mounts
+  useEffect(() => {
+    fetchSecrets();
+  }, [fetchSecrets]);
 
   // Update internal state when initialTest changes
   useEffect(() => {
@@ -213,8 +222,15 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
 
   // New function to directly run the test
   const handleRunTest = async () => {
+    // Check if credentials are available
+    if (!secrets || secrets.length === 0) {
+      setError('Cannot run test: No test credentials found. Please add credentials in the Test Credentials Management section.');
+      return;
+    }
+
     try {
       setRunningTest(true);
+      setError(null);
 
       const executionData = {
         test_id: testData.id,
@@ -233,6 +249,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
       }
     } catch (err) {
       console.error('Error starting test execution:', err);
+      setError('Failed to start test execution. Please try again.');
     } finally {
       setRunningTest(false);
     }
@@ -313,6 +330,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
       <div
         className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
+        ref={modalRef}
       >
         {/* Modal header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
@@ -410,6 +428,25 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
                 onExecutionSelect={handleViewLastExecutionDetails}
               />
 
+              {/* Display error message if any */}
+              {error && (
+                <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-center">
+                  <AlertTriangle size={20} className="mr-2 text-red-600" />
+                  <p>{error}</p>
+                </div>
+              )}
+
+              {/* Display credentials warning if none available */}
+              {(!secrets || secrets.length === 0) && (
+                <div className="mb-6 p-4 bg-yellow-100 border border-yellow-200 text-yellow-800 rounded-lg flex items-center">
+                  <AlertTriangle size={20} className="mr-2 text-yellow-600" />
+                  <div>
+                    <p className="font-medium">Test credentials required</p>
+                    <p className="text-sm mt-1">You need to add test credentials before running tests. Go to Test Credentials to add credentials.</p>
+                  </div>
+                </div>
+              )}
+
               {/* Basic details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="space-y-1">
@@ -475,8 +512,9 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
                 </button>
                 <button
                   onClick={handleRunTest}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-150 flex items-center"
-                  disabled={runningTest}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-150 flex items-center disabled:bg-green-300 disabled:cursor-not-allowed"
+                  disabled={runningTest || !secrets || secrets.length === 0}
+                  title={!secrets || secrets.length === 0 ? "Test credentials required to run tests" : "Run this test"}
                 >
                   {runningTest ? (
                     <Loader size={16} className="mr-1 animate-spin" />
@@ -484,6 +522,11 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
                     <Play size={16} className="mr-1" />
                   )}
                   {runningTest ? 'Starting...' : 'Run Test'}
+                  {secrets && secrets.length > 0 && (
+                    <span className="ml-1.5 flex items-center justify-center bg-green-800 text-white text-xs rounded-full h-5 min-w-5 px-1">
+                      {secrets.length}
+                    </span>
+                  )}
                 </button>
               </div>
             </>
