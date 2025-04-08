@@ -194,12 +194,17 @@ export const formatExecutionDate = (dateString) => {
 export const formatExecutionDuration = formatDuration;
 
 /**
- * Format execution status by replacing underscores with spaces
+ * Format execution status by replacing underscores with spaces and normalizing case
  *
  * @param {string} status - The execution status string
- * @returns {string} Formatted status with spaces instead of underscores
+ * @returns {string} Formatted status with spaces instead of underscores and consistent case
  */
 export const formatStatus = (status) => {
   if (!status) return '';
-  return status.replace(/_/g, ' ');
+
+  // First convert to uppercase to normalize
+  const upperStatus = status.toUpperCase();
+
+  // Then replace underscores with spaces
+  return upperStatus.replace(/_/g, ' ');
 };

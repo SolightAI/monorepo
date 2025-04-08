@@ -15,6 +15,7 @@ import {
 import axios from 'axios';
 import { getTestsByFeature, getTestsByEpic, getTestsByProduct, triggerFeatureTestGeneration, getTestGenerationStatus } from '@/services/testService';
 import { getAllEpics, getFeaturesByEpic } from '@/services/productService';
+import { createTestExecution, getTestExecution } from '@/services/testExecutionService';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import TestDetailsModal from '@/components/modals/TestDetailsModal';
@@ -56,9 +57,14 @@ const TestsTable = () => {
   const [isGeneratingTests, setIsGeneratingTests] = useState(false);
   const [testGenerationTaskId, setTestGenerationTaskId] = useState(null);
   const pollingIntervalRef = useRef(null);
+  const [runningTests, setRunningTests] = useState({}); // Track tests that are currently running
+  const testPollingIntervalsRef = useRef({}); // Track polling intervals for individual tests
 
   const { selectedProduct } = useProduct();
   const { selectedOrganization } = useOrganization();
+
+  // Add a constant for the running status display
+  const RUNNING_STATUS = 'Running';
 
   useEffect(() => {
     if (selectedProduct && selectedOrganization) {
@@ -341,6 +347,61 @@ const TestsTable = () => {
     fetchTestsWithCurrentFilters();
   };
 
+  // Handle running a single test
+  const handleRunSingleTest = async (testId) => {
+    try {
+      setError(null);
+
+      // Mark this test as running
+      setRunningTests(prev => ({ ...prev, [testId]: true }));
+
+      const executionData = {
+        test_id: testId,
+        status: 'PENDING',
+        environment: 'development',
+        executor_type: 'MANUAL',
+        notes: null
+      };
+
+      const response = await createTestExecution(executionData);
+
+      // Start polling for the test status
+      pollTestExecutionStatus(testId, response.id);
+
+      // Update tests list immediately to show pending
+      setTests(prevTests => prevTests.map(test =>
+        test.id === testId ? {
+          ...test,
+          status: 'pending',
+          last_execution_id: response.id,
+          started_at: new Date().toISOString()
+        } : test
+      ));
+
+      // Update filtered tests too
+      setFilteredTests(prevTests => prevTests.map(test =>
+        test.id === testId ? {
+          ...test,
+          status: 'pending',
+          last_execution_id: response.id,
+          started_at: new Date().toISOString()
+        } : test
+      ));
+
+    } catch (err) {
+      console.error('Error running test:', err);
+      setError('Failed to run test. Please try again.');
+      setSuccessMessage(null);
+
+      // Remove from running tests
+      setRunningTests(prev => {
+        const updated = { ...prev };
+        delete updated[testId];
+        return updated;
+      });
+    }
+  };
+
   // Handle running selected tests (filtered tests)
   const handleRunSelectedTests = async () => {
     try {
@@ -355,10 +416,14 @@ const TestsTable = () => {
       setLoading(true);
 
       let testCount = 0;
+      const testExecutions = [];
 
       // Run each filtered test
       for (const test of filteredTests) {
         try {
+          // Mark test as running
+          setRunningTests(prev => ({ ...prev, [test.id]: true }));
+
           const executionData = {
             test_id: test.id,
             status: 'PENDING',
@@ -367,35 +432,144 @@ const TestsTable = () => {
             notes: null
           };
 
-          await axios.post(`${API_URL}/test-executions/`, executionData, {
-            withCredentials: true
-          });
+          const response = await createTestExecution(executionData);
+          testExecutions.push({ testId: test.id, executionId: response.id });
+
+          // Update tests list immediately to show pending
+          setTests(prevTests => prevTests.map(t =>
+            t.id === test.id ? {
+              ...t,
+              status: 'pending',
+              last_execution_id: response.id,
+              started_at: new Date().toISOString()
+            } : t
+          ));
+
+          // Update filtered tests too
+          setFilteredTests(prevTests => prevTests.map(t =>
+            t.id === test.id ? {
+              ...t,
+              status: 'pending',
+              last_execution_id: response.id,
+              started_at: new Date().toISOString()
+            } : t
+          ));
 
           testCount++;
         } catch (testErr) {
           console.error(`Error running test ${test.id}:`, testErr);
+
+          // Remove from running tests
+          setRunningTests(prev => {
+            const updated = { ...prev };
+            delete updated[test.id];
+            return updated;
+          });
+
           // Continue with other tests
         }
       }
 
       // Show appropriate message based on results
       if (testCount > 0) {
-        setSuccessMessage(`Successfully started ${testCount} tests.`);
+        setSuccessMessage(`Successfully started ${testCount} tests. Status: ${formatStatus('PENDING')}`);
         setError(null);
+
+        // Start polling for each test execution
+        testExecutions.forEach(({ testId, executionId }) => {
+          pollTestExecutionStatus(testId, executionId);
+        });
       } else {
         setError('Failed to start any tests. Please try again.');
         setSuccessMessage(null);
       }
-
-      // Refresh the tests list using the centralized function
-      await fetchTestsWithCurrentFilters();
-
     } catch (err) {
       handleFetchError('run selected tests', err);
       setSuccessMessage(null);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Function to poll test execution status
+  const pollTestExecutionStatus = async (testId, executionId) => {
+    if (!executionId) return;
+
+    console.log(`Starting to poll execution status for test ${testId}, execution ${executionId}`);
+
+    // Clear any existing interval for this test
+    if (testPollingIntervalsRef.current[testId]) {
+      clearInterval(testPollingIntervalsRef.current[testId]);
+    }
+
+    // Start polling
+    testPollingIntervalsRef.current[testId] = setInterval(async () => {
+      try {
+        const executionData = await getTestExecution(executionId);
+        console.log(`Polling execution ${executionId} status:`, executionData.status);
+
+        // Normalize status to uppercase for consistency
+        const normalizedStatus = executionData.status?.toUpperCase() || '';
+
+        // Update test status in state with the latest data
+        setTests(prevTests => prevTests.map(test =>
+          test.id === testId
+            ? {
+                ...test,
+                status: normalizedStatus,
+                started_at: executionData.started_at || test.started_at,
+                last_execution_id: executionId
+              }
+            : test
+        ));
+
+        // Also update filtered tests
+        setFilteredTests(prevTests => prevTests.map(test =>
+          test.id === testId
+            ? {
+                ...test,
+                status: normalizedStatus,
+                started_at: executionData.started_at || test.started_at,
+                last_execution_id: executionId
+              }
+            : test
+        ));
+
+        // If status is no longer pending, stop polling
+        if (normalizedStatus !== 'PENDING') {
+          console.log(`Test ${testId} execution completed with status: ${normalizedStatus}`);
+          clearInterval(testPollingIntervalsRef.current[testId]);
+          delete testPollingIntervalsRef.current[testId];
+
+          // Remove from running tests
+          setRunningTests(prev => {
+            const updated = { ...prev };
+            delete updated[testId];
+            return updated;
+          });
+
+          // Display brief status message
+          const statusMessage = normalizedStatus === 'PASSED'
+            ? `Test execution completed successfully with status: ${formatStatus(normalizedStatus)}`
+            : `Test execution completed with status: ${formatStatus(normalizedStatus)}`;
+
+          setSuccessMessage(statusMessage);
+          setTimeout(() => setSuccessMessage(null), 3000);
+        }
+      } catch (err) {
+        console.error(`Error polling test execution status for ${executionId}:`, err);
+        // Stop polling on error
+        clearInterval(testPollingIntervalsRef.current[testId]);
+        delete testPollingIntervalsRef.current[testId];
+
+        // Remove from running tests
+        setRunningTests(prev => {
+          const updated = { ...prev };
+          delete updated[testId];
+          return updated;
+        });
+      }
+    }, 2000); // Poll every 2 seconds
   };
 
   // Function to handle feature creation completion
@@ -579,7 +753,7 @@ const TestsTable = () => {
     try {
       setIsGeneratingTests(true);
       setError(null);
-      setSuccessMessage('Starting test generation. This may take a minute...');
+      setSuccessMessage(`Starting test generation. Status: ${formatStatus('PENDING')}`);
 
       // Call the API to generate tests
       console.log('Triggering test generation for feature:', selectedFeature);
@@ -601,7 +775,7 @@ const TestsTable = () => {
 
           // Update success message with current status
           setSuccessMessage(
-            `Test generation in progress. Status: ${response.status || 'pending'}${response.progress ? ` (${response.progress})` : ''}`
+            `Test generation in progress. Status: ${response.status ? formatStatus(response.status) : formatStatus('PENDING')}${response.progress ? ` (${response.progress})` : ''}`
           );
 
           if (response.status === 'completed') {
@@ -614,7 +788,7 @@ const TestsTable = () => {
             // Refresh tests and show success
             await fetchTestsWithCurrentFilters();
             setSuccessMessage(
-              `Successfully generated ${response.results?.length || 0} tests for the selected feature.`
+              `Successfully generated ${response.results?.length || 0} tests for the selected feature. Status: ${formatStatus('COMPLETED')}`
             );
 
             // Clear success message after 5 seconds
@@ -774,6 +948,22 @@ const TestsTable = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  // Add useEffect for cleanup of test polling intervals
+  useEffect(() => {
+    return () => {
+      // Clean up all polling intervals when component unmounts
+      Object.values(testPollingIntervalsRef.current).forEach(interval => {
+        clearInterval(interval);
+      });
+      testPollingIntervalsRef.current = {};
+    };
+  }, []);
+
+  // Add a function to check if any tests are running
+  const hasRunningTests = () => {
+    return Object.keys(runningTests).length > 0;
+  };
 
   if (loading) {
     return (
@@ -1118,11 +1308,20 @@ const TestsTable = () => {
           <div className="flex gap-2">
             <button
               onClick={handleRunSelectedTests}
-              disabled={filteredTests.length === 0}
+              disabled={filteredTests.length === 0 || hasRunningTests()}
               className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150 disabled:bg-green-300 disabled:cursor-not-allowed"
             >
-              <Play size={18} className="mr-2" />
-              Run Tests
+              {hasRunningTests() ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  {formatStatus(RUNNING_STATUS)} Tests
+                </>
+              ) : (
+                <>
+                  <Play size={18} className="mr-2" />
+                  Run Tests
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -1183,9 +1382,13 @@ const TestsTable = () => {
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          {getStatusIcon(test.status)}
-                          <span className={`ml-2 text-sm font-medium px-2 py-1 rounded-full ${getStatusColorClasses(test.status)}`}>
-                            {formatStatus(test.status)}
+                          {runningTests[test.id] ? (
+                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
+                          ) : (
+                            getStatusIcon(test.status)
+                          )}
+                          <span className={`ml-2 text-sm font-medium px-2 py-1 rounded-full ${runningTests[test.id] ? 'bg-blue-100 text-blue-800' : getStatusColorClasses(test.status)}`}>
+                            {runningTests[test.id] ? formatStatus(RUNNING_STATUS) : formatStatus(test.status)}
                           </span>
                         </div>
                       </td>
@@ -1205,15 +1408,34 @@ const TestsTable = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          className="text-blue-600 hover:text-blue-900"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleTestSelect(test);
-                          }}
-                        >
-                          View
-                        </button>
+                        <div className="flex justify-end items-center space-x-2">
+                          <button
+                            className="text-blue-600 hover:text-blue-900"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTestSelect(test);
+                            }}
+                          >
+                            View
+                          </button>
+                          <button
+                            className={`text-green-600 hover:text-green-900 flex items-center ${runningTests[test.id] ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!runningTests[test.id]) {
+                                handleRunSingleTest(test.id);
+                              }
+                            }}
+                            title={runningTests[test.id] ? `Test is ${formatStatus(RUNNING_STATUS)}` : `Run this test`}
+                            disabled={runningTests[test.id]}
+                          >
+                            {runningTests[test.id] ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-1"></div>
+                            ) : (
+                              <Play size={16} />
+                            )}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
