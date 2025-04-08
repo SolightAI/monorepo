@@ -156,7 +156,7 @@ class CryptoService:
 
         # Try to ensure we have the public key, but continue even if we don't
         if not self.ensure_initialized():
-            logger.warning("Cannot encrypt secrets because task-manager public key is unavailable")
+            logger.error("Cannot encrypt secrets because task-manager public key is unavailable")
             return False, None
 
         encrypted_secrets: Dict[str, Dict[str, str]] = {}
