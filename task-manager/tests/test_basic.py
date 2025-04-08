@@ -1,4 +1,5 @@
 import os
+import requests
 import pytest
 import logging
 import subprocess
@@ -62,6 +63,9 @@ async def test_use_playwright_in_parallel(task_id: str, playground_base_url: str
     """Test authentication with valid username/password on the simple login page using subprocesses."""
 
     url = f"{playground_base_url}/auth/email_password/simple"
+
+    response = requests.get(url)
+    assert response.status_code == 200, f"Failed to connect to {url}"
 
     # Number of parallel sessions to create
     before_start = time()
