@@ -4,6 +4,7 @@ import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import { isValidUrl } from '@/utils/urlUtils';
 import axios from 'axios';
+import UrlValidationNotification from '@/components/common/UrlValidationNotification';
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
@@ -23,6 +24,11 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [createSuccess, setCreateSuccess] = useState(false);
   const [showNewProductForm, setShowNewProductForm] = useState(false);
+  
+  // State for URL validation
+  const [validationTaskId, setValidationTaskId] = useState(null);
+  const [validatingProductId, setValidatingProductId] = useState(null);
+  const [showValidationNotification, setShowValidationNotification] = useState(false);
 
   // Update form when organization changes
   useEffect(() => {
@@ -83,61 +89,47 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
     });
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    // Validate URL field is not empty and valid
-    if (!formData.url || formData.url.trim() === '') {
-      setError('URL is required. Please enter a valid URL for the product.');
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate main product URL
-    if (!isValidUrl(formData.url)) {
-      setError('Please enter a valid URL for the product (e.g., https://example.com)');
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate documentation links
-    const invalidLinks = formData.links_to_documentation.filter(link => 
-      link.url.trim() !== '' && !isValidUrl(link.url)
-    );
-
-    if (invalidLinks.length > 0) {
-      setError('Please enter valid URLs for all documentation links (e.g., https://example.com)');
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      // Create new product
-      await axios.post(
+      // Add organization ID to form data
+      const submitData = {
+        ...formData,
+        organization_id: selectedOrganization.id
+      };
+
+      // Create product
+      const response = await axios.post(
         `${API_URL}/products/`,
-        formData,
+        submitData,
         { withCredentials: true }
       );
 
-      // Refresh products list
-      await refreshProducts(selectedOrganization.id);
+      // Update state for success
       setCreateSuccess(true);
+      await refreshProducts(selectedOrganization.id);
+      
+      // Check if the response contains a task_id for URL validation
+      if (response.data && response.data.task_id) {
+        // Store the task ID and product ID for validation monitoring
+        setValidationTaskId(response.data.task_id);
+        setValidatingProductId(response.data.id);
+        setShowValidationNotification(true);
+        console.log("URL validation initiated with task ID:", response.data.task_id);
+      }
 
-      // Proceed to next step after a short delay
+      // Move to next step after 1 second
       setTimeout(() => {
         onNext();
-      }, 1500);
+      }, 1000);
     } catch (err) {
-      const errorMessage = err.response?.data?.detail
-        ? (typeof err.response.data.detail === 'string'
-           ? err.response.data.detail
-           : JSON.stringify(err.response.data.detail))
-        : 'Failed to create product. Please try again.';
-
-      setError(errorMessage);
       console.error('Error creating product:', err);
+      const errorMessage = err.response?.data?.detail || 'Failed to create product';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -149,6 +141,20 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
 
   const toggleNewProductForm = () => {
     setShowNewProductForm(!showNewProductForm);
+  };
+
+  // Handle URL update request from validation notification
+  const handleUrlUpdate = (productId) => {
+    // In onboarding, we don't have a way to edit the product directly
+    // So we'll just show a message to the user
+    setError('Please remember to update the product URL after completing onboarding.');
+  };
+  
+  // Close validation notification
+  const handleCloseValidation = () => {
+    setShowValidationNotification(false);
+    setValidationTaskId(null);
+    setValidatingProductId(null);
   };
 
   return (
@@ -561,6 +567,16 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
             </button>
           </div>
         </form>
+      )}
+
+      {/* URL Validation Notification */}
+      {showValidationNotification && validationTaskId && (
+        <UrlValidationNotification
+          taskId={validationTaskId}
+          productId={validatingProductId}
+          onClose={handleCloseValidation}
+          onUrlUpdate={handleUrlUpdate}
+        />
       )}
     </div>
   );

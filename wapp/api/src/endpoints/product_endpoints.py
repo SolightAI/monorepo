@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks, Body
 from dto.schemas import ProductCreate as ProductCreateSchema, Product as ProductSchema, ProductUpdate as ProductUpdateSchema
 from services.product_services import get_product, create_product, get_products_list, delete_product, update_product
 from services import organization_services
@@ -6,9 +6,21 @@ from pydantic import UUID4
 from typing import List, Optional
 from uuid import UUID
 from dependencies import get_current_user_dependency
+import httpx
+import os
+from urllib.parse import urlparse
+import logging
+import uuid
 
 
 router = APIRouter(prefix="/products", tags=["products"])
+
+
+# Task manager base URL from environment variable or default to localhost
+TASK_MANAGER_URL = os.environ.get("TASK_MANAGER_URL", "http://localhost:9001")
+
+# Configure the logger
+logger = logging.getLogger(__name__)
 
 
 @router.get("/")
@@ -59,13 +71,17 @@ async def get_product_endpoint(
 @router.post("/")
 async def create_product_endpoint(
     product: ProductCreateSchema,
+    background_tasks: BackgroundTasks,
     current_user=Depends(get_current_user_dependency)
-) -> ProductSchema:
+) -> dict:
     """
     Create a new product.
 
     If organization_id is provided, the user must be a member of the organization
     with admin or owner role.
+    
+    This endpoint will also initiate a background task to validate the product URL 
+    and find the login page.
     """
     if product.organization_id:
         # Check if user is a member of the organization with appropriate permissions
@@ -78,20 +94,86 @@ async def create_product_endpoint(
                 detail="You do not have permission to create products in this organization"
             )
 
-    return await create_product(product)
+    # Create the product
+    created_product = await create_product(product)
+    
+    # Convert the Tortoise ORM model to a dictionary
+    # Since model_dump() isn't available, use proper serialization method
+    result_dict = dict(created_product)
+    
+    # Validate URL in background
+    task_id = await trigger_url_validation(created_product.url, created_product.id)
+    if task_id:
+        # Add the task_id to the response
+        result_dict["task_id"] = task_id
+        logger.info(f"Added task_id {task_id} to product creation response for product {created_product.id}")
+    else:
+        logger.warning(f"No task_id received for URL validation of product {created_product.id}")
+    
+    return result_dict
+
+
+@router.get("/url-validation-status/{task_id}")
+async def get_url_validation_status(
+    task_id: str,
+) -> dict:
+    """
+    Check the status of a URL validation task.
+    
+    Returns the status and results from the task manager service.
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            # Check the validate-url task status endpoint in the task manager
+            response = await client.get(f"{TASK_MANAGER_URL}/validate-url/status/{task_id}")
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=500, detail=f"Error checking URL validation status: {str(e)}")
+
+
+async def trigger_url_validation(url: str, product_id: UUID) -> str:
+    """
+    Trigger the URL validation in the task manager service.
+    
+    Args:
+        url: The URL to validate
+        product_id: The ID of the product this URL belongs to
+        
+    Returns:
+        The task ID from the task manager service
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            # Send a request to the validate-url endpoint in the task manager
+            response = await client.post(
+                f"{TASK_MANAGER_URL}/validate-url/",
+                json={"url": url}
+            )
+            response.raise_for_status()
+            result = response.json()
+            logger.info(f"URL validation started for product {product_id} with task ID: {result.get('task_id')}")
+            return result.get("task_id")
+    except httpx.HTTPError as e:
+        # Log the error
+        logger.error(f"Error triggering URL validation for product {product_id}: {str(e)}")
+        return None
 
 
 @router.put("/{product_id}")
 async def update_product_endpoint(
     product_id: UUID4,
     product_data: ProductUpdateSchema,
+    background_tasks: BackgroundTasks,
     current_user=Depends(get_current_user_dependency)
-) -> ProductSchema:
+) -> dict:
     """
     Update an existing product.
 
     The user must be a member of the organization that owns the product
     with admin or owner role.
+    
+    If the URL is updated, this will also trigger a new URL validation task.
     """
     # First get the product to check its organization
     product = await get_product(product_id)
@@ -111,7 +193,22 @@ async def update_product_endpoint(
     update_data = product_data.model_dump(exclude_unset=True, exclude_none=True)
 
     # Update the product
-    return await update_product(product_id, update_data)
+    updated_product = await update_product(product_id, update_data)
+    
+    # Convert the Tortoise ORM model to a dictionary
+    result_dict = dict(updated_product)
+    
+    # If URL was updated, trigger validation
+    if "url" in update_data and update_data["url"] != product.url:
+        task_id = await trigger_url_validation(updated_product.url, product_id)
+        if task_id:
+            # Add the task_id to the response
+            result_dict["task_id"] = task_id
+            logger.info(f"Added task_id {task_id} to product update response for product {product_id}")
+        else:
+            logger.warning(f"No task_id received for URL validation of updated product {product_id}")
+
+    return result_dict
 
 
 @router.delete("/{product_id}")
@@ -141,3 +238,31 @@ async def delete_product_endpoint(
 
     deleted = await delete_product(product_id)
     return {"success": deleted, "message": "Product and all related items deleted successfully"}
+
+
+@router.post("/validate-url/")
+async def validate_url_endpoint(
+    request: dict = Body(..., example={"url": "https://example.com"}),
+    current_user=Depends(get_current_user_dependency)
+) -> dict:
+    """
+    Directly validate a URL without creating a product.
+    
+    This endpoint triggers the task-manager's URL validation service
+    and returns a task ID for tracking the validation process.
+    """
+    if not request.get("url"):
+        raise HTTPException(status_code=400, detail="URL is required")
+    
+    url = request.get("url")
+    
+    # Generate a random UUID to associate with this validation request
+    temp_id = uuid.uuid4()
+    
+    # Trigger validation in the task-manager
+    task_id = await trigger_url_validation(url, temp_id)
+    
+    if not task_id:
+        raise HTTPException(status_code=500, detail="Failed to start URL validation")
+    
+    return {"task_id": task_id}
