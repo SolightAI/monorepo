@@ -814,6 +814,7 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
+            disabled={status !== 'completed' && isBlockingClose}
           >
             <X size={24} />
           </button>
@@ -821,29 +822,14 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
 
         <InProgressGenerations />
 
-        <div className="px-6 py-4">
+        <div className="p-6">
           <div className="mb-6">
             <p className="text-gray-600">
               Product: <span className="font-medium">{productName}</span>
             </p>
           </div>
 
-          {status !== 'completed' && status !== 'error' && (
-            <div className="mb-6">
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-600 transition-all duration-500 ease-out"
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
-              <p className="text-sm text-gray-500 mt-2">{Math.round(progress)}% complete</p>
-
-              {detailedProgress && (
-                <p className="text-sm text-blue-600 mt-1 font-medium">{detailedProgress}</p>
-              )}
-            </div>
-          )}
-
+          {/* Status message */}
           <div className="mb-6">
             {status === 'preparing' && (
               <div className="flex items-center text-blue-600">
@@ -878,6 +864,24 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
             )}
           </div>
 
+          {/* Progress bar */}
+          {status !== 'completed' && status !== 'error' && (
+            <div className="mb-6">
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-sm text-gray-500 mt-2">{Math.round(progress)}% complete</p>
+
+              {detailedProgress && (
+                <p className="text-sm text-blue-600 mt-1 font-medium">{detailedProgress}</p>
+              )}
+            </div>
+          )}
+
+          {/* Activity Log Section */}
           {statusLogs.length > 0 && status !== 'error' && (
             <div className="mb-6 border rounded-lg p-3 bg-gray-50 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
               <div className="flex justify-between items-center mb-2">
@@ -909,7 +913,8 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
             </div>
           )}
 
-          <div className="mt-6 flex justify-end">
+          {/* Close button */}
+          <div className="flex justify-end mt-6">
             {status === 'completed' && (
               <button
                 onClick={onClose}
@@ -925,6 +930,20 @@ const ComprehensiveGenerationModal = ({ onClose, productId, productName, onCompl
                 className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
               >
                 Close
+              </button>
+            )}
+
+            {status !== 'completed' && status !== 'error' && (
+              <button
+                onClick={onClose}
+                className={`px-4 py-2 rounded-md ${
+                  !isBlockingClose
+                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                }`}
+                disabled={isBlockingClose}
+              >
+                Cancel
               </button>
             )}
           </div>
