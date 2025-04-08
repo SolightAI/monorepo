@@ -103,7 +103,6 @@ AGENT_CLIENT = AzureChatOpenAI(
     api_key=SecretStr(azure_openai_key),
     temperature=0.0,
 )
-controller = Controller()
 
 
 controller = Controller()
