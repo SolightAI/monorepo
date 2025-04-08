@@ -15,7 +15,6 @@ from utils.dto import Test
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service
-from utils.history_validator import validate_agent_history
 from run_tests.tracing import initialize, extend_agent_history
 from utils.s3_utils import upload_gif_to_s3
 
@@ -160,11 +159,8 @@ async def _run_test(
         await context.close()
         await browser.close()
 
-    result = await validate_agent_history(
-        task_id=task_id,
-        history=history,
-        task_name=f"run test {test.name}",
-    )
+
+    result = history.final_result()
 
     base_ouput = {
         "agent_thoughts": history.model_thoughts(),
