@@ -533,6 +533,7 @@ const EpicDetails = () => {
         </div>
       </div>
 
+      {/* Add Feature Modal */}
       {isAddFeatureModalOpen && epic && (
         <AddFeatureModal
           onClose={() => setIsAddFeatureModalOpen(false)}
@@ -542,6 +543,7 @@ const EpicDetails = () => {
         />
       )}
 
+      {/* Generate Features Modal */}
       {isGenerateFeatureModalOpen && epic && (
         <FeatureGenerationModal
           onClose={() => {
@@ -554,6 +556,7 @@ const EpicDetails = () => {
         />
       )}
 
+      {/* Edit Feature Modal */}
       {isEditFeatureModalOpen && selectedFeature && (
         <EditFeatureModal
           onClose={() => {
@@ -565,6 +568,7 @@ const EpicDetails = () => {
         />
       )}
 
+      {/* Generate All Progress Modal */}
       {isGenerateAllModalOpen && generateAllTaskId && (
         <GenerationProgressModal
           taskId={generateAllTaskId}
@@ -574,6 +578,7 @@ const EpicDetails = () => {
             setIsGenerateAllModalOpen(false);
             fetchEpicDetails();
           }}
+          onComplete={handleGenerationComplete}
         />
       )}
 

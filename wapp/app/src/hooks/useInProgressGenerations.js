@@ -12,9 +12,11 @@ import {
  * 
  * @param {Function} onComplete - Callback function to be called when all generations are completed
  * @param {boolean} isVisible - Whether the component is currently visible
+ * @param {string} organizationId - Optional organization ID to filter by
+ * @param {string} productId - Optional product ID to filter by
  * @returns {Object} Object containing in-progress generations and loading state
  */
-export const useInProgressGenerations = (onComplete, isVisible = true) => {
+export const useInProgressGenerations = (onComplete, isVisible = true, organizationId = null, productId = null) => {
   const [generations, setGenerations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,7 +24,11 @@ export const useInProgressGenerations = (onComplete, isVisible = true) => {
 
   const fetchGenerations = async () => {
     try {
-      const response = await axios.get(`${API_URL}${GENERATIONS_API.IN_PROGRESS}`);
+      const params = new URLSearchParams();
+      if (organizationId) params.append('organization_id', organizationId);
+      if (productId) params.append('product_id', productId);
+      
+      const response = await axios.get(`${API_URL}${GENERATIONS_API.IN_PROGRESS}?${params.toString()}`);
       setGenerations(response.data);
       setError(null);
     } catch (err) {
@@ -88,7 +94,7 @@ export const useInProgressGenerations = (onComplete, isVisible = true) => {
         clearInterval(interval);
       }
     };
-  }, [isVisible]);
+  }, [isVisible, organizationId, productId]);
 
   return { generations, loading, error };
 };

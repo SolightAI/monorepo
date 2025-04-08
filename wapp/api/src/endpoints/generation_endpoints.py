@@ -1,5 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
-from typing import Dict, Any, Literal, List
+from typing import Dict, Any, Literal, List, Optional
 from pydantic import UUID4
 
 from services.generation_service import (
@@ -14,14 +14,21 @@ router = APIRouter(prefix="/generation", tags=["generation"], dependencies=[Depe
 
 
 @router.get("/in-progress")
-async def get_in_progress_generations_endpoint() -> List[Dict[str, Any]]:
+async def get_in_progress_generations_endpoint(
+    organization_id: Optional[UUID4] = None,
+    product_id: Optional[UUID4] = None
+) -> List[Dict[str, Any]]:
     """
-    Get all currently in-progress generations.
+    Get all currently in-progress generations, optionally filtered by organization and product.
+
+    Args:
+        organization_id: Optional organization ID to filter by
+        product_id: Optional product ID to filter by
 
     Returns:
         List of dictionaries containing information about in-progress generations
     """
-    return await get_in_progress_generations()
+    return await get_in_progress_generations(organization_id, product_id)
 
 
 @router.post("/full")

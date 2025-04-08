@@ -286,110 +286,66 @@ const Home = () => {
                         <Zap size={20} className="mr-2" />
                         Generate Epics
                       </button>
-                    </>
-                  )}
-                  <button
-                    onClick={() => setShowEpicModal(true)}
-                    className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
-                  >
-                    <Plus size={20} className="mr-2" />
-                    Add Epic
-                  </button>
-                </div>
-              </div>
-
-              {/* Error message */}
-              {error && (
-                <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start">
-                  <AlertCircle size={20} className="mr-2 flex-shrink-0 mt-1" />
-                  <p>{error}</p>
-                </div>
-              )}
-
-              {/* Loading indicator */}
-              {loading ? (
-                <div className="flex justify-center items-center py-20">
-                  <Loader size={40} className="text-blue-500 animate-spin" />
-                </div>
-              ) : (
-                <>
-                  {/* Epic cards */}
-                  {epics.length === 0 ? (
-                    <div className="text-center py-20 bg-white rounded-lg shadow">
-                      <p className="text-gray-500 mb-4">No epics found for this product</p>
-                      <div className="flex justify-center space-x-4">
-                        <button
-                          onClick={handleGenerateEverything}
-                          className="px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg shadow hover:from-green-700 hover:to-blue-700 transition duration-150 flex items-center"
-                        >
-                          <Rocket size={18} className="mr-2" />
-                          Generate everything
-                        </button>
-                        <button
-                          onClick={handleGenerateEpics}
-                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-150 flex items-center"
-                        >
-                          <Zap size={18} className="mr-2" />
-                          Generate epics
-                        </button>
-                        <button
-                          onClick={() => setShowEpicModal(true)}
-                          className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150 flex items-center"
-                        >
-                          <Plus size={18} className="mr-2" />
-                          Create epics manually
-                        </button>
-                      </div>
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {epics.map(epic => (
-                        <div
-                          key={epic.id}
-                          className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full cursor-pointer"
-                          onClick={() => navigate(`/epics/${epic.id}`)}
-                        >
-                          <div className="p-6 flex flex-col flex-grow">
-                            <div className="flex items-center mb-3">
-                              <Sparkles size={18} className="text-purple-500 mr-2" />
-                              <h3 className="text-xl font-semibold text-gray-800 truncate">{epic.name}</h3>
-                            </div>
-                            <p className="text-gray-700 line-clamp-6 overflow-hidden flex-grow">{epic.description}</p>
+                    <div className="mt-4">
+                      <button
+                        onClick={() => setShowEpicModal(true)}
+                        className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition duration-150"
+                      >
+                        <Plus size={20} className="mr-2" />
+                        Add Epic
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {epics.map(epic => (
+                      <div
+                        key={epic.id}
+                        className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full cursor-pointer"
+                        onClick={() => navigate(`/epics/${epic.id}`)}
+                      >
+                        <div className="p-6 flex flex-col flex-grow">
+                          <div className="flex items-center mb-3">
+                            <Sparkles size={18} className="text-purple-500 mr-2" />
+                            <h3 className="text-xl font-semibold text-gray-800 truncate">{epic.name}</h3>
+                          </div>
+                          <p className="text-gray-700 line-clamp-6 overflow-hidden flex-grow">{epic.description}</p>
 
-                            <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
-                              <span className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                View Features
-                              </span>
-                              <div className="flex space-x-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEditEpic(epic);
-                                  }}
-                                  className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteEpic(epic);
-                                  }}
-                                  className="text-red-600 hover:text-red-800 text-sm font-medium"
-                                >
-                                  Delete
-                                </button>
-                              </div>
+                          <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
+                            <span className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                              View Features
+                            </span>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditEpic(epic);
+                                }}
+                                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteEpic(epic);
+                                }}
+                                className="text-red-600 hover:text-red-800 text-sm font-medium"
+                              >
+                                Delete
+                              </button>
                             </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
         </div>
       </div>
 
