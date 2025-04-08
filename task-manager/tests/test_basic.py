@@ -8,6 +8,7 @@ import tempfile
 
 from time import time
 from uuid import uuid4
+from test_auth_session import valid_username_password_credentials
 
 
 logger = logging.getLogger(__name__)
