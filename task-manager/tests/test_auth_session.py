@@ -8,7 +8,6 @@ from fixtures.generate_auth_session import generate_auth_session, USERNAME_PASSW
 
 # Auth paths in the playground
 EMAIL_PASSWORD_SIMPLE_PATH = "/auth/email_password/simple"
-
 EMAIL_PASSWORD_MESSY_PATH = "/auth/email_password/messy"
 GOOGLE_SIMPLE_PATH = "/auth/google/simple"
 GOOGLE_MESSY_PATH = "/auth/google/messy"
@@ -26,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
-
 def task_id() -> str:
 
     """Generate a unique task ID for each test."""
