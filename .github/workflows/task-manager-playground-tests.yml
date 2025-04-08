@@ -37,12 +37,10 @@ jobs:
       FARMZZ_USERNAME: ${{ secrets.FARMZZ_USERNAME }}
       TECLA_ACADEMY_PASSWORD: ${{ secrets.TECLA_ACADEMY_PASSWORD }}
       TECLA_ACADEMY_USERNAME: ${{ secrets.TECLA_ACADEMY_USERNAME }}
-
       SESAME_HR_PASSWORD: ${{ secrets.SESAME_HR_PASSWORD }}
       SESAME_HR_USERNAME: ${{ secrets.SESAME_HR_USERNAME }}
       MEANDWHO_USERNAME: ${{ secrets.MEANDWHO_USERNAME }}
       MEANDWHO_PASSWORD: ${{ secrets.MEANDWHO_PASSWORD }}
-
       S3_BUCKET_NAME: task-manager-github-actions
       AWS_ENDPOINT_URL: https://minio-n0ooc44wsgk0kkkwoksw48ck.34.155.147.62.sslip.io
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
