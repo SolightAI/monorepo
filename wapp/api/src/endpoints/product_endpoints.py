@@ -17,7 +17,11 @@ router = APIRouter(prefix="/products", tags=["products"])
 
 
 # Task manager base URL from environment variable or default to localhost
-TASK_MANAGER_URL = os.environ.get("TASK_MANAGER_URL", "http://localhost:9001")
+TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
+
+
+if not TASK_MANAGER_URL:
+    raise ValueError("TASK_MANAGER_URL is not set")
 
 # Configure the logger
 logger = logging.getLogger(__name__)
