@@ -23,7 +23,7 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [createSuccess, setCreateSuccess] = useState(false);
   const [showNewProductForm, setShowNewProductForm] = useState(false);
-  
+
   // State for URL validation
   const [validationTaskId, setValidationTaskId] = useState(null);
   const [validatingProductId, setValidatingProductId] = useState(null);
@@ -443,15 +443,15 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                       Product URL <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <div className="flex items-center">
+                    <div className="flex items-center">
                         <div className="relative flex-grow">
-                          <input
+                      <input
                             type="url"
-                            id="url"
-                            name="url"
-                            required
-                            value={formData.url}
-                            onChange={handleChange}
+                        id="url"
+                        name="url"
+                        required
+                        value={formData.url}
+                        onChange={handleChange}
                             onBlur={handleUrlBlur}
                             className={`appearance-none rounded-md relative block w-full px-3 py-2 pr-10 border ${
                               loginPageFound ? 'border-green-300 bg-green-50' :
@@ -702,15 +702,15 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                 Product URL <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <div className="flex items-center">
+              <div className="flex items-center">
                   <div className="relative flex-grow">
-                    <input
+                <input
                       type="url"
-                      id="url"
-                      name="url"
-                      required
-                      value={formData.url}
-                      onChange={handleChange}
+                  id="url"
+                  name="url"
+                  required
+                  value={formData.url}
+                  onChange={handleChange}
                       onBlur={handleUrlBlur}
                       className={`appearance-none rounded-md relative block w-full px-3 py-2 pr-10 border ${
                         loginPageFound ? 'border-green-300 bg-green-50' :

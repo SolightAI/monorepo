@@ -190,7 +190,7 @@ def handle_background_task_errors(func):
                     "valid": False,
                     "login_url": None,
                     "confidence": "low",
-                    "explanation": f"The page took too long to respond: {error_message}",
+                    "explanation": f"The page took too long to respond",
                     "message": "Login page not found - page load timeout",
                     "original_url": args[0] if args else None,  # First arg should be URL
                     "error_type": "timeout"
@@ -372,7 +372,7 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
                 "valid": False,
                 "login_url": None,
                 "confidence": "low",
-                "explanation": f"The page took too long to respond: {error_message}",
+                "explanation": f"The page took too long to respond",
                 "message": "Login page not found - page load timeout",
                 "original_url": url,
                 "error_type": "timeout",
