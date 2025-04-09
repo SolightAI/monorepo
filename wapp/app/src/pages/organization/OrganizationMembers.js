@@ -415,7 +415,7 @@ const OrganizationMembers = () => {
                         Sending...
                       </>
                     ) : (
-                      'Send Invitation'
+                      'Create Invitation'
                     )}
                   </button>
                 </div>

@@ -1146,7 +1146,7 @@ const TestsTable = () => {
       {/* All filters in one row */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6 items-center">
         {/* Search input */}
-        <div className="relative w-full sm:w-64 lg:w-80">
+        <div className="relative w-full">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search size={18} className="text-gray-400" />
           </div>
@@ -1165,7 +1165,7 @@ const TestsTable = () => {
         </div>
 
         {/* Status filter */}
-        <div className="relative w-full sm:w-48">
+        <div className="relative w-full">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Filter size={18} className="text-gray-400" />
           </div>
@@ -1216,9 +1216,9 @@ const TestsTable = () => {
         </div> */}
 
         {/* Feature filter and Add Feature button group */}
-        <div className="flex flex-row w-full sm:w-auto gap-2">
+        <div className="flex flex-col md:flex-row w-full gap-2">
           {/* Feature filter - Custom dropdown */}
-          <div className="relative w-full min-w-[200px] max-w-[300px] flex-1" ref={featureDropdownRef}>
+          <div className="relative w-full md:w-56" ref={featureDropdownRef}>
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FileText size={18} className="text-gray-400" />
             </div>
@@ -1329,12 +1329,12 @@ const TestsTable = () => {
           </div>
 
           {/* Action buttons */}
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             {/* Generate Tests button */}
             <button
               onClick={handleGenerateTests}
               disabled={isGeneratingTests || !secrets || secrets.length === 0}
-              className="flex items-center px-3 py-2 bg-purple-600 text-white rounded-md shadow hover:bg-purple-700 transition duration-150 disabled:bg-purple-300 disabled:cursor-not-allowed"
+              className="flex items-center justify-center px-3 py-2 bg-purple-600 text-white rounded-md shadow hover:bg-purple-700 transition duration-150 disabled:bg-purple-300 disabled:cursor-not-allowed"
               title={!secrets || secrets.length === 0 ? "Test credentials required to generate tests" : "Generate tests for selected feature using AI"}
             >
               {isGeneratingTests ? (
@@ -1345,7 +1345,7 @@ const TestsTable = () => {
               ) : (
                 <>
                   <Beaker size={18} className="mr-2" />
-                  Generate Tests with AI
+                  <span className="whitespace-nowrap">Generate Tests with AI</span>
                   {secrets && secrets.length > 0 && (
                     <span className="ml-1.5 flex items-center justify-center bg-purple-800 text-white text-xs rounded-full h-5 min-w-5 px-1">
                       {secrets.length}
@@ -1358,11 +1358,11 @@ const TestsTable = () => {
             {/* Add Test button */}
             <button
               onClick={handleCreateTestClick}
-              className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition duration-150"
+              className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition duration-150"
               title="Add new test to selected feature"
             >
               <Plus size={18} className="mr-2" />
-              Add Test To Feature
+              <span className="whitespace-nowrap">Add Test To Feature</span>
             </button>
           </div>
         </div>
