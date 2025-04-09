@@ -148,7 +148,7 @@ async def trigger_url_validation(url: str, product_id: UUID, background_tasks: O
         background_tasks: Optional BackgroundTasks for background processing
         
     Returns:
-        The task ID from the task manager service
+        The task ID from the task manager service or None if the service is unavailable
     """
     try:
         # Use asyncio.to_thread to run synchronous request in a separate thread
@@ -167,9 +167,17 @@ async def trigger_url_validation(url: str, product_id: UUID, background_tasks: O
             
         logger.info(f"URL validation started for product {product_id} with task ID: {task_id}")
         return task_id
+    except requests.ConnectionError as e:
+        # Log the error but don't fail the product creation
+        logger.warning(f"Task manager service unavailable. URL validation skipped for product {product_id}: {str(e)}")
+        return None
     except requests.HTTPError as e:
         # Log the error
         logger.error(f"Error triggering URL validation for product {product_id}: {str(e)}")
+        return None
+    except Exception as e:
+        # Catch any other exceptions to prevent product creation from failing
+        logger.error(f"Unexpected error during URL validation for product {product_id}: {str(e)}")
         return None
 
 
@@ -225,11 +233,16 @@ async def poll_url_validation_status(task_id: str, product_id: UUID, max_attempt
             logger.debug(f"URL validation task {task_id} for product {product_id} status: {status}")
             attempts += 1
             
+        except requests.ConnectionError as e:
+            logger.warning(f"Task manager unavailable when polling status for task {task_id}: {str(e)}")
+            attempts += 1
+            # Add a longer sleep on connection errors to avoid overwhelming logs
+            await asyncio.sleep(interval * 2)
         except requests.HTTPError as e:
             logger.error(f"Error polling URL validation status for task {task_id}: {str(e)}")
             attempts += 1
         except Exception as e:
-            logger.error(f"Error polling URL validation status for task {task_id}: {str(e)}")
+            logger.error(f"Unexpected error polling URL validation status for task {task_id}: {str(e)}")
             attempts += 1
 
     if attempts >= max_attempts:
