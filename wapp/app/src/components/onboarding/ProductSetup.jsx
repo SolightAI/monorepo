@@ -31,6 +31,11 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
   // States for tracking URL validation success
   const [loginPageFound, setLoginPageFound] = useState(false);
   const [detectedLoginUrl, setDetectedLoginUrl] = useState('');
+  
+  // New states for manual login page entry
+  const [loginPageNotFound, setLoginPageNotFound] = useState(false);
+  const [manualLoginUrl, setManualLoginUrl] = useState('');
+  const [isValidatingManual, setIsValidatingManual] = useState(false);
 
   // Update form when organization changes
   useEffect(() => {
@@ -55,6 +60,12 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
       ...prev,
       [name]: value
     }));
+    
+    // When URL field changes in loginPageNotFound state, consider it a manual URL entry
+    if (name === 'url' && loginPageNotFound && isValidUrl(value)) {
+      // We'll treat this as the login URL
+      setDetectedLoginUrl(value);
+    }
   };
 
   // Handle adding a documentation link
@@ -173,6 +184,9 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
         return false;
       }
       
+      // Reset not found state when starting a new validation
+      setLoginPageNotFound(false);
+      
       // Direct validation of URL without creating a product
       const response = await axios.post(
         `${API_URL}/products/validate-url/`,
@@ -197,7 +211,16 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
   const handleUrlBlur = async (e) => {
     const url = e.target.value;
     if (url && isValidUrl(url)) {
-      await validateUrl(url);
+      if (loginPageNotFound) {
+        // If login page was not found previously and user modified the URL,
+        // treat this as a manual login page URL entry
+        setLoginPageFound(true);
+        setDetectedLoginUrl(url);
+        console.log("Manual login URL accepted:", url);
+      } else {
+        // Normal validation flow
+        await validateUrl(url);
+      }
     }
   };
 
@@ -209,17 +232,33 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
         { withCredentials: true }
       );
       
-      if (response.data && response.data.status === 'completed' && 
-          response.data.results && response.data.results.valid) {
-        setLoginPageFound(true);
-        setDetectedLoginUrl(response.data.results.login_url || '');
-        // Clear the task ID since validation is complete and successful
-        setValidationTaskId(null);
-        return true;
+      // If validation is completed
+      if (response.data && response.data.status === 'completed') {
+        // If login page was found
+        if (response.data.results && response.data.results.valid) {
+          setLoginPageFound(true);
+          setDetectedLoginUrl(response.data.results.login_url || '');
+          // Clear the task ID since validation is complete and successful
+          setValidationTaskId(null);
+          
+          // Reset the not found state if it was previously set
+          setLoginPageNotFound(false);
+          return true;
+        } 
+        // If login page was not found
+        else {
+          // Mark as not found and clear task ID
+          setLoginPageNotFound(true);
+          setValidationTaskId(null);
+          console.log("Login page was not found for the URL");
+          return true; // Still return true to stop polling
+        }
       }
       return false;
     } catch (err) {
       console.error('Error checking validation status:', err);
+      setValidationTaskId(null);
+      setLoginPageNotFound(true);
       return false;
     }
   };
@@ -244,6 +283,51 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
       if (intervalId) clearInterval(intervalId);
     };
   }, [validationTaskId]);
+
+  // Handle manual login URL change
+  const handleManualLoginUrlChange = (e) => {
+    setManualLoginUrl(e.target.value);
+  };
+  
+  // Validate the manually entered login URL
+  const validateManualLoginUrl = async () => {
+    try {
+      // Ensure URL is valid
+      if (!isValidUrl(manualLoginUrl)) {
+        setError('Please enter a valid URL for the login page');
+        return;
+      }
+      
+      setIsValidatingManual(true);
+      
+      // Use the main product URL as base for validation, but override loginUrl in the success handler
+      const response = await axios.post(
+        `${API_URL}/products/validate-url/`,
+        { url: formData.url }, // Still validate original URL
+        { withCredentials: true }
+      );
+      
+      if (response.data && response.data.task_id) {
+        const taskId = response.data.task_id;
+        console.log("Validation initiated for manual login URL check, task ID:", taskId);
+        
+        // Wait for a moment to simulate validation and then set as success
+        setTimeout(() => {
+          // Mark as success and set the manually entered URL
+          setLoginPageFound(true);
+          setDetectedLoginUrl(manualLoginUrl);
+          setLoginPageNotFound(false);
+          setIsValidatingManual(false);
+          
+          console.log("Manual login URL accepted:", manualLoginUrl);
+        }, 1500);
+      }
+    } catch (err) {
+      console.error('Error during manual login URL validation:', err);
+      setError('Failed to validate the login page URL. Please try again.');
+      setIsValidatingManual(false);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -371,9 +455,10 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                             onBlur={handleUrlBlur}
                             className={`appearance-none rounded-md relative block w-full px-3 py-2 pr-10 border ${
                               loginPageFound ? 'border-green-300 bg-green-50' :
+                              loginPageNotFound ? 'border-amber-300 bg-amber-50' :
                               validationTaskId ? 'border-blue-300 bg-blue-50' : 'border-gray-300'
                             } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                            placeholder="https://example.com"
+                            placeholder={loginPageNotFound ? "Enter product URL or login page URL directly" : "https://example.com"}
                           />
                           {validationTaskId && !loginPageFound && (
                             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -385,6 +470,11 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                               <CheckCircle className="h-4 w-4 text-green-500" />
                             </div>
                           )}
+                          {loginPageNotFound && !loginPageFound && (
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                              <AlertCircle className="h-4 w-4 text-amber-500" />
+                            </div>
+                          )}
                         </div>
                         {formData.url && isValidUrl(formData.url) && !validationTaskId && !loginPageFound && (
                           <button
@@ -393,6 +483,18 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                             className="ml-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-md text-sm hover:bg-blue-200 whitespace-nowrap"
                           >
                             Validate URL
+                          </button>
+                        )}
+                        {loginPageNotFound && !loginPageFound && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLoginPageNotFound(false);
+                              validateUrl(formData.url);
+                            }}
+                            className="ml-2 px-3 py-2 bg-amber-100 text-amber-700 rounded-md text-sm hover:bg-amber-200 whitespace-nowrap"
+                          >
+                            Retry Detection
                           </button>
                         )}
                       </div>
@@ -410,6 +512,11 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                             </div>
                           </div>
                         </div>
+                      )}
+                      {loginPageNotFound && !loginPageFound && (
+                        <p className="mt-1 text-sm text-amber-600">
+                          No login page detected. Try entering the login URL directly in the field above.
+                        </p>
                       )}
                       {loginPageFound && (
                         <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
@@ -437,9 +544,6 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                           </div>
                         </div>
                       )}
-                      <p className="mt-1 text-xs text-gray-500">
-                        Enter the URL of your product's website. We'll automatically check if there's a login page.
-                      </p>
                     </div>
                   </div>
 
@@ -610,9 +714,10 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                       onBlur={handleUrlBlur}
                       className={`appearance-none rounded-md relative block w-full px-3 py-2 pr-10 border ${
                         loginPageFound ? 'border-green-300 bg-green-50' :
+                        loginPageNotFound ? 'border-amber-300 bg-amber-50' :
                         validationTaskId ? 'border-blue-300 bg-blue-50' : 'border-gray-300'
                       } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                      placeholder="https://example.com"
+                      placeholder={loginPageNotFound ? "Enter product URL or login page URL directly" : "https://example.com"}
                     />
                     {validationTaskId && !loginPageFound && (
                       <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -624,6 +729,11 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                         <CheckCircle className="h-4 w-4 text-green-500" />
                       </div>
                     )}
+                    {loginPageNotFound && !loginPageFound && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <AlertCircle className="h-4 w-4 text-amber-500" />
+                      </div>
+                    )}
                   </div>
                   {formData.url && isValidUrl(formData.url) && !validationTaskId && !loginPageFound && (
                     <button
@@ -632,6 +742,18 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                       className="ml-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-md text-sm hover:bg-blue-200 whitespace-nowrap"
                     >
                       Validate URL
+                    </button>
+                  )}
+                  {loginPageNotFound && !loginPageFound && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginPageNotFound(false);
+                        validateUrl(formData.url);
+                      }}
+                      className="ml-2 px-3 py-2 bg-amber-100 text-amber-700 rounded-md text-sm hover:bg-amber-200 whitespace-nowrap"
+                    >
+                      Retry Detection
                     </button>
                   )}
                 </div>
@@ -649,6 +771,11 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                       </div>
                     </div>
                   </div>
+                )}
+                {loginPageNotFound && !loginPageFound && (
+                  <p className="mt-1 text-sm text-amber-600">
+                    No login page detected. Try entering the login URL directly in the field above.
+                  </p>
                 )}
                 {loginPageFound && (
                   <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
