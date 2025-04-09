@@ -28,7 +28,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Just install pip and requirements, Playwright will be installed at runtime
-RUN pip install -U pip \
+RUN pip install --no-cache-dir  -U pip wheel setuptools \
     && pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application
