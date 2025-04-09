@@ -20,6 +20,14 @@ USERNAME_PASSWORD = "username_password"
 
 ACTION_CHECK_LOGIN = "Check if the user is logged in based on the vision"
 
+AGENT_CLIENT = AzureChatOpenAI(
+    model="gpt-4o",
+    api_version='2024-10-21',
+    azure_endpoint=azure_openai_endpoint,
+    api_key=SecretStr(azure_openai_key),
+    temperature=0.0,
+)
+
 PROMPT = """
 You are an AI assistant acting as a test automation engineer. Your task is to login to an application. Follow these instructions carefully to complete the login process.
 
@@ -92,15 +100,6 @@ if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
 
 if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
     raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
-
-
-AGENT_CLIENT = AzureChatOpenAI(
-    model="gpt-4o",
-    api_version='2024-10-21',
-    azure_endpoint=azure_openai_endpoint,
-    api_key=SecretStr(azure_openai_key),
-    temperature=0.0,
-)
 
 
 controller = Controller()

@@ -12,7 +12,6 @@ from urllib.parse import urlparse
 import logging
 import uuid
 
-
 router = APIRouter(prefix="/products", tags=["products"])
 
 
@@ -123,12 +122,12 @@ async def get_url_validation_status(
     Returns the status and results from the task manager service.
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with requests.AsyncClient() as client:
             # Check the validate-url task status endpoint in the task manager
             response = await client.get(f"{TASK_MANAGER_URL}/validate-url/status/{task_id}")
             response.raise_for_status()
             return response.json()
-    except httpx.HTTPError as e:
+    except requests.HTTPError as e:
         raise HTTPException(status_code=500, detail=f"Error checking URL validation status: {str(e)}")
 
 
@@ -144,7 +143,7 @@ async def trigger_url_validation(url: str, product_id: UUID) -> str:
         The task ID from the task manager service
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with requests.AsyncClient() as client:
             # Send a request to the validate-url endpoint in the task manager
             response = await client.post(
                 f"{TASK_MANAGER_URL}/validate-url/",
@@ -154,7 +153,7 @@ async def trigger_url_validation(url: str, product_id: UUID) -> str:
             result = response.json()
             logger.info(f"URL validation started for product {product_id} with task ID: {result.get('task_id')}")
             return result.get("task_id")
-    except httpx.HTTPError as e:
+    except requests.HTTPError as e:
         # Log the error
         logger.error(f"Error triggering URL validation for product {product_id}: {str(e)}")
         return None
@@ -201,12 +200,12 @@ async def update_product_endpoint(
     # If URL was updated, trigger validation
     if "url" in update_data and update_data["url"] != product.url:
         task_id = await trigger_url_validation(updated_product.url, product_id)
-        if task_id:
+        if not task_id:
+            logger.warning(f"No task_id received for URL validation of updated product {product_id}")
+        else
             # Add the task_id to the response
             result_dict["task_id"] = task_id
             logger.info(f"Added task_id {task_id} to product update response for product {product_id}")
-        else:
-            logger.warning(f"No task_id received for URL validation of updated product {product_id}")
 
     return result_dict
 

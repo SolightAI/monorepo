@@ -176,7 +176,6 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
             <div>
               <p className="font-medium">Login page not found</p>
               <p className="text-sm text-gray-600">{formattedResult.message || 'We could not find a login page at the provided URL.'}</p>
-              <p className="text-sm text-gray-600 mt-1">{formattedResult.explanation}</p>
               
               {/* Button to update URL */}
               <button

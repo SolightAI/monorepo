@@ -1,11 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-
-// Base API URL
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
-
-// Polling interval in milliseconds
-const POLLING_INTERVAL = 5000;
+import { API_URL, POLLING_INTERVAL } from '../../config';
 
 /**
  * Custom hook to validate a URL and find login page
@@ -148,6 +143,5 @@ export const formatValidationResult = (result) => {
     message: result.message || '',
     confidence: result.confidence || 'low',
     originalUrl: result.original_url || '',
-    explanation: result.explanation || ''
   };
 }; 

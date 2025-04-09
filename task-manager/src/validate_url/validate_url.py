@@ -28,6 +28,42 @@ LOGIN_PAGE_REDIS_PREFIX = "login_page:"
 # Key expiration time in seconds (30 days)
 LOGIN_PAGE_EXPIRY = 60 * 60 * 24 * 30
 
+CONFIDENCE_HIGH = "high"
+CONFIDENCE_MEDIUM = "medium"
+CONFIDENCE_LOW = "low"
+
+ERROR_TIMEOUT = "timeout"
+ERROR_OTHER = "error"
+
+
+AGENT_CLIENT = AzureChatOpenAI(
+    model="gpt-4o",
+    api_version='2024-02-01',
+    azure_endpoint=azure_openai_endpoint,
+    api_key=SecretStr(azure_openai_key),
+    temperature=0.0,
+)
+
+# Prompt for login page detection
+PROMPT = """
+You are an AI assistant tasked with examining a website to find its login page. 
+
+Your task is to:
+1. Look for login links, buttons, or forms on the current page
+2. If you find a login link or button, click on it to navigate to the login page
+3. If you're already on the login page, confirm that login elements (username/email field, password field) are present
+4. Report your findings
+
+Your goal is to determine if this website has a login page and if it can be found.
+
+After examining the site, provide a conclusion in the following format:
+<login_page_detection>
+<found>true/false</found>
+<login_url>URL of the login page if found</login_url>
+<confidence>'{CONFIDENCE_HIGH}'/'{CONFIDENCE_MEDIUM}'/'{CONFIDENCE_LOW}'</confidence>
+</login_page_detection>
+""".strip().format(CONFIDENCE_HIGH=CONFIDENCE_HIGH, CONFIDENCE_MEDIUM=CONFIDENCE_MEDIUM, CONFIDENCE_LOW=CONFIDENCE_LOW)
+
 # Define models
 class URLValidationRequest(BaseModel):
     url: str = Field(..., description="The URL to validate")
@@ -42,7 +78,7 @@ class LoginPageCacheRequest(BaseModel):
 class LoginPageCacheResponse(BaseModel):
     found: bool = Field(..., description="Whether a login page was found")
     login_url: Optional[str] = Field(None, description="URL of the login page if found")
-    confidence: str = Field("low", description="Confidence level of the result")
+    confidence: str = Field(CONFIDENCE_LOW, description="Confidence level of the result")
     source: str = Field("cache", description="Source of the login page info")
 
 # Extract domain from a URL 
@@ -142,8 +178,7 @@ async def get_login_page_from_cache(url: str) -> Dict[str, Any]:
                 return {
                     "valid": True,
                     "login_url": cached_data.get("login_url"),
-                    "confidence": cached_data.get("confidence", "medium"),
-                    "explanation": f"Login page was retrieved from cache for domain {domain}",
+                    "confidence": cached_data.get("confidence", CONFIDENCE_MEDIUM),
                     "message": "Login page found successfully (from cache)",
                     "original_url": cached_data.get("original_url", url),
                     "source": "cache"
@@ -160,14 +195,6 @@ if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
 
 if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
     raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
-
-AGENT_CLIENT = AzureChatOpenAI(
-    model="gpt-4o",
-    api_version='2024-02-01',
-    azure_endpoint=azure_openai_endpoint,
-    api_key=SecretStr(azure_openai_key),
-    temperature=0.0,
-)
 
 # Background task error handling decorator
 def handle_background_task_errors(func):
@@ -189,11 +216,10 @@ def handle_background_task_errors(func):
                 error_result = {
                     "valid": False,
                     "login_url": None,
-                    "confidence": "low",
-                    "explanation": f"The page took too long to respond",
+                    "confidence": CONFIDENCE_LOW,
                     "message": "Login page not found - page load timeout",
                     "original_url": args[0] if args else None,  # First arg should be URL
-                    "error_type": "timeout"
+                    "error_type": ERROR_TIMEOUT
                 }
                 # For timeouts, we'll mark as completed but with a negative result
                 task_status_manager.set_status(task_id, "completed", results=error_result)
@@ -204,28 +230,6 @@ def handle_background_task_errors(func):
             raise e
 
     return wrapper
-
-
-# Prompt for login page detection
-PROMPT = """
-You are an AI assistant tasked with examining a website to find its login page. 
-
-Your task is to:
-1. Look for login links, buttons, or forms on the current page
-2. If you find a login link or button, click on it to navigate to the login page
-3. If you're already on the login page, confirm that login elements (username/email field, password field) are present
-4. Report your findings
-
-Your goal is to determine if this website has a login page and if it can be found.
-
-After examining the site, provide a conclusion in the following format:
-<login_page_detection>
-<found>true/false</found>
-<login_url>URL of the login page if found</login_url>
-<confidence>high/medium/low</confidence>
-<explanation>Brief explanation of what you found</explanation>
-</login_page_detection>
-""".strip()
 
 @handle_background_task_errors
 async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
@@ -279,7 +283,7 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
             history = await agent.run(max_steps=10)
             
             # Extract the result
-            result = history.final_result()
+            result = history.validate_agent_history()
             
             # Parse the result to determine if a login page was found
             found = "true" in result.lower() and "<found>true</found>" in result.lower()
@@ -291,16 +295,10 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
                 login_url = login_url_match.group(1).strip()
                 
             # Extract confidence
-            confidence = "low"
+            confidence = CONFIDENCE_LOW
             confidence_match = re.search(r"<confidence>(.*?)</confidence>", result, re.DOTALL)
             if confidence_match:
                 confidence = confidence_match.group(1).strip().lower()
-                
-            # Extract explanation
-            explanation = ""
-            explanation_match = re.search(r"<explanation>(.*?)</explanation>", result, re.DOTALL)
-            if explanation_match:
-                explanation = explanation_match.group(1).strip()
             
             # Add detailed debug logging when a login page is found    
             if found:
@@ -308,7 +306,6 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
                 logger.debug(f"[{task_id}] Original URL: {url}")
                 logger.debug(f"[{task_id}] Login URL: {login_url}")
                 logger.debug(f"[{task_id}] Confidence: {confidence}")
-                logger.debug(f"[{task_id}] Explanation: {explanation}")
                 logger.debug(f"[{task_id}] Raw result: {result}")
                 
                 # Save the login page to cache if found
@@ -320,7 +317,6 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
                 "valid": found,
                 "login_url": login_url if found else None,
                 "confidence": confidence,
-                "explanation": explanation,
                 "message": "Login page found successfully" if found else "Login page could not be found",
                 "original_url": url,  # Include the original URL in the response
                 "source": "validation"
@@ -339,11 +335,10 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
             return {
                 "valid": False,
                 "login_url": None,
-                "confidence": "low",
-                "explanation": "The page took too long to respond. Please check that the URL is correct and accessible.",
+                "confidence": CONFIDENCE_LOW,
                 "message": "Login page not found - page load timeout",
                 "original_url": url,
-                "error_type": "timeout",
+                "error_type": ERROR_TIMEOUT,
                 "source": "validation"
             }
         except Exception as e:
@@ -352,11 +347,10 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
                 return {
                     "valid": False,
                     "login_url": None,
-                    "confidence": "low",
-                    "explanation": f"The page took too long to respond: {str(e)}",
+                    "confidence": CONFIDENCE_LOW,
                     "message": "Login page not found - page load timeout",
                     "original_url": url,
-                    "error_type": "timeout",
+                    "error_type": ERROR_TIMEOUT,
                     "source": "validation"
                 }
             else:
@@ -371,22 +365,20 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
             return {
                 "valid": False,
                 "login_url": None,
-                "confidence": "low",
-                "explanation": f"The page took too long to respond",
+                "confidence": CONFIDENCE_LOW,
                 "message": "Login page not found - page load timeout",
                 "original_url": url,
-                "error_type": "timeout",
+                "error_type": ERROR_TIMEOUT,
                 "source": "validation"
             }
         # Return detailed error information
         return {
             "valid": False,
             "login_url": None,
-            "confidence": "low",
-            "explanation": f"Error during validation: {error_message}",
+            "confidence": CONFIDENCE_LOW,
             "message": "Failed to validate login page",
             "original_url": url,
-            "error_type": "error",
+            "error_type": ERROR_OTHER,
             "source": "validation"
         }
     finally:
@@ -447,14 +439,14 @@ async def get_cached_login_page(
                 return LoginPageCacheResponse(
                     found=True,
                     login_url=cached_data.get("login_url"),
-                    confidence=cached_data.get("confidence", "medium"),
+                    confidence=cached_data.get("confidence", CONFIDENCE_MEDIUM ),
                     source="cache"
                 )
         
         return LoginPageCacheResponse(
             found=False,
             login_url=None,
-            confidence="low",
+            confidence=CONFIDENCE_LOW,
             source="cache"
         )
     except Exception as e:
