@@ -7,6 +7,7 @@ from typing import List, Optional
 from uuid import UUID
 from dependencies import get_current_user_dependency
 import requests
+import asyncio
 import os
 from urllib.parse import urlparse
 import logging
@@ -126,11 +127,11 @@ async def get_url_validation_status(
     Returns the status and results from the task manager service.
     """
     try:
-        async with requests.AsyncClient() as client:
-            # Check the validate-url task status endpoint in the task manager
-            response = await client.get(f"{TASK_MANAGER_URL}/validate-url/status/{task_id}")
-            response.raise_for_status()
-            return response.json()
+        loop = asyncio.get_event_loop()
+        url = f"{TASK_MANAGER_URL}/validate-url/status/{task_id}"
+        response = await loop.run_in_executor(None, lambda: requests.get(url))
+        response.raise_for_status()
+        return response.json()
     except requests.HTTPError as e:
         raise HTTPException(status_code=500, detail=f"Error checking URL validation status: {str(e)}")
 
@@ -147,16 +148,16 @@ async def trigger_url_validation(url: str, product_id: UUID) -> str:
         The task ID from the task manager service
     """
     try:
-        async with requests.AsyncClient() as client:
-            # Send a request to the validate-url endpoint in the task manager
-            response = await client.post(
-                f"{TASK_MANAGER_URL}/validate-url/",
-                json={"url": url}
-            )
-            response.raise_for_status()
-            result = response.json()
-            logger.info(f"URL validation started for product {product_id} with task ID: {result.get('task_id')}")
-            return result.get("task_id")
+        loop = asyncio.get_event_loop()
+        url_endpoint = f"{TASK_MANAGER_URL}/validate-url/"
+        response = await loop.run_in_executor(
+            None, 
+            lambda: requests.post(url_endpoint, json={"url": url})
+        )
+        response.raise_for_status()
+        result = response.json()
+        logger.info(f"URL validation started for product {product_id} with task ID: {result.get('task_id')}")
+        return result.get("task_id")
     except requests.HTTPError as e:
         # Log the error
         logger.error(f"Error triggering URL validation for product {product_id}: {str(e)}")
