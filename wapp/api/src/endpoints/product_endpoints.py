@@ -206,7 +206,7 @@ async def update_product_endpoint(
         task_id = await trigger_url_validation(updated_product.url, product_id)
         if not task_id:
             logger.warning(f"No task_id received for URL validation of updated product {product_id}")
-        else
+        else:
             # Add the task_id to the response
             result_dict["task_id"] = task_id
             logger.info(f"Added task_id {task_id} to product update response for product {product_id}")
