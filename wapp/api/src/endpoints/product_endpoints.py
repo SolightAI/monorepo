@@ -318,8 +318,8 @@ async def delete_product_endpoint(
 
 @router.post("/validate-url/")
 async def validate_url_endpoint(
-    request: dict = Body(..., example={"url": "https://example.com"}),
     background_tasks: BackgroundTasks,
+    request: dict = Body(..., example={"url": "https://example.com"}),
     current_user=Depends(get_current_user_dependency)
 ) -> dict:
     """
