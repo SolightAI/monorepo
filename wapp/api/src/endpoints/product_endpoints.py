@@ -7,7 +7,6 @@ from typing import List, Optional
 from uuid import UUID
 from dependencies import get_current_user_dependency
 import requests
-import asyncio
 import os
 from urllib.parse import urlparse
 import logging
@@ -127,9 +126,8 @@ async def get_url_validation_status(
     Returns the status and results from the task manager service.
     """
     try:
-        loop = asyncio.get_event_loop()
         url = f"{TASK_MANAGER_URL}/validate-url/status/{task_id}"
-        response = await loop.run_in_executor(None, lambda: requests.get(url))
+        response = requests.get(url)
         response.raise_for_status()
         return response.json()
     except requests.HTTPError as e:
@@ -148,12 +146,8 @@ async def trigger_url_validation(url: str, product_id: UUID) -> str:
         The task ID from the task manager service
     """
     try:
-        loop = asyncio.get_event_loop()
         url_endpoint = f"{TASK_MANAGER_URL}/validate-url/"
-        response = await loop.run_in_executor(
-            None, 
-            lambda: requests.post(url_endpoint, json={"url": url})
-        )
+        response = requests.post(url_endpoint, json={"url": url})
         response.raise_for_status()
         result = response.json()
         logger.info(f"URL validation started for product {product_id} with task ID: {result.get('task_id')}")
