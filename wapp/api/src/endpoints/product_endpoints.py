@@ -11,6 +11,7 @@ import os
 from urllib.parse import urlparse
 import logging
 import uuid
+import asyncio
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -105,7 +106,7 @@ async def create_product_endpoint(
     result_dict = dict(created_product)
     
     # Validate URL in background
-    task_id = await trigger_url_validation(created_product.url, created_product.id)
+    task_id = await trigger_url_validation(created_product.url, created_product.id, background_tasks)
     if task_id:
         # Add the task_id to the response
         result_dict["task_id"] = task_id
@@ -126,36 +127,113 @@ async def get_url_validation_status(
     Returns the status and results from the task manager service.
     """
     try:
-        url = f"{TASK_MANAGER_URL}/validate-url/status/{task_id}"
-        response = requests.get(url)
+        # Use asyncio.to_thread to run synchronous request in a separate thread
+        response = await asyncio.to_thread(
+            requests.get,
+            f"{TASK_MANAGER_URL}/validate-url/status/{task_id}"
+        )
         response.raise_for_status()
         return response.json()
     except requests.HTTPError as e:
         raise HTTPException(status_code=500, detail=f"Error checking URL validation status: {str(e)}")
 
 
-async def trigger_url_validation(url: str, product_id: UUID) -> str:
+async def trigger_url_validation(url: str, product_id: UUID, background_tasks: Optional[BackgroundTasks] = None) -> str:
     """
     Trigger the URL validation in the task manager service.
     
     Args:
         url: The URL to validate
         product_id: The ID of the product this URL belongs to
+        background_tasks: Optional BackgroundTasks for background processing
         
     Returns:
         The task ID from the task manager service
     """
     try:
-        url_endpoint = f"{TASK_MANAGER_URL}/validate-url/"
-        response = requests.post(url_endpoint, json={"url": url})
+        # Use asyncio.to_thread to run synchronous request in a separate thread
+        response = await asyncio.to_thread(
+            requests.post,
+            f"{TASK_MANAGER_URL}/validate-url/",
+            json={"url": url}
+        )
         response.raise_for_status()
         result = response.json()
-        logger.info(f"URL validation started for product {product_id} with task ID: {result.get('task_id')}")
-        return result.get("task_id")
+        task_id = result.get("task_id")
+        
+        if task_id and background_tasks:
+            # Add a background task to poll the status
+            background_tasks.add_task(poll_url_validation_status, task_id, product_id)
+            
+        logger.info(f"URL validation started for product {product_id} with task ID: {task_id}")
+        return task_id
     except requests.HTTPError as e:
         # Log the error
         logger.error(f"Error triggering URL validation for product {product_id}: {str(e)}")
         return None
+
+
+async def poll_url_validation_status(task_id: str, product_id: UUID, max_attempts: int = 60, interval: int = 5):
+    """
+    Poll the task manager for URL validation status updates.
+    This function is meant to be used with FastAPI BackgroundTasks.
+
+    Args:
+        task_id: Task ID from the task manager
+        product_id: ID of the product this URL belongs to
+        max_attempts: Maximum number of polling attempts before giving up
+        interval: Interval between polls in seconds
+    """
+    attempts = 0
+
+    while attempts < max_attempts:
+        try:
+            # Sleep first to give the task manager time to process
+            await asyncio.sleep(interval)
+            
+            # Check task status using asyncio.to_thread
+            response = await asyncio.to_thread(
+                requests.get,
+                f"{TASK_MANAGER_URL}/validate-url/status/{task_id}"
+            )
+            
+            if response.status_code == 404:
+                logger.error(f"Failed to get URL validation status for task: {task_id}")
+                break
+
+            if response.status_code != 200:
+                logger.error(f"Failed to get URL validation status ({response.status_code}): {response.text}")
+                attempts += 1
+                continue
+
+            status_data = response.json()
+            status = status_data.get("status")
+            
+            # If the task is completed or failed, we're done
+            if status in ["completed", "error"]:
+                logger.info(f"URL validation task {task_id} for product {product_id} finished with status: {status}")
+                
+                # Here you could add additional logic to handle the validation results
+                # For example, update the product with the login page URL if one was found
+                if status == "completed" and status_data.get("login_url"):
+                    logger.info(f"Login URL found for product {product_id}: {status_data.get('login_url')}")
+                    # You could update the product here if needed
+                
+                break
+            
+            # Continue polling
+            logger.debug(f"URL validation task {task_id} for product {product_id} status: {status}")
+            attempts += 1
+            
+        except requests.HTTPError as e:
+            logger.error(f"Error polling URL validation status for task {task_id}: {str(e)}")
+            attempts += 1
+        except Exception as e:
+            logger.error(f"Error polling URL validation status for task {task_id}: {str(e)}")
+            attempts += 1
+
+    if attempts >= max_attempts:
+        logger.warning(f"Gave up polling URL validation status for task {task_id} after {max_attempts} attempts")
 
 
 @router.put("/{product_id}")
@@ -198,7 +276,7 @@ async def update_product_endpoint(
     
     # If URL was updated, trigger validation
     if "url" in update_data and update_data["url"] != product.url:
-        task_id = await trigger_url_validation(updated_product.url, product_id)
+        task_id = await trigger_url_validation(updated_product.url, product_id, background_tasks)
         if not task_id:
             logger.warning(f"No task_id received for URL validation of updated product {product_id}")
         else:
@@ -241,6 +319,7 @@ async def delete_product_endpoint(
 @router.post("/validate-url/")
 async def validate_url_endpoint(
     request: dict = Body(..., example={"url": "https://example.com"}),
+    background_tasks: BackgroundTasks,
     current_user=Depends(get_current_user_dependency)
 ) -> dict:
     """
@@ -257,8 +336,8 @@ async def validate_url_endpoint(
     # Generate a random UUID to associate with this validation request
     temp_id = uuid.uuid4()
     
-    # Trigger validation in the task-manager
-    task_id = await trigger_url_validation(url, temp_id)
+    # Trigger validation in the task-manager with background tasks
+    task_id = await trigger_url_validation(url, temp_id, background_tasks)
     
     if not task_id:
         raise HTTPException(status_code=500, detail="Failed to start URL validation")
