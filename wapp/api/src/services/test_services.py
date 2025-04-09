@@ -295,6 +295,24 @@ async def trigger_test_generation(feature_id: UUID4) -> str:
     await feature.fetch_related("user_stories")
     user_stories = feature.user_stories
 
+    # Get existing tests from other features in the same epic to avoid duplicates
+    epic_tests = await get_tests_by_epic_id(epic.id)
+
+    # Filter out tests from the current feature
+    existing_tests = [
+        {
+            "id": str(test.id),
+            "name": test.name,
+            "description": test.description,
+            "url": test.url,
+            "category": test.category,
+            "steps": test.steps,
+            "feature_id": str(test.feature_id),
+        }
+        for test in epic_tests
+        if str(test.feature_id) != str(feature_id)
+    ]
+
     payload = {
         'feature': {
             'id': str(feature.id),
@@ -329,6 +347,7 @@ async def trigger_test_generation(feature_id: UUID4) -> str:
             'documentation': product.documentation,
             'links_to_documentation': [],  # TODO
         },
+        'existing_tests': existing_tests,
     }
 
     # Get organization ID from the product (if available)
@@ -559,26 +578,21 @@ async def check_for_duplicate_test(
     Returns:
         Tuple of (test_id, similarity_score) if a duplicate is found, None otherwise
     """
-    logger.debug(f"Checking for duplicate test: {test_name}, product_id: {product_id}, feature_id: {feature_id}, limit_to_epic: {limit_to_epic}")
-
     # Get all tests for the product
     existing_tests = []
 
     if limit_to_epic and feature_id:
         # Get the feature to find its epic
         feature = await get_feature(feature_id)
-        logger.debug(f"Found feature {feature.id} with epic_id {feature.epic_id}")
 
         # Get all tests from the same epic
         epic_tests = await get_tests_by_epic_id(feature.epic_id)
-        logger.debug(f"Found {len(epic_tests)} tests in the same epic")
 
         # Filter out the current feature's tests
         existing_tests = [test for test in epic_tests if str(test.feature_id) != str(feature_id)]
     else:
         # Get all tests for the product
         all_tests = await get_tests_by_product_id(product_id)
-        logger.debug(f"Found {len(all_tests)} tests in the product")
 
         # Filter out the current feature's tests if feature_id is provided
         if feature_id:
@@ -586,13 +600,10 @@ async def check_for_duplicate_test(
         else:
             existing_tests = all_tests
 
-    logger.debug(f"Comparing against {len(existing_tests)} existing tests")
-
     # Check for duplicate by name
     name_matches = [test for test in existing_tests if test.name.lower() == test_name.lower()]
     if name_matches:
         # If the name is an exact match, return the first match with a perfect score
-        logger.debug(f"Found exact name match: {name_matches[0].id}")
         return (name_matches[0].id, 1.0)
 
     # Check for similarity in steps
@@ -606,8 +617,6 @@ async def check_for_duplicate_test(
             best_score = score
 
     if best_match:
-        logger.debug(f"Found similar steps match: {best_match.id} with score {best_score}")
         return (best_match.id, best_score)
 
-    logger.debug("No duplicate found")
     return None

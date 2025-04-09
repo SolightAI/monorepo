@@ -3,7 +3,6 @@ import json
 import re
 import functools
 import traceback
-import requests
 from uuid import uuid4
 from typing import Any, Optional, List, Dict
 from pydantic import SecretStr
@@ -20,9 +19,6 @@ from utils.task_status import task_status_manager
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_gif_to_s3
 
-
-# Base API URL for the wapp API
-API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 PROMPT = """
 You are an AI assistant acting as a test automation engineer. Your task is to generate a suite of automated tests based on the provided product information, epic, feature, user stories, and acceptance criteria. Follow these instructions carefully to create well-structured, maintainable, and easy-to-understand test cases.
@@ -130,35 +126,12 @@ def _parse_test_cases(test_case_text: str) -> list[dict[str, str]]:
     return test_cases
 
 
-async def _get_existing_tests_for_same_epic(epic_id: str) -> List[Dict[str, Any]]:
-    """
-    Retrieve existing tests for features in the same epic.
-
-    Args:
-        epic_id: ID of the epic
-
-    Returns:
-        List of tests from other features in the same epic
-    """
-    try:
-        response = requests.get(f"{API_URL}/tests/by-epic/{epic_id}")
-        if response.status_code != 200:
-            logger.error(f"Failed to get tests for epic {epic_id}. Status: {response.status_code}")
-            return []
-
-        return response.json()
-    except Exception as e:
-        logger.error(f"Error retrieving tests for epic {epic_id}: {str(e)}")
-        return []
-
-
-def _format_existing_tests_for_prompt(tests: List[Dict[str, Any]], current_feature_id: str) -> str:
+def _format_existing_tests_for_prompt(tests: List[Dict[str, Any]]) -> str:
     """
     Format existing tests from the same epic for inclusion in the prompt.
 
     Args:
-        tests: List of tests from the API
-        current_feature_id: ID of the current feature (to exclude its tests)
+        tests: List of tests from other features in the same epic
 
     Returns:
         Formatted string of existing tests to include in prompt
@@ -166,14 +139,8 @@ def _format_existing_tests_for_prompt(tests: List[Dict[str, Any]], current_featu
     if not tests:
         return ""
 
-    # Filter out tests from the current feature
-    other_feature_tests = [t for t in tests if t.get('feature_id') != current_feature_id]
-
-    if not other_feature_tests:
-        return ""
-
     result = "== Existing Tests in Related Features ==\n"
-    for idx, test in enumerate(other_feature_tests, 1):
+    for idx, test in enumerate(tests, 1):
         result += f"Test {idx}: {test.get('name')}\n"
         result += f"Description: {test.get('description')}\n"
         result += f"Steps:\n{test.get('steps')}\n\n"
@@ -181,40 +148,6 @@ def _format_existing_tests_for_prompt(tests: List[Dict[str, Any]], current_featu
     result += "Please avoid creating duplicate tests that cover the same functionality as these existing tests.\n\n"
 
     return result
-
-
-async def _check_for_duplicate_test(test_case: dict, product_id: str, feature_id: str) -> bool:
-    """
-    Check if a test is a duplicate by comparing against existing tests in the product.
-
-    Args:
-        test_case: Dictionary containing test case information
-        product_id: ID of the product
-        feature_id: ID of the feature
-
-    Returns:
-        True if a duplicate is found, False otherwise
-    """
-    try:
-        response = requests.post(
-            f"{API_URL}/tests/check-duplicate",
-            json={
-                "test_name": test_case['name'],
-                "test_steps": test_case['steps'],
-                "product_id": product_id,
-                "feature_id": feature_id
-            }
-        )
-
-        if response.status_code != 200:
-            logger.error(f"Failed to check for duplicate test. Status: {response.status_code}")
-            return False
-
-        result = response.json()
-        return result.get('is_duplicate', False)
-    except Exception as e:
-        logger.error(f"Error checking for duplicate test: {str(e)}")
-        return False
 
 
 async def _generate_test_category_for_feature(
@@ -225,6 +158,7 @@ async def _generate_test_category_for_feature(
     user_stories: list[UserStory],
     acceptance_criteria_list: list[AcceptanceCriteria],
     category_of_test: TestCategory,
+    existing_tests: List[Dict[str, Any]] = None,
     cookies_file: str | None = None,
     localStorage: str | None = None,
     gif_output_path: str | bool = False,
@@ -239,6 +173,7 @@ async def _generate_test_category_for_feature(
         user_stories: List of user stories associated with the feature
         acceptance_criteria_list: List of acceptance criteria associated with the feature
         category_of_test: Category of tests to generate
+        existing_tests: List of existing tests from other features in the same epic
         cookies_file: Path to cookies file for browser automation
         localStorage: Path to localStorage file for browser automation
         gif_output_path: Path to store GIF output of browser automation
@@ -258,9 +193,8 @@ async def _generate_test_category_for_feature(
         for ac in acceptance_criteria_list
     ])
 
-    # Get existing tests from the same epic to avoid duplicates
-    existing_tests = await _get_existing_tests_for_same_epic(epic.id)
-    existing_tests_text = _format_existing_tests_for_prompt(existing_tests, feature.id)
+    # Format existing tests for the prompt
+    existing_tests_text = _format_existing_tests_for_prompt(existing_tests or [])
 
     # Configure the browser session with cookies and localStorage
     browser_config = BrowserConfig(
@@ -348,19 +282,8 @@ async def _generate_test_category_for_feature(
 
     tests = []
 
-    # Check each test case for duplicates and convert to Test objects
+    # Convert parsed test cases to Test objects
     for tc in test_cases:
-        # Check if this test is a duplicate
-        is_duplicate = await _check_for_duplicate_test(
-            test_case=tc,
-            product_id=product.id if hasattr(product, 'id') else None,
-            feature_id=feature.id
-        )
-
-        if is_duplicate:
-            logger.info(f"[{task_id}] Skipping duplicate test: {tc['name']}")
-            continue
-
         test = Test(
             name=tc['name'],
             description=tc['description'],
@@ -406,7 +329,8 @@ async def background_generate_tests_for_feature(
     user_stories: list[UserStory],
     acceptance_criteria_list: list[AcceptanceCriteria],
     categories_of_test: list[TestCategory],
-    secrets: dict[str, dict[str, str]],
+    existing_tests: List[Dict[str, Any]] = None,
+    secrets: dict[str, dict[str, str]] = None,
     gif_output_path: str | bool = False,
 ) -> list[Test]:
     """
@@ -420,6 +344,7 @@ async def background_generate_tests_for_feature(
         user_stories: List of user stories associated with the feature
         acceptance_criteria_list: List of acceptance criteria associated with the feature
         categories_of_test: List of test categories to generate
+        existing_tests: List of existing tests from other features in the same epic
         secrets: Dictionary of secrets for authentication
         gif_output_path: Path to store GIF output of browser automation
 
@@ -430,7 +355,7 @@ async def background_generate_tests_for_feature(
     auth_session = await generate_auth_session(
         task_id=task_id,
         url=product.url,
-        secrets=secrets,
+        secrets=secrets or {},
     )
 
     tests = []
@@ -448,6 +373,7 @@ async def background_generate_tests_for_feature(
                 user_stories=user_stories,
                 acceptance_criteria_list=acceptance_criteria_list,
                 category_of_test=category,
+                existing_tests=existing_tests,
                 cookies_file=cookies_file.name if auth_session.get('cookies') is not None else None,
                 localStorage=auth_session.get('localStorage'),
                 gif_output_path=gif_output_path,
@@ -465,6 +391,7 @@ async def generate_tests_for_feature(
     user_stories: list[UserStory],
     acceptance_criteria: list[AcceptanceCriteria],
     background_task: BackgroundTasks,
+    existing_tests: Optional[List[Dict[str, Any]]] = None,
     encrypted_secrets: Optional[dict[str, dict[str, str]]] = None,
 ) -> str:
     """
@@ -477,7 +404,7 @@ async def generate_tests_for_feature(
         user_stories: List of user stories associated with the feature
         acceptance_criteria: List of acceptance criteria associated with the feature
         background_task: Background tasks handler
-        secrets: Dictionary of secrets for authentication
+        existing_tests: List of existing tests from other features in the same epic
         encrypted_secrets: Dictionary of encrypted secrets for authentication
 
     Returns:
@@ -517,6 +444,7 @@ async def generate_tests_for_feature(
         user_stories=user_stories,
         acceptance_criteria_list=acceptance_criteria,
         categories_of_test=categories,
+        existing_tests=existing_tests,
         secrets=secrets_to_use or {},
         gif_output_path="/tmp",
     )

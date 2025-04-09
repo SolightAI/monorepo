@@ -48,11 +48,6 @@ class DuplicateTestCheckResponse(BaseModel):
     similarity_score: Optional[float] = None
 
 
-@router.get("/")
-async def get_all_tests_endpoint() -> List[TestSchema]:
-    return await get_all_tests()
-
-
 @router.post("/check-duplicate", response_model=DuplicateTestCheckResponse)
 async def check_duplicate_test(request: DuplicateTestCheckRequest):
     """
@@ -97,6 +92,11 @@ async def get_tests_by_epic_endpoint(epic_id: UUID4) -> List[TestSchema]:
     return await get_tests_by_epic_id(epic_id)
 
 
+@router.get("/")
+async def get_all_tests_endpoint() -> List[TestSchema]:
+    return await get_all_tests()
+
+
 @router.get("/by-product/{product_id}")
 async def get_tests_by_product_id_endpoint(product_id: UUID4) -> List[TestSchema]:
     """
@@ -125,24 +125,6 @@ async def get_tests_by_feature_endpoint(feature_id: UUID4) -> List[TestSchema]:
     return await get_tests_by_feature(feature_id)
 
 
-@router.post("/")
-async def create_test_endpoint(test: TestCreateSchema) -> TestSchema:
-    return await create_test(test)
-
-
-@router.post("/generate")
-async def generate_test(feature_id: UUID4, background_tasks: BackgroundTasks) -> str:  # returns task id
-    task_id = await trigger_test_generation(feature_id=feature_id)
-    background_tasks.add_task(poll_test_generation_status, task_id)
-    logger.error(f"Test generation task {task_id} started")
-    return task_id
-
-
-@router.get("/generate/status/{task_id}")
-async def get_generate_test_status_endpoint(task_id: UUID4) -> dict:
-    return await get_test_generation_status(task_id)
-
-
 @router.get("/{test_id}")
 async def get_test_endpoint(test_id: UUID4) -> TestSchema:
     return await get_test(test_id)
@@ -157,6 +139,11 @@ async def get_test_executions_endpoint(test_id: UUID4) -> List[TestExecutionSche
     providing a complete history of test runs.
     """
     return await get_test_executions_by_test(test_id)
+
+
+@router.post("/")
+async def create_test_endpoint(test: TestCreateSchema) -> TestSchema:
+    return await create_test(test)
 
 
 @router.put("/{test_id}/status")
@@ -178,6 +165,19 @@ async def delete_test_endpoint(test_id: UUID4) -> dict:
     """Delete a test and all its related bugs."""
     deleted = await delete_test(test_id)
     return {"success": deleted, "message": "Test and all related bugs deleted successfully"}
+
+
+@router.post("/generate")
+async def generate_test(feature_id: UUID4, background_tasks: BackgroundTasks) -> str:  # returns task id
+    task_id = await trigger_test_generation(feature_id=feature_id)
+    background_tasks.add_task(poll_test_generation_status, task_id)
+    logger.error(f"Test generation task {task_id} started")
+    return task_id
+
+
+@router.get("/generate/status/{task_id}")
+async def get_generate_test_status_endpoint(task_id: UUID4) -> dict:
+    return await get_test_generation_status(task_id)
 
 
 @router.post("/{test_id}/secrets", response_model=TestSecret, status_code=status.HTTP_201_CREATED)
