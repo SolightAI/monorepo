@@ -6,14 +6,15 @@ import logging
 from typing import Tuple
 from dto.schemas import OrganizationRole
 
+
 async def handle_organization_invitation(invitation_code: str, user) -> Tuple[bool, str]:
     """
     Handle the organization invitation process for a user.
-    
+
     Args:
         invitation_code (str): The invitation code to validate
         user: The user object containing id and email
-        
+
     Returns:
         Tuple[bool, str]: A tuple containing:
             - bool: True if the invitation was processed successfully, False otherwise
@@ -28,7 +29,7 @@ async def handle_organization_invitation(invitation_code: str, user) -> Tuple[bo
     try:
         # First validate the invitation without checking email and allowing used invitations
         invitation = await validate_invitation(invitation_code, check_used=False)
-        
+
         # Then check if the email matches for individual invitations
         if invitation.email and invitation.email.lower() != user.email.lower():
             raise HTTPException(
@@ -55,6 +56,11 @@ async def handle_organization_invitation(invitation_code: str, user) -> Tuple[bo
                     invited_by_id=invitation.created_by_id
                 )
             )
+
+            # Set onboarding_completed to True when the user joins an organization
+            user.onboarding_completed = True
+            await user.save()
+
             await mark_invitation_used(invitation.code, user.id)
             return True, "Successfully joined the organization"
 
