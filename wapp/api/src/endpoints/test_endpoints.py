@@ -15,10 +15,12 @@ from services.test_services import (
     get_test_secrets,
     delete_test_secret,
     get_tests_by_product_id,
+    get_tests_by_epic_id,
+    check_for_duplicate_test,
 )
 from services.test_execution_services import get_test_executions_by_test
-from pydantic import UUID4
-from typing import List
+from pydantic import UUID4, BaseModel
+from typing import List, Optional
 
 from dependencies import get_current_user_dependency
 from dto.models import User
@@ -30,9 +32,69 @@ router = APIRouter(prefix="/tests", tags=["tests"])
 logger = getLogger(__name__)
 
 
+# Schema for duplicate test check request
+class DuplicateTestCheckRequest(BaseModel):
+    test_name: str
+    test_steps: str
+    product_id: UUID4
+    feature_id: Optional[UUID4] = None
+    limit_to_epic: bool = False
+
+
+# Schema for duplicate test check response
+class DuplicateTestCheckResponse(BaseModel):
+    is_duplicate: bool
+    duplicate_id: Optional[UUID4] = None
+    similarity_score: Optional[float] = None
+
+
 @router.get("/")
 async def get_all_tests_endpoint() -> List[TestSchema]:
     return await get_all_tests()
+
+
+@router.post("/check-duplicate", response_model=DuplicateTestCheckResponse)
+async def check_duplicate_test(request: DuplicateTestCheckRequest):
+    """
+    Check if a test is a duplicate of an existing test.
+
+    Args:
+        request: The request containing test details to check
+
+    Returns:
+        Object indicating if the test is a duplicate and metadata
+    """
+    result = await check_for_duplicate_test(
+        test_name=request.test_name,
+        test_steps=request.test_steps,
+        product_id=request.product_id,
+        feature_id=request.feature_id,
+        limit_to_epic=request.limit_to_epic
+    )
+
+    if result:
+        duplicate_id, similarity = result
+        return DuplicateTestCheckResponse(
+            is_duplicate=True,
+            duplicate_id=duplicate_id,
+            similarity_score=similarity
+        )
+
+    return DuplicateTestCheckResponse(is_duplicate=False)
+
+
+@router.get("/by-epic/{epic_id}")
+async def get_tests_by_epic_endpoint(epic_id: UUID4) -> List[TestSchema]:
+    """
+    Get all tests for features in an epic.
+
+    Args:
+        epic_id: UUID of the epic
+
+    Returns:
+        A list of tests for features in the epic
+    """
+    return await get_tests_by_epic_id(epic_id)
 
 
 @router.get("/by-product/{product_id}")
@@ -63,6 +125,24 @@ async def get_tests_by_feature_endpoint(feature_id: UUID4) -> List[TestSchema]:
     return await get_tests_by_feature(feature_id)
 
 
+@router.post("/")
+async def create_test_endpoint(test: TestCreateSchema) -> TestSchema:
+    return await create_test(test)
+
+
+@router.post("/generate")
+async def generate_test(feature_id: UUID4, background_tasks: BackgroundTasks) -> str:  # returns task id
+    task_id = await trigger_test_generation(feature_id=feature_id)
+    background_tasks.add_task(poll_test_generation_status, task_id)
+    logger.error(f"Test generation task {task_id} started")
+    return task_id
+
+
+@router.get("/generate/status/{task_id}")
+async def get_generate_test_status_endpoint(task_id: UUID4) -> dict:
+    return await get_test_generation_status(task_id)
+
+
 @router.get("/{test_id}")
 async def get_test_endpoint(test_id: UUID4) -> TestSchema:
     return await get_test(test_id)
@@ -77,11 +157,6 @@ async def get_test_executions_endpoint(test_id: UUID4) -> List[TestExecutionSche
     providing a complete history of test runs.
     """
     return await get_test_executions_by_test(test_id)
-
-
-@router.post("/")
-async def create_test_endpoint(test: TestCreateSchema) -> TestSchema:
-    return await create_test(test)
 
 
 @router.put("/{test_id}/status")
@@ -103,19 +178,6 @@ async def delete_test_endpoint(test_id: UUID4) -> dict:
     """Delete a test and all its related bugs."""
     deleted = await delete_test(test_id)
     return {"success": deleted, "message": "Test and all related bugs deleted successfully"}
-
-
-@router.post("/generate")
-async def generate_test(feature_id: UUID4, background_tasks: BackgroundTasks) -> str:  # returns task id
-    task_id = await trigger_test_generation(feature_id=feature_id)
-    background_tasks.add_task(poll_test_generation_status, task_id)
-    logger.error(f"Test generation task {task_id} started")
-    return task_id
-
-
-@router.get("/generate/status/{task_id}")
-async def get_generate_test_status_endpoint(task_id: UUID4) -> dict:
-    return await get_test_generation_status(task_id)
 
 
 @router.post("/{test_id}/secrets", response_model=TestSecret, status_code=status.HTTP_201_CREATED)

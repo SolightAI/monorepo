@@ -3,8 +3,9 @@ import json
 import re
 import functools
 import traceback
+import requests
 from uuid import uuid4
-from typing import Any, Optional
+from typing import Any, Optional, List, Dict
 from pydantic import SecretStr
 from logging import getLogger
 from tempfile import NamedTemporaryFile
@@ -19,6 +20,9 @@ from utils.task_status import task_status_manager
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_gif_to_s3
 
+
+# Base API URL for the wapp API
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 PROMPT = """
 You are an AI assistant acting as a test automation engineer. Your task is to generate a suite of automated tests based on the provided product information, epic, feature, user stories, and acceptance criteria. Follow these instructions carefully to create well-structured, maintainable, and easy-to-understand test cases.
@@ -45,6 +49,8 @@ URL: {url}
 == Acceptance Criteria ==
 {acceptance_criteria_text}
 
+{existing_tests_text}
+
 Analyze the provided information carefully. Pay special attention to the acceptance criteria, as this will be the primary basis for your test cases.
 
 Generate a suite of {category_of_test} test cases that thoroughly cover the acceptance criteria. Each test case should:
@@ -61,6 +67,7 @@ When creating your test cases, keep the following best practices in mind:
 - Keep tests focused on a single aspect of functionality
 - Consider both positive and negative test scenarios
 - Include edge cases and boundary conditions where applicable
+- DO NOT create duplicate tests that are already covered in the existing tests section
 
 Some extra ground rules:
 - Do not logout from the application in the test cases
@@ -70,7 +77,7 @@ Some extra ground rules:
 
 On your final response, for each test case, you should write the following informations in the following format:
 <test_case>
-<name>Name of the test</name>
+<n>Name of the test</n>
 <description>Description of the test</description>
 <preconditions>Preconditions or setup required</preconditions>
 <steps>Step-by-step instructions for test execution</steps>
@@ -105,7 +112,7 @@ def _parse_test_cases(test_case_text: str) -> list[dict[str, str]]:
     """Parse the text returned from LLM into a list of test case dictionaries."""
     # Use regex to extract test cases
     test_cases = []
-    pattern = r'<test_case>\s*<name>(.*?)</name>\s*<description>(.*?)</description>\s*<preconditions>(.*?)</preconditions>\s*<steps>(.*?)</steps>\s*<expected_results>(.*?)</expected_results>\s*<assertions>(.*?)</assertions>\s*</test_case>'
+    pattern = r'<test_case>\s*<n>(.*?)</n>\s*<description>(.*?)</description>\s*<preconditions>(.*?)</preconditions>\s*<steps>(.*?)</steps>\s*<expected_results>(.*?)</expected_results>\s*<assertions>(.*?)</assertions>\s*</test_case>'
 
     matches = re.finditer(pattern, test_case_text, re.DOTALL)
 
@@ -121,6 +128,93 @@ def _parse_test_cases(test_case_text: str) -> list[dict[str, str]]:
         test_cases.append(test_case)
 
     return test_cases
+
+
+async def _get_existing_tests_for_same_epic(epic_id: str) -> List[Dict[str, Any]]:
+    """
+    Retrieve existing tests for features in the same epic.
+
+    Args:
+        epic_id: ID of the epic
+
+    Returns:
+        List of tests from other features in the same epic
+    """
+    try:
+        response = requests.get(f"{API_URL}/tests/by-epic/{epic_id}")
+        if response.status_code != 200:
+            logger.error(f"Failed to get tests for epic {epic_id}. Status: {response.status_code}")
+            return []
+
+        return response.json()
+    except Exception as e:
+        logger.error(f"Error retrieving tests for epic {epic_id}: {str(e)}")
+        return []
+
+
+def _format_existing_tests_for_prompt(tests: List[Dict[str, Any]], current_feature_id: str) -> str:
+    """
+    Format existing tests from the same epic for inclusion in the prompt.
+
+    Args:
+        tests: List of tests from the API
+        current_feature_id: ID of the current feature (to exclude its tests)
+
+    Returns:
+        Formatted string of existing tests to include in prompt
+    """
+    if not tests:
+        return ""
+
+    # Filter out tests from the current feature
+    other_feature_tests = [t for t in tests if t.get('feature_id') != current_feature_id]
+
+    if not other_feature_tests:
+        return ""
+
+    result = "== Existing Tests in Related Features ==\n"
+    for idx, test in enumerate(other_feature_tests, 1):
+        result += f"Test {idx}: {test.get('name')}\n"
+        result += f"Description: {test.get('description')}\n"
+        result += f"Steps:\n{test.get('steps')}\n\n"
+
+    result += "Please avoid creating duplicate tests that cover the same functionality as these existing tests.\n\n"
+
+    return result
+
+
+async def _check_for_duplicate_test(test_case: dict, product_id: str, feature_id: str) -> bool:
+    """
+    Check if a test is a duplicate by comparing against existing tests in the product.
+
+    Args:
+        test_case: Dictionary containing test case information
+        product_id: ID of the product
+        feature_id: ID of the feature
+
+    Returns:
+        True if a duplicate is found, False otherwise
+    """
+    try:
+        response = requests.post(
+            f"{API_URL}/tests/check-duplicate",
+            json={
+                "test_name": test_case['name'],
+                "test_steps": test_case['steps'],
+                "product_id": product_id,
+                "feature_id": feature_id
+            }
+        )
+
+        if response.status_code != 200:
+            logger.error(f"Failed to check for duplicate test. Status: {response.status_code}")
+            return False
+
+        result = response.json()
+        return result.get('is_duplicate', False)
+    except Exception as e:
+        logger.error(f"Error checking for duplicate test: {str(e)}")
+        return False
 
 
 async def _generate_test_category_for_feature(
@@ -164,6 +258,10 @@ async def _generate_test_category_for_feature(
         for ac in acceptance_criteria_list
     ])
 
+    # Get existing tests from the same epic to avoid duplicates
+    existing_tests = await _get_existing_tests_for_same_epic(epic.id)
+    existing_tests_text = _format_existing_tests_for_prompt(existing_tests, feature.id)
+
     # Configure the browser session with cookies and localStorage
     browser_config = BrowserConfig(
         headless=os.getenv("HEADLESS", "true").lower() == "true",
@@ -203,6 +301,7 @@ async def _generate_test_category_for_feature(
             user_stories_text=user_stories_text,
             acceptance_criteria_text=acceptance_criteria_text,
             category_of_test=category_of_test,
+            existing_tests_text=existing_tests_text,
         ),
         llm=LLM_CLIENT,
         initial_actions=[{'go_to_url': {'url': feature.urls[0]}}, {'go_to_url': {'url': feature.urls[0]}}],
@@ -249,8 +348,19 @@ async def _generate_test_category_for_feature(
 
     tests = []
 
-    # Convert parsed test cases to Test objects
+    # Check each test case for duplicates and convert to Test objects
     for tc in test_cases:
+        # Check if this test is a duplicate
+        is_duplicate = await _check_for_duplicate_test(
+            test_case=tc,
+            product_id=product.id if hasattr(product, 'id') else None,
+            feature_id=feature.id
+        )
+
+        if is_duplicate:
+            logger.info(f"[{task_id}] Skipping duplicate test: {tc['name']}")
+            continue
+
         test = Test(
             name=tc['name'],
             description=tc['description'],

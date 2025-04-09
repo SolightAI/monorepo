@@ -3,11 +3,13 @@ import requests
 import asyncio
 import logging
 import uuid
+import re
+from difflib import SequenceMatcher
 
 from fastapi import HTTPException
 from dto.models import Test as TestModel, TestSecret as TestSecretModel, Secret as SecretModel
 from dto.schemas import TestCreate as TestCreateSchema, TestStatus, TestUpdate as TestUpdateSchema
-from typing import List, Dict
+from typing import List, Dict, Optional, Tuple
 from uuid import UUID
 from services.product_services import get_product_by_url_path
 from services.feature_services import get_feature
@@ -26,6 +28,55 @@ if not TASK_MANAGER_URL:
 
 
 logger = logging.getLogger(__name__)
+
+# Configure the similarity threshold for test duplication detection
+SIMILARITY_THRESHOLD = float(os.getenv("TEST_SIMILARITY_THRESHOLD", "0.8"))  # Default to 80% similarity
+
+# Regular expressions to clean up text before comparison
+STEP_NUMBER_PATTERN = re.compile(r'^\s*\d+\.\s*', re.MULTILINE)  # Matches lines starting with numbers like "1. "
+
+
+# Function to preprocess test text for comparison
+def preprocess_text(text: str) -> str:
+    """
+    Preprocess text for similarity comparison by removing step numbers, extra whitespace, etc.
+
+    Args:
+        text: The text to preprocess
+
+    Returns:
+        Cleaned text for comparison
+    """
+    # Remove step numbers (e.g., "1. Click the button" -> "Click the button")
+    text = STEP_NUMBER_PATTERN.sub('', text)
+
+    # Convert to lowercase
+    text = text.lower()
+
+    # Remove extra whitespace
+    text = ' '.join(text.split())
+
+    return text
+
+
+def similarity_score(text1: str, text2: str) -> float:
+    """
+    Calculate similarity between two texts using SequenceMatcher.
+
+    Args:
+        text1: First text to compare
+        text2: Second text to compare
+
+    Returns:
+        Similarity score between 0.0 and 1.0
+    """
+    # Preprocess the texts
+    processed_text1 = preprocess_text(text1)
+    processed_text2 = preprocess_text(text2)
+
+    # Use SequenceMatcher for similarity calculation
+    matcher = SequenceMatcher(None, processed_text1, processed_text2)
+    return matcher.ratio()
 
 
 async def get_test(test_id: UUID) -> TestModel:
@@ -462,3 +513,101 @@ async def get_tests_by_product_id(product_id: UUID4) -> List[TestModel]:
             tests.extend(feature.tests)
 
     return tests
+
+
+async def get_tests_by_epic_id(epic_id: UUID4) -> List[TestModel]:
+    """
+    Get all tests associated with features in an epic.
+
+    Args:
+        epic_id: UUID of the epic
+
+    Returns:
+        List of tests for all features in the epic
+    """
+    epic = await get_epic(epic_id)
+    if not epic:
+        raise HTTPException(status_code=404, detail="Epic not found")
+
+    tests = []
+    await epic.fetch_related("features")
+
+    for feature in epic.features:
+        await feature.fetch_related("tests")
+        tests.extend(feature.tests)
+
+    return tests
+
+
+async def check_for_duplicate_test(
+    test_name: str,
+    test_steps: str,
+    product_id: UUID4,
+    feature_id: Optional[UUID4] = None,
+    limit_to_epic: bool = False
+) -> Optional[Tuple[UUID4, float]]:
+    """
+    Check if a similar test already exists for any feature in the product.
+
+    Args:
+        test_name: Name of the test to check
+        test_steps: Steps of the test to check
+        product_id: UUID of the product
+        feature_id: Optional UUID of the current feature (to exclude from check)
+        limit_to_epic: If True, only check tests in the same epic
+
+    Returns:
+        Tuple of (test_id, similarity_score) if a duplicate is found, None otherwise
+    """
+    logger.debug(f"Checking for duplicate test: {test_name}, product_id: {product_id}, feature_id: {feature_id}, limit_to_epic: {limit_to_epic}")
+
+    # Get all tests for the product
+    existing_tests = []
+
+    if limit_to_epic and feature_id:
+        # Get the feature to find its epic
+        feature = await get_feature(feature_id)
+        logger.debug(f"Found feature {feature.id} with epic_id {feature.epic_id}")
+
+        # Get all tests from the same epic
+        epic_tests = await get_tests_by_epic_id(feature.epic_id)
+        logger.debug(f"Found {len(epic_tests)} tests in the same epic")
+
+        # Filter out the current feature's tests
+        existing_tests = [test for test in epic_tests if str(test.feature_id) != str(feature_id)]
+    else:
+        # Get all tests for the product
+        all_tests = await get_tests_by_product_id(product_id)
+        logger.debug(f"Found {len(all_tests)} tests in the product")
+
+        # Filter out the current feature's tests if feature_id is provided
+        if feature_id:
+            existing_tests = [test for test in all_tests if str(test.feature_id) != str(feature_id)]
+        else:
+            existing_tests = all_tests
+
+    logger.debug(f"Comparing against {len(existing_tests)} existing tests")
+
+    # Check for duplicate by name
+    name_matches = [test for test in existing_tests if test.name.lower() == test_name.lower()]
+    if name_matches:
+        # If the name is an exact match, return the first match with a perfect score
+        logger.debug(f"Found exact name match: {name_matches[0].id}")
+        return (name_matches[0].id, 1.0)
+
+    # Check for similarity in steps
+    best_match = None
+    best_score = 0.0
+
+    for test in existing_tests:
+        score = similarity_score(test_steps, test.steps)
+        if score > SIMILARITY_THRESHOLD and score > best_score:
+            best_match = test
+            best_score = score
+
+    if best_match:
+        logger.debug(f"Found similar steps match: {best_match.id} with score {best_score}")
+        return (best_match.id, best_score)
+
+    logger.debug("No duplicate found")
+    return None
