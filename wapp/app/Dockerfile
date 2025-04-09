@@ -17,15 +17,18 @@ COPY ./tailwind.config.js /app/tailwind.config.js
 COPY ./jsconfig.json /app/jsconfig.json
 COPY ./craco.config.js /app/craco.config.js
 
+# Add build argument for API URL
+ARG REACT_APP_API_URL
+ENV REACT_APP_API_URL=${REACT_APP_API_URL}
+
 # Build the app for production
-# RUN npm run build
+RUN npm run build
 
-# # Install serve to run the application
-# RUN npm install -g serve
+# Install serve to run the application
+RUN npm install -g serve
 
-# # Make port 3000 available to the world outside this container
-# EXPOSE 3000
+# Make port 3000 available to the world outside this container
+EXPOSE 3000
 
-# # Serve the app
-# CMD ["serve", "-s", "build", "-l", "3000"]
-CMD ["npm", "start"]
+# Serve the app
+CMD ["serve", "-s", "build", "-l", "3000"]
