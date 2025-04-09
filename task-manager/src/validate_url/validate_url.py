@@ -304,12 +304,7 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
             
             # Add detailed debug logging when a login page is found    
             if found:
-                logger.debug(f"[{task_id}] LOGIN PAGE FOUND for {url}")
-                logger.debug(f"[{task_id}] Original URL: {url}")
-                logger.debug(f"[{task_id}] Login URL: {login_url}")
-                logger.debug(f"[{task_id}] Confidence: {confidence}")
-                logger.debug(f"[{task_id}] Explanation: {explanation}")
-                logger.debug(f"[{task_id}] Raw result: {result}")
+                logger.debug(f"[{task_id}] {url=} {login_url=} {confidence=} {explanation=} {result=}")
                 
                 # Save the login page to cache if found
                 if login_url:
