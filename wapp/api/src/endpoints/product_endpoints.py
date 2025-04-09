@@ -6,7 +6,7 @@ from pydantic import UUID4
 from typing import List, Optional
 from uuid import UUID
 from dependencies import get_current_user_dependency
-import httpx
+import requests
 import os
 from urllib.parse import urlparse
 import logging
