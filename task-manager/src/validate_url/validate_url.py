@@ -35,6 +35,12 @@ CONFIDENCE_LOW = "low"
 ERROR_TIMEOUT = "timeout"
 ERROR_OTHER = "error"
 
+# Check for required environment variables
+if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
+    raise ValueError('AZURE_OPENAI_KEY is not set')
+
+if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
+    raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
 
 AGENT_CLIENT = AzureChatOpenAI(
     model="gpt-4o",
@@ -188,13 +194,6 @@ async def get_login_page_from_cache(url: str) -> Dict[str, Any]:
     
     logger.info(f"No login page found in cache for domain {domain}")
     return None
-
-# Setup Azure OpenAI client
-if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
-    raise ValueError('AZURE_OPENAI_KEY is not set')
-
-if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
-    raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
 
 # Background task error handling decorator
 def handle_background_task_errors(func):

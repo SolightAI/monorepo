@@ -20,6 +20,14 @@ USERNAME_PASSWORD = "username_password"
 
 ACTION_CHECK_LOGIN = "Check if the user is logged in based on the vision"
 
+# Check for required environment variables before using them
+if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
+    raise ValueError('AZURE_OPENAI_KEY is not set')
+
+if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
+    raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
+
+# Initialize the LLM client with the credentials
 AGENT_CLIENT = AzureChatOpenAI(
     model="gpt-4o",
     api_version='2024-10-21',
@@ -93,13 +101,6 @@ Look at the current page and determine if the user is logged in.
 - If the user is not logged in, output "[NO]".
 - If you are not sure, output "[MAYBE]".
 """.strip()
-
-
-if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
-    raise ValueError('AZURE_OPENAI_KEY is not set')
-
-if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
-    raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
 
 
 controller = Controller()

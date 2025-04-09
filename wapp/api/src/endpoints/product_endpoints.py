@@ -340,6 +340,9 @@ async def validate_url_endpoint(
     
     This endpoint triggers the task-manager's URL validation service
     and returns a task ID for tracking the validation process.
+    
+    If the task manager service is unavailable, it will return an appropriate message
+    rather than failing.
     """
     if not request.get("url"):
         raise HTTPException(status_code=400, detail="URL is required")
@@ -353,6 +356,12 @@ async def validate_url_endpoint(
     task_id = await trigger_url_validation(url, temp_id, background_tasks)
     
     if not task_id:
-        raise HTTPException(status_code=500, detail="Failed to start URL validation")
+        # Instead of a 500 error, return a 202 Accepted with a message
+        # that validation couldn't be performed but the request was valid
+        return {
+            "status": "unavailable",
+            "message": "URL validation service is currently unavailable, but the request was accepted",
+            "url": url
+        }
     
-    return {"task_id": task_id}
+    return {"task_id": task_id, "status": "pending"}

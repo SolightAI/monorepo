@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { API_URL, POLLING_INTERVAL } from '../../config';
+
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+const POLLING_INTERVAL = 5000;
 
 /**
  * Custom hook to validate a URL and find login page
