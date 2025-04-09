@@ -66,6 +66,7 @@ Some extra ground rules:
 - Do not logout from the application in the test cases
 - Do not exit from the application in the test cases
 - If you're on an unrelated page, stop by raising an exception to the user
+- Do not try to change the current url, the feature is accessible from the current url
 
 On your final response, for each test case, you should write the following informations in the following format:
 <test_case>
@@ -206,7 +207,6 @@ async def _generate_test_category_for_feature(
         llm=LLM_CLIENT,
         initial_actions=[{'go_to_url': {'url': feature.urls[0]}}, {'go_to_url': {'url': feature.urls[0]}}],
         browser_context=context,
-        enable_memory=False,
         # generate_gif=gif_output_path,  # deactivated cause it leads to thread blocking
     )
 

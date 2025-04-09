@@ -174,7 +174,6 @@ async def _generate_features(
         initial_actions=[{'go_to_url': {'url': product.url}}, {'go_to_url': {'url': product.url}}],
         browser_context=context,
         # generate_gif=gif_output_path,  # deactivated cause it leads to thread blocking
-        enable_memory=False,
     )
 
     try:
