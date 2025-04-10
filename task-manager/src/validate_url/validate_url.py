@@ -294,8 +294,13 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
         try:
             history = await agent.run(max_steps=10)
             
-            # Extract the result
-            result = history.validate_agent_history()
+            # Extract the result - fix the method call
+            # Replace history.validate_agent_history() with the correct method
+            # Based on the logs, it looks like we can get the result directly
+            result = history.final_result()
+            if result is None:
+                # If no final result, default to not found
+                result = "<login_page_detection><found>false</found></login_page_detection>"
             
             # Parse the result to determine if a login page was found
             found = "true" in result.lower() and "<found>true</found>" in result.lower()
