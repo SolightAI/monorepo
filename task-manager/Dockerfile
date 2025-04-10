@@ -55,4 +55,10 @@ COPY . .
 # Make scripts executable
 RUN chmod +x install_dependencies.sh entrypoint.sh
 
+# Set environment variable for Playwright browsers path
+ENV PLAYWRIGHT_BROWSERS_PATH=/tmp/playwright-browsers
+
+# Expose the port the app runs on
+EXPOSE 9000
+
 ENTRYPOINT ["/app/entrypoint.sh"]
