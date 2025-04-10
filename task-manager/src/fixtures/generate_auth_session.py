@@ -360,13 +360,21 @@ async def generate_auth_session(
             logger.info(f"[{task_id}] Auth Session Generation GIF uploaded to S3: {s3_url}")
 
     # Validate the history and get the result
-    await validate_agent_history(
-        task_id=task_id,
-        history=history,
-        task_name=f"login to {url}",
-        error_markers=["[AN ERROR OCCURRED]"],
-        empty_result_is_ok=True,
-    )
+    try:
+        await validate_agent_history(
+            task_id=task_id,
+            history=history,
+            task_name=f"login to {url}",
+            error_markers=["[AN ERROR OCCURRED]"],
+            empty_result_is_ok=True,
+        )
+    except Exception as e:
+        # Add the error marker to the error message if it's not present
+        error_message = str(e)
+        if "[AN ERROR OCCURRED]" not in error_message:
+            error_message = f"[AN ERROR OCCURRED] {error_message}"
+            raise Exception(error_message) from e
+        raise
 
     session_data = {"cookies": cookies, "localStorage": localStorage_data}
 
