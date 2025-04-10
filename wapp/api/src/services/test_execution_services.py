@@ -68,8 +68,12 @@ async def get_test_executions_by_test(test_id: UUID4, select_fields: List[str] =
     # Build the query
     query = TestExecutionModel.filter(test_id=test_id)
 
-    # Only select specific fields if requested
+    # Ensure required fields for TestExecutionElement are included
+    required_fields = ["id", "test_id", "status", "started_at"]
     if select_fields:
+        for field in required_fields:
+            if field not in select_fields:
+                select_fields.append(field)
         query = query.only(*select_fields)
 
     # Order by started_at descending for consistency
@@ -78,14 +82,26 @@ async def get_test_executions_by_test(test_id: UUID4, select_fields: List[str] =
     # Execute the query
     test_executions = await query
 
-    return [TestExecutionElement(
-        id=execution.id,
-        test_id=execution.test_id,
-        status=execution.status,
-        started_at=execution.started_at,
-        environment=execution.environment,
-        executor_type=execution.executor_type,
-    ) for execution in test_executions]
+    # Create TestExecutionElement objects with appropriate field handling
+    result = []
+    for execution in test_executions:
+        element_data = {
+            "id": execution.id,
+            "test_id": execution.test_id,
+            "status": execution.status,
+            "started_at": execution.started_at,
+        }
+        
+        # Add optional fields if they were selected and available
+        if hasattr(execution, 'environment'):
+            element_data["environment"] = execution.environment
+            
+        if hasattr(execution, 'executor_type'):
+            element_data["executor_type"] = execution.executor_type
+            
+        result.append(TestExecutionElement(**element_data))
+        
+    return result
 
 
 # TODO: trigger test execution on task manager

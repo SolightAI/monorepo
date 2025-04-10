@@ -555,5 +555,5 @@ class TestExecutionElement(BaseModel):
     test_id: UUID4
     status: TestStatus
     started_at: datetime
-    environment: str
-    executor_type: ExecutorType
+    environment: Optional[str] = "unknown"
+    executor_type: Optional[ExecutorType] = None
