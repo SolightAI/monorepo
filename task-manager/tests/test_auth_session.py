@@ -463,13 +463,16 @@ async def test_validate_url_login_farmzz(task_id: str) -> None:
     # Run the validation task directly
     validation_result = await validate_url_task(task_id, base_url)
     
-    # Verify that validation found a login page
-    assert validation_result["valid"] is True
-    assert validation_result["login_url"] == "https://farmzz.com/#/auth/login"
-    assert validation_result["confidence"] in ["high", "medium"]
-    assert validation_result["source"] == "validation"
+    # Debug output to show full validation result
+    logger.info(f"[{task_id}] Validation result: {validation_result}")
     
-    logger.info(f"[{task_id}] ✅ Successfully validated URL and authenticated on: {login_url}")
+    # Verify that validation found a login page
+    assert validation_result["valid"] is True, f"Expected valid=True, got {validation_result.get('valid')}"
+    assert validation_result["login_url"] == "https://farmzz.com/#/auth/login", f"Expected login_url='https://farmzz.com/#/auth/login', got {validation_result.get('login_url')}"
+    assert validation_result["confidence"] in ["high", "medium"], f"Expected confidence in ['high', 'medium'], got {validation_result.get('confidence')}"
+    assert validation_result["source"] == "validation", f"Expected source='validation', got {validation_result.get('source')}"
+    
+    logger.info(f"[{task_id}] ✅ Successfully validated URL and authenticated on: {validation_result['login_url']}")
 
 
 @pytest.mark.asyncio
