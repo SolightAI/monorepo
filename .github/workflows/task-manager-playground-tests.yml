@@ -107,7 +107,7 @@ jobs:
           docker run --name ${{ env.PLAYWRIGHT_SETUP_IMAGE }} \
             -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
             ${{ env.TEST_IMAGE }} \
-            bash -c "cd /app && pip install playwright && PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright install --with-deps && ls -la /root/.cache/ms-playwright"
+            bash -c "cd /app && pip install playwright && PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright install --with-deps"
         fi
 
         # Commit the container with installed Playwright to a new image
