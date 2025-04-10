@@ -1,5 +1,6 @@
 from __future__ import annotations
 import uuid
+import json
 import asyncio
 from datetime import datetime
 from typing import List
@@ -13,6 +14,7 @@ from dto.models import TestExecution as TestExecutionModel, Test as TestModel
 from dto.schemas import (
     TestExecutionCreate as TestExecutionCreateSchema,
     TestExecutionUpdate as TestExecutionUpdateSchema,
+    TestExecutionElement,
     TestStatus,
 )
 from services.test_services import get_test
@@ -49,12 +51,13 @@ async def get_test_execution(test_execution_id: UUID4) -> TestExecutionModel:
     return test_execution
 
 
-async def get_test_executions_by_test(test_id: UUID4) -> List[TestExecutionModel]:
+async def get_test_executions_by_test(test_id: UUID4, select_fields: List[str] = None) -> List[TestExecutionElement]:
     """
-    Get all test executions for a specific test.
+    Get all test executions for a specific test with field selection.
 
     Args:
         test_id: UUID of the test to get executions for
+        select_fields: List of specific fields to select (default None for all fields)
 
     Returns:
         List of test executions for the test
@@ -62,9 +65,27 @@ async def get_test_executions_by_test(test_id: UUID4) -> List[TestExecutionModel
     # Verify the test exists
     await get_test(test_id)
 
-    # Get all executions for this test
-    test_executions = await TestExecutionModel.filter(test_id=test_id).prefetch_related("bugs")
-    return test_executions
+    # Build the query
+    query = TestExecutionModel.filter(test_id=test_id)
+
+    # Only select specific fields if requested
+    if select_fields:
+        query = query.only(*select_fields)
+
+    # Order by started_at descending for consistency
+    query = query.order_by("-started_at")
+
+    # Execute the query
+    test_executions = await query
+
+    return [TestExecutionElement(
+        id=execution.id,
+        test_id=execution.test_id,
+        status=execution.status,
+        started_at=execution.started_at,
+        environment=execution.environment,
+        executor_type=execution.executor_type,
+    ) for execution in test_executions]
 
 
 # TODO: trigger test execution on task manager
@@ -122,7 +143,8 @@ async def create_test_execution(
                 "preconditions": test.preconditions,
                 "steps": test.steps,
                 "expected_results": test.expected_results,
-                "assertions": test.assertions
+                "assertions": test.assertions,
+                "encrypted_secrets": None,
             }
         }
 
@@ -155,7 +177,8 @@ async def create_test_execution(
             await update_test_execution(
                 test_execution_model.id,
                 TestExecutionUpdateSchema(
-                    metadata={"task_manager_task_id": task_id}
+                    status=TestStatus.PENDING,
+                    metadata={"task_manager_task_id": task_id},
                 )
             )
 
@@ -329,7 +352,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
 
         except Exception as e:
             logger.error(f"Error polling task manager status: {str(e)}")
-            attempts += 1
+            attempts += 5  # errors count quintuple
 
     # If we've exhausted attempts, update the execution as timed out
     if attempts >= max_attempts:
@@ -374,6 +397,11 @@ async def update_test_execution(
 
     # Update the fields
     update_data = test_execution_update.model_dump(exclude_unset=True)
+
+    if "tracing" in update_data:
+        for key, value in update_data["tracing"].items():
+            update_data["tracing"][key] = json.dumps(value, ensure_ascii=True)
+
     for key, value in update_data.items():
         setattr(test_execution, key, value)
 
@@ -389,10 +417,8 @@ async def update_test_execution(
     if test_execution_update.status:
         test = await TestModel.get(id=test_execution.test_id)
         test.status = test_execution_update.status
-
         if test_execution_update.status in [TestStatus.PASSED, TestStatus.FAILED, TestStatus.BLOCKED, TestStatus.SKIPPED, TestStatus.AGENT_LIMITATION, TestStatus.UNEXISTING_FEATURE]:
             test.ended_at = datetime.now(tzinfo)
-
         await test.save()
 
     return test_execution

@@ -1,5 +1,5 @@
 from tortoise import fields, models
-from .schemas import TestStatus, SeverityLevel, TestCategory, OrganizationRole, OrganizationType, SecretType, ExecutorType
+from .schemas import TestStatus, SeverityLevel, TestCategory, OrganizationRole, OrganizationType, SecretType, ExecutorType, Test as TestSchema
 
 
 class User(models.Model):
@@ -164,6 +164,9 @@ class Test(models.Model):
 
     class Meta:
         table = "tests"
+
+    def to_schema(self) -> TestSchema:
+        return TestSchema.model_validate(dict(self) | {"bugs": list()})  # bugs are currently unused
 
 
 class TestExecution(models.Model):
