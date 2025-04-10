@@ -1,18 +1,42 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Server, Calendar, Clock, File, Image, Link2, ArrowLeft } from 'lucide-react';
+import { Server, Calendar, Clock, File, Image, Link2, ArrowLeft, CheckCircle, XCircle, AlertTriangle, AlertOctagon, AlertCircle } from 'lucide-react';
 import { getBugsByTestExecution, getTestExecution } from '@/services/testExecutionService';
 import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatExecutionDuration, formatStatus, getStatusColorClasses } from '@/utils/testExecutionUtils';
+import { estimateSeverityLevel, getSeverityInfo, SEVERITY_LEVELS } from '@/utils/severityUtils';
 import PropTypes from 'prop-types';
 
 /**
  * Component to display detailed information about a test execution
  */
-const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
+const TestExecutionDetail = ({ execution: initialExecution, onBack, testData }) => {
   const [execution, setExecution] = useState(initialExecution);
   const [bugs, setBugs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const refreshingRef = useRef(false);
+  const [expanded, setExpanded] = useState({});
+  
+  // Estimate severity level if execution failed
+  const isFailed = execution.status === 'FAILED' || execution.status === 'ERROR';
+  const severityLevel = isFailed
+    ? estimateSeverityLevel(testData, { message: execution.notes || '' })
+    : null;
+  
+  const severityInfo = severityLevel ? getSeverityInfo(severityLevel) : null;
+  
+  // Get severity icon based on severity level
+  const getSeverityIcon = () => {
+    switch (severityLevel) {
+      case SEVERITY_LEVELS.P1:
+        return <AlertOctagon size={18} className="text-red-500" />;
+      case SEVERITY_LEVELS.P2:
+        return <AlertTriangle size={18} className="text-orange-500" />;
+      case SEVERITY_LEVELS.P3:
+        return <AlertCircle size={18} className="text-yellow-500" />;
+      default:
+        return null;
+    }
+  };
 
   useEffect(() => {
     if (execution?.id) {
@@ -97,6 +121,73 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
     }
   };
 
+  // Format date for display
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'Not available';
+    
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  };
+
+  // Format duration for display
+  const formatDuration = (durationMs) => {
+    if (!durationMs) return 'Not available';
+    
+    if (durationMs < 1000) {
+      return `${durationMs}ms`;
+    }
+    
+    const seconds = Math.floor(durationMs / 1000);
+    
+    if (seconds < 60) {
+      return `${seconds}s`;
+    }
+    
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    
+    return `${minutes}m ${remainingSeconds}s`;
+  };
+
+  // Parse and format tracing data if available
+  const renderTracingData = () => {
+    if (!execution.tracing || Object.keys(execution.tracing).length === 0) {
+      return <p className="text-gray-500 italic">No tracing data available</p>;
+    }
+
+    const toggleSection = (section) => {
+      setExpanded(prev => ({
+        ...prev,
+        [section]: !prev[section]
+      }));
+    };
+
+    return (
+      <div className="space-y-3">
+        {Object.entries(execution.tracing).map(([key, value]) => (
+          <div key={key} className="border rounded-md overflow-hidden">
+            <div 
+              className="bg-gray-100 px-4 py-2 flex justify-between items-center cursor-pointer"
+              onClick={() => toggleSection(key)}
+            >
+              <h4 className="font-medium text-gray-800">{key}</h4>
+              <span>{expanded[key] ? '−' : '+'}</span>
+            </div>
+            {expanded[key] && (
+              <div className="p-4 bg-white">
+                <pre className="overflow-x-auto text-xs whitespace-pre-wrap">{
+                  typeof value === 'object' 
+                    ? JSON.stringify(value, null, 2) 
+                    : value
+                }</pre>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   if (!execution) {
     return <div>No execution data available</div>;
   }
@@ -129,13 +220,32 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
         </div>
       </div>
 
+      {/* Severity level if failed */}
+      {isFailed && severityLevel && (
+        <div className={`p-4 rounded-lg mb-4 ${severityInfo.colorClasses}`}>
+          <div className="flex items-start">
+            <div className="flex-shrink-0 mt-0.5">
+              {getSeverityIcon()}
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium">
+                Severity Level: {severityLevel} - {severityInfo.name}
+              </h3>
+              <div className="mt-1 text-sm">
+                <p>{severityInfo.description}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Execution details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="p-3 bg-gray-50 rounded-lg">
           <span className="text-sm text-gray-500">Started</span>
           <div className="font-medium">
             <Calendar size={14} className="inline mr-1" />
-            {formatExecutionDate(execution.started_at)}
+            {formatDateTime(execution.started_at)}
           </div>
         </div>
 
@@ -145,7 +255,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
             {execution.ended_at ? (
               <>
                 <Calendar size={14} className="inline mr-1" />
-                {formatExecutionDate(execution.ended_at)}
+                {formatDateTime(execution.ended_at)}
               </>
             ) : (
               <span className="text-yellow-600">In progress</span>
@@ -157,7 +267,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
           <span className="text-sm text-gray-500">Duration</span>
           <div className="font-medium">
             <Clock size={14} className="inline mr-1" />
-            {execution.duration_ms ? formatExecutionDuration(execution.duration_ms) : 'In progress'}
+            {execution.duration_ms ? formatDuration(execution.duration_ms) : 'In progress'}
           </div>
         </div>
 
@@ -298,9 +408,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
                 <div className="p-3">
                   <div className="mb-4">
                     <div className="font-medium mb-2">Trace</div>
-                    <pre className="bg-gray-900 text-gray-100 p-4 rounded overflow-auto max-h-96 text-xs">
-                      {execution.tracing.logs}
-                    </pre>
+                    {renderTracingData()}
                   </div>
                 </div>
               );
@@ -394,7 +502,8 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
 
 TestExecutionDetail.propTypes = {
   execution: PropTypes.object,
-  onBack: PropTypes.func.isRequired
+  onBack: PropTypes.func.isRequired,
+  testData: PropTypes.object.isRequired
 };
 
 export default TestExecutionDetail;

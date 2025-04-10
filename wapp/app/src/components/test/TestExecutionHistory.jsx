@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from 'react';
-import { Server, Calendar } from 'lucide-react';
+import { Server, Calendar, AlertTriangle, AlertOctagon, AlertCircle } from 'lucide-react';
 import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus } from '@/utils/testExecutionUtils';
+import { estimateSeverityLevel, SEVERITY_LEVELS } from '@/utils/severityUtils';
 
 /**
  * Component to display a history of test executions
  */
-const TestExecutionHistory = ({ executions = [], isLoading = false, error = null, onSelect, onRefresh }) => {
+const TestExecutionHistory = ({ executions = [], isLoading = false, error = null, onSelect, onRefresh, testData }) => {
   const [selectedEnvironment, setSelectedEnvironment] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
 
@@ -14,6 +15,20 @@ const TestExecutionHistory = ({ executions = [], isLoading = false, error = null
 
   // Get all available statuses for filtering
   const statuses = ['all', ...new Set(executions.map(exec => exec.status))];
+
+  // Get severity icon based on severity level
+  const getSeverityIcon = (severityLevel) => {
+    switch (severityLevel) {
+      case SEVERITY_LEVELS.P1:
+        return <AlertOctagon size={14} className="mr-1 text-red-500" />;
+      case SEVERITY_LEVELS.P2:
+        return <AlertTriangle size={14} className="mr-1 text-orange-500" />;
+      case SEVERITY_LEVELS.P3:
+        return <AlertCircle size={14} className="mr-1 text-yellow-500" />;
+      default:
+        return null;
+    }
+  };
 
   // Filter executions
   const filteredExecutions = executions.filter(exec =>
@@ -98,12 +113,20 @@ const TestExecutionHistory = ({ executions = [], isLoading = false, error = null
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Environment</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Executor</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Bugs</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredExecutions.map((execution) => {
               const { icon, color } = getStatusInfo(execution.status);
+              
+              // Estimate severity level for failed tests
+              const isFailed = execution.status === 'FAILED' || execution.status === 'ERROR';
+              const severityLevel = isFailed 
+                ? estimateSeverityLevel(testData, { message: execution.notes || '' })
+                : null;
+              
               return (
                 <tr
                   key={execution.id}
@@ -140,6 +163,23 @@ const TestExecutionHistory = ({ executions = [], isLoading = false, error = null
                         ? 'Completed'
                         : 'In progress'
                     }
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                    {isFailed && severityLevel ? (
+                      <div className="flex items-center">
+                        {getSeverityIcon(severityLevel)}
+                        <span className={`
+                          px-2 py-0.5 rounded text-xs font-medium
+                          ${severityLevel === SEVERITY_LEVELS.P1 ? 'bg-red-100 text-red-800' : 
+                            severityLevel === SEVERITY_LEVELS.P2 ? 'bg-orange-100 text-orange-800' : 
+                            'bg-yellow-100 text-yellow-800'}
+                        `}>
+                          {severityLevel}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-500">-</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">
                     {execution.bugs_count > 0 ? (

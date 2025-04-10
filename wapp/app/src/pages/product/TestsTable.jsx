@@ -15,7 +15,7 @@ import {
 import axios from 'axios';
 import { getTestsByFeature, getTestsByEpic, getTestsByProduct, triggerFeatureTestGeneration, getTestGenerationStatus } from '@/services/testService';
 import { getAllEpics, getFeaturesByEpic } from '@/services/productService';
-import { createTestExecution, getTestExecution } from '@/services/testExecutionService';
+import { createTestExecution, getTestExecution, processFailedExecution } from '@/services/testExecutionService';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import { useSecret } from '@/context/SecretContext';
@@ -25,6 +25,8 @@ import EditFeatureModal from '@/components/modals/EditFeatureModal';
 import AddTestModal from '@/components/modals/AddTestModal';
 import { getStatusIconLarge, formatStatus, getStatusColorClasses } from '@/utils/testExecutionUtils';
 import { formatDate } from '@/utils/dateUtils';
+import TestFailureDetails from '@/components/test/TestFailureDetails';
+import TestSeverityModal from '@/components/modals/TestSeverityModal';
 
 /**
  * Displays all tests in a tabular format with sorting and filtering capabilities
@@ -60,6 +62,10 @@ const TestsTable = () => {
   const pollingIntervalRef = useRef(null);
   const [runningTests, setRunningTests] = useState({}); // Track tests that are currently running
   const testPollingIntervalsRef = useRef({}); // Track polling intervals for individual tests
+
+  // Add state for severity modal
+  const [showSeverityModal, setShowSeverityModal] = useState(false);
+  const [failureDetails, setFailureDetails] = useState(null);
 
   const { selectedProduct } = useProduct();
   const { selectedOrganization } = useOrganization();
@@ -543,6 +549,9 @@ const TestsTable = () => {
         // Normalize status to uppercase for consistency
         const normalizedStatus = executionData.status?.toUpperCase() || '';
 
+        // Get the test object
+        const currentTest = tests.find(test => test.id === testId);
+        
         // Update test status in state with the latest data
         setTests(prevTests => prevTests.map(test =>
           test.id === testId
@@ -579,6 +588,24 @@ const TestsTable = () => {
             delete updated[testId];
             return updated;
           });
+
+          // For failed tests, show severity information
+          if ((normalizedStatus === 'FAILED' || normalizedStatus === 'ERROR') && currentTest) {
+            // Process failure to get severity level
+            const errorDetails = {
+              message: executionData.notes || 'Test failed. No additional details available.',
+              execution: executionData
+            };
+            
+            const failedResult = processFailedExecution(
+              executionData,
+              currentTest,
+              errorDetails
+            );
+            
+            setFailureDetails(failedResult);
+            setShowSeverityModal(true);
+          }
 
           // Display brief status message
           const statusMessage = normalizedStatus === 'PASSED'
@@ -1083,12 +1110,30 @@ const TestsTable = () => {
         />
       )}
 
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-800 flex items-center">
-              <Beaker className="mr-2" size={24} />
-              All Tests
-            </h1>
-          </div>
+      {/* Test Failure Details Modal */}
+      {showSeverityModal && failureDetails && (
+        <TestFailureDetails
+          failureDetails={failureDetails}
+          onClose={() => setShowSeverityModal(false)}
+        />
+      )}
+
+      {/* Test Severity Modal */}
+      {showSeverityModal && (
+        <TestSeverityModal
+          severityLevel={failureDetails.severityLevel}
+          testData={failureDetails.testData}
+          errorDetails={failureDetails.errorDetails}
+          onClose={() => setShowSeverityModal(false)}
+        />
+      )}
+
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-800 flex items-center">
+          <Beaker className="mr-2" size={24} />
+          All Tests
+        </h1>
+      </div>
 
       {/* Error message display */}
       {error && (

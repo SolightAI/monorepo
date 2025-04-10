@@ -1,18 +1,21 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Loader, Play, Trash2, Edit, Server, AlertTriangle } from 'lucide-react';
+import { X, Loader, Play, Trash2, Edit, Server, AlertTriangle, ChevronLeft, RefreshCw } from 'lucide-react';
 import TestExecutionHistory from '../test/TestExecutionHistory';
 import TestExecutionDetail from '../test/TestExecutionDetail';
-import { getTestExecutions, createTestExecution } from '@/services/testExecutionService';
+import { getTestExecutions, createTestExecution, getTestExecution, processFailedExecution } from '@/services/testExecutionService';
 import { deleteTest } from '@/services/testService';
 import { useSecret } from '@/context/SecretContext';
 import EditTestModal from './EditTestModal';
 import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
-import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus, getStatusIconLarge } from '@/utils/testExecutionUtils';
+import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus, getStatusIconLarge, TEST_STATUS } from '@/utils/testExecutionUtils';
+import TestSeverityModal from './TestSeverityModal';
+import { estimateSeverityLevel, SEVERITY_LEVELS } from '@/utils/severityUtils';
+import TestFailureDetails from '../test/TestFailureDetails';
 
 /**
  * Component to display the last test execution in a table format
  */
-const LastTestExecution = ({ execution, onExecutionSelect }) => {
+const LastTestExecution = ({ execution, onExecutionSelect, testData }) => {
   if (!execution) {
     return (
       <div className="bg-gray-50 p-5 rounded-lg text-gray-500 text-center my-5">
@@ -22,12 +25,27 @@ const LastTestExecution = ({ execution, onExecutionSelect }) => {
   }
 
   const { icon, color } = getStatusInfo(execution.status);
+  const isFailed = execution.status === 'FAILED' || execution.status === 'ERROR';
 
   return (
     <div className="mb-8 mt-2">
       <h3 className="text-lg font-semibold mb-2 flex items-center">
         Last Execution
       </h3>
+      
+      {/* Show severity information for failed tests */}
+      {isFailed && testData && (
+        <div className="mb-4">
+          <TestFailureDetails 
+            testData={testData}
+            errorDetails={{ 
+              message: execution.notes || 'Test failed. No additional details available.',
+              execution: execution 
+            }}
+          />
+        </div>
+      )}
+      
       <div className="border rounded-lg overflow-hidden shadow-sm">
         <table className="min-w-full divide-y divide-gray-200">
           <tbody className="bg-white divide-y divide-gray-200">
@@ -102,6 +120,10 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
 
   // Get secrets/credentials from the context
   const { secrets, fetchSecrets } = useSecret();
+
+  // Add state for severity modal
+  const [showSeverityModal, setShowSeverityModal] = useState(false);
+  const [failureDetails, setFailureDetails] = useState(null);
 
   // Fetch secrets when component mounts
   useEffect(() => {
@@ -220,38 +242,96 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
     setSelectedExecution(execution);
   };
 
-  // New function to directly run the test
+  // Function to handle test run
   const handleRunTest = async () => {
-    // Check if credentials are available
-    if (!secrets || secrets.length === 0) {
-      setError('Cannot run test: No test credentials found. Please add credentials in the Test Credentials Management section.');
-      return;
-    }
-
     try {
+      if (!secrets || secrets.length === 0) {
+        setError("Cannot run test: No credentials found. Please add credentials in the Test Credentials Management section.");
+        return;
+      }
+
       setRunningTest(true);
       setError(null);
 
       const executionData = {
         test_id: testData.id,
         status: 'PENDING',
-        environment: 'development', // Default to development environment
+        environment: 'development',
         executor_type: 'MANUAL',
         notes: null
       };
 
-      const execution = await createTestExecution(executionData);
-      handleTestExecutionCreated(execution);
+      const response = await createTestExecution(executionData);
 
-      // Add this to notify the parent component that a test was run
-      if (typeof onTestUpdated === 'function') {
-        onTestUpdated();
-      }
+      // Update test data with pending status and fetch executions
+      setTestData(prev => ({
+        ...prev,
+        status: 'PENDING',
+        last_execution_id: response.id,
+        started_at: new Date().toISOString()
+      }));
+
+      // Start polling for test completion
+      const pollingInterval = setInterval(async () => {
+        try {
+          const updatedExecution = await getTestExecution(response.id);
+          
+          // Check if test has completed
+          if (updatedExecution.status !== 'PENDING') {
+            clearInterval(pollingInterval);
+            setRunningTest(false);
+            
+            // Update test data with final status
+            setTestData(prev => ({
+              ...prev,
+              status: updatedExecution.status,
+              ended_at: updatedExecution.ended_at || new Date().toISOString()
+            }));
+            
+            // Refresh executions list
+            fetchTestExecutions();
+            
+            // Show severity modal for failed tests
+            if (updatedExecution.status === TEST_STATUS.FAILED || updatedExecution.status === TEST_STATUS.ERROR) {
+              // Process the failure to get severity level
+              const errorDetails = {
+                message: updatedExecution.notes || 'Test failed. No additional details available.',
+                execution: updatedExecution
+              };
+              
+              const failedResult = processFailedExecution(
+                updatedExecution,
+                testData,
+                errorDetails
+              );
+              
+              setFailureDetails(failedResult);
+              setShowSeverityModal(true);
+            }
+          }
+        } catch (err) {
+          console.error('Error polling test status:', err);
+          clearInterval(pollingInterval);
+          setRunningTest(false);
+          setError('Error monitoring test execution status.');
+          fetchTestExecutions();
+        }
+      }, 2000);
+
+      // Clear interval after 5 minutes as a failsafe
+      setTimeout(() => {
+        clearInterval(pollingInterval);
+        if (runningTest) {
+          setRunningTest(false);
+          setError('Test execution monitoring timed out. Please check the executions tab for the latest status.');
+          fetchTestExecutions();
+        }
+      }, 5 * 60 * 1000);
+
     } catch (err) {
-      console.error('Error starting test execution:', err);
-      setError('Failed to start test execution. Please try again.');
-    } finally {
+      console.error('Error running test:', err);
       setRunningTest(false);
+      setError('Failed to start test execution.');
     }
   };
 
@@ -327,6 +407,16 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
       className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-auto"
       onClick={handleClose}
     >
+      {/* Show severity modal conditionally */}
+      {showSeverityModal && failureDetails && (
+        <TestSeverityModal
+          severityLevel={failureDetails.severityLevel}
+          testData={failureDetails.testData}
+          errorDetails={failureDetails.errorDetails}
+          onClose={() => setShowSeverityModal(false)}
+        />
+      )}
+
       <div
         className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
@@ -426,6 +516,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
               <LastTestExecution
                 execution={latestExecution}
                 onExecutionSelect={handleViewLastExecutionDetails}
+                testData={testData}
               />
 
               {/* Display error message if any */}
@@ -539,6 +630,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
               error={error}
               onSelect={handleExecutionSelect}
               onRefresh={fetchTestExecutions}
+              testData={testData}
             />
           )}
 
@@ -546,6 +638,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
             <TestExecutionDetail
               execution={selectedExecution}
               onBack={handleBackToHistory}
+              testData={testData}
             />
           )}
         </div>

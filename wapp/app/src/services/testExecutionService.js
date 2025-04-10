@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { estimateSeverityLevel } from '../utils/severityUtils';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -99,4 +100,24 @@ export const getBugsByTestExecution = async (executionId) => {
     console.error(`Error fetching bugs for test execution ${executionId}:`, error);
     throw error;
   }
+};
+
+/**
+ * Process a failed test execution and estimate its severity
+ *
+ * @param {Object} execution - The test execution data
+ * @param {Object} testData - The test data
+ * @param {Object} errorDetails - Details about the error
+ * @returns {Object} Object containing the execution, test data, error details, and estimated severity
+ */
+export const processFailedExecution = (execution, testData, errorDetails) => {
+  // Estimate severity level based on test data and error details
+  const severityLevel = estimateSeverityLevel(testData, errorDetails);
+  
+  return {
+    execution,
+    testData,
+    errorDetails,
+    severityLevel
+  };
 };
