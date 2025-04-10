@@ -339,6 +339,7 @@ async def poll_test_generation_status(test_id: UUID4, max_attempts: int = 60, in
                         category=_test["category"],
                         preconditions=_test["preconditions"],
                         steps=_test["steps"],
+                        expected_results=_test["expected_results"],
                         assertions=_test["assertions"],
                         secret_ids=None,  # TODO: add secret_ids based on what the agent used
                     )
