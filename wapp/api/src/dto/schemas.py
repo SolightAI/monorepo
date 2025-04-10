@@ -232,7 +232,6 @@ class FeatureCreate(BaseModel):
     name: str
     urls: list[str]
     description: str
-    access_conditions: dict[str, Any]
 
 
 class FeatureUpdate(BaseModel):
