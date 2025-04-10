@@ -99,6 +99,8 @@ jobs:
           # Just create the container with the existing cache
           docker run --name ${{ env.PLAYWRIGHT_SETUP_IMAGE }} \
             -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+            -e AZURE_OPENAI_KEY="$AZURE_OPENAI_KEY" \
+            -e AZURE_OPENAI_ENDPOINT="$AZURE_OPENAI_ENDPOINT" \
             ${{ env.TEST_IMAGE }} \
             bash -c "cd /app && pip install playwright && ls -la /root/.cache/ms-playwright"
         else
@@ -106,6 +108,8 @@ jobs:
           # Create a container to install Playwright and save its state
           docker run --name ${{ env.PLAYWRIGHT_SETUP_IMAGE }} \
             -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+            -e AZURE_OPENAI_KEY="$AZURE_OPENAI_KEY" \
+            -e AZURE_OPENAI_ENDPOINT="$AZURE_OPENAI_ENDPOINT" \
             ${{ env.TEST_IMAGE }} \
             bash -c "cd /app && pip install playwright && PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright install --with-deps && ls -la /root/.cache/ms-playwright"
         fi
