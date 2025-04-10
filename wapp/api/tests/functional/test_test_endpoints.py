@@ -74,6 +74,7 @@ async def test_create_test(client: AsyncClient, admin_user, test_feature, accept
         "category": TestCategory.SMOKE,
         "preconditions": "System is in a stable state",
         "steps": "1. Navigate to the page\n2. Click the button",
+        "expected_results": "The action should complete successfully",
         "assertions": "assert result == expected"
     }
 
@@ -92,6 +93,7 @@ async def test_create_test(client: AsyncClient, admin_user, test_feature, accept
     assert result["category"] == data["category"]
     assert result["preconditions"] == data["preconditions"]
     assert result["steps"] == data["steps"]
+    assert result["expected_results"] == data["expected_results"]
     assert result["assertions"] == data["assertions"]
 
     # Cleanup
@@ -265,6 +267,7 @@ async def test_delete_test(client: AsyncClient, admin_user, test_feature, accept
         category=TestCategory.SMOKE,
         preconditions="",
         steps="",
+        expected_results="",
         assertions=""
     )
 
