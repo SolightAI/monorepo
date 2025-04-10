@@ -147,7 +147,7 @@ async def create_test_execution(
 
         # Get encrypted secrets for this organization and product
         encrypted_secrets = await get_encrypted_secrets(organization_id=product.organization_id, product_id=product.id)
-        if encrypted_secrets and test.feature.access_conditions.get("must_be_logged_in", False) is True:
+        if encrypted_secrets:
             task_manager_payload["encrypted_secrets"] = encrypted_secrets
 
         # Send request to task manager

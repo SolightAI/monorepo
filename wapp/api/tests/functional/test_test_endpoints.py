@@ -33,10 +33,9 @@ async def test_case(test_feature, acceptance_criteria):
         status=TestStatus.PASSED,
         tags=["test", "example"],
         url="https://example.com/test-case",
-        category=TestCategory.FUNCTIONAL,
+        category=TestCategory.SMOKE,
         preconditions="",
         steps="",
-        expected_results="",
         assertions=""
     )
 
@@ -72,10 +71,9 @@ async def test_create_test(client: AsyncClient, admin_user, test_feature, accept
         "description": "A test created through the API",
         "feature_id": str(test_feature.id),
         "url": "https://example.com/new-test",
-        "category": TestCategory.FUNCTIONAL,
+        "category": TestCategory.SMOKE,
         "preconditions": "System is in a stable state",
         "steps": "1. Navigate to the page\n2. Click the button",
-        "expected_results": "The action should complete successfully",
         "assertions": "assert result == expected"
     }
 
@@ -94,7 +92,6 @@ async def test_create_test(client: AsyncClient, admin_user, test_feature, accept
     assert result["category"] == data["category"]
     assert result["preconditions"] == data["preconditions"]
     assert result["steps"] == data["steps"]
-    assert result["expected_results"] == data["expected_results"]
     assert result["assertions"] == data["assertions"]
 
     # Cleanup
@@ -265,10 +262,9 @@ async def test_delete_test(client: AsyncClient, admin_user, test_feature, accept
         status=TestStatus.PASSED,
         tags=["delete", "test"],
         url="https://example.com/test-to-delete",
-        category=TestCategory.FUNCTIONAL,
+        category=TestCategory.SMOKE,
         preconditions="",
         steps="",
-        expected_results="",
         assertions=""
     )
 
