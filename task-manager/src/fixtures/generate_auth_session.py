@@ -87,17 +87,8 @@ Look at the current page and determine if the user is logged in.
 """.strip()
 
 
-# Debug: Print environment variables
 azure_openai_key = os.getenv('AZURE_OPENAI_KEY')
 azure_openai_endpoint = os.getenv('AZURE_OPENAI_ENDPOINT')
-
-print("Debug - Environment variables:")
-print(f"AZURE_OPENAI_KEY exists: {azure_openai_key is not None}")
-if azure_openai_key:
-    print(f"AZURE_OPENAI_KEY first 3 chars: {azure_openai_key[:3]}")
-print(f"AZURE_OPENAI_ENDPOINT exists: {azure_openai_endpoint is not None}")
-if azure_openai_endpoint:
-    print(f"AZURE_OPENAI_ENDPOINT first 3 chars: {azure_openai_endpoint[:3]}")
 
 if azure_openai_key is None:
     raise ValueError('AZURE_OPENAI_KEY is not set')
