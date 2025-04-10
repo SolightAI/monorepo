@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 async def get_test(test_id: UUID) -> TestModel:
-    test = await TestModel.get_or_none(id=test_id).prefetch_related("bugs", "test_secrets__secret", "executions")
+    test = await TestModel.get_or_none(id=test_id)
 
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
@@ -38,7 +38,7 @@ async def get_test(test_id: UUID) -> TestModel:
 
 
 async def get_all_tests() -> List[TestModel]:
-    tests = await TestModel.all().prefetch_related("bugs", "test_secrets__secret", "executions")
+    tests = await TestModel.all().prefetch_related("bugs", "test_secrets__secret")
     return tests
 
 
@@ -85,7 +85,7 @@ async def get_tests_by_feature(feature_id: UUID) -> List[TestModel]:
     Returns:
         List of tests for the feature
     """
-    return await TestModel.filter(feature_id=feature_id).prefetch_related("bugs", "test_secrets__secret", "executions")
+    return await TestModel.filter(feature_id=feature_id).prefetch_related("bugs")
 
 
 async def create_test(test: TestCreateSchema) -> TestModel:
@@ -458,7 +458,7 @@ async def get_tests_by_product_id(product_id: UUID4) -> List[TestModel]:
             await feature.fetch_related("tests")
             # Fetch test secrets relation for each test
             for test in feature.tests:
-                await test.fetch_related("test_secrets__secret", "bugs", "executions")
+                await test.fetch_related("test_secrets__secret", "bugs")
             tests.extend(feature.tests)
 
     return tests

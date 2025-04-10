@@ -149,7 +149,6 @@ async def _run_test(
         llm=LLM_CLIENT,
         initial_actions=[{'go_to_url': {'url': test.url}}, {'go_to_url': {'url': test.url}}],
         browser_context=context,
-        enable_memory=False,
         # generate_gif=gif_output_path,  # deactivated cause it leads to thread blocking
     )
 
@@ -158,7 +157,6 @@ async def _run_test(
     finally:
         await context.close()
         await browser.close()
-
 
     result = history.final_result()
 
@@ -287,7 +285,7 @@ def handle_background_task_errors(func):
             error_message = str(e)
             error_traceback = traceback.format_exc()
             logger.error(f"[{task_id}] Error in background task: {error_message}")
-            logger.debug(f"[{task_id}] Traceback: {error_traceback}")
+            logger.error(f"[{task_id}] Traceback: {error_traceback}")
 
             # Update task_ids to indicate failure
             task_ids[task_id] = {

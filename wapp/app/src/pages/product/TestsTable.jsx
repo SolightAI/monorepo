@@ -18,6 +18,7 @@ import { getAllEpics, getFeaturesByEpic } from '@/services/productService';
 import { createTestExecution, getTestExecution } from '@/services/testExecutionService';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
+import { useSecret } from '@/context/SecretContext';
 import TestDetailsModal from '@/components/modals/TestDetailsModal';
 import AddFeatureModal from '@/components/modals/AddFeatureModal';
 import EditFeatureModal from '@/components/modals/EditFeatureModal';
@@ -62,9 +63,18 @@ const TestsTable = () => {
 
   const { selectedProduct } = useProduct();
   const { selectedOrganization } = useOrganization();
+  const { secrets, fetchSecrets } = useSecret();
+  const errorMessageNoCredentials = "You need to add test credentials before running or generating tests. Go to 'Test Credentials' to add credentials.";
 
   // Add a constant for the running status display
   const RUNNING_STATUS = 'Running';
+
+  // Fetch secrets when component loads or when product/organization changes
+  useEffect(() => {
+    if (selectedProduct && selectedOrganization) {
+      fetchSecrets();
+    }
+  }, [selectedProduct, selectedOrganization, fetchSecrets]);
 
   useEffect(() => {
     if (selectedProduct && selectedOrganization) {
@@ -352,6 +362,17 @@ const TestsTable = () => {
     try {
       setError(null);
 
+      // Check if the project has test credentials
+      if (!secrets || secrets.length === 0) {
+        setError(
+          <span>
+            Cannot run tests: No test credentials found. Please add credentials in the Test Credentials Management section.
+          </span>
+        );
+        setSuccessMessage(null);
+        return;
+      }
+
       // Mark this test as running
       setRunningTests(prev => ({ ...prev, [testId]: true }));
 
@@ -407,6 +428,17 @@ const TestsTable = () => {
     try {
       if (filteredTests.length === 0) {
         setError('No tests selected to run. Try adjusting your filters.');
+        setSuccessMessage(null);
+        return;
+      }
+
+      // Check if the project has test credentials
+      if (!secrets || secrets.length === 0) {
+        setError(
+          <span>
+            {errorMessageNoCredentials}
+          </span>
+        );
         setSuccessMessage(null);
         return;
       }
@@ -750,6 +782,21 @@ const TestsTable = () => {
       return;
     }
 
+    // Check if the project has test credentials
+    if (!secrets || secrets.length === 0) {
+      setError(
+        <span>
+          Cannot generate tests: No test credentials found. Please add credentials in the{' '}
+          <a href="/test-credentials" className="text-red-800 font-medium underline">
+            Test Credentials Management
+          </a>{' '}
+          section.
+        </span>
+      );
+      setSuccessMessage(null);
+      return;
+    }
+
     try {
       setIsGeneratingTests(true);
       setError(null);
@@ -1079,10 +1126,27 @@ const TestsTable = () => {
         </div>
       )}
 
+      {/* Show warning when there are no credentials */}
+      {(!secrets || secrets.length === 0) && (
+        <div className="mb-6 p-4 bg-yellow-100 border border-yellow-200 text-yellow-800 rounded-lg">
+          <div className="flex items-start">
+            <svg className="h-5 w-5 text-yellow-600 mt-0.5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <h3 className="text-sm font-medium">Test credentials required</h3>
+              <p className="mt-1 text-sm">
+                {errorMessageNoCredentials}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* All filters in one row */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6 items-center">
         {/* Search input */}
-        <div className="relative w-full sm:w-64 lg:w-80">
+        <div className="relative w-full">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search size={18} className="text-gray-400" />
           </div>
@@ -1101,7 +1165,7 @@ const TestsTable = () => {
         </div>
 
         {/* Status filter */}
-        <div className="relative w-full sm:w-48">
+        <div className="relative w-full">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Filter size={18} className="text-gray-400" />
           </div>
@@ -1152,9 +1216,9 @@ const TestsTable = () => {
         </div> */}
 
         {/* Feature filter and Add Feature button group */}
-        <div className="flex flex-row w-full sm:w-auto gap-2">
+        <div className="flex flex-col md:flex-row w-full gap-2">
           {/* Feature filter - Custom dropdown */}
-          <div className="relative w-full min-w-[200px] max-w-[300px] flex-1" ref={featureDropdownRef}>
+          <div className="relative w-full md:w-56" ref={featureDropdownRef}>
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FileText size={18} className="text-gray-400" />
             </div>
@@ -1168,7 +1232,7 @@ const TestsTable = () => {
                 {loadingFeatures
                   ? 'Loading features...'
                   : selectedFeature === 'all'
-                    ? (features.length > 0 ? 'All Features' : 'Create your first feature')
+                    ? (features.length > 0 ? 'All Features' : '--')
                     : features.find(f => f.id === selectedFeature)?.name || 'Select Feature'
                 }
               </span>
@@ -1265,13 +1329,13 @@ const TestsTable = () => {
           </div>
 
           {/* Action buttons */}
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             {/* Generate Tests button */}
             <button
               onClick={handleGenerateTests}
-              disabled={isGeneratingTests}
-              className="flex items-center px-3 py-2 bg-purple-600 text-white rounded-md shadow hover:bg-purple-700 transition duration-150 disabled:bg-purple-300 disabled:cursor-not-allowed"
-              title="Generate tests for selected feature using AI"
+              disabled={isGeneratingTests || !secrets || secrets.length === 0}
+              className="flex items-center justify-center px-3 py-2 bg-purple-600 text-white rounded-md shadow hover:bg-purple-700 transition duration-150 disabled:bg-purple-300 disabled:cursor-not-allowed"
+              title={!secrets || secrets.length === 0 ? "Test credentials required to generate tests" : "Generate tests for selected feature using AI"}
             >
               {isGeneratingTests ? (
                 <>
@@ -1281,7 +1345,12 @@ const TestsTable = () => {
               ) : (
                 <>
                   <Beaker size={18} className="mr-2" />
-                  Generate Tests with AI
+                  <span className="whitespace-nowrap">Generate Tests with AI</span>
+                  {secrets && secrets.length > 0 && (
+                    <span className="ml-1.5 flex items-center justify-center bg-purple-800 text-white text-xs rounded-full h-5 min-w-5 px-1">
+                      {secrets.length}
+                    </span>
+                  )}
                 </>
               )}
             </button>
@@ -1289,11 +1358,11 @@ const TestsTable = () => {
             {/* Add Test button */}
             <button
               onClick={handleCreateTestClick}
-              className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition duration-150"
+              className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition duration-150"
               title="Add new test to selected feature"
             >
               <Plus size={18} className="mr-2" />
-              Add Test To Feature
+              <span className="whitespace-nowrap">Add Test To Feature</span>
             </button>
           </div>
         </div>
@@ -1308,8 +1377,9 @@ const TestsTable = () => {
           <div className="flex gap-2">
             <button
               onClick={handleRunSelectedTests}
-              disabled={filteredTests.length === 0 || hasRunningTests()}
+              disabled={filteredTests.length === 0 || hasRunningTests() || !secrets || secrets.length === 0}
               className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150 disabled:bg-green-300 disabled:cursor-not-allowed"
+              title={!secrets || secrets.length === 0 ? "Test credentials required to run tests" : "Run selected tests"}
             >
               {hasRunningTests() ? (
                 <>
@@ -1320,6 +1390,11 @@ const TestsTable = () => {
                 <>
                   <Play size={18} className="mr-2" />
                   Run Tests
+                  {secrets && secrets.length > 0 && (
+                    <span className="ml-1.5 flex items-center justify-center bg-green-800 text-white text-xs rounded-full h-5 min-w-5 px-1">
+                      {secrets.length}
+                    </span>
+                  )}
                 </>
               )}
             </button>
@@ -1419,15 +1494,15 @@ const TestsTable = () => {
                             View
                           </button>
                           <button
-                            className={`text-green-600 hover:text-green-900 flex items-center ${runningTests[test.id] ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`text-green-600 hover:text-green-900 flex items-center ${runningTests[test.id] || !secrets || secrets.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (!runningTests[test.id]) {
+                              if (!runningTests[test.id] && secrets && secrets.length > 0) {
                                 handleRunSingleTest(test.id);
                               }
                             }}
-                            title={runningTests[test.id] ? `Test is ${formatStatus(RUNNING_STATUS)}` : `Run this test`}
-                            disabled={runningTests[test.id]}
+                            title={!secrets || secrets.length === 0 ? "Test credentials required to run tests" : runningTests[test.id] ? `Test is ${formatStatus(RUNNING_STATUS)}` : `Run this test`}
+                            disabled={runningTests[test.id] || !secrets || secrets.length === 0}
                           >
                             {runningTests[test.id] ? (
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-1"></div>

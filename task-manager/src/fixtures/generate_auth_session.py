@@ -157,60 +157,89 @@ async def check_is_logged_in(
     Returns:
         True if logged in, False otherwise
     """
-    browser = Browser(
-        config=BrowserConfig(
-            headless=os.getenv("HEADLESS", "true").lower() == "true",
+
+    with NamedTemporaryFile(suffix='_check_login.json', delete=True, mode='w+') as cookies_file:
+
+        json.dump(existing_session["cookies"], cookies_file)
+        cookies_file.flush()
+        cookies_file.seek(0)
+
+        browser = Browser(
+            config=BrowserConfig(
+                headless=os.getenv("HEADLESS", "true").lower() == "true",
+            )
         )
-    )
+        logger.info(f"[{task_id}] Checking if the user is logged in to {url}")
 
-    context = BrowserContext(browser=browser, config=BrowserContextConfig(
-        cookies_file=os.getenv("COOKIES_FILE", None),
-        minimum_wait_page_load_time=1,
-        viewport_expansion=0,
-        wait_between_actions=0,  # Not an env var cause we want to make sure it's always 0
-    ))
+        context = BrowserContext(browser=browser, config=BrowserContextConfig(
+            cookies_file=cookies_file.name,
+            minimum_wait_page_load_time=1,
+            viewport_expansion=0,
+            wait_between_actions=0,  # Not an env var cause we want to make sure it's always 0
+        ))
 
-    # First navigate to the URL to initialize the session
-    await context.navigate_to(url)
+        # First navigate to the URL to initialize the session
+        await context.navigate_to(url)
 
-    # Apply existing session data if available
-    if existing_session is not None:
-        # Set cookies
-        if "cookies" in existing_session:
-            await context.session.context.add_cookies(existing_session["cookies"])
-            # Navigate again to apply cookies
-            await context.navigate_to(url)
+        # Apply existing session data if available
+        if existing_session is not None:
+            # Set cookies
+            if "cookies" in existing_session:
+                await context.session.context.add_cookies(existing_session["cookies"])
+                # Navigate again to apply cookies
+                await context.navigate_to(url)
 
-        # Set localStorage
-        if "localStorage" in existing_session:
-            load_script = """
-            (storage => {
-                Object.keys(storage).forEach(key => {
-                    localStorage.setItem(key, storage[key]);
-                });
-                return localStorage.length;
-            })(%s)
-            """ % json.dumps(existing_session["localStorage"])
-            await context.execute_javascript(load_script)
+            # Set localStorage
+            if "localStorage" in existing_session:
+                load_script = """
+                (storage => {
+                    Object.keys(storage).forEach(key => {
+                        localStorage.setItem(key, storage[key]);
+                    });
+                    return localStorage.length;
+                })(%s)
+                """ % json.dumps(existing_session["localStorage"])
+                await context.execute_javascript(load_script)
 
-    agent = Agent(
-        task=CHECK_LOGIN_PROMPT,
-        llm=AGENT_CLIENT,
-        initial_actions=[{'go_to_url': {'url': url}}],
-        browser_context=context,
-        enable_memory=False,
-    )
+        agent = Agent(
+            task=CHECK_LOGIN_PROMPT,
+            llm=AGENT_CLIENT,
+            initial_actions=[{'go_to_url': {'url': url}}],
+            browser_context=context,
+        )
 
-    try:
-        history = await agent.run(max_steps=5)
-        result = history.final_result()
+        try:
+            history = await agent.run(max_steps=5)
+            result = history.final_result()
+        finally:
+            await context.close()
+            await browser.close()
 
         is_logged_in = result is not None and "User is logged in".lower() in result.lower()
         logger.info(f"[{task_id}] Login check result: {'Logged in' if is_logged_in else 'Not logged in'}")
-        return is_logged_in
-    finally:
-        await context.close()
-        await browser.close()
+
+    from browser_use.agent.gif import create_history_gif  # import here to avoid thread blocking
+    with NamedTemporaryFile(suffix='.gif', delete=True) as temp_gif:
+        create_history_gif(
+            task="a",
+            history=history,
+            output_path=temp_gif.name,
+            show_task=False,
+            show_logo=False,
+            show_goals=False
+        )
+
+        # Upload GIF to S3
+        s3_url = upload_gif_to_s3(
+            file_path=temp_gif.name,
+            task_id=task_id,
+            task_type="check_login",
+            task_name=url,
+        )
+        if s3_url:
+            logger.info(f"[{task_id}] Auth Session Generation GIF uploaded to S3: {s3_url}")
+
+    return is_logged_in
 
 
 async def generate_auth_session(
@@ -289,7 +318,6 @@ async def generate_auth_session(
         use_vision_for_planner=False,
         use_vision=True,
         controller=controller,
-        enable_memory=False,
     )
 
     try:

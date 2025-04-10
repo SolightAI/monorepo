@@ -636,3 +636,79 @@ async def wait_for_task_completion(
     # Timed out
     logger.error(f"Timed out waiting for {task_type} task {task_id} to complete")
     return False
+
+
+async def get_in_progress_generations(organization_id: Optional[UUID4] = None, product_id: Optional[UUID4] = None) -> List[Dict[str, Any]]:
+    """
+    Get all currently in-progress generations, optionally filtered by organization and product.
+
+    Args:
+        organization_id: Optional organization ID to filter by
+        product_id: Optional product ID to filter by
+
+    Returns:
+        List of dictionaries containing information about in-progress generations
+    """
+    in_progress = []
+    
+    # Check all task statuses
+    for task_id, status_data in task_status.items():
+        if status_data["status"] == "in_progress":
+            # Get the scope and scope_id
+            scope = status_data["scope"]
+            scope_id = status_data["scope_id"]
+            
+            # Determine the organization and product IDs based on the scope
+            if scope == "feature":
+                # For features, we need to get the epic and product info
+                try:
+                    feature = await get_feature(UUID4(scope_id))
+                    if not feature:
+                        continue
+                    epic = await get_epic(feature.epic_id)
+                    if not epic:
+                        continue
+                    if organization_id and epic.organization_id != organization_id:
+                        continue
+                    if product_id and epic.product_id != product_id:
+                        continue
+                except Exception as e:
+                    logger.error(f"Error checking feature access: {e}")
+                    continue
+            elif scope == "epic":
+                # For epics, we need to get the epic info
+                try:
+                    epic = await get_epic(UUID4(scope_id))
+                    if not epic:
+                        continue
+                    if organization_id and epic.organization_id != organization_id:
+                        continue
+                    if product_id and epic.product_id != product_id:
+                        continue
+                except Exception as e:
+                    logger.error(f"Error checking epic access: {e}")
+                    continue
+            elif scope == "product":
+                # For products, we need to get the product info
+                try:
+                    product = await get_product(UUID4(scope_id))
+                    if not product:
+                        continue
+                    if organization_id and product.organization_id != organization_id:
+                        continue
+                    if product_id and product.id != product_id:
+                        continue
+                except Exception as e:
+                    logger.error(f"Error checking product access: {e}")
+                    continue
+            
+            in_progress.append({
+                "task_id": task_id,
+                "scope": scope,
+                "scope_id": scope_id,
+                "current_item": status_data["current_item"],
+                "completed_items": status_data["completed_items"],
+                "errors": status_data["errors"]
+            })
+    
+    return in_progress

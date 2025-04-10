@@ -18,6 +18,7 @@ import EditAcceptanceCriteriaModal from '@/components/modals/EditAcceptanceCrite
 import AddAcceptanceCriteriaModal from '@/components/modals/AddAcceptanceCriteriaModal';
 import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
 import { formatStatus } from '@/utils/testExecutionUtils';
+import InProgressGenerations from '@/components/InProgressGenerations';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -864,7 +865,8 @@ const FeatureDetails = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Back button */}
+        <InProgressGenerations />
+
         <button
           onClick={() => navigate(`/epics/${feature?.epic_id}`)}
           className="flex items-center mb-6 text-gray-600 hover:text-blue-600 transition-colors"

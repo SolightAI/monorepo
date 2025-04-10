@@ -65,7 +65,7 @@ async def get_tests_by_feature_endpoint(feature_id: UUID4) -> List[TestSchema]:
 
 @router.get("/{test_id}")
 async def get_test_endpoint(test_id: UUID4) -> TestSchema:
-    return await get_test(test_id)
+    return (await get_test(test_id)).to_schema()
 
 
 @router.get("/{test_id}/executions")
@@ -81,7 +81,7 @@ async def get_test_executions_endpoint(test_id: UUID4) -> List[TestExecutionSche
 
 @router.post("/")
 async def create_test_endpoint(test: TestCreateSchema) -> TestSchema:
-    return await create_test(test)
+    return (await create_test(test)).to_schema()
 
 
 @router.put("/{test_id}/status")
@@ -89,13 +89,13 @@ async def update_test_status_endpoint(
     test_id: UUID4, status: TestStatus = Body(..., embed=True)
 ) -> TestSchema:
     await update_test_status(test_id, status)
-    return await get_test(test_id)
+    return (await get_test(test_id)).to_schema()
 
 
 @router.put("/{test_id}")
 async def update_test_endpoint(test_id: UUID4, test_update: TestUpdateSchema) -> TestSchema:
     """Update a test with the provided data."""
-    return await update_test(test_id, test_update)
+    return (await update_test(test_id, test_update)).to_schema()
 
 
 @router.delete("/{test_id}")

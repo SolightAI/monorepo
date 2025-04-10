@@ -4,6 +4,7 @@ services:
     build:
       context: ./app
       dockerfile: Dockerfile
+    command: ["npm", "start"]
     ports:
       - "3000:3000"
     networks:
@@ -46,6 +47,8 @@ services:
     image: postgres:17
     ports:
       - "5432:5432"
+    volumes:
+      - /tmp/db_data:/var/lib/postgresql/data
     networks:
       - default
     environment:
