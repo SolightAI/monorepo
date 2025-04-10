@@ -386,3 +386,23 @@ async def get_organization_member(
         return OrganizationMemberSchema.model_validate(member_dict)
     except DoesNotExist:
         return None
+
+
+async def verify_organization_access(organization_id: UUID, user_id: int) -> bool:
+    """
+    Verify if a user has access to an organization.
+
+    Args:
+        organization_id: The UUID of the organization
+        user_id: The ID of the user
+
+    Returns:
+        True if the user has access to the organization, False otherwise
+    """
+    try:
+        member = await OrganizationMember.get(
+            user_id=user_id, organization_id=organization_id
+        )
+        return True
+    except DoesNotExist:
+        return False

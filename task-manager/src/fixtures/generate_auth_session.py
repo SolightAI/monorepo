@@ -102,7 +102,6 @@ Look at the current page and determine if the user is logged in.
 - If you are not sure, output "[MAYBE]".
 """.strip()
 
-
 controller = Controller()
 logger = getLogger(__name__)
 

@@ -274,7 +274,14 @@ def handle_background_task_errors(func):
         try:
             task_status_manager.set_status(task_id, "pending")
             results = await func(task_id, *args, **kwargs)
-            task_status_manager.set_status(task_id, "completed", results=results)
+            # Get the current status to preserve any additional data (like feature_id)
+            current_status = task_status_manager.get_status(task_id)
+            task_status_manager.set_status(
+                task_id, 
+                "completed", 
+                results=results,
+                feature_id=current_status.get("feature_id")
+            )
             return results
         except Exception as e:
             error_message = str(e)
@@ -344,6 +351,8 @@ async def background_generate_tests_for_feature(
             )
             tests.extend(category_tests)
 
+    # Set the status with the feature_id
+    task_status_manager.set_status(task_id, "completed", results=tests, feature_id=feature.id)
     return tests
 
 

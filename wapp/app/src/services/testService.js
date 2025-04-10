@@ -99,7 +99,7 @@ export const triggerFeatureTestGeneration = async (featureId) => {
       {},
       { withCredentials: true }
     );
-    return response.data;
+    return response.data.task_id;
   } catch (error) {
     console.error(`Error triggering test generation for feature ${featureId}:`, error);
     throw error;
