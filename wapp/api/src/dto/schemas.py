@@ -155,13 +155,13 @@ class SeverityLevel(str, Enum):
 class TestCategory(str, Enum):
     SMOKE = "SMOKE"  # testing basic functionalities of a feature
     NEGATIVE = "NEGATIVE"  # testing a negative path of a feature
-    # END_TO_END = "END_TO_END"  # multi-step tests, testing a feature as a whole (flow tests)
-    # REGRESSION = "REGRESSION"  # testing a feature after a bug has been fixed
-    # INTEGRATION = "INTEGRATION"  # testing the integration between features
-    # PERFORMANCE = "PERFORMANCE"  # testing the performance of a feature
-    # USABILITY = "USABILITY"  # testing the usability of a feature
-    # COMPATIBILITY = "COMPATIBILITY"  # testing the compatibility of a feature with different browsers, devices, etc.
-    # LOCALIZATION = "LOCALIZATION"  # testing the localization of a feature
+    END_TO_END = "END_TO_END"  # multi-step tests, testing a feature as a whole (flow tests)
+    REGRESSION = "REGRESSION"  # testing a feature after a bug has been fixed
+    INTEGRATION = "INTEGRATION"  # testing the integration between features
+    PERFORMANCE = "PERFORMANCE"  # testing the performance of a feature
+    USABILITY = "USABILITY"  # testing the usability of a feature
+    COMPATIBILITY = "COMPATIBILITY"  # testing the compatibility of a feature with different browsers, devices, etc.
+    LOCALIZATION = "LOCALIZATION"  # testing the localization of a feature
 
 
 class ExecutorType(str, Enum):
