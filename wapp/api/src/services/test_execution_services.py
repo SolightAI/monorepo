@@ -82,7 +82,9 @@ async def get_test_executions_by_test(test_id: UUID4, select_fields: List[str] =
         id=execution.id,
         test_id=execution.test_id,
         status=execution.status,
-        started_at=execution.started_at
+        started_at=execution.started_at,
+        environment=execution.environment,
+        executor_type=execution.executor_type,
     ) for execution in test_executions]
 
 
