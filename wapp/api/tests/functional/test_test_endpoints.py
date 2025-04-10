@@ -36,6 +36,7 @@ async def test_case(test_feature, acceptance_criteria):
         category=TestCategory.SMOKE,
         preconditions="",
         steps="",
+        expected_results="",
         assertions=""
     )
 
