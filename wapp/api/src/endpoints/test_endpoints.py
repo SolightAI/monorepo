@@ -95,7 +95,7 @@ async def update_test_status_endpoint(
 @router.put("/{test_id}")
 async def update_test_endpoint(test_id: UUID4, test_update: TestUpdateSchema) -> TestSchema:
     """Update a test with the provided data."""
-    return await update_test(test_id, test_update)
+    return (await update_test(test_id, test_update)).to_schema()
 
 
 @router.delete("/{test_id}")
