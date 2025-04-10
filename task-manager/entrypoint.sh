@@ -1,19 +1,5 @@
 #!/bin/bash
 
-# Debug: Print first 3 characters of API keys
-echo "Debug - Container Environment Variables:"
-if [ -n "$AZURE_OPENAI_KEY" ]; then
-  echo "AZURE_OPENAI_KEY exists: true"
-  echo "AZURE_OPENAI_KEY first 3 chars: ${AZURE_OPENAI_KEY:0:3}"
-else
-  echo "AZURE_OPENAI_KEY exists: false"
-fi
-if [ -n "$AZURE_OPENAI_ENDPOINT" ]; then
-  echo "AZURE_OPENAI_ENDPOINT exists: true"
-  echo "AZURE_OPENAI_ENDPOINT first 3 chars: ${AZURE_OPENAI_ENDPOINT:0:3}"
-else
-  echo "AZURE_OPENAI_ENDPOINT exists: false"
-fi
 
 # Exit on any error
 set -e

@@ -49,8 +49,9 @@ RUN pip install pyperclip>=1.9.0
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application
-COPY . .
+# Don't copy anything else here - the src/ directory will be mounted
+# during test runs, and we specifically want to avoid loading modules
+# that require environment variables during the container build
 
 # Make scripts executable
 RUN chmod +x install_dependencies.sh entrypoint.sh
@@ -61,4 +62,5 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/tmp/playwright-browsers
 # Expose the port the app runs on
 EXPOSE 9000
 
+# We'll use entrypoint instead of CMD for better process handling
 ENTRYPOINT ["/app/entrypoint.sh"]
