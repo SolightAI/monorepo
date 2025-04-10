@@ -50,6 +50,7 @@ jobs:
       TEST_IMAGE: task-manager-test-${{ github.run_id }}-${{ github.run_attempt }}
       PLAYWRIGHT_IMAGE: task-manager-playwright-${{ github.run_id }}-${{ github.run_attempt }}
       PLAYGROUND_IMAGE: playground-test-${{ github.run_id }}-${{ github.run_attempt }}
+      PLAYWRIGHT_SETUP_IMAGE: playwright-setup-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
     - name: Checkout code
@@ -96,24 +97,24 @@ jobs:
         if [ -d ~/.cache/ms-playwright/firefox* ] || [ -d ~/.cache/ms-playwright/webkit* ] || [ -d ~/.cache/ms-playwright/chromium* ]; then
           echo "Playwright browsers already installed, skipping installation"
           # Just create the container with the existing cache
-          docker run --name playwright-setup \
+          docker run --name ${{ env.PLAYWRIGHT_SETUP_IMAGE }} \
             -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
             ${{ env.TEST_IMAGE }} \
             bash -c "cd /app && pip install playwright && ls -la /root/.cache/ms-playwright"
         else
           echo "Installing Playwright and browsers..."
           # Create a container to install Playwright and save its state
-          docker run --name playwright-setup \
+          docker run --name ${{ env.PLAYWRIGHT_SETUP_IMAGE }} \
             -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
             ${{ env.TEST_IMAGE }} \
             bash -c "cd /app && pip install playwright && PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright install --with-deps && ls -la /root/.cache/ms-playwright"
         fi
 
         # Commit the container with installed Playwright to a new image
-        docker commit playwright-setup ${{ env.PLAYWRIGHT_IMAGE }}
+        docker commit ${{ env.PLAYWRIGHT_SETUP_IMAGE }} ${{ env.PLAYWRIGHT_IMAGE }}
 
         # Remove the temporary container
-        docker rm playwright-setup
+        docker rm ${{ env.PLAYWRIGHT_SETUP_IMAGE }}
 
     - name: Create Docker network
       run: |
