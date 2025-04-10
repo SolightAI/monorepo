@@ -153,16 +153,15 @@ class SeverityLevel(str, Enum):
 
 
 class TestCategory(str, Enum):
-    SMOKE = "SMOKE"
-    FUNCTIONAL = "FUNCTIONAL"
-    END_TO_END = "END_TO_END"
-    UNIT = "UNIT"
-    REGRESSION = "REGRESSION"
-    INTEGRATION = "INTEGRATION"
-    PERFORMANCE = "PERFORMANCE"
-    USABILITY = "USABILITY"
-    COMPATIBILITY = "COMPATIBILITY"
-    LOCALIZATION = "LOCALIZATION"
+    SMOKE = "SMOKE"  # testing basic functionalities of a feature
+    NEGATIVE = "NEGATIVE"  # testing a negative path of a feature
+    # END_TO_END = "END_TO_END"  # multi-step tests, testing a feature as a whole (flow tests)
+    # REGRESSION = "REGRESSION"  # testing a feature after a bug has been fixed
+    # INTEGRATION = "INTEGRATION"  # testing the integration between features
+    # PERFORMANCE = "PERFORMANCE"  # testing the performance of a feature
+    # USABILITY = "USABILITY"  # testing the usability of a feature
+    # COMPATIBILITY = "COMPATIBILITY"  # testing the compatibility of a feature with different browsers, devices, etc.
+    # LOCALIZATION = "LOCALIZATION"  # testing the localization of a feature
 
 
 class ExecutorType(str, Enum):
@@ -233,6 +232,7 @@ class FeatureCreate(BaseModel):
     name: str
     urls: list[str]
     description: str
+    access_conditions: dict[str, Any]
 
 
 class FeatureUpdate(BaseModel):
@@ -304,7 +304,6 @@ class TestCreate(BaseModel):
     category: TestCategory
     preconditions: str
     steps: str
-    expected_results: str
     assertions: str
     secret_ids: Optional[List[UUID4]] = None
 
@@ -317,7 +316,6 @@ class TestUpdate(BaseModel):
     status: Optional[TestStatus] = None
     preconditions: Optional[str] = None
     steps: Optional[str] = None
-    expected_results: Optional[str] = None
     assertions: Optional[str] = None
     secret_ids: Optional[List[UUID4]] = None
 
@@ -548,3 +546,11 @@ class TestExecution(BaseModel):
     tracing: Dict[str, Any] = {}
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TestExecutionElement(BaseModel):
+    """Schema for a test execution element."""
+    id: UUID4
+    test_id: UUID4
+    status: TestStatus
+    started_at: datetime
