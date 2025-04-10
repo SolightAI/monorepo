@@ -13,18 +13,31 @@ _redis = None
 logger = logging.getLogger(__name__)
 
 
-async def get_redis() -> redis.Redis:
-    """Get Redis client instance"""
+async def get_redis() -> Optional[redis.Redis]:
+    """
+    Get Redis client instance
+    
+    Returns:
+        Redis client or None if Redis is not available
+    """
     global _redis
-    if _redis is None:
-        _redis = redis.Redis(
-            host=os.getenv("REDIS_HOST", "localhost"),
-            port=int(os.getenv("REDIS_PORT", "6379")),
-            db=int(os.getenv("REDIS_DB", "0")),
-            password=os.getenv("REDIS_PASSWORD", None),
-            decode_responses=False
-        )
-    return _redis
+    try:
+        if _redis is None:
+            _redis = redis.Redis(
+                host=os.getenv("REDIS_HOST", "localhost"),
+                port=int(os.getenv("REDIS_PORT", "6379")),
+                db=int(os.getenv("REDIS_DB", "0")),
+                password=os.getenv("REDIS_PASSWORD", None),
+                decode_responses=False,
+                socket_connect_timeout=2.0,  # 2 seconds timeout for connection
+                socket_timeout=2.0,  # 2 seconds timeout for operations
+            )
+            # Test the connection
+            await _redis.ping()
+        return _redis
+    except Exception as e:
+        logger.warning(f"Redis connection failed: {str(e)}. Functionality requiring Redis will be degraded.")
+        return None
 
 
 async def get_cached_session(url: str, user_id: str) -> Optional[Dict]:
@@ -40,6 +53,10 @@ async def get_cached_session(url: str, user_id: str) -> Optional[Dict]:
     """
     try:
         redis_client = await get_redis()
+        if redis_client is None:
+            logger.warning("Redis not available, cannot retrieve cached session")
+            return None
+            
         key = f"session:{url}:{user_id}"
         data = await redis_client.get(key)
         
@@ -66,6 +83,10 @@ async def cache_session(url: str, user_id: str, session_data: Dict) -> None:
     """
     try:
         redis_client = await get_redis()
+        if redis_client is None:
+            logger.warning("Redis not available, session will not be cached")
+            return
+            
         key = f"session:{url}:{user_id}"
         
         data = {
@@ -91,6 +112,10 @@ async def update_session_timestamp(url: str, user_id: str) -> None:
     """
     try:
         redis_client = await get_redis()
+        if redis_client is None:
+            logger.warning("Redis not available, cannot update session timestamp")
+            return
+            
         key = f"session:{url}:{user_id}"
         
         # Check if session exists
@@ -116,6 +141,10 @@ async def delete_session(url: str, user_id: str) -> bool:
     """
     try:
         redis_client = await get_redis()
+        if redis_client is None:
+            logger.warning("Redis not available, cannot delete session")
+            return False
+            
         key = f"session:{url}:{user_id}"
         result = await redis_client.delete(key)
         return result > 0

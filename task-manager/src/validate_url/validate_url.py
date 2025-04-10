@@ -133,22 +133,26 @@ async def save_login_page_to_cache(url: str, login_url: str, confidence: str) ->
     
     cache_key = f"{LOGIN_PAGE_REDIS_PREFIX}{domain}"
     
-    data = {
-        "login_url": login_url,
-        "original_url": url,
-        "confidence": confidence,
-        "found": "true"
-    }
-    
     try:
         # Get Redis client
         redis_client = await get_redis()
+        if redis_client is None:
+            logger.warning("Redis not available, login page will not be cached")
+            return
+            
+        data = {
+            "login_url": login_url,
+            "original_url": url,
+            "confidence": confidence,
+            "found": "true"
+        }
         
         # Store as a hash in Redis
         await redis_client.setex(cache_key, LOGIN_PAGE_EXPIRY, json.dumps(data))
         logger.info(f"Login page for domain {domain} cached successfully")
     except Exception as e:
         logger.error(f"Error caching login page for domain {domain}: {str(e)}")
+        # Continue execution - caching is a non-critical operation
 
 # Get login page from cache
 async def get_login_page_from_cache(url: str) -> Dict[str, Any]:
@@ -173,7 +177,10 @@ async def get_login_page_from_cache(url: str) -> Dict[str, Any]:
     try:
         # Get Redis client
         redis_client = await get_redis()
-        
+        if redis_client is None:
+            logger.warning("Redis not available, cannot check login page cache")
+            return None
+            
         # Get data from Redis
         data = await redis_client.get(cache_key)
         if data:
@@ -191,6 +198,7 @@ async def get_login_page_from_cache(url: str) -> Dict[str, Any]:
                 }
     except Exception as e:
         logger.error(f"Error retrieving login page from cache for domain {domain}: {str(e)}")
+        # Continue execution - cache lookup is a non-critical operation
     
     logger.info(f"No login page found in cache for domain {domain}")
     return None
@@ -244,8 +252,14 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
     """
     logger.info(f"[{task_id}] Starting URL validation for: {url}")
     
-    # First, check the cache
-    cached_result = await get_login_page_from_cache(url)
+    # First, check the cache - if this fails, we'll just continue without the cache
+    cached_result = None
+    try:
+        cached_result = await get_login_page_from_cache(url)
+    except Exception as e:
+        logger.error(f"[{task_id}] Error checking cache for {url}: {str(e)}")
+        # Continue execution - cache lookup is non-critical
+    
     if cached_result:
         logger.info(f"[{task_id}] Login page found in cache for {url}: {cached_result.get('login_url')}")
         return cached_result
@@ -273,7 +287,6 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
             llm=AGENT_CLIENT,
             initial_actions=[{'go_to_url': {'url': url}}],
             browser_context=context,
-            enable_memory=False,
             use_vision=True,
         )
         
@@ -302,9 +315,14 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
             # Add detailed debug logging when a login page is found    
             if found:
                 logger.debug(f"[{task_id}] {url=} {login_url=} {confidence=} {result=}")
-                # Save the login page to cache if found
+                # Try to save the login page to cache if found
+                # We'll attempt to save to cache but continue even if it fails
                 if login_url:
-                    await save_login_page_to_cache(url, login_url, confidence)
+                    try:
+                        await save_login_page_to_cache(url, login_url, confidence)
+                    except Exception as e:
+                        logger.error(f"[{task_id}] Error saving to cache for {url}: {str(e)}")
+                        # Continue execution - caching is non-critical
                 
             # Prepare the response
             response = {
@@ -423,7 +441,15 @@ async def get_cached_login_page(
     try:
         # Get Redis client
         redis_client = await get_redis()
-        
+        if redis_client is None:
+            logger.warning("Redis not available, cannot retrieve cached login page")
+            return LoginPageCacheResponse(
+                found=False,
+                login_url=None,
+                confidence=CONFIDENCE_LOW,
+                source="cache_unavailable"
+            )
+            
         # Get data from Redis
         data = await redis_client.get(cache_key)
         if data:
@@ -445,9 +471,12 @@ async def get_cached_login_page(
         )
     except Exception as e:
         logger.error(f"Error retrieving login page from cache for domain {domain}: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error retrieving login page from cache: {str(e)}"
+        # Return a response that indicates Redis is unavailable rather than throwing an error
+        return LoginPageCacheResponse(
+            found=False, 
+            login_url=None, 
+            confidence=CONFIDENCE_LOW,
+            source="cache_error"
         )
 
 
