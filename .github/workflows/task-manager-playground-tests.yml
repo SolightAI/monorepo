@@ -7,8 +7,8 @@ on:
       - 'task-manager/**'
   pull_request:
     branches: [ main ]
-    # paths:
-    #   - 'task-manager/**'
+    paths:
+      - 'task-manager/**'
   # Manual trigger
   workflow_dispatch:
 
