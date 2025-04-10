@@ -140,6 +140,7 @@ async def create_test_execution(
                 "feature_id": "random_id",
                 "preconditions": test.preconditions,
                 "steps": test.steps,
+                "expected_results": test.expected_results,
                 "assertions": test.assertions,
                 "encrypted_secrets": None,
             }

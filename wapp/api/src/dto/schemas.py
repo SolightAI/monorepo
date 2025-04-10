@@ -303,6 +303,7 @@ class TestCreate(BaseModel):
     category: TestCategory
     preconditions: str
     steps: str
+    expected_results: str
     assertions: str
     secret_ids: Optional[List[UUID4]] = None
 
@@ -315,6 +316,7 @@ class TestUpdate(BaseModel):
     status: Optional[TestStatus] = None
     preconditions: Optional[str] = None
     steps: Optional[str] = None
+    expected_results: Optional[str] = None
     assertions: Optional[str] = None
     secret_ids: Optional[List[UUID4]] = None
 
