@@ -165,6 +165,9 @@ class Test(models.Model):
     class Meta:
         table = "tests"
 
+    def to_schema(self) -> TestSchema:
+        return TestSchema.model_validate(dict(self) | {"bugs": list()})  # bugs are currently unused
+
 
 class TestExecution(models.Model):
     """Model for storing each individual test execution."""
