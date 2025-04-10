@@ -89,7 +89,7 @@ async def update_test_status_endpoint(
     test_id: UUID4, status: TestStatus = Body(..., embed=True)
 ) -> TestSchema:
     await update_test_status(test_id, status)
-    return await get_test(test_id)
+    return (await get_test(test_id)).to_schema()
 
 
 @router.put("/{test_id}")
