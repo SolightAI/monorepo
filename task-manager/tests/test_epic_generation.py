@@ -6,8 +6,11 @@ import json
 from uuid import uuid4
 from tempfile import NamedTemporaryFile
 from generate_epics.generate_epics import _generate_epics
-from fixtures.generate_auth_session import generate_auth_session, USERNAME_PASSWORD
-from utils.dto import Product
+from fixtures.authentification.get_auth_session import get_auth_session
+from fixtures.authentification.has_required_secrets import LoginMethod
+
+
+pytest.skip(allow_module_level=True)  # NOTE: we no longer generate epics for the moment
 
 
 # Path to our restricted page with invisible login banner
@@ -79,11 +82,11 @@ async def test_epic_generation_farmzz_product_page(task_id):
     if not password:
         raise ValueError("FARMZZ_PASSWORD is not set")
 
-    auth_session, _ = await generate_auth_session(
+    auth_session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets={
-            USERNAME_PASSWORD: {
+            LoginMethod.EMAIL.value: {
                 "username": username,
                 "password": password
             }

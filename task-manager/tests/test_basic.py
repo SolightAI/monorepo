@@ -30,7 +30,7 @@ import os
 import sys
 
 sys.path.append(os.path.join(os.path.abspath("./"), "src"))
-from fixtures.generate_auth_session import generate_auth_session
+from fixtures.authentification.get_auth_session import get_auth_session
 
 async def main():
     task_id = sys.argv[1]
@@ -38,7 +38,7 @@ async def main():
     secrets = json.loads(sys.argv[3])
 
     try:
-        await generate_auth_session(
+        await get_auth_session(
             task_id=task_id,
             url=url,
             secrets=secrets,
