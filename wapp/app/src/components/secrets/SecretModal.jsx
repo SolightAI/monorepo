@@ -117,11 +117,11 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
     if (name === 'type') {
       const typeToNameMap = {
         'username_password': 'Username/Password Credentials',
-        'api_key': 'API Key',
-        'environment_variable': 'Environment Variables',
-        'connection_string': 'Connection String',
-        'oauth_credential': 'OAuth Credentials',
-        'other': 'Custom Test Credential'
+        // 'api_key': 'API Key',
+        // 'environment_variable': 'Environment Variables',
+        // 'connection_string': 'Connection String',
+        // 'oauth_credential': 'OAuth Credentials',
+        // 'other': 'Custom Test Credential'
       };
 
       // Always update the type
@@ -459,7 +459,7 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
                   {/* <option value="api_key">API Key</option> */}
                   {/* <option value="environment_variable">Environment Variable</option> */}
                   {/* <option value="connection_string">Connection String</option> */}
-                  <option value="oauth_credential">OAuth Credentials</option>
+                  {/* <option value="oauth_credential">OAuth Credentials</option> */}
                   {/* <option value="other">Other</option> */}
                 </select>
               </div>

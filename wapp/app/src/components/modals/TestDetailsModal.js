@@ -478,12 +478,6 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
                     <p className="text-gray-800 whitespace-pre-line break-words">{testData.steps}</p>
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Expected Results</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg max-h-[200px] overflow-y-auto">
-                    <p className="text-gray-800 whitespace-pre-line break-words">{testData.expected_results}</p>
-                  </div>
-                </div>
               </div>
 
               {/* Assertions section */}

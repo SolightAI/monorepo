@@ -129,11 +129,11 @@ const SecretSelector = ({
   const getSecretTypeDisplay = (type) => {
     const typeMap = {
       'username_password': 'Credentials',
-      'api_key': 'API Key',
-      'environment_variable': 'Environment Variable',
-      'connection_string': 'Connection String',
-      'oauth_credential': 'OAuth Credentials',
-      'other': 'Other'
+      // 'api_key': 'API Key',
+      // 'environment_variable': 'Environment Variable',
+      // 'connection_string': 'Connection String',
+      // 'oauth_credential': 'OAuth Credentials',
+      // 'other': 'Other'
     };
     return typeMap[type] || type;
   };
