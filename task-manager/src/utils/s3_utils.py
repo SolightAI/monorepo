@@ -126,7 +126,7 @@ class S3Manager:
                 file_path,
                 self.bucket_name,
                 s3_key,
-                ExtraArgs={'ContentType': 'image/gif', "Metadata": {k: json.dumps(v) for k, v in additional_params.items()}}
+                ExtraArgs={'ContentType': 'image/gif', "Metadata": {k: json.dumps(v) for k, v in additional_params.items()} if additional_params else {}}
             )
 
             # Generate the URL for the uploaded file

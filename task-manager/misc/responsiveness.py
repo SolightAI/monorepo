@@ -12,11 +12,10 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 from browser_use.browser.context import BrowserContext
 from browser_use import Agent, Controller, ActionResult, Browser, BrowserConfig, BrowserContextConfig
-# from browser_use.agent.gif import create_history_gif
 
 
 SCREENSHOT_PATH = "outputs/screenshots"
-VIEWPORT_SIZE = {'width': 430, 'height': 932} # iPhone 14 Pro Max
+VIEWPORT_SIZE = {'width': 430, 'height': 932}  # iPhone 14 Pro Max
 
 
 NUMBER_OF_TIMES_TO_CHECK_DOM = 5
@@ -128,10 +127,10 @@ async def evaluate_responsiveness_based_on_dom(website_url: str, output_folder: 
 
     try:
         responses = await asyncio.gather(*[analyze_website_dom(agent, dom) for _ in range(NUMBER_OF_TIMES_TO_CHECK_DOM)])
-        print(f"Retrieved response for full DOM")
-    except Exception as e:
+        print("Retrieved response for full DOM")
+    except Exception:
         responses = await asyncio.gather(*[analyze_website_dom(agent, after_filter) for _ in range(NUMBER_OF_TIMES_TO_CHECK_DOM)])
-        print(f"Retrieved response for filtered DOM")
+        print("Retrieved response for filtered DOM")
 
     AGENT_LLM = AzureChatOpenAI(
         model="gpt-4o",
@@ -196,7 +195,7 @@ async def _take_screenshot_of_issue(website_url: str, issue: str, output_folder:
         cookies_file=os.getenv("COOKIES_FILE", None),
         minimum_wait_page_load_time=1,
         browser_window_size=VIEWPORT_SIZE,
-        viewport_expansion=0, # force the viewport to be the same size as the window
+        viewport_expansion=0,  # force the viewport to be the same size as the window
     ))
 
     AGENT_LLM = AzureChatOpenAI(
@@ -225,7 +224,7 @@ async def _take_screenshot_of_issue(website_url: str, issue: str, output_folder:
             browser_context=browser_context,
             initial_actions=[{'go_to_url': {'url': website_url}}],
             controller=controller,
-            # generate_gif=os.path.join(output_folder, "gif", f"{issue[:min(20, len(issue))]}.gif"),
+            enable_memory=False,
         )
 
         history = await agent.run(max_steps=30)
@@ -342,7 +341,6 @@ async def verify_issues_using_screenshots(issues: list[str], screenshots: list[s
 
 
 async def validate_candidate_issues(issues: list[str], website_url: str, page_name: str) -> list[str]:
-    coroutines_take_screenshots = []
 
     screenshots = []
     for issue in issues:
@@ -351,11 +349,6 @@ async def validate_candidate_issues(issues: list[str], website_url: str, page_na
             issue=issue,
             output_folder=f"outputs/{page_name}",
         ))
-        # coroutines_take_screenshots.append(take_screenshots_of_issue(
-        #     website_url=website_url,
-        #     issue=issue,
-        #     output_folder=f"outputs/{page_name}",
-        # ))
 
     # screenshots = await asyncio.gather(*coroutines_take_screenshots)
     print(f"Tried to take screenshots for {len(screenshots)} issues")

@@ -1,22 +1,18 @@
 import os
 import json
-import functools
-import traceback
 
-from uuid import uuid4
-from typing import Any, Optional
+from typing import Any
 from pydantic import SecretStr
 from logging import getLogger
 from tempfile import NamedTemporaryFile
 from langchain_openai import AzureChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig
-from fixtures.generate_auth_session import generate_auth_session
+from browser_use.agent.service import logger as agent_logger
 from utils.dto import Test
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
-from fastapi import APIRouter, BackgroundTasks, HTTPException
-from utils.crypto import crypto_service
 from run_tests.tracing import initialize, extend_agent_history
 from utils.s3_utils import upload_gif_to_s3
+from utils.contants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, TestStatus
 
 
 TEST_SUCCESS_MESSAGE = "[TEST SUCCESSFUL]"  # when the test is successful
@@ -27,7 +23,6 @@ UNEXISTING_FEATURE_MESSAGE = "[UNEXISTING FEATURE]"  # when the agent is unable 
 AGENT_LIMITATION_MESSAGE = "[AGENT LIMITATION]"  # when the test cannot be completed due to agent limitations
 
 
-# TODO: use Preconditions to let the agent know what fixture to run before running the test
 PROMPT = """
 You are an AI assistant acting as a test automation engineer. Your task is to execute the provided test cases and verify the results.
 
@@ -43,9 +38,6 @@ Preconditions (if any):
 Steps:
 {test.steps}
 
-Expected Results:
-{test.expected_results}
-
 Assertions: {test.assertions}
 
 Additional instructions:
@@ -53,7 +45,7 @@ Additional instructions:
 - If a precondition is not met, prepend your final output by "{precondition_not_met_message}", and then explain why.
 - If the test is successful, prepend your final output by "{test_successful_message}", and then explain why.
 - If you are unable to run the test or if the test failed due to the fact that you don't have the ability to do an action, stop what you are doing and prepend your final output by "{agent_limitation_message}", and then explain what happened.
-- Before starting the test, check if you have the ability to perform the actions required to run the test. If not, refer to the previous instructions.
+- Before starting the test, check if you have the ability to perform the actions required to run the test. If not, refer to the previous instructions by raising the appropriate message.
 - If you are unable to locate the feature on the page and you think it's because it doesn't exist, stop what you are doing and prepend your final output by "{unexisting_feature_message}", and then explain what happened.
 - If one of the step fails, for a reason other than the ones specified above, try it 2 times, and if it still fails, stop what you are doing and prepend your final output by "{test_failed_message}", and then explain what failed.
 - If one of the assertions failed, for a reason other than the ones specified above, stop what you are doing and prepend your final output by "{test_failed_message}", and then explain what failed.
@@ -71,34 +63,59 @@ Now, run the test.
 """.strip()
 
 
-if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
-    raise ValueError('AZURE_OPENAI_KEY is not set')
-
-if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
-    raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
-
-
 LLM_CLIENT = AzureChatOpenAI(
     model="gpt-4o",
     api_version='2024-10-21',
-    azure_endpoint=azure_openai_endpoint,
-    api_key=SecretStr(azure_openai_key),
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+    api_key=SecretStr(AZURE_OPENAI_KEY),
     temperature=0.0,
 )
 
 
-router = APIRouter(prefix="/run-test")
 logger = getLogger(__name__)
-task_ids = {}
 
 
-async def _run_test(
+def get_parameters_for_general_test_runner(
     task_id: str,
     test: Test,
-    cookies_file: str | None = None,
-    localStorage: str | None = None,
-    gif_output_path: str | bool = False,
+    secrets: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
+    return {
+        "task_id": task_id,
+        "test": test,
+        "secrets": secrets,
+    }
+
+
+async def general_test_runner_agent(
+    task_id: str,
+    test: Test,
+    secrets: dict[str, dict[str, str]],
+) -> dict[str, Any]:
+    """
+    General test runner that can be used for most of the tests.
+    Not as good as the specific test runner, but can be used for most of the tests.
+
+    Args:
+        task_id: The ID of the task.
+        test: The test to run.
+        cookies_file: The cookies file to use.
+        localStorage: The localStorage to use.
+
+    Returns:
+        A dictionary containing the status of the test, the results, and the tracing.
+    """
+
+    localStorage = secrets.get("localStorage")
+    with NamedTemporaryFile(delete=False, suffix='.json', mode='w+') as f:
+        if localStorage is not None:
+            json.dump(localStorage, f)
+            f.flush()
+            f.seek(0)
+
+    cookies_file = f.name
+
+    agent_logger.name = f"{agent_logger.name}-{task_id}"
 
     # Initialize JavaScript logging
     initialize()
@@ -116,6 +133,7 @@ async def _run_test(
         browser_window_size={'width': 1920, 'height': 1080},
     ))
 
+    logger.info(f"[{task_id}] Navigating to {test.url}")
     await context.navigate_to(test.url)  # allowing us to load the localStorage
 
     if localStorage is not None:
@@ -129,13 +147,9 @@ async def _run_test(
         """.strip() % json.dumps(localStorage)
         await context.execute_javascript(load_script)
 
-    if gif_output_path:
-        os.makedirs(os.path.dirname(gif_output_path), exist_ok=True)
-
     # Extend agent history with JS logging capabilities
     extend_agent_history()
 
-    # NOTE: we do not provide a controller as models tend to provide better results when not constrained by a controller output model
     agent = Agent(
         task=PROMPT.format(
             test=test,
@@ -149,7 +163,7 @@ async def _run_test(
         llm=LLM_CLIENT,
         initial_actions=[{'go_to_url': {'url': test.url}}, {'go_to_url': {'url': test.url}}],
         browser_context=context,
-        # generate_gif=gif_output_path,  # deactivated cause it leads to thread blocking
+        enable_memory=False,
     )
 
     try:
@@ -159,6 +173,8 @@ async def _run_test(
         await browser.close()
 
     result = history.final_result()
+
+    os.remove(cookies_file)
 
     base_ouput = {
         "agent_thoughts": history.model_thoughts(),
@@ -190,7 +206,7 @@ async def _run_test(
     if result is None:
         logger.error(f"[{task_id}] Couldn't run test for {test.name}: {history.final_result()}")
         return base_ouput | {
-            "status": "error",
+            "status": TestStatus.ERROR.value,
             "results": None,
             "tracing": history.get_logs(),
             "error": "Failed to run test, result is None",
@@ -200,7 +216,7 @@ async def _run_test(
     if AGENT_LIMITATION_MESSAGE in result:
         logger.info(f"[{task_id}] Agent limitation encountered: {result}")
         return base_ouput | {
-            "status": "agent_limitation",
+            "status": TestStatus.AGENT_LIMTATION.value,
             "results": result.replace(AGENT_LIMITATION_MESSAGE, "").strip(),
             "tracing": history.get_logs(),
             "error": "",
@@ -210,7 +226,7 @@ async def _run_test(
     if UNEXISTING_FEATURE_MESSAGE in result:
         logger.info(f"[{task_id}] Feature not found: {result}")
         return base_ouput | {
-            "status": "unexisting_feature",
+            "status": TestStatus.UNEXISTING_FEATURE.value,
             "results": result.replace(UNEXISTING_FEATURE_MESSAGE, "").strip(),
             "tracing": history.get_logs(),
             "error": "",
@@ -220,7 +236,7 @@ async def _run_test(
     if AN_ERROR_OCCURED_MESSAGE in result:
         logger.error(f"[{task_id}] An error occurred during the test: {result}")
         return base_ouput | {
-            "status": "error",
+            "status": TestStatus.ERROR.value,
             "results": result.replace(AN_ERROR_OCCURED_MESSAGE, "").strip(),
             "tracing": history.get_logs(),
             "error": "An error occurred during the test.",
@@ -230,7 +246,7 @@ async def _run_test(
     if PRECONDITION_NOT_MET_MESSAGE in result:
         logger.info(f"[{task_id}] Precondition not met: {result}")
         return base_ouput | {
-            "status": "error",
+            "status": TestStatus.ERROR.value,
             "results": result.replace(PRECONDITION_NOT_MET_MESSAGE, "").strip(),
             "tracing": history.get_logs(),
             "error": "Precondition not met.",
@@ -240,7 +256,7 @@ async def _run_test(
     if TEST_FAILED_MESSAGE in result:
         logger.info(f"[{task_id}] Test failed: {result}")
         return base_ouput | {
-            "status": "failed",
+            "status": TestStatus.FAILED.value,
             "results": result.replace(TEST_FAILED_MESSAGE, "").strip(),
             "tracing": history.get_logs(),
             "error": "",
@@ -250,7 +266,7 @@ async def _run_test(
     if TEST_SUCCESS_MESSAGE in result:
         logger.info(f"[{task_id}] Test successful: {result}")
         return base_ouput | {
-            "status": "completed",
+            "status": TestStatus.COMPLETED.value,
             "results": result.replace(TEST_SUCCESS_MESSAGE, "").strip(),
             "tracing": history.get_logs(),
             "error": "",
@@ -259,131 +275,9 @@ async def _run_test(
 
     logger.error(f"[{task_id}] Unknown status of test run: {result}")
     return base_ouput | {
-        "status": "error",
+        "status": TestStatus.ERROR.value,
         "results": None,
         "tracing": history.get_logs(),
         "error": "Unknown status of test run.",
         "traceback": "",
     }
-
-
-def handle_background_task_errors(func):
-    """
-    Decorator for background task functions that handles errors and updates task_ids.
-
-    Args:
-        func: The async function to wrap. The first argument must be task_id.
-
-    Returns:
-        An async function wrapped with error handling that updates task_ids.
-    """
-    @functools.wraps(func)
-    async def wrapper(task_id: str, *args, **kwargs):  # type: ignore
-        try:
-            return await func(task_id, *args, **kwargs)
-        except Exception as e:
-            error_message = str(e)
-            error_traceback = traceback.format_exc()
-            logger.error(f"[{task_id}] Error in background task: {error_message}")
-            logger.error(f"[{task_id}] Traceback: {error_traceback}")
-
-            # Update task_ids to indicate failure
-            task_ids[task_id] = {
-                "status": "error",
-                "results": None,
-                "error": error_message,
-                "traceback": error_traceback
-            }
-
-            return None
-
-    return wrapper
-
-
-@handle_background_task_errors
-async def background_run_test(
-    task_id: str,
-    test: Test,
-    secrets: dict[str, dict[str, str]],
-    gif_output_path: str | bool = False,
-) -> dict[str, Any]:
-
-    logger.info(f"[{task_id}] Generating cookies for {test.url}")
-
-    # TODO: we should not generate cookies for each test, but only once per product
-    try:
-        auth_session = await generate_auth_session(
-            task_id=task_id,
-            url=test.url,  # NOTE: we're using test.url instead of product.url, we might want to make sure it's ok
-            secrets=secrets,
-        )
-    except Exception as e:
-        logger.error(f"[{task_id}] Error in background task: {e}")
-        raise e
-
-    logger.info(f"[{task_id}] Generated cookies for {test.url}")
-
-    with NamedTemporaryFile(delete=True, suffix='.json', mode='w+') as f:
-        if auth_session['cookies'] is not None:
-            json.dump(auth_session['cookies'], f)
-            f.flush()
-            f.seek(0)
-
-        logger.info(f"[{task_id}] Running test {test.name} for {test.url}")
-        result = await _run_test(
-            task_id=task_id,
-            test=test,
-            cookies_file=f.name if auth_session.get('cookies') is not None else None,
-            localStorage=auth_session.get('localStorage'),
-            gif_output_path=gif_output_path,
-        )
-
-        logger.info(f"[{task_id}] Ran tests for {test.url}")
-
-    task_ids[task_id] = result
-
-    return result
-
-
-@router.post("/run-test")
-async def run_test(
-    test: Test,
-    background_task: BackgroundTasks,
-    encrypted_secrets: Optional[dict[str, dict[str, str]]] = None,
-) -> str:
-
-    task_id = str(uuid4())
-
-    # Decrypt encrypted secrets if provided
-    secrets = {}
-    if encrypted_secrets:
-        try:
-            # Decrypt the secrets
-            secrets = crypto_service.decrypt_secrets(encrypted_secrets)
-            logger.info(f"[{task_id}] Successfully decrypted secrets")
-        except Exception as e:
-            logger.error(f"[{task_id}] Failed to decrypt secrets: {str(e)}")
-            raise HTTPException(status_code=400, detail="Failed to decrypt secrets")
-
-    background_task.add_task(
-        background_run_test,
-        task_id=task_id,
-        test=test,
-        secrets=secrets,
-        gif_output_path="/tmp/",
-    )
-
-    task_ids[task_id] = {"status": "pending", "results": None}
-
-    return task_id
-
-
-@router.get("/status/{task_id}")
-async def get_test_run_status(
-    task_id: str,
-) -> dict[str, Any]:
-
-    if task_id not in task_ids:
-        raise HTTPException(status_code=404, detail="Task not found")
-
-    return task_ids[task_id]

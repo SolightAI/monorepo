@@ -10,8 +10,8 @@ from logging import getLogger
 from tempfile import NamedTemporaryFile
 from langchain_openai import AzureChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig
-from fixtures.generate_auth_session import generate_auth_session
-from utils.dto import Product, Test, Epic, Feature, UserStory, AcceptanceCriteria, TestCategory
+from fixtures.authentification.get_auth_session import get_auth_session
+from utils.dto import Product, Test, Epic, Feature, UserStory, AcceptanceCriteria, TestCategory, TEST_CATEGORIES_DESCRIPTION
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service
@@ -55,6 +55,11 @@ Generate a suite of {category_of_test} test cases that thoroughly cover the acce
 5. Specify the expected results for each step
 6. Include any necessary assertions or validation points
 
+Definition of test categories:
+{test_categories_description}
+
+Remember to generate tests only for the provided category of test ({category_of_test}). Ignore all the other categories.
+
 When creating your test cases, keep the following best practices in mind:
 - Ensure tests are independent and can be run in any order
 - Use clear and consistent naming conventions
@@ -65,19 +70,29 @@ When creating your test cases, keep the following best practices in mind:
 Some extra ground rules:
 - Do not logout from the application in the test cases
 - Do not exit from the application in the test cases
-- If you're on an unrelated page, stop by raising an exception to the user
 - Do not try to change the current url, the feature is accessible from the current url
 
-On your final response, for each test case, you should write the following informations in the following format:
+Start by writing your thinking process in the <analysis> tags. It's more than ok the have a long analysis before writing your final answer.
+
+<analysis>
+[Your detailed analysis and reasoning for parameter selection]
+</analysis>
+
+Once your analysis is done, you should write your final answer in the <output> tags.
+For each test case, you should write the following informations in the <test_case> tags, like this:
+
+<output>
 <test_case>
 <name>Name of the test</name>
 <description>Description of the test</description>
 <preconditions>Preconditions or setup required</preconditions>
 <steps>Step-by-step instructions for test execution</steps>
-<expected_results>Expected results for each step</expected_results>
 <assertions>Assertions or validation points</assertions>
 </test_case>
 ...
+</output>
+
+Make sure to close each XML tag you open.
 """.strip()
 
 
@@ -105,21 +120,18 @@ def _parse_test_cases(test_case_text: str) -> list[dict[str, str]]:
     """Parse the text returned from LLM into a list of test case dictionaries."""
     # Use regex to extract test cases
     test_cases = []
-    pattern = r'<test_case>\s*<name>(.*?)</name>\s*<description>(.*?)</description>\s*<preconditions>(.*?)</preconditions>\s*<steps>(.*?)</steps>\s*<expected_results>(.*?)</expected_results>\s*<assertions>(.*?)</assertions>\s*</test_case>'
+    pattern = r'<test_case>\s*<name>(.*?)</name>\s*<description>(.*?)</description>\s*<preconditions>(.*?)</preconditions>\s*<steps>(.*?)</steps>\s*<assertions>(.*?)</assertions>\s*</test_case>'
 
     matches = re.finditer(pattern, test_case_text, re.DOTALL)
-
     for match in matches:
         test_case = {
             'name': match.group(1).strip(),
             'description': match.group(2).strip(),
             'preconditions': match.group(3).strip(),
             'steps': match.group(4).strip(),
-            'expected_results': match.group(5).strip(),
-            'assertions': match.group(6).strip(),
+            'assertions': match.group(5).strip(),
         }
         test_cases.append(test_case)
-
     return test_cases
 
 
@@ -203,11 +215,12 @@ async def _generate_test_category_for_feature(
             user_stories_text=user_stories_text,
             acceptance_criteria_text=acceptance_criteria_text,
             category_of_test=category_of_test,
+            test_categories_description="- ".join([f"{k}: {v}" for k, v in TEST_CATEGORIES_DESCRIPTION.items()]),
         ),
         llm=LLM_CLIENT,
         initial_actions=[{'go_to_url': {'url': feature.urls[0]}}, {'go_to_url': {'url': feature.urls[0]}}],
         browser_context=context,
-        # generate_gif=gif_output_path,  # deactivated cause it leads to thread blocking
+        enable_memory=False,
     )
 
     try:
@@ -244,6 +257,8 @@ async def _generate_test_category_for_feature(
         task_name=f"generate tests for {feature.name}",
     )
 
+    logger.info(f"[{task_id}] Test Generation Result: {result}")
+
     # Parse the test cases from the LLM response
     test_cases = _parse_test_cases(result)
 
@@ -258,7 +273,6 @@ async def _generate_test_category_for_feature(
             category=category_of_test,
             preconditions=tc['preconditions'],
             steps=tc['steps'],
-            expected_results=tc['expected_results'],
             assertions=tc['assertions'],
             feature_id=feature.id,
         )
@@ -317,15 +331,17 @@ async def background_generate_tests_for_feature(
         List of generated tests
     """
 
-    auth_session = await generate_auth_session(
-        task_id=task_id,
-        url=product.url,
-        secrets=secrets,
-    )
+    auth_session = dict()
+    if secrets is not None and len(secrets) > 0:
+        auth_session, _ = await get_auth_session(
+            task_id=task_id,
+            url=product.url,
+            secrets=secrets,
+        )
 
     tests = []
     with NamedTemporaryFile(suffix=".json", mode="w+") as cookies_file:
-        cookies_file.write(json.dumps(auth_session['cookies']))
+        cookies_file.write(json.dumps(auth_session.get('cookies')))
         cookies_file.flush()
         cookies_file.seek(0)
 

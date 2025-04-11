@@ -10,7 +10,7 @@ from logging import getLogger
 from tempfile import NamedTemporaryFile
 from langchain_openai import AzureChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig
-from fixtures.generate_auth_session import generate_auth_session
+from fixtures.authentification.get_auth_session import get_auth_session
 from utils.dto import Product, Epic, Feature, UserStory, AcceptanceCriteria
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -184,7 +184,8 @@ async def _generate_acceptance_criteria(
             epic=epic,
             feature=feature,
             url=feature.urls[0],
-            user_stories_text=user_stories_text
+            user_stories_text=user_stories_text,
+            enable_memory=False,
         ),
         llm=LLM_CLIENT,
         initial_actions=[{'go_to_url': {'url': feature.urls[0]}}, {'go_to_url': {'url': feature.urls[0]}}],
@@ -277,7 +278,7 @@ async def background_generate_acceptance_criteria(
         List of generated acceptance criteria
     """
 
-    auth_session = await generate_auth_session(
+    auth_session, _ = await get_auth_session(
         task_id=task_id,
         url=product.url,
         secrets=secrets,

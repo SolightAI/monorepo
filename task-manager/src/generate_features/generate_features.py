@@ -10,7 +10,7 @@ from logging import getLogger
 from tempfile import NamedTemporaryFile
 from langchain_openai import AzureChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig
-from fixtures.generate_auth_session import generate_auth_session
+from fixtures.authentification.get_auth_session import get_auth_session
 from utils.dto import Product, Epic, Feature
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -173,7 +173,7 @@ async def _generate_features(
         llm=LLM_CLIENT,
         initial_actions=[{'go_to_url': {'url': product.url}}, {'go_to_url': {'url': product.url}}],
         browser_context=context,
-        # generate_gif=gif_output_path,  # deactivated cause it leads to thread blocking
+        enable_memory=False,
     )
 
     try:
@@ -259,7 +259,7 @@ async def background_generate_features(
         List of generated features
     """
 
-    auth_session = await generate_auth_session(
+    auth_session, _ = await get_auth_session(
         task_id=task_id,
         url=product.url,
         secrets=secrets,

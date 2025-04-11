@@ -79,7 +79,7 @@ async def test_epic_generation_farmzz_product_page(task_id):
     if not password:
         raise ValueError("FARMZZ_PASSWORD is not set")
 
-    auth_session = await generate_auth_session(
+    auth_session, _ = await generate_auth_session(
         task_id=task_id,
         url=url,
         secrets={
