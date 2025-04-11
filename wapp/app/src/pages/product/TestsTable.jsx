@@ -504,7 +504,6 @@ const TestsTable = () => {
 
       // Show appropriate message based on results
       if (testCount > 0) {
-        // setSuccessMessage(`Successfully started ${testCount} tests. Status: ${formatStatus('PENDING')}`);
         setError(null);
 
         // Start polling for each test execution

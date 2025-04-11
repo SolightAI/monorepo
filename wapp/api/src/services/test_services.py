@@ -252,6 +252,7 @@ async def trigger_test_generation(feature_id: UUID4) -> str:
             'dependents': [],  # TODO
             'dependencies': [],  # TODO
             'urls': feature.urls,
+            'access_conditions': feature.access_conditions,
         },
         'user_stories': [
             {
@@ -284,7 +285,7 @@ async def trigger_test_generation(feature_id: UUID4) -> str:
     encrypted_secrets = await get_encrypted_secrets(organization_id=product.organization_id, product_id=product.id)
 
     # Add the encrypted secrets to the payload if any were found
-    if encrypted_secrets and feature.access_conditions.get("must_be_logged_in", False) is True:
+    if encrypted_secrets:
         payload['encrypted_secrets'] = encrypted_secrets
         logger.info("Successfully included encrypted secrets for test generation")
 
