@@ -50,7 +50,7 @@ async def organization_secret(test_organization, admin_user):
         id=uuid4(),
         name="Test API Key",
         value="api_key_123456",
-        type=SecretType.API_KEY,
+        type=SecretType.USERNAME_PASSWORD,
         organization=test_organization,
         created_by=admin_user
     )
@@ -228,7 +228,7 @@ async def test_update_test(client: AsyncClient, admin_user, test_case):
         "name": "Updated Test Name",
         "description": "Updated test description",
         "url": "https://example.com/updated-test",
-        "category": "INTEGRATION"
+        "category": TestCategory.SMOKE.value
     }
 
     response = await client.put(
@@ -237,7 +237,7 @@ async def test_update_test(client: AsyncClient, admin_user, test_case):
         headers=headers
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 200, f"Received {response.status_code} instead of 200: {response.text}"
     result = response.json()
     assert result["id"] == str(test_case.id)
     assert result["name"] == data["name"]

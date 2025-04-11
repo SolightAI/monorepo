@@ -87,7 +87,8 @@ async def feature(epic):
         name="Test Feature",
         description="A feature for testing",
         epic=epic,
-        urls=[]
+        urls=[],
+        access_conditions={}
     )
 
     yield feature
@@ -105,7 +106,8 @@ async def test_create_feature(client: AsyncClient, admin_user, epic):
         "name": "New Test Feature",
         "description": "A new feature created in test",
         "epic_id": str(epic.id),
-        "urls": []
+        "urls": [],
+        "access_conditions": {}
     }
 
     response = await client.post(
@@ -180,7 +182,8 @@ async def test_delete_feature(client: AsyncClient, admin_user, epic):
         name="Feature to Delete",
         description="This feature will be deleted",
         epic=epic,
-        urls=[]
+        urls=[],
+        access_conditions={}
     )
 
     response = await client.delete(
@@ -208,7 +211,8 @@ async def test_owner_can_create_feature(client: AsyncClient, organization_owner,
         "name": "Owner Created Feature",
         "description": "Feature created by organization owner",
         "epic_id": str(epic.id),
-        "urls": []
+        "urls": [],
+        "access_conditions": {}
     }
 
     response = await client.post(
@@ -330,7 +334,8 @@ async def test_member_can_create_feature(client: AsyncClient, organization_membe
         "name": "Member Created Feature",
         "description": "Feature created by organization member",
         "epic_id": str(epic.id),
-        "urls": []
+        "urls": [],
+        "access_conditions": {}
     }
 
     response = await client.post(
@@ -362,14 +367,15 @@ async def test_multiple_features_per_epic(client: AsyncClient, admin_user, epic)
         "name": "First Feature",
         "description": "First feature for the epic",
         "epic_id": str(epic.id),
-        "urls": []
+        "urls": [],
+        "access_conditions": {},
     }
     feature1_response = await client.post(
         "/features/",
         json=feature1_data,
         headers=headers
     )
-    assert feature1_response.status_code == 200
+    assert feature1_response.status_code == 200, f"Received {feature1_response.status_code} instead of 200: {feature1_response.text}"
     feature1_id = feature1_response.json()["id"]
 
     # Create second feature
@@ -377,14 +383,15 @@ async def test_multiple_features_per_epic(client: AsyncClient, admin_user, epic)
         "name": "Second Feature",
         "description": "Second feature for the epic",
         "epic_id": str(epic.id),
-        "urls": []
+        "urls": [],
+        "access_conditions": {},
     }
     feature2_response = await client.post(
         "/features/",
         json=feature2_data,
         headers=headers
     )
-    assert feature2_response.status_code == 200
+    assert feature2_response.status_code == 200, f"Received {feature2_response.status_code} instead of 200: {feature2_response.text}"
     feature2_id = feature2_response.json()["id"]
 
     # Verify both features belong to the same epic
@@ -412,7 +419,8 @@ async def test_owner_can_delete_feature(client: AsyncClient, organization_owner,
         name="Owner Delete Feature",
         description="Feature to be deleted by owner",
         epic=epic,
-        urls=[]
+        urls=[],
+        access_conditions={}
     )
 
     response = await client.delete(
