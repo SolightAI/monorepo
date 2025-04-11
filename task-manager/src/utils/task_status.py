@@ -57,7 +57,7 @@ class TaskStatusManager:
             cls._instance.tasks = {}
         return cls._instance
 
-    def set_status(self, task_id: str, status: str, results: Optional[Any] = None, error: Optional[Any] = None, agent_thoughts: Optional[Any] = None, agent_actions: Optional[Any] = None) -> None:
+    def set_status(self, task_id: str, status: str, **kwargs) -> None:
         """
         Set the status of a task.
 
@@ -69,6 +69,9 @@ class TaskStatusManager:
             agent_thoughts: Optional agent thoughts from the task
             agent_actions: Optional agent actions from the task
         """
+
+        error = kwargs.get("error")
+
         # Convert error to string if it's not None and not a string already
         if error is not None and not isinstance(error, str):
             try:
@@ -79,10 +82,10 @@ class TaskStatusManager:
 
         self.tasks[task_id] = {
             "status": status,
-            "results": results,
+            "results": kwargs.get("results"),
             "error": error,
-            "agent_thoughts": agent_thoughts,
-            "agent_actions": agent_actions,
+            "agent_thoughts": kwargs.get("agent_thoughts"),
+            "agent_actions": kwargs.get("agent_actions"),
         }
         logger.debug(f"Task {task_id} status set to {status}")
 
