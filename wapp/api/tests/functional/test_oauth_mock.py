@@ -4,7 +4,6 @@ import json
 import base64
 from uuid import uuid4
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch, MagicMock
 from httpx import AsyncClient
 from dto.models import User, Invitation, Organization
 from dto.schemas import OrganizationRole, OrganizationType
@@ -47,7 +46,7 @@ def mock_get_userinfo(*args, **kwargs):
 
 # Mock for organization_services.add_member_to_organization to avoid validation issues
 async def mock_add_member_to_organization(*args, **kwargs):
-    return MagicMock()
+    return pytest.MagicMock()
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -67,12 +66,12 @@ async def cleanup_test_user():
 
 
 @pytest.fixture
-async def client_with_mocked_google(client: AsyncClient):
+async def client_with_mocked_google(client: AsyncClient, mocker):
     """Test client with mocked Google OAuth"""
-    with patch('requests.post', side_effect=mock_post_token), \
-         patch('requests.get', side_effect=mock_get_userinfo), \
-         patch('services.organization_services.add_member_to_organization', side_effect=mock_add_member_to_organization):
-        yield client
+    mocker.patch('requests.post', side_effect=mock_post_token)
+    mocker.patch('requests.get', side_effect=mock_get_userinfo)
+    mocker.patch('services.organization_services.add_member_to_organization', side_effect=mock_add_member_to_organization)
+    return client
 
 
 @pytest.fixture

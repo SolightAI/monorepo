@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Body, BackgroundTasks, Depends, HTTPException, status
 from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestStatus, TestUpdate as TestUpdateSchema, TestSecretCreate, TestSecret, TestExecution as TestExecutionSchema
+from services.test_execution_services import get_test_executions_by_test
 from services.test_services import (
     get_test,
     create_test,
@@ -16,7 +17,6 @@ from services.test_services import (
     delete_test_secret,
     get_tests_by_product_id,
 )
-from services.test_execution_services import get_test_executions_by_test
 from pydantic import UUID4
 from typing import List
 

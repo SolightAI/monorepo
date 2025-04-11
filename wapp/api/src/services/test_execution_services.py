@@ -14,7 +14,6 @@ from dto.models import TestExecution as TestExecutionModel, Test as TestModel
 from dto.schemas import (
     TestExecutionCreate as TestExecutionCreateSchema,
     TestExecutionUpdate as TestExecutionUpdateSchema,
-    TestExecutionElement,
     TestStatus,
 )
 from services.test_services import get_test
@@ -51,7 +50,7 @@ async def get_test_execution(test_execution_id: UUID4) -> TestExecutionModel:
     return test_execution
 
 
-async def get_test_executions_by_test(test_id: UUID4, select_fields: List[str] = None) -> List[TestExecutionElement]:
+async def get_test_executions_by_test(test_id: UUID4) -> List[TestExecutionModel]:
     """
     Get all test executions for a specific test with field selection.
 
@@ -68,24 +67,13 @@ async def get_test_executions_by_test(test_id: UUID4, select_fields: List[str] =
     # Build the query
     query = TestExecutionModel.filter(test_id=test_id)
 
-    # Only select specific fields if requested
-    if select_fields:
-        query = query.only(*select_fields)
-
     # Order by started_at descending for consistency
     query = query.order_by("-started_at")
 
     # Execute the query
     test_executions = await query
 
-    return [TestExecutionElement(
-        id=execution.id,
-        test_id=execution.test_id,
-        status=execution.status,
-        started_at=execution.started_at,
-        environment=execution.environment,
-        executor_type=execution.executor_type,
-    ) for execution in test_executions]
+    return test_executions
 
 
 # TODO: trigger test execution on task manager
@@ -142,16 +130,11 @@ async def create_test_execution(
                 "feature_id": "random_id",
                 "preconditions": test.preconditions,
                 "steps": test.steps,
-                "expected_results": test.expected_results,
                 "assertions": test.assertions,
-                "encrypted_secrets": None,
-            }
+                "access_conditions": test.feature.access_conditions,
+            },
+            "encrypted_secrets": await get_encrypted_secrets(organization_id=product.organization_id, product_id=product.id),
         }
-
-        # Get encrypted secrets for this organization and product
-        encrypted_secrets = await get_encrypted_secrets(organization_id=product.organization_id, product_id=product.id)
-        if encrypted_secrets:
-            task_manager_payload["encrypted_secrets"] = encrypted_secrets
 
         # Send request to task manager
         response = requests.post(

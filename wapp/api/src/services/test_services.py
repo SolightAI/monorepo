@@ -284,7 +284,7 @@ async def trigger_test_generation(feature_id: UUID4) -> str:
     encrypted_secrets = await get_encrypted_secrets(organization_id=product.organization_id, product_id=product.id)
 
     # Add the encrypted secrets to the payload if any were found
-    if encrypted_secrets:
+    if encrypted_secrets and feature.access_conditions.get("must_be_logged_in", False) is True:
         payload['encrypted_secrets'] = encrypted_secrets
         logger.info("Successfully included encrypted secrets for test generation")
 
@@ -339,7 +339,6 @@ async def poll_test_generation_status(test_id: UUID4, max_attempts: int = 60, in
                         category=_test["category"],
                         preconditions=_test["preconditions"],
                         steps=_test["steps"],
-                        expected_results=_test["expected_results"],
                         assertions=_test["assertions"],
                         secret_ids=None,  # TODO: add secret_ids based on what the agent used
                     )

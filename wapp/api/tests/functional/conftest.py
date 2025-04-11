@@ -169,7 +169,10 @@ async def test_feature(test_epic):
         name="Test Feature",
         description="A feature for testing endpoints",
         epic=test_epic,
-        urls=[]
+        urls=[],
+        access_conditions={
+            "must_be_logged_in": True
+        }
     )
 
     yield feature

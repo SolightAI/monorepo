@@ -105,6 +105,7 @@ class Feature(models.Model):
     urls = fields.JSONField()  # where the feature is implemented
     name = fields.CharField(max_length=255)
     description = fields.TextField()
+    access_conditions = fields.JSONField()  # conditions under which the feature is accessible (i.e. must_be_logged_in)
 
     # dependents = fields.ManyToManyField("models.Feature", related_name="dependencies")  # features depending on this feature
     dependencies = fields.ManyToManyField("models.Feature", related_name="dependents")  # features this feature depends on
@@ -148,7 +149,6 @@ class Test(models.Model):
     description = fields.TextField()
     preconditions = fields.TextField()
     steps = fields.TextField()
-    expected_results = fields.TextField()
     assertions = fields.TextField()
 
     category = fields.CharEnumField(TestCategory, max_length=255)
@@ -185,11 +185,12 @@ class TestExecution(models.Model):
     tracing = fields.JSONField(default={})  # Any additional tracing data about the execution
 
     # Relations
-    test = fields.ForeignKeyField("models.Test", related_name="executions")
+    test = fields.ForeignKeyField("models.Test", related_name="executions", db_index=True)
     bugs = fields.ReverseRelation["Bug"]
 
     class Meta:
         table = "test_executions"
+        indexes = [("test_id", "started_at")]
 
 
 class Bug(models.Model):

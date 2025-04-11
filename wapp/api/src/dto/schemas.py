@@ -155,13 +155,13 @@ class SeverityLevel(str, Enum):
 class TestCategory(str, Enum):
     SMOKE = "SMOKE"  # testing basic functionalities of a feature
     NEGATIVE = "NEGATIVE"  # testing a negative path of a feature
-    END_TO_END = "END_TO_END"  # multi-step tests, testing a feature as a whole (flow tests)
-    REGRESSION = "REGRESSION"  # testing a feature after a bug has been fixed
-    INTEGRATION = "INTEGRATION"  # testing the integration between features
-    PERFORMANCE = "PERFORMANCE"  # testing the performance of a feature
-    USABILITY = "USABILITY"  # testing the usability of a feature
-    COMPATIBILITY = "COMPATIBILITY"  # testing the compatibility of a feature with different browsers, devices, etc.
-    LOCALIZATION = "LOCALIZATION"  # testing the localization of a feature
+    # END_TO_END = "END_TO_END"  # multi-step tests, testing a feature as a whole (flow tests)
+    # REGRESSION = "REGRESSION"  # testing a feature after a bug has been fixed
+    # INTEGRATION = "INTEGRATION"  # testing the integration between features
+    # PERFORMANCE = "PERFORMANCE"  # testing the performance of a feature
+    # USABILITY = "USABILITY"  # testing the usability of a feature
+    # COMPATIBILITY = "COMPATIBILITY"  # testing the compatibility of a feature with different browsers, devices, etc.
+    # LOCALIZATION = "LOCALIZATION"  # testing the localization of a feature
 
 
 class ExecutorType(str, Enum):
@@ -232,6 +232,7 @@ class FeatureCreate(BaseModel):
     name: str
     urls: list[str]
     description: str
+    access_conditions: dict[str, Any]
 
 
 class FeatureUpdate(BaseModel):
@@ -303,7 +304,6 @@ class TestCreate(BaseModel):
     category: TestCategory
     preconditions: str
     steps: str
-    expected_results: str
     assertions: str
     secret_ids: Optional[List[UUID4]] = None
 
@@ -316,7 +316,6 @@ class TestUpdate(BaseModel):
     status: Optional[TestStatus] = None
     preconditions: Optional[str] = None
     steps: Optional[str] = None
-    expected_results: Optional[str] = None
     assertions: Optional[str] = None
     secret_ids: Optional[List[UUID4]] = None
 
@@ -331,7 +330,7 @@ class Test(TestBase):
     ended_at: Optional[datetime]
     feature_id: UUID4
     secrets: List[Dict[str, Any]] = []
-    bugs: list[BugBase] = []
+    bugs: list[UUID4] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -398,11 +397,12 @@ class OrganizationHealth(BaseModel):
 class SecretType(str, Enum):
     """Type of secret for categorization and handling."""
     USERNAME_PASSWORD = "username_password"
-    API_KEY = "api_key"
-    ENVIRONMENT_VARIABLE = "environment_variable"
-    CONNECTION_STRING = "connection_string"
-    OAUTH_CREDENTIAL = "oauth_credential"
-    OTHER = "other"
+    # OAUTH_CREDENTIAL = "oauth_credential"
+    GOOGLE = "oauth_credential:google"
+    # API_KEY = "api_key"
+    # ENVIRONMENT_VARIABLE = "environment_variable"
+    # CONNECTION_STRING = "connection_string"
+    # OTHER = "other"
 
 
 class SecretBase(BaseModel):
