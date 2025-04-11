@@ -18,6 +18,7 @@ from utils.crypto import crypto_service
 from utils.task_status import task_status_manager
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_gif_to_s3
+from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
 
 
 PROMPT = """
@@ -57,18 +58,11 @@ content of the user story ("As a user, I ...")
 """.strip()
 
 
-if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
-    raise ValueError('AZURE_OPENAI_KEY is not set')
-
-if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
-    raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
-
-
 LLM_CLIENT = AzureChatOpenAI(
     model="gpt-4o",
     api_version='2024-10-21',
-    azure_endpoint=azure_openai_endpoint,
-    api_key=SecretStr(azure_openai_key),
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+    api_key=SecretStr(AZURE_OPENAI_KEY),
     temperature=0.0,
 )
 

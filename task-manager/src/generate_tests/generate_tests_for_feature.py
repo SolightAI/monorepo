@@ -18,6 +18,7 @@ from utils.crypto import crypto_service
 from utils.task_status import task_status_manager
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_gif_to_s3
+from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
 
 
 PROMPT = """
@@ -96,18 +97,11 @@ Make sure to close each XML tag you open.
 """.strip()
 
 
-if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
-    raise ValueError('AZURE_OPENAI_KEY is not set')
-
-if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
-    raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
-
-
 LLM_CLIENT = AzureChatOpenAI(
     model="gpt-4o",
     api_version='2024-10-21',
-    azure_endpoint=azure_openai_endpoint,
-    api_key=SecretStr(azure_openai_key),
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+    api_key=SecretStr(AZURE_OPENAI_KEY),
     temperature=0.0,
 )
 
@@ -332,12 +326,16 @@ async def background_generate_tests_for_feature(
     """
 
     auth_session = dict()
-    if secrets is not None and len(secrets) > 0:
-        auth_session = await get_auth_session(
-            task_id=task_id,
-            url=product.url,
-            secrets=secrets,
-        )
+    try:
+        if feature.access_conditions is not None and feature.access_conditions.get("must_be_logged_in") is True:
+            auth_session = await get_auth_session(
+                task_id=task_id,
+                url=feature.urls[0],
+                secrets=secrets,
+            )
+    except Exception as e:
+        logger.error(f"[{task_id}] Error in background task: {e}")
+        raise e
 
     tests = []
     with NamedTemporaryFile(suffix=".json", mode="w+") as cookies_file:

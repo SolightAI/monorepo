@@ -51,6 +51,7 @@ class Feature(BaseModel):
     urls: list[str]  # where the feature is implemented
     name: str
     description: str
+    access_conditions: dict[str, Any] | None = None  # conditions to access the feature
 
     dependents: List["Feature"] = Field(default_factory=list)  # features depending on this feature
     dependencies: List["Feature"] = Field(default_factory=list)  # features this feature depends on

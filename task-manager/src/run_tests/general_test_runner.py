@@ -12,7 +12,7 @@ from utils.dto import Test
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from run_tests.tracing import initialize, extend_agent_history
 from utils.s3_utils import upload_gif_to_s3
-from utils.contants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, TestStatus
+from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, TestStatus
 
 
 TEST_SUCCESS_MESSAGE = "[TEST SUCCESSFUL]"  # when the test is successful

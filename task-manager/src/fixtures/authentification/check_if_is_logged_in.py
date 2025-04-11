@@ -9,10 +9,8 @@ from langchain_openai import AzureChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from utils.s3_utils import upload_gif_to_s3
+from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
 
-
-ACTION_CHECK_LOGIN_NAME = "is_logged_based_on_vision"
-ACTION_CHECK_LOGIN_DESCRIPTION = f"{ACTION_CHECK_LOGIN_NAME}: Take a screenshot of the current page and check if the user is logged in based on the vision. The output can be [YES], [NO] or [MAYBE] depending on the confidence of the answer"
 
 CHECK_LOGIN_PROMPT = """
 You are an AI assistant acting as a test automation engineer. Your task is to check if the user is logged in to the application.
@@ -23,18 +21,11 @@ If the user is not logged in, say "User is not logged in".
 """.strip()
 
 
-if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
-    raise ValueError('AZURE_OPENAI_KEY is not set')
-
-if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
-    raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
-
-
 AGENT_CLIENT = AzureChatOpenAI(
     model="gpt-4o",
     api_version='2024-10-21',
-    azure_endpoint=azure_openai_endpoint,
-    api_key=SecretStr(azure_openai_key),
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+    api_key=SecretStr(AZURE_OPENAI_KEY),
     temperature=0.0,
 )
 

@@ -1,28 +1,8 @@
-import os
-
 from logging import getLogger
-from pydantic import SecretStr
-from langchain_openai import AzureChatOpenAI
 from utils.session_manager import get_cached_session, cache_session, update_session_timestamp
 from fixtures.authentification.login_to_website import login_to_website
 from fixtures.authentification.check_if_is_logged_in import check_is_logged_in
 from fixtures.authentification.has_required_secrets import LoginMethod
-
-
-if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
-    raise ValueError('AZURE_OPENAI_KEY is not set')
-
-if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
-    raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
-
-
-AGENT_CLIENT = AzureChatOpenAI(
-    model="gpt-4o",
-    api_version='2024-10-21',
-    azure_endpoint=azure_openai_endpoint,
-    api_key=SecretStr(azure_openai_key),
-    temperature=0.0,
-)
 
 
 logger = getLogger(__name__)

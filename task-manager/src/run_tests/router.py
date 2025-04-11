@@ -6,7 +6,7 @@ from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage
 from run_tests.general_test_runner import general_test_runner_agent, get_parameters_for_general_test_runner
 from fixtures.authentification.login_to_website import login_to_website_agent, get_parameters_for_login_to_website
-from utils.contants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
+from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
 from pydantic import SecretStr
 from inspect import getfullargspec
 from logging import getLogger
@@ -217,12 +217,3 @@ async def select_and_call_agent(
     logger.info(f"[{task_id}] Calling agent {agent.__name__}")
 
     return await agent(**AGENTS[agent](task_id, test, secrets))
-
-
-if __name__ == "__main__":
-    test = Test(
-        name="test",
-        description="test",
-        test="test",
-    )
-    print(select_agent_to_use(test))

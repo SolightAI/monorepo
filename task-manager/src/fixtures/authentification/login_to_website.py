@@ -13,7 +13,7 @@ from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_gif_to_s3
 from fixtures.authentification.check_if_is_logged_in import check_is_logged_in
 from fixtures.authentification.has_required_secrets import has_required_secrets, LoginMethod, SUPPORTED_LOGIN_METHODS
-from utils.contants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, TestStatus
+from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, TestStatus
 from utils.dto import Test
 from run_tests.tracing import initialize, extend_agent_history
 
