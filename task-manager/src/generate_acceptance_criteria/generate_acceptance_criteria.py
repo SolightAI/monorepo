@@ -278,7 +278,7 @@ async def background_generate_acceptance_criteria(
         List of generated acceptance criteria
     """
 
-    auth_session, _ = await get_auth_session(
+    auth_session = await get_auth_session(
         task_id=task_id,
         url=product.url,
         secrets=secrets,

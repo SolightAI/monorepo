@@ -15,7 +15,7 @@ class LoginMethod(str, Enum):
     OTHER = "other"
 
 
-SUPPORTED_LOGIN_METHODS = [LoginMethod.EMAIL]
+SUPPORTED_LOGIN_METHODS = [LoginMethod.ANY, LoginMethod.EMAIL]
 
 
 REQUIRED_FIELDS = {

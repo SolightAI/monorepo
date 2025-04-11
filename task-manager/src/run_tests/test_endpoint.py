@@ -46,7 +46,7 @@ async def background_run_test(
     auth_session = dict()
     try:
         if test.access_conditions.get("must_be_logged_in") is True:
-            auth_session, _ = await get_auth_session(
+            auth_session = await get_auth_session(
                 task_id=task_id,
                 url=test.url,
                 secrets=secrets,
@@ -71,7 +71,6 @@ async def background_run_test(
         )
 
         logger.info(f"[{task_id}] Ran tests for {test.url}")
-
 
     task_status_manager.set_status(
         task_id=task_id,

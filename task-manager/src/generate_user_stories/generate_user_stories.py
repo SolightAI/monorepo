@@ -242,7 +242,7 @@ async def background_generate_user_stories(
         List of generated user stories
     """
 
-    auth_session, _ = await get_auth_session(
+    auth_session = await get_auth_session(
         task_id=task_id,
         url=product.url,
         secrets=secrets,

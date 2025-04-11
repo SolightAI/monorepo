@@ -259,7 +259,7 @@ async def background_generate_epics(
     if page_type == PageType.MARKETING:
         raise Exception(get_marketing_page_error_message(task_id))
 
-    auth_session, _ = await get_auth_session(
+    auth_session = await get_auth_session(
         task_id=task_id,
         url=product.url,
         secrets=secrets,

@@ -144,6 +144,16 @@ def get_parameters_for_login_to_website(
         "secrets": secrets,
     }
 
+def _select_login_method(login_method: LoginMethod, secrets: dict[str, dict[str, str]]) -> LoginMethod:
+    if login_method != LoginMethod.ANY:
+        return login_method
+
+    for method in LoginMethod:
+        if method.value in secrets:
+            return method
+
+    raise ValueError("No matching login method found in secrets")
+
 
 async def login_to_website(
     task_id: str,
@@ -156,7 +166,9 @@ async def login_to_website(
     """
 
     if login_method not in SUPPORTED_LOGIN_METHODS:
-        raise ValueError("Login method not supported")
+        raise ValueError(f"Login method {login_method} not supported")
+
+    login_method = _select_login_method(login_method=login_method, secrets=secrets)
 
     success, error_message = has_required_secrets(login_method=login_method, secrets=secrets)
     if not success:

@@ -333,7 +333,7 @@ async def background_generate_tests_for_feature(
 
     auth_session = dict()
     if secrets is not None and len(secrets) > 0:
-        auth_session, _ = await get_auth_session(
+        auth_session = await get_auth_session(
             task_id=task_id,
             url=product.url,
             secrets=secrets,
