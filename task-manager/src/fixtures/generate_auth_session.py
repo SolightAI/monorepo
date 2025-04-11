@@ -20,6 +20,22 @@ USERNAME_PASSWORD = "username_password"
 
 ACTION_CHECK_LOGIN = "Check if the user is logged in based on the vision"
 
+# Check for required environment variables before using them
+if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
+    raise ValueError('AZURE_OPENAI_KEY is not set')
+
+if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
+    raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
+
+# Initialize the LLM client with the credentials
+AGENT_CLIENT = AzureChatOpenAI(
+    model="gpt-4o",
+    api_version='2024-10-21',
+    azure_endpoint=azure_openai_endpoint,
+    api_key=SecretStr(azure_openai_key),
+    temperature=0.0,
+)
+
 PROMPT = """
 You are an AI assistant acting as a test automation engineer. Your task is to login to an application. Follow these instructions carefully to complete the login process.
 
@@ -85,26 +101,6 @@ Look at the current page and determine if the user is logged in.
 - If the user is not logged in, output "[NO]".
 - If you are not sure, output "[MAYBE]".
 """.strip()
-
-
-azure_openai_key = os.getenv('AZURE_OPENAI_KEY')
-azure_openai_endpoint = os.getenv('AZURE_OPENAI_ENDPOINT')
-
-if azure_openai_key is None:
-    raise ValueError('AZURE_OPENAI_KEY is not set')
-
-if azure_openai_endpoint is None:
-    raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
-
-
-AGENT_CLIENT = AzureChatOpenAI(
-    model="gpt-4o",
-    api_version='2024-10-21',
-    azure_endpoint=azure_openai_endpoint,
-    api_key=SecretStr(azure_openai_key),
-    temperature=0.0,
-)
-
 
 controller = Controller()
 logger = getLogger(__name__)
@@ -363,13 +359,21 @@ async def generate_auth_session(
             logger.info(f"[{task_id}] Auth Session Generation GIF uploaded to S3: {s3_url}")
 
     # Validate the history and get the result
-    await validate_agent_history(
-        task_id=task_id,
-        history=history,
-        task_name=f"login to {url}",
-        error_markers=["[AN ERROR OCCURRED]"],
-        empty_result_is_ok=True,
-    )
+    try:
+        await validate_agent_history(
+            task_id=task_id,
+            history=history,
+            task_name=f"login to {url}",
+            error_markers=["[AN ERROR OCCURRED]"],
+            empty_result_is_ok=True,
+        )
+    except Exception as e:
+        # Add the error marker to the error message if it's not present
+        error_message = str(e)
+        if "[AN ERROR OCCURRED]" not in error_message:
+            error_message = f"[AN ERROR OCCURRED] {error_message}"
+            raise Exception(error_message) from e
+        raise
 
     session_data = {"cookies": cookies, "localStorage": localStorage_data}
 
