@@ -304,6 +304,8 @@ async def background_generate_tests_for_feature(
         List of generated tests
     """
 
+    task_status_manager.set_status(task_id, "pending")
+
     auth_session = dict()
     try:
         if feature.access_conditions is not None and feature.access_conditions.get("must_be_logged_in") is True:
@@ -336,6 +338,8 @@ async def background_generate_tests_for_feature(
                 gif_output_path=gif_output_path,
             )
             tests.extend(category_tests)
+
+    task_status_manager.set_status(task_id, "completed", results=tests)
 
     return tests
 
