@@ -11,7 +11,7 @@ from run_tests.router import select_and_call_agent
 from utils.dto import Test
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service
-from utils.task_status import TaskStatusManager, handle_background_task_errors
+from utils.task_status import task_status_manager, handle_background_task_errors
 from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
 
 
@@ -26,7 +26,6 @@ LLM_CLIENT = AzureChatOpenAI(
 
 router = APIRouter(prefix="/run-test")
 logger = getLogger(__name__)
-task_status_manager = TaskStatusManager()
 
 
 @handle_background_task_errors

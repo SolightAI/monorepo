@@ -1,8 +1,7 @@
 import os
 import json
 import re
-import functools
-import traceback
+
 from uuid import uuid4
 from typing import Any, Optional
 from pydantic import SecretStr
@@ -15,7 +14,7 @@ from utils.dto import Product, Epic, Feature
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service
-from utils.task_status import task_status_manager
+from utils.task_status import task_status_manager, handle_background_task_errors
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_gif_to_s3
 from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
@@ -208,26 +207,6 @@ async def _generate_features(
     features = _parse_features(task_id, result)
 
     return [Feature(name=f['name'], description=f['description'], urls=f['urls']) for f in features]
-
-
-def handle_background_task_errors(func):
-    """Decorator to handle background task errors."""
-    @functools.wraps(func)
-    async def wrapper(task_id: str, *args, **kwargs):  # type: ignore
-        try:
-            task_status_manager.set_status(task_id, "pending")
-            results = await func(task_id, *args, **kwargs)
-            task_status_manager.set_status(task_id, "completed", results=results)
-            return results
-        except Exception as e:
-            error_message = str(e)
-            stack_trace = traceback.format_exc()
-            logger.error(f"[{task_id}] Error in background task: {error_message}\n{stack_trace}")
-            task_status_manager.set_status(task_id, "error", error=error_message)
-            raise e
-
-    wrapper.get_status = lambda task_id: task_status_manager.get_status(task_id)
-    return wrapper
 
 
 @handle_background_task_errors
