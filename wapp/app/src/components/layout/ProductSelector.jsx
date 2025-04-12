@@ -5,6 +5,7 @@ import { useProduct } from '@/context/ProductContext';
 import { useOrganization, ORGANIZATION_CHANGED_EVENT } from '@/context/OrganizationContext';
 import { isValidUrl } from '@/utils/urlUtils';
 import axios from 'axios';
+import UrlValidationNotification from '@/components/common/UrlValidationNotification';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -29,6 +30,11 @@ const ProductSelector = ({ isMobile = false }) => {
   const [formError, setFormError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [currentProductId, setCurrentProductId] = useState(null);
+  
+  // State for URL validation
+  const [validationTaskId, setValidationTaskId] = useState(null);
+  const [validatingProductId, setValidatingProductId] = useState(null);
+  const [showValidationNotification, setShowValidationNotification] = useState(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -203,6 +209,15 @@ const ProductSelector = ({ isMobile = false }) => {
         }
       }
 
+      // Check if the response contains a task_id for URL validation
+      if (response.data && response.data.task_id) {
+        // Store the task ID and product ID for validation monitoring
+        setValidationTaskId(response.data.task_id);
+        setValidatingProductId(response.data.id);
+        setShowValidationNotification(true);
+        console.log("URL validation initiated with task ID:", response.data.task_id);
+      }
+
       // Refresh products list and close modal
       await refreshProducts(selectedOrganization.id);
       handleModalClose();
@@ -251,6 +266,23 @@ const ProductSelector = ({ isMobile = false }) => {
       console.error('Error deleting product:', err);
       alert('Failed to delete product. Please try again.');
     }
+  };
+
+  // Handle URL update request from validation notification
+  const handleUrlUpdate = (productId) => {
+    // Find the product
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      // Open the edit modal with the selected product
+      handleEditProduct(product);
+    }
+  };
+  
+  // Close validation notification
+  const handleCloseValidation = () => {
+    setShowValidationNotification(false);
+    setValidationTaskId(null);
+    setValidatingProductId(null);
   };
 
   return (
@@ -495,6 +527,16 @@ const ProductSelector = ({ isMobile = false }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* URL Validation Notification */}
+      {showValidationNotification && validationTaskId && (
+        <UrlValidationNotification
+          taskId={validationTaskId}
+          productId={validatingProductId}
+          onClose={handleCloseValidation}
+          onUrlUpdate={handleUrlUpdate}
+        />
       )}
     </div>
   );

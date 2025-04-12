@@ -14,6 +14,7 @@ from dto.models import TestExecution as TestExecutionModel, Test as TestModel
 from dto.schemas import (
     TestExecutionCreate as TestExecutionCreateSchema,
     TestExecutionUpdate as TestExecutionUpdateSchema,
+    TestExecutionElement,
     TestStatus,
 )
 from services.test_services import get_test
@@ -50,7 +51,7 @@ async def get_test_execution(test_execution_id: UUID4) -> TestExecutionModel:
     return test_execution
 
 
-async def get_test_executions_by_test(test_id: UUID4) -> List[TestExecutionModel]:
+async def get_test_executions_by_test(test_id: UUID4, select_fields: List[str] = None) -> List[TestExecutionElement]:
     """
     Get all test executions for a specific test with field selection.
 

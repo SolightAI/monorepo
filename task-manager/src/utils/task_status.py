@@ -4,7 +4,7 @@ Task Status Manager - Singleton utility for tracking background task status acro
 import functools
 import traceback
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from logging import getLogger
 
 
@@ -86,6 +86,7 @@ class TaskStatusManager:
             "error": error,
             "agent_thoughts": kwargs.get("agent_thoughts"),
             "agent_actions": kwargs.get("agent_actions"),
+            "feature_id": kwargs.get("feature_id"),
         }
         logger.debug(f"Task {task_id} status set to {status}")
 
@@ -99,7 +100,7 @@ class TaskStatusManager:
         Returns:
             Dictionary containing status information
         """
-        status = self.tasks.get(task_id, {"status": "unknown", "results": None, "error": None, "agent_thoughts": None, "agent_actions": None})
+        status = self.tasks.get(task_id, {"status": "unknown", "results": None, "error": None, "agent_thoughts": None, "agent_actions": None, "feature_id": None})
 
         # Make sure error is a string
         if status.get("error") is not None and not isinstance(status["error"], str):

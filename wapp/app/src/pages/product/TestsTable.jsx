@@ -144,7 +144,7 @@ const TestsTable = () => {
         console.warn('No epics data returned or empty array');
         setEpics([]);
       } else {
-        setEpics(epicsData);
+      setEpics(epicsData);
       }
 
       // Create a mapping of epic ID to features
@@ -714,7 +714,7 @@ const TestsTable = () => {
       // Add the appropriate ID based on the current selection
       if (selectedFeature !== 'all') {
         testData.feature_id = selectedFeature;
-      } else if (selectedEpic !== 'all') {
+    } else if (selectedEpic !== 'all') {
         testData.epic_id = selectedEpic;
       } else if (selectedProduct) {
         testData.epic_id = epics[0]?.id; // Use first epic as a fallback
@@ -805,7 +805,7 @@ const TestsTable = () => {
       console.log('Triggering test generation for feature:', selectedFeature);
       const taskId = await triggerFeatureTestGeneration(selectedFeature);
       console.log('Test generation task ID received:', taskId);
-      setTestGenerationTaskId(taskId);
+      setTestGenerationTaskId(taskId?.toString() || null); // Ensure taskId is a string or null
 
       // Clear any existing interval
       if (pollingIntervalRef.current) {
@@ -833,34 +833,33 @@ const TestsTable = () => {
 
             // Refresh tests and show success
             await fetchTestsWithCurrentFilters();
-            setSuccessMessage(
-              `Successfully generated ${response.results?.length || 0} tests for the selected feature. Status: ${formatStatus('COMPLETED')}`
-            );
+
+            // Get the current number of tests after refresh
+            const currentTests = await getTestsByFeature(selectedFeature);
+
+            if (currentTests.length === 0) {
+              setError('Test generation completed but no tests were created. Please check the logs for more information.');
+              setSuccessMessage(null);
+            } else {
+              setSuccessMessage(
+                `Successfully generated ${currentTests.length} tests for the selected feature. Status: ${formatStatus('COMPLETED')}`
+              );
+            }
 
             // Clear success message after 5 seconds
             setTimeout(() => {
               setSuccessMessage(null);
             }, 5000);
-          } else if (response.status === 'error') {
-            console.error('Test generation failed with error:', response.error);
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-            setIsGeneratingTests(false);
-            setTestGenerationTaskId(null);
-            setError(`Failed to generate tests: ${response.error || 'Unknown error occurred'}`);
-            setSuccessMessage(null);
           }
-          // If pending, continue polling
         } catch (err) {
-          console.error('Error checking test generation status:', err);
+          console.error('Error polling test generation status:', err);
           clearInterval(pollingIntervalRef.current);
           pollingIntervalRef.current = null;
           setIsGeneratingTests(false);
           setTestGenerationTaskId(null);
-          setError('Failed to check test generation status. Please try again.');
-          setSuccessMessage(null);
+          setError('Error checking test generation status. Please try again.');
         }
-      }, 3000); // Check every 3 seconds
+      }, 2000); // Poll every 2 seconds
 
     } catch (err) {
       console.error('Error generating tests:', err);
@@ -1083,12 +1082,12 @@ const TestsTable = () => {
         />
       )}
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center">
-          <Beaker className="mr-2" size={24} />
-          All Tests
-        </h1>
-      </div>
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-800 flex items-center">
+              <Beaker className="mr-2" size={24} />
+              All Tests
+            </h1>
+          </div>
 
       {/* Error message display */}
       {error && (
@@ -1142,62 +1141,62 @@ const TestsTable = () => {
         </div>
       )}
 
-      {/* All filters in one row */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6 items-center">
-        {/* Search input */}
+          {/* All filters in one row */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-6 items-center">
+            {/* Search input */}
         <div className="relative w-full">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-gray-400" />
-          </div>
-          <input
-            type="text"
-            placeholder="Search tests..."
-            value={searchQuery}
-            onChange={(e) => {
-              const newQuery = e.target.value;
-              setSearchQuery(newQuery);
-              // Pass the new query directly to applyFilters
-              applyFilters(tests, selectedStatus, newQuery);
-            }}
-            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={18} className="text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search tests..."
+                value={searchQuery}
+                onChange={(e) => {
+                  const newQuery = e.target.value;
+                  setSearchQuery(newQuery);
+                  // Pass the new query directly to applyFilters
+                  applyFilters(tests, selectedStatus, newQuery);
+                }}
+                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
 
-        {/* Status filter */}
+            {/* Status filter */}
         <div className="relative w-full">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Filter size={18} className="text-gray-400" />
-          </div>
-          <select
-            value={selectedStatus}
-            onChange={(e) => {
-              const newStatus = e.target.value;
-              setSelectedStatus(newStatus);
-              // Pass the new status value directly to applyFilters
-              applyFilters(tests, newStatus);
-            }}
-            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
-          >
-            <option value="all">All Statuses</option>
-            <option value="passed">Passed</option>
-            <option value="failed">Failed</option>
-            <option value="pending">Pending</option>
-            <option value="not_started">Not Started</option>
-            <option value="blocked">Blocked</option>
-          </select>
-        </div>
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Filter size={18} className="text-gray-400" />
+              </div>
+              <select
+                value={selectedStatus}
+                onChange={(e) => {
+                  const newStatus = e.target.value;
+                  setSelectedStatus(newStatus);
+                  // Pass the new status value directly to applyFilters
+                  applyFilters(tests, newStatus);
+                }}
+                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+              >
+                <option value="all">All Statuses</option>
+                <option value="passed">Passed</option>
+                <option value="failed">Failed</option>
+                <option value="pending">Pending</option>
+                <option value="not_started">Not Started</option>
+                <option value="blocked">Blocked</option>
+              </select>
+            </div>
 
-        {/* Epic filter */}
+            {/* Epic filter */}
         {/* <div className="relative w-full sm:w-64">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Layers size={18} className="text-gray-400" />
-          </div>
-          <select
-            value={selectedEpic}
-            onChange={(e) => handleEpicChange(e.target.value)}
-            disabled={loadingEpics}
-            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
-          >
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Layers size={18} className="text-gray-400" />
+              </div>
+              <select
+                value={selectedEpic}
+                onChange={(e) => handleEpicChange(e.target.value)}
+                disabled={loadingEpics}
+                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+              >
             <option value="all">{loadingEpics ? 'Loading epics...' : 'All Epics'}</option>
             {Array.isArray(epics) && epics.length > 0 ? (
               epics.map(epic => {
@@ -1211,19 +1210,19 @@ const TestsTable = () => {
             ) : (
               <option value="" disabled>No epics available</option>
             )}
-          </select>
+              </select>
         </div> */}
 
         {/* Feature filter and Add Feature button group */}
         <div className="flex flex-col md:flex-row w-full gap-2">
           {/* Feature filter - Custom dropdown */}
           <div className="relative w-full md:w-56" ref={featureDropdownRef}>
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FileText size={18} className="text-gray-400" />
-            </div>
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FileText size={18} className="text-gray-400" />
+              </div>
             <button
               onClick={() => setIsFeatureDropdownOpen(!isFeatureDropdownOpen)}
-              disabled={loadingFeatures}
+                disabled={loadingFeatures}
               className="flex w-full justify-between pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left"
               data-feature-dropdown
             >
@@ -1257,7 +1256,7 @@ const TestsTable = () => {
                       <Plus size={18} className="mr-2" />
                       Create Feature
                     </button>
-                  </div>
+            </div>
                 )}
 
                 <div className="border-t border-gray-200"></div>
@@ -1365,9 +1364,9 @@ const TestsTable = () => {
             </button>
           </div>
         </div>
-      </div>
+          </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="bg-white rounded-lg shadow overflow-hidden">
         {/* Add "Run Selected Tests" button above the table */}
         <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
           <div className="text-sm text-gray-500">
@@ -1400,62 +1399,62 @@ const TestsTable = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <div className="max-h-[calc(100vh-320px)] overflow-y-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort('status')}
-                  >
-                    <div className="flex items-center">
-                      Status
-                      {getSortIcon('status')}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort('name')}
-                  >
-                    <div className="flex items-center">
-                      Name
-                      {getSortIcon('name')}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort('category')}
-                  >
-                    <div className="flex items-center">
-                      Category
-                      {getSortIcon('category')}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hidden md:table-cell"
-                    onClick={() => handleSort('started_at')}
-                  >
-                    <div className="flex items-center">
-                      Last Run
-                      {getSortIcon('started_at')}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredTests.length > 0 ? (
-                  filteredTests.map((test) => (
-                    <tr
-                      key={test.id}
-                      className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => handleTestSelect(test)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
+            <div className="overflow-x-auto">
+              <div className="max-h-[calc(100vh-320px)] overflow-y-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
+                    <tr>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        onClick={() => handleSort('status')}
+                      >
                         <div className="flex items-center">
+                          Status
+                          {getSortIcon('status')}
+                        </div>
+                      </th>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        onClick={() => handleSort('name')}
+                      >
+                        <div className="flex items-center">
+                          Name
+                          {getSortIcon('name')}
+                        </div>
+                      </th>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        onClick={() => handleSort('category')}
+                      >
+                        <div className="flex items-center">
+                          Category
+                          {getSortIcon('category')}
+                        </div>
+                      </th>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hidden md:table-cell"
+                        onClick={() => handleSort('started_at')}
+                      >
+                        <div className="flex items-center">
+                          Last Run
+                          {getSortIcon('started_at')}
+                        </div>
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredTests.length > 0 ? (
+                      filteredTests.map((test) => (
+                        <tr
+                          key={test.id}
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onClick={() => handleTestSelect(test)}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
                           {runningTests[test.id] ? (
                             <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
                           ) : (
@@ -1463,35 +1462,35 @@ const TestsTable = () => {
                           )}
                           <span className={`ml-2 text-sm font-medium px-2 py-1 rounded-full ${runningTests[test.id] ? 'bg-blue-100 text-blue-800' : getStatusColorClasses(test.status)}`}>
                             {runningTests[test.id] ? formatStatus(RUNNING_STATUS) : formatStatus(test.status)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{test.name}</div>
-                        <div className="text-sm text-gray-500 truncate max-w-md">{test.description}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                          {test.category}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
-                        <div className="text-sm text-gray-500 flex items-center">
-                          <Calendar size={14} className="mr-1" />
-                          {formatDate(test.started_at)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-medium text-gray-900">{test.name}</div>
+                            <div className="text-sm text-gray-500 truncate max-w-md">{test.description}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                              {test.category}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
+                            <div className="text-sm text-gray-500 flex items-center">
+                              <Calendar size={14} className="mr-1" />
+                              {formatDate(test.started_at)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end items-center space-x-2">
-                          <button
-                            className="text-blue-600 hover:text-blue-900"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTestSelect(test);
-                            }}
-                          >
-                            View
-                          </button>
+                            <button
+                              className="text-blue-600 hover:text-blue-900"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTestSelect(test);
+                              }}
+                            >
+                              View
+                            </button>
                           <button
                             className={`text-green-600 hover:text-green-900 flex items-center ${runningTests[test.id] || !secrets || secrets.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                             onClick={(e) => {
@@ -1510,63 +1509,63 @@ const TestsTable = () => {
                             )}
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center text-lg text-gray-500">
-                      {tests.length === 0 ? (
-                        <div className="flex flex-col items-center">
-                          <p>No tests found in the system.</p>
-                          <p className="text-sm mt-2">Start by creating a test for a feature or acceptance criteria.</p>
-                        </div>
-                      ) : (
-                        <div>
-                          <p>No tests match the current filters.</p>
-                          <button
-                            onClick={() => {
-                              setSearchQuery('');
-                              setSelectedStatus('all');
-                              setSelectedEpic('all');
-                              setSelectedFeature('all');
-                              fetchTestsByProduct(selectedProduct.id);
-                            }}
-                            className="text-blue-600 underline mt-2"
-                          >
-                            Clear all filters
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="5" className="px-6 py-12 text-center text-lg text-gray-500">
+                          {tests.length === 0 ? (
+                            <div className="flex flex-col items-center">
+                              <p>No tests found in the system.</p>
+                              <p className="text-sm mt-2">Start by creating a test for a feature or acceptance criteria.</p>
+                            </div>
+                          ) : (
+                            <div>
+                              <p>No tests match the current filters.</p>
+                              <button
+                                onClick={() => {
+                                  setSearchQuery('');
+                                  setSelectedStatus('all');
+                                  setSelectedEpic('all');
+                                  setSelectedFeature('all');
+                                  fetchTestsByProduct(selectedProduct.id);
+                                }}
+                                className="text-blue-600 underline mt-2"
+                              >
+                                Clear all filters
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="bg-gray-50 px-6 py-3 flex justify-between items-center border-t border-gray-200">
+              <div className="text-gray-500 text-sm">
+                Showing {filteredTests.length} of {tests.length} tests
+              </div>
+              <div className="flex items-center gap-2">
+                {/* Pagination placeholder for future implementation */}
+                <button
+                  className="px-3 py-1 border border-gray-300 rounded-md text-gray-600 bg-white disabled:opacity-50"
+                  disabled
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-500">Page 1</span>
+                <button
+                  className="px-3 py-1 border border-gray-300 rounded-md text-gray-600 bg-white disabled:opacity-50"
+                  disabled
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="bg-gray-50 px-6 py-3 flex justify-between items-center border-t border-gray-200">
-          <div className="text-gray-500 text-sm">
-            Showing {filteredTests.length} of {tests.length} tests
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Pagination placeholder for future implementation */}
-            <button
-              className="px-3 py-1 border border-gray-300 rounded-md text-gray-600 bg-white disabled:opacity-50"
-              disabled
-            >
-              Previous
-            </button>
-            <span className="text-sm text-gray-500">Page 1</span>
-            <button
-              className="px-3 py-1 border border-gray-300 rounded-md text-gray-600 bg-white disabled:opacity-50"
-              disabled
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

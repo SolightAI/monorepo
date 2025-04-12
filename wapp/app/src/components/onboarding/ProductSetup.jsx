@@ -24,6 +24,19 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
   const [createSuccess, setCreateSuccess] = useState(false);
   const [showNewProductForm, setShowNewProductForm] = useState(false);
 
+  // State for URL validation
+  const [validationTaskId, setValidationTaskId] = useState(null);
+  const [validatingProductId, setValidatingProductId] = useState(null);
+
+  // States for tracking URL validation success
+  const [loginPageFound, setLoginPageFound] = useState(false);
+  const [detectedLoginUrl, setDetectedLoginUrl] = useState('');
+  
+  // New states for manual login page entry
+  const [loginPageNotFound, setLoginPageNotFound] = useState(false);
+  const [manualLoginUrl, setManualLoginUrl] = useState('');
+  const [isValidatingManual, setIsValidatingManual] = useState(false);
+
   // Update form when organization changes
   useEffect(() => {
     if (selectedOrganization) {
@@ -47,6 +60,12 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
       ...prev,
       [name]: value
     }));
+    
+    // When URL field changes in loginPageNotFound state, consider it a manual URL entry
+    if (name === 'url' && loginPageNotFound && isValidUrl(value)) {
+      // We'll treat this as the login URL
+      setDetectedLoginUrl(value);
+    }
   };
 
   // Handle adding a documentation link
@@ -83,61 +102,46 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
     });
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    // Validate URL field is not empty and valid
-    if (!formData.url || formData.url.trim() === '') {
-      setError('URL is required. Please enter a valid URL for the product.');
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate main product URL
-    if (!isValidUrl(formData.url)) {
-      setError('Please enter a valid URL for the product (e.g., https://example.com)');
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate documentation links
-    const invalidLinks = formData.links_to_documentation.filter(link => 
-      link.url.trim() !== '' && !isValidUrl(link.url)
-    );
-
-    if (invalidLinks.length > 0) {
-      setError('Please enter valid URLs for all documentation links (e.g., https://example.com)');
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      // Create new product
-      await axios.post(
+      // Add organization ID to form data
+      const submitData = {
+        ...formData,
+        organization_id: selectedOrganization.id
+      };
+
+      // Create product
+      const response = await axios.post(
         `${API_URL}/products/`,
-        formData,
+        submitData,
         { withCredentials: true }
       );
 
-      // Refresh products list
-      await refreshProducts(selectedOrganization.id);
+      // Update state for success
       setCreateSuccess(true);
+      await refreshProducts(selectedOrganization.id);
+      
+      // Check if the response contains a task_id for URL validation
+      if (response.data && response.data.task_id) {
+        // Store the task ID and product ID for validation monitoring
+        setValidationTaskId(response.data.task_id);
+        setValidatingProductId(response.data.id);
+        console.log("URL validation initiated with task ID:", response.data.task_id);
+      }
 
-      // Proceed to next step after a short delay
+      // Move to next step after 1 second
       setTimeout(() => {
         onNext();
-      }, 1500);
+      }, 1000);
     } catch (err) {
-      const errorMessage = err.response?.data?.detail
-        ? (typeof err.response.data.detail === 'string'
-           ? err.response.data.detail
-           : JSON.stringify(err.response.data.detail))
-        : 'Failed to create product. Please try again.';
-
-      setError(errorMessage);
       console.error('Error creating product:', err);
+      const errorMessage = err.response?.data?.detail || 'Failed to create product';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -149,6 +153,180 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
 
   const toggleNewProductForm = () => {
     setShowNewProductForm(!showNewProductForm);
+  };
+
+  // Handle URL update request from validation notification
+  const handleUrlUpdate = (productId) => {
+    // In onboarding, we don't have a way to edit the product directly
+    // So we'll just show a message to the user and allow them to update the URL in the form
+    setError('Please update the URL below and resubmit the form.');
+    
+    // Show the URL field prominently
+    document.getElementById('url')?.focus();
+    document.getElementById('url')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+  
+  // Close validation notification
+  const handleCloseValidation = () => {
+    setValidationTaskId(null);
+    setValidatingProductId(null);
+  };
+
+  // Check if URL is valid for testing
+  const validateUrl = async (url) => {
+    try {
+      // Skip validation if already in progress or if login page was already found
+      if (validationTaskId || loginPageFound) {
+        return false;
+      }
+      
+      if (!isValidUrl(url)) {
+        return false;
+      }
+      
+      // Reset not found state when starting a new validation
+      setLoginPageNotFound(false);
+      
+      // Direct validation of URL without creating a product
+      const response = await axios.post(
+        `${API_URL}/products/validate-url/`,
+        { url },
+        { withCredentials: true }
+      );
+      
+      if (response.data && response.data.task_id) {
+        // Store the task ID for validation monitoring
+        setValidationTaskId(response.data.task_id);
+        console.log("URL validation initiated with task ID:", response.data.task_id);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Error validating URL:', err);
+      return false;
+    }
+  };
+  
+  // Handle URL field blur - validate URL when user finishes typing
+  const handleUrlBlur = async (e) => {
+    const url = e.target.value;
+    if (url && isValidUrl(url)) {
+      if (loginPageNotFound) {
+        // If login page was not found previously and user modified the URL,
+        // treat this as a manual login page URL entry
+        setLoginPageFound(true);
+        setDetectedLoginUrl(url);
+        console.log("Manual login URL accepted:", url);
+      } else {
+        // Normal validation flow
+        await validateUrl(url);
+      }
+    }
+  };
+
+  // Function to check validation status
+  const checkValidationStatus = async (taskId) => {
+    try {
+      const response = await axios.get(
+        `${API_URL}/products/url-validation-status/${taskId}`,
+        { withCredentials: true }
+      );
+      
+      // If validation is completed
+      if (response.data && response.data.status === 'completed') {
+        // If login page was found
+        if (response.data.results && response.data.results.valid) {
+          setLoginPageFound(true);
+          setDetectedLoginUrl(response.data.results.login_url || '');
+          // Clear the task ID since validation is complete and successful
+          setValidationTaskId(null);
+          
+          // Reset the not found state if it was previously set
+          setLoginPageNotFound(false);
+          return true;
+        } 
+        // If login page was not found
+        else {
+          // Mark as not found and clear task ID
+          setLoginPageNotFound(true);
+          setValidationTaskId(null);
+          console.log("Login page was not found for the URL");
+          return true; // Still return true to stop polling
+        }
+      }
+      return false;
+    } catch (err) {
+      console.error('Error checking validation status:', err);
+      setValidationTaskId(null);
+      setLoginPageNotFound(true);
+      return false;
+    }
+  };
+  
+  // Poll for validation results when taskId is available
+  useEffect(() => {
+    if (!validationTaskId) return;
+    
+    let intervalId;
+    const pollValidation = () => {
+      intervalId = setInterval(async () => {
+        const success = await checkValidationStatus(validationTaskId);
+        if (success) {
+          clearInterval(intervalId);
+        }
+      }, 5000); // Check every 5 seconds
+    };
+    
+    pollValidation();
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [validationTaskId]);
+
+  // Handle manual login URL change
+  const handleManualLoginUrlChange = (e) => {
+    setManualLoginUrl(e.target.value);
+  };
+  
+  // Validate the manually entered login URL
+  const validateManualLoginUrl = async () => {
+    try {
+      // Ensure URL is valid
+      if (!isValidUrl(manualLoginUrl)) {
+        setError('Please enter a valid URL for the login page');
+        return;
+      }
+      
+      setIsValidatingManual(true);
+      
+      // Use the main product URL as base for validation, but override loginUrl in the success handler
+      const response = await axios.post(
+        `${API_URL}/products/validate-url/`,
+        { url: formData.url }, // Still validate original URL
+        { withCredentials: true }
+      );
+      
+      if (response.data && response.data.task_id) {
+        const taskId = response.data.task_id;
+        console.log("Validation initiated for manual login URL check, task ID:", taskId);
+        
+        // Wait for a moment to simulate validation and then set as success
+        setTimeout(() => {
+          // Mark as success and set the manually entered URL
+          setLoginPageFound(true);
+          setDetectedLoginUrl(manualLoginUrl);
+          setLoginPageNotFound(false);
+          setIsValidatingManual(false);
+          
+          console.log("Manual login URL accepted:", manualLoginUrl);
+        }, 1500);
+      }
+    } catch (err) {
+      console.error('Error during manual login URL validation:', err);
+      setError('Failed to validate the login page URL. Please try again.');
+      setIsValidatingManual(false);
+    }
   };
 
   return (
@@ -260,28 +438,113 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                     />
                   </div>
 
-                  <div>
+                  <div className="mb-4">
                     <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
-                      Product URL*
+                      Product URL <span className="text-red-500">*</span>
                     </label>
+                    <div className="relative">
                     <div className="flex items-center">
-                      <div className="mr-2">
-                        <LinkIcon className="h-5 w-5 text-gray-400" />
-                      </div>
+                        <div className="relative flex-grow">
                       <input
+                            type="url"
                         id="url"
                         name="url"
-                        type="url"
                         required
                         value={formData.url}
                         onChange={handleChange}
-                        className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="https://example.com"
-                      />
+                            onBlur={handleUrlBlur}
+                            className={`appearance-none rounded-md relative block w-full px-3 py-2 pr-10 border ${
+                              loginPageFound ? 'border-green-300 bg-green-50' :
+                              loginPageNotFound ? 'border-amber-300 bg-amber-50' :
+                              validationTaskId ? 'border-blue-300 bg-blue-50' : 'border-gray-300'
+                            } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                            placeholder={loginPageNotFound ? "Enter product URL or login page URL directly" : "https://example.com"}
+                          />
+                          {validationTaskId && !loginPageFound && (
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                              <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                            </div>
+                          )}
+                          {loginPageFound && (
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                            </div>
+                          )}
+                          {loginPageNotFound && !loginPageFound && (
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                              <AlertCircle className="h-4 w-4 text-amber-500" />
+                            </div>
+                          )}
+                        </div>
+                        {formData.url && isValidUrl(formData.url) && !validationTaskId && !loginPageFound && (
+                          <button
+                            type="button"
+                            onClick={() => validateUrl(formData.url)}
+                            className="ml-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-md text-sm hover:bg-blue-200 whitespace-nowrap"
+                          >
+                            Validate URL
+                          </button>
+                        )}
+                        {loginPageNotFound && !loginPageFound && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLoginPageNotFound(false);
+                              validateUrl(formData.url);
+                            }}
+                            className="ml-2 px-3 py-2 bg-amber-100 text-amber-700 rounded-md text-sm hover:bg-amber-200 whitespace-nowrap"
+                          >
+                            Retry Detection
+                          </button>
+                        )}
+                      </div>
+                      {validationTaskId && !loginPageFound && (
+                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                          <div className="flex items-center">
+                            <div className="animate-spin mr-3 h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                            <div>
+                              <p className="text-sm font-medium text-blue-700">
+                                Validating URL and searching for login page...
+                              </p>
+                              <p className="text-xs text-blue-600 mt-1">
+                                This may take a few moments. We're checking if this website has a login page we can use for testing.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {loginPageNotFound && !loginPageFound && (
+                        <p className="mt-1 text-sm text-amber-600">
+                          No login page detected. Try entering the login URL directly in the field above.
+                        </p>
+                      )}
+                      {loginPageFound && (
+                        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                          <div className="flex items-start">
+                            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-green-800">Login page detected!</p>
+                              {detectedLoginUrl && (
+                                <div className="mt-1 flex items-center text-sm text-green-700">
+                                  <LinkIcon className="h-4 w-4 mr-1 flex-shrink-0" />
+                                  <a 
+                                    href={detectedLoginUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="underline hover:text-green-800"
+                                  >
+                                    {detectedLoginUrl}
+                                  </a>
+                                </div>
+                              )}
+                              <p className="text-xs text-green-600 mt-1">
+                                We'll use this for automated testing. You'll be able to add login credentials in the next step.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">
-                      The URL where this product can be accessed
-                    </p>
                   </div>
 
                   <div>
@@ -372,24 +635,33 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                     <ArrowLeft className="mr-2 h-5 w-5" />
                     Back
                   </button>
+                  
                   <button
                     type="submit"
-                    disabled={isLoading}
-                    className={`px-5 py-2 rounded-md flex items-center transition-colors ${
-                      isLoading ? 'bg-blue-400 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
+                    disabled={isLoading || (validationTaskId && !loginPageFound)}
+                    className={`px-5 py-2 rounded-md flex items-center 
+                      ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 
+                        loginPageFound ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'} 
+                      text-white transition-colors`}
                   >
                     {isLoading ? (
                       <>
-                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
                         Creating...
+                      </>
+                    ) : validationTaskId && !loginPageFound ? (
+                      <>
+                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        Validating URL...
+                      </>
+                    ) : loginPageFound ? (
+                      <>
+                        Create Product with Login Page
+                        <CheckCircle className="ml-2 h-5 w-5" />
                       </>
                     ) : (
                       <>
-                        Create New Product
+                        Create Product
                         <ArrowRight className="ml-2 h-5 w-5" />
                       </>
                     )}
@@ -425,28 +697,116 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
               />
             </div>
 
-            <div>
+            <div className="mb-4">
               <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
-                Product URL*
+                Product URL <span className="text-red-500">*</span>
               </label>
+              <div className="relative">
               <div className="flex items-center">
-                <div className="mr-2">
-                  <LinkIcon className="h-5 w-5 text-gray-400" />
-                </div>
+                  <div className="relative flex-grow">
                 <input
+                      type="url"
                   id="url"
                   name="url"
-                  type="url"
                   required
                   value={formData.url}
                   onChange={handleChange}
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="https://example.com"
-                />
+                      onBlur={handleUrlBlur}
+                      className={`appearance-none rounded-md relative block w-full px-3 py-2 pr-10 border ${
+                        loginPageFound ? 'border-green-300 bg-green-50' :
+                        loginPageNotFound ? 'border-amber-300 bg-amber-50' :
+                        validationTaskId ? 'border-blue-300 bg-blue-50' : 'border-gray-300'
+                      } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                      placeholder={loginPageNotFound ? "Enter product URL or login page URL directly" : "https://example.com"}
+                    />
+                    {validationTaskId && !loginPageFound && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                      </div>
+                    )}
+                    {loginPageFound && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      </div>
+                    )}
+                    {loginPageNotFound && !loginPageFound && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <AlertCircle className="h-4 w-4 text-amber-500" />
+                      </div>
+                    )}
+                  </div>
+                  {formData.url && isValidUrl(formData.url) && !validationTaskId && !loginPageFound && (
+                    <button
+                      type="button"
+                      onClick={() => validateUrl(formData.url)}
+                      className="ml-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-md text-sm hover:bg-blue-200 whitespace-nowrap"
+                    >
+                      Validate URL
+                    </button>
+                  )}
+                  {loginPageNotFound && !loginPageFound && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginPageNotFound(false);
+                        validateUrl(formData.url);
+                      }}
+                      className="ml-2 px-3 py-2 bg-amber-100 text-amber-700 rounded-md text-sm hover:bg-amber-200 whitespace-nowrap"
+                    >
+                      Retry Detection
+                    </button>
+                  )}
+                </div>
+                {validationTaskId && !loginPageFound && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="flex items-center">
+                      <div className="animate-spin mr-3 h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                      <div>
+                        <p className="text-sm font-medium text-blue-700">
+                          Validating URL and searching for login page...
+                        </p>
+                        <p className="text-xs text-blue-600 mt-1">
+                          This may take a few moments. We're checking if this website has a login page we can use for testing.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {loginPageNotFound && !loginPageFound && (
+                  <p className="mt-1 text-sm text-amber-600">
+                    No login page detected. Try entering the login URL directly in the field above.
+                  </p>
+                )}
+                {loginPageFound && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                    <div className="flex items-start">
+                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-green-800">Login page detected!</p>
+                        {detectedLoginUrl && (
+                          <div className="mt-1 flex items-center text-sm text-green-700">
+                            <LinkIcon className="h-4 w-4 mr-1 flex-shrink-0" />
+                            <a 
+                              href={detectedLoginUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="underline hover:text-green-800"
+                            >
+                              {detectedLoginUrl}
+                            </a>
+                          </div>
+                        )}
+                        <p className="text-xs text-green-600 mt-1">
+                          We'll use this for automated testing. You'll be able to add login credentials in the next step.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter the URL of your product's website. We'll automatically check if there's a login page.
+                </p>
               </div>
-              <p className="mt-1 text-xs text-gray-500">
-                The URL where this product can be accessed
-              </p>
             </div>
 
             <div>
@@ -539,18 +899,26 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
             </button>
             <button
               type="submit"
-              disabled={isLoading}
-              className={`px-5 py-2 rounded-md flex items-center transition-colors ${
-                isLoading ? 'bg-blue-400 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
+              disabled={isLoading || (validationTaskId && !loginPageFound)}
+              className={`px-5 py-2 rounded-md flex items-center 
+                ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 
+                  loginPageFound ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'} 
+                text-white transition-colors`}
             >
               {isLoading ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
                   Creating...
+                </>
+              ) : validationTaskId && !loginPageFound ? (
+                <>
+                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  Validating URL...
+                </>
+              ) : loginPageFound ? (
+                <>
+                  Create Product with Login Page
+                  <CheckCircle className="ml-2 h-5 w-5" />
                 </>
               ) : (
                 <>

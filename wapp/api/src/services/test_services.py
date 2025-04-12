@@ -223,7 +223,7 @@ async def get_test_secrets_with_values(test_id: UUID4) -> Dict[str, Dict[str, st
     return result
 
 
-async def trigger_test_generation(feature_id: UUID4) -> str:
+async def trigger_test_generation(feature_id: UUID4) -> dict:
     """
     Trigger test generation for a feature.
 
@@ -231,7 +231,7 @@ async def trigger_test_generation(feature_id: UUID4) -> str:
         feature_id: The ID of the feature
 
     Returns:
-        The ID of the generated test
+        A dictionary containing the task ID and feature ID
     """
     feature = await get_feature(feature_id)
     epic = await get_epic(feature.epic_id)
@@ -298,7 +298,12 @@ async def trigger_test_generation(feature_id: UUID4) -> str:
         logger.error(f"Failed to trigger test generation ({response.status_code}): {response.text}")
         raise HTTPException(status_code=500, detail=f"Failed to trigger test generation ({response.status_code}): {response.text}")
 
-    return response.json()
+    # Parse the response and add the feature_id
+    response_data = response.json()
+    if isinstance(response_data, str):
+        response_data = {"task_id": response_data}
+    response_data["feature_id"] = str(feature_id)
+    return response_data
 
 
 async def get_test_generation_status(test_id: UUID4) -> dict:
@@ -309,7 +314,20 @@ async def get_test_generation_status(test_id: UUID4) -> dict:
     if response.status_code != 200:
         raise HTTPException(status_code=500, detail=f"Failed to get test generation status ({response.status_code}): {response.text}")
 
-    return response.json()
+    response_data = response.json()
+
+    # If this is a completed response, ensure it has a feature_id
+    if response_data.get("status") == "completed" and "feature_id" not in response_data:
+        # Get the feature_id from the original test generation request
+        original_response = requests.get(
+            TASK_MANAGER_URL + f"/generate-tests/get-test-generation-request/{test_id}"
+        )
+        if original_response.status_code == 200:
+            original_data = original_response.json()
+            if "feature_id" in original_data:
+                response_data["feature_id"] = original_data["feature_id"]
+
+    return response_data
 
 
 async def poll_test_generation_status(test_id: UUID4, max_attempts: int = 60, interval: int = 1) -> None:
@@ -330,20 +348,37 @@ async def poll_test_generation_status(test_id: UUID4, max_attempts: int = 60, in
             return
 
         elif status == "completed":
+
+            if not response.get("results"):
+                logger.error(f"No test results found in response for test {test_id}")
+                return
+
+            created_tests = []
             for _test in response["results"]:
-                await create_test(
-                    TestCreateSchema(
-                        feature_id=_test["feature_id"],
-                        name=_test["name"],
-                        description=_test["description"],
-                        url=_test["url"],
-                        category=_test["category"],
-                        preconditions=_test["preconditions"],
-                        steps=_test["steps"],
-                        assertions=_test["assertions"],
-                        secret_ids=None,  # TODO: add secret_ids based on what the agent used
+                try:
+                    test = await create_test(
+                        TestCreateSchema(
+                            feature_id=_test["feature_id"],
+                            name=_test["name"],
+                            description=_test["description"],
+                            url=_test["url"],
+                            category=_test["category"],
+                            preconditions=_test["preconditions"],
+                            steps=_test["steps"],
+                            assertions=_test["assertions"],
+                            secret_ids=None,  # TODO: add secret_ids based on what the agent used
+                        )
                     )
-                )
+                    created_tests.append(test)
+                    logger.info(f"Successfully created test {test.id} for feature {_test['feature_id']}")
+                except Exception as e:
+                    logger.error(f"Failed to create test: {str(e)}")
+                    continue
+
+            if not created_tests:
+                logger.error(f"No tests were successfully created for test {test_id}")
+            else:
+                logger.info(f"Successfully created {len(created_tests)} tests for test {test_id}")
             return
 
         else:

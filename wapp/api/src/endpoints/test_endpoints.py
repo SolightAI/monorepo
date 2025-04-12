@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestStatus, TestUpdate as TestUpdateSchema, TestSecretCreate, TestSecret, TestExecution as TestExecutionSchema
 from services.test_execution_services import get_test_executions_by_test
 from services.test_services import (
@@ -16,6 +16,9 @@ from services.test_services import (
     get_test_secrets,
     delete_test_secret,
     get_tests_by_product_id,
+    get_feature,
+    get_epic,
+    get_product,
 )
 from pydantic import UUID4
 from typing import List
@@ -106,16 +109,66 @@ async def delete_test_endpoint(test_id: UUID4) -> dict:
 
 
 @router.post("/generate")
-async def generate_test(feature_id: UUID4, background_tasks: BackgroundTasks) -> str:  # returns task id
-    task_id = await trigger_test_generation(feature_id=feature_id)
-    background_tasks.add_task(poll_test_generation_status, task_id)
-    logger.error(f"Test generation task {task_id} started")
-    return task_id
+async def generate_test(
+    feature_id: UUID4,
+    current_user: User = Depends(get_current_user_dependency)
+) -> dict:
+    """
+    Generate tests for a feature.
+
+    Args:
+        feature_id: The ID of the feature to generate tests for
+        current_user: The current authenticated user
+
+    Returns:
+        A dictionary containing the task ID and feature ID
+    """
+    try:
+        # Verify the feature exists and user has access
+        feature = await get_feature(feature_id)
+        if not feature:
+            raise HTTPException(status_code=404, detail="Feature not found")
+
+        # Get the epic and product to verify organization access
+        epic = await get_epic(feature.epic_id)
+        product = await get_product(epic.product_id)
+
+        # Verify user has access to the organization
+        if not await organization_services.verify_organization_access(product.organization_id, current_user.id):
+            raise HTTPException(status_code=403, detail="Access denied to organization")
+
+        # Trigger test generation
+        response_data = await trigger_test_generation(feature_id=feature_id)
+        return response_data
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error generating tests: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating tests: {str(e)}")
 
 
 @router.get("/generate/status/{task_id}")
 async def get_generate_test_status_endpoint(task_id: UUID4) -> dict:
-    return await get_test_generation_status(task_id)
+    """
+    Get the status of a test generation task.
+
+    Args:
+        task_id: The ID of the test generation task
+
+    Returns:
+        A dictionary containing the status of the task and any results if completed
+    """
+    # Get the current status
+    status_response = await get_test_generation_status(task_id)
+
+    # If the status is completed, poll for the final results
+    if status_response.get("status") == "completed":
+        await poll_test_generation_status(task_id)
+        # Get the final status after polling
+        status_response = await get_test_generation_status(task_id)
+
+    return status_response
 
 
 @router.post("/{test_id}/secrets", response_model=TestSecret, status_code=status.HTTP_201_CREATED)

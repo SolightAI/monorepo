@@ -339,7 +339,8 @@ async def background_generate_tests_for_feature(
             )
             tests.extend(category_tests)
 
-    task_status_manager.set_status(task_id, "completed", results=tests)
+    # Set the status with the feature_id
+    task_status_manager.set_status(task_id, "completed", results=tests, feature_id=feature.id)
 
     return tests
 

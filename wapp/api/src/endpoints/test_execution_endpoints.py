@@ -7,6 +7,7 @@ from dto.schemas import (
     TestExecutionCreate as TestExecutionCreateSchema,
     TestExecutionUpdate as TestExecutionUpdateSchema,
     ExecutorType,
+    TestExecutionElement,
 )
 from services.test_execution_services import (
     create_test_execution,
@@ -50,16 +51,16 @@ async def get_test_execution_endpoint(
     return await get_test_execution(test_execution_id)
 
 
-@router.get("/by-test/{test_id}", response_model=List[TestExecutionSchema])
+@router.get("/by-test/{test_id}", response_model=List[TestExecutionElement])
 async def get_test_executions_by_test_endpoint(
     test_id: UUID4,
-) -> List[TestExecutionSchema]:
+) -> List[TestExecutionElement]:
     """
     Get all executions for a specific test.
 
     This endpoint returns the complete history of all times the specified test has been run.
     """
-    return await get_test_executions_by_test(test_id)
+    return await get_test_executions_by_test(test_id, select_fields=["id", "status", "started_at", "test_id"])
 
 
 @router.put("/{test_execution_id}", response_model=TestExecutionSchema)
