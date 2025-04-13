@@ -2,19 +2,19 @@ import os
 import re
 
 from typing import Any
-from utils.dto import Test
 from logging import getLogger
 from pydantic import SecretStr
 from tempfile import NamedTemporaryFile
-from utils.s3_utils import upload_gif_to_s3
 from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage
 from browser_use import Agent, Browser, BrowserConfig, AgentHistoryList
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
-from run_tests.tracing import initialize, extend_agent_history
+from utils.s3_utils import upload_gif_to_s3
 from fixtures.authentification.check_if_is_logged_in import check_is_logged_in
-from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, TestStatus
 from fixtures.authentification.has_required_secrets import has_required_secrets, LoginMethod, SUPPORTED_LOGIN_METHODS
+from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, TestStatus
+from utils.dto import Test
+from run_tests.tracing import initialize, extend_agent_history
 
 
 PROMPT = """
@@ -209,7 +209,7 @@ async def login_to_website(
         browser_context=context,
         use_vision_for_planner=False,
         use_vision=True,
-        # enable_memory=False,
+        enable_memory=False,
     )
 
     try:
