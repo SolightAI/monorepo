@@ -20,8 +20,4 @@ with open(file_to_change, 'r') as input_file, open(temp_file, 'w') as output_fil
 # Replace the original file with the modified content
 shutil.move(temp_file, file_to_change)
 
-# Print the modified file
-with open(file_to_change, 'r') as file:
-    print(file.read())
-
 print(f"Successfully removed lines containing --remote-debugging-port from {file_to_change}")
