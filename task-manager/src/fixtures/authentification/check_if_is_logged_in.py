@@ -18,6 +18,8 @@ You are an AI assistant acting as a test automation engineer. Your task is to ch
 Look at the current page and determine if the user is logged in.
 If the user is logged in, say "User is logged in".
 If the user is not logged in, say "User is not logged in".
+
+Do not try to log in or sign up yourself, you're only here to check if the user is logged in.
 """.strip()
 
 
