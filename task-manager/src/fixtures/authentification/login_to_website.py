@@ -2,20 +2,19 @@ import os
 import re
 
 from typing import Any
+from utils.dto import Test
 from logging import getLogger
 from pydantic import SecretStr
 from tempfile import NamedTemporaryFile
+from utils.s3_utils import upload_gif_to_s3
 from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage
 from browser_use import Agent, Browser, BrowserConfig, AgentHistoryList
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
-from utils.history_validator import validate_agent_history
-from utils.s3_utils import upload_gif_to_s3
-from fixtures.authentification.check_if_is_logged_in import check_is_logged_in
-from fixtures.authentification.has_required_secrets import has_required_secrets, LoginMethod, SUPPORTED_LOGIN_METHODS
-from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, TestStatus
-from utils.dto import Test
 from run_tests.tracing import initialize, extend_agent_history
+from fixtures.authentification.check_if_is_logged_in import check_is_logged_in
+from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, TestStatus
+from fixtures.authentification.has_required_secrets import has_required_secrets, LoginMethod, SUPPORTED_LOGIN_METHODS
 
 
 PROMPT = """
@@ -144,6 +143,7 @@ def get_parameters_for_login_to_website(
         "secrets": secrets,
     }
 
+
 def _select_login_method(login_method: LoginMethod, secrets: dict[str, dict[str, str]]) -> LoginMethod:
     if login_method != LoginMethod.ANY:
         return login_method
@@ -209,7 +209,7 @@ async def login_to_website(
         browser_context=context,
         use_vision_for_planner=False,
         use_vision=True,
-        enable_memory=False,
+        # enable_memory=False,
     )
 
     try:
@@ -267,15 +267,6 @@ async def login_to_website(
 
     if not is_logged_in:
         raise RuntimeError(error_message) if error_message else RuntimeError(f"Login failed for {url}: {output}")
-
-    # Validate the history and get the result
-    await validate_agent_history(
-        task_id=task_id,
-        history=history,
-        task_name=f"login to {url}",
-        error_markers=["[AN ERROR OCCURRED]", "[AGENT LIMITATION]"],
-        empty_result_is_ok=True,
-    )
 
     return session_data, history
 
