@@ -266,7 +266,7 @@ async def login_to_website(
             logger.info(f"[{task_id}] Auth Session Generation GIF uploaded to S3: {s3_url}")
 
     if not is_logged_in:
-        raise RuntimeError(error_message) if error_message else RuntimeError(f"[AN ERROR OCCURRED] Login failed for {url}: {output}")
+        raise (RuntimeError(error_message) if error_message else RuntimeError(f"[AN ERROR OCCURRED] Login failed for {url}: {output}"))
 
     return session_data, history
 
