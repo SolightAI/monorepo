@@ -7,7 +7,7 @@ pydantic_core==2.27.2
 httpx==0.28.1
 openai==1.70.0
 openai[datalib]
-git+https://github.com/browser-use/browser-use.git@30aa5102f3ad26786ca6d6565ec4e7aa926a9e99
+git+https://github.com/browser-use/browser-use.git@45b9dcc1c2be6c7ffd0520cc4c6e9a398940576a
 langchain==0.3.21
 pyperclip==1.9.0
 json-repair
