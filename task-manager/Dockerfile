@@ -33,6 +33,9 @@ COPY requirements.txt .
 # Install requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY fix_browser_use.py /app/fix_browser_use.py
+RUN python /app/fix_browser_use.py
+
 # Copy the rest of the application
 COPY src/ /app/src/
 COPY install_dependencies.sh /app/install_dependencies.sh
