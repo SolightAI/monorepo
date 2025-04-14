@@ -5,13 +5,17 @@ import GoogleOAuth from '../../components/GoogleOAuth';
 import StagedLoginForm from '../../components/StagedLoginForm';
 import InstantLoginForm from '../../components/InstantLoginForm';
 import LoginWithInstantOption from '../../components/LoginWithInstantOption';
+import PrivacyBanner from '../../components/Privacy/PrivacyBanner';
+import PrivacyModal from '../../components/Privacy/PrivacyModal';
 
 const SimpleLoginPage = ({
   showEmailPassword = false,
   showGoogleAuth = false,
   showStagedLogin = false,
   showInstantLogin = false,
-  showCombinedInstantLogin = false
+  showCombinedInstantLogin = false,
+  showPrivacyBanner = false,
+  showPrivacyModal = false
 }) => {
   const navigate = useNavigate();
 
@@ -32,7 +36,7 @@ const SimpleLoginPage = ({
   };
 
   return (
-    <div className="w-full h-screen flex items-center justify-center bg-white">
+    <div className="w-full h-screen flex items-center justify-center bg-white relative">
       <div className="w-full max-w-md p-6 bg-white rounded shadow-md">
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
           Login Portal
@@ -61,6 +65,8 @@ const SimpleLoginPage = ({
           <GoogleOAuth onSuccess={handleLoginSuccess} />
         )}
       </div>
+      {showPrivacyBanner && <PrivacyBanner />}
+      {showPrivacyModal && <PrivacyModal />}
     </div>
   );
 };

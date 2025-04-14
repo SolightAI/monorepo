@@ -5,13 +5,17 @@ import GoogleOAuth from '../../components/GoogleOAuth';
 import StagedLoginForm from '../../components/StagedLoginForm';
 import InstantLoginForm from '../../components/InstantLoginForm';
 import LoginWithInstantOption from '../../components/LoginWithInstantOption';
+import PrivacyBanner from '../../components/Privacy/PrivacyBanner';
+import PrivacyModal from '../../components/Privacy/PrivacyModal';
 
 const MessyLoginPage = ({
   showEmailPassword = false,
   showGoogleAuth = false,
   showStagedLogin = false,
   showInstantLogin = false,
-  showCombinedInstantLogin = false
+  showCombinedInstantLogin = false,
+  showPrivacyBanner = false,
+  showPrivacyModal = false
 }) => {
   const navigate = useNavigate();
   const [counter, setCounter] = useState(0);
@@ -507,6 +511,9 @@ const MessyLoginPage = ({
           animation: marquee 30s linear infinite;
         }
       `}</style>
+
+      {showPrivacyBanner && <PrivacyBanner />}
+      {showPrivacyModal && <PrivacyModal />}
     </div>
   );
 };

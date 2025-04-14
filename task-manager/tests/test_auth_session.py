@@ -2,7 +2,6 @@ import os
 import pytest
 import logging
 
-from uuid import uuid4
 from fixtures.authentification.get_auth_session import get_auth_session
 from fixtures.authentification.has_required_secrets import LoginMethod
 from validate_url.validate_url import validate_url_task
@@ -24,12 +23,6 @@ COMBINED_INSTANT_GOOGLE_MESSY_PATH = "/auth/combined/classic_instant/messy"
 
 
 logger = logging.getLogger(__name__)
-
-
-@pytest.fixture
-def task_id() -> str:
-    """Generate a unique task ID for each test."""
-    return str(uuid4())
 
 
 @pytest.fixture

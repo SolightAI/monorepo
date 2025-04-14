@@ -36,7 +36,9 @@ function App() {
         <Route path="/auth/combined/classic_instant/simple" element={<SimpleLoginPage showCombinedInstantLogin={true} showGoogleAuth={false} />} />
         <Route path="/auth/combined/classic_instant/messy" element={<MessyLoginPage showInstantLogin={true} showGoogleAuth={true} />} />
 
-        {/* Instant Login test routes */}
+        {/* Privacy test routes */}
+        <Route path="/privacy/banner/auth_email_password_simple" element={<SimpleLoginPage showEmailPassword={true} showGoogleAuth={false} showPrivacyBanner={true} />} />
+        <Route path="/privacy/modal/auth_email_password_simple" element={<SimpleLoginPage showEmailPassword={true} showGoogleAuth={false} showPrivacyModal={true} />} />
 
         {/* Marketing vs Webapp test routes */}
         <Route path="/category/marketing" element={<MarketingLanding />} />
