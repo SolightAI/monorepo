@@ -51,13 +51,12 @@ async def get_test_execution(test_execution_id: UUID4) -> TestExecutionModel:
     return test_execution
 
 
-async def get_test_executions_by_test(test_id: UUID4, select_fields: List[str] = None) -> List[TestExecutionElement]:
+async def get_test_executions_by_test(test_id: UUID4) -> List[TestExecutionElement]:
     """
     Get all test executions for a specific test with field selection.
 
     Args:
         test_id: UUID of the test to get executions for
-        select_fields: List of specific fields to select (default None for all fields)
 
     Returns:
         List of test executions for the test

@@ -1,5 +1,6 @@
 import os
 import re
+import json
 
 from typing import Any
 from logging import getLogger
@@ -53,9 +54,9 @@ After attempting to log in:
 5. If you see that you are not logged in, you must retry.
 
 If the login is unsuccessful or you encounter an error message:
-1. If the login has failed, raise an error message that includes the phrase "[AN ERROR OCCURRED]" followed by a description of the error.
+1. If the login has failed, raise an error message that includes a description of the error.
 
-If the login is successful, provide your final output in the following format:
+Provide your final output in the following format:
 <login_attempt>
 <method_used>Specify which method was used (email/password or Google OAuth)</method_used>
 <login_result>Specify if the login was successful or if an error occurred</login_result>
@@ -214,9 +215,8 @@ async def login_to_website(
 
     try:
         history = await agent.run(max_steps=15)
-        output = history.final_result()
     except Exception as e:
-        error_message = f"[AN ERROR OCCURRED] {str(e)}"
+        raise e
     finally:
         cookies = await context.session.context.cookies()
         localStorage_data = await context.execute_javascript("""
@@ -266,9 +266,28 @@ async def login_to_website(
             logger.info(f"[{task_id}] Auth Session Generation GIF uploaded to S3: {s3_url}")
 
     if not is_logged_in:
-        raise (RuntimeError(error_message) if error_message else RuntimeError(f"[AN ERROR OCCURRED] Login failed for {url}: {output}"))
+        return None, history
 
     return session_data, history
+
+
+def _parse_login_attempt(xml_string: str) -> dict[str, str]:
+    """
+    Parses the agent's final XML output into a JSON dictionary using regex.
+    """
+    method_match = re.search(r"<method_used>(.*?)</method_used>", xml_string, re.DOTALL)
+    result_match = re.search(r"<login_result>(.*?)</login_result>", xml_string, re.DOTALL)
+    error_match = re.search(r"<error_message>(.*?)</error_message>", xml_string, re.DOTALL)
+
+    output = {}
+    if method_match:
+        output["method_used"] = method_match.group(1).strip()
+    if result_match:
+        output["login_result"] = result_match.group(1).strip()
+    if error_match:
+        output["error_message"] = error_match.group(1).strip()
+
+    return output
 
 
 async def login_to_website_agent(
@@ -295,19 +314,22 @@ async def login_to_website_agent(
             "traceback": "",
         }
 
-    _, history = await login_to_website(
+    session_data, history = await login_to_website(
         task_id=task_id,
         url=url,
         login_method=login_method,
         secrets=secrets,
     )
 
+    # Parse the agent's final result from XML to JSON
+    parsed_result = _parse_login_attempt(history.final_result())
+
     return base_ouput | {
         "agent_thoughts": history.model_thoughts(),
         "agent_actions": history.model_actions(),
-        "status": TestStatus.COMPLETED.value,
-        "results": history.final_result(),
+        "status": TestStatus.COMPLETED.value if session_data is not None else TestStatus.FAILED.value,
+        "results": json.dumps(parsed_result),  # Store parsed result as JSON string
         "tracing": history.get_logs(),
-        "error": "",
+        "error": "" if session_data is not None else parsed_result.get("error_message", "Login failed"),  # Use parsed error
         "traceback": "",
     }

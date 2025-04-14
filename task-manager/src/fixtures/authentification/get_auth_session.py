@@ -44,7 +44,10 @@ async def get_auth_session(
         else:
             logger.info(f"[{task_id}] No cached session found for {url} (user: {user_id}), generating a new one")
 
-    session_data, _ = await login_to_website(task_id, url, LoginMethod.ANY, secrets)
+    session_data, history = await login_to_website(task_id, url, LoginMethod.ANY, secrets)
+
+    if session_data is None:
+        raise RuntimeError(f"Login failed for {url}: {history.final_result()}")
 
     # Cache the new session for future use
     await cache_session(url, user_id, session_data)

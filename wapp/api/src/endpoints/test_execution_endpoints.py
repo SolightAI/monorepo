@@ -60,7 +60,7 @@ async def get_test_executions_by_test_endpoint(
 
     This endpoint returns the complete history of all times the specified test has been run.
     """
-    return await get_test_executions_by_test(test_id, select_fields=["id", "status", "started_at", "test_id"])
+    return await get_test_executions_by_test(test_id)
 
 
 @router.put("/{test_execution_id}", response_model=TestExecutionSchema)

@@ -360,7 +360,7 @@ async def test_generate_auth_session_invalid_credentials(task_id: str, invalid_u
             secrets=invalid_username_password_credentials,
             reuse_session=False
         )
-    assert "[AN ERROR OCCURRED]" in str(excinfo.value)
+    assert "Login failed for" in str(excinfo.value)
 
 
 @pytest.mark.asyncio
@@ -377,7 +377,7 @@ async def test_generate_auth_session_invalid_google_credentials(task_id: str, in
         )
         logger.error(f"[{task_id}] Returned session but should have raised an error: {session}")
 
-    assert "[AN ERROR OCCURRED]" in str(excinfo.value)
+    assert "Login failed for" in str(excinfo.value)
 
 
 @pytest.mark.skip(reason="Requires a Redis instance to be running")
@@ -593,7 +593,7 @@ async def test_generate_auth_session_invalid_staged_login_credentials(task_id: s
             secrets=invalid_username_password_credentials,
             reuse_session=False
         )
-    assert "[AN ERROR OCCURRED]" in str(excinfo.value)
+    assert "Login failed for" in str(excinfo.value)
 
 
 @pytest.mark.asyncio
@@ -608,7 +608,7 @@ async def test_generate_auth_session_invalid_instant_login_credentials(task_id: 
             secrets=invalid_username_password_credentials,
             reuse_session=False
         )
-    assert "[AN ERROR OCCURRED]" in str(excinfo.value)
+    assert "Login failed for" in str(excinfo.value)
 
 
 @pytest.mark.asyncio
@@ -623,7 +623,7 @@ async def test_generate_auth_session_invalid_combined_email_google_credentials(t
             secrets=invalid_username_password_credentials,
             reuse_session=False
         )
-    assert "[AN ERROR OCCURRED]" in str(excinfo.value)
+    assert "Login failed for" in str(excinfo.value)
 
 
 @pytest.mark.asyncio
@@ -638,7 +638,7 @@ async def test_generate_auth_session_invalid_combined_google_credentials(task_id
             secrets=invalid_google_credentials,
             reuse_session=False
         )
-    assert "[AN ERROR OCCURRED]" in str(excinfo.value)
+    assert "Login failed for" in str(excinfo.value)
 
 
 @pytest.mark.asyncio
@@ -653,4 +653,4 @@ async def test_generate_auth_session_invalid_combined_email_instant_credentials(
             secrets=invalid_username_password_credentials,
             reuse_session=False
         )
-    assert "[AN ERROR OCCURRED]" in str(excinfo.value)
+    assert "Login failed for" in str(excinfo.value)
