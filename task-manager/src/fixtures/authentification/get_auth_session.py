@@ -47,7 +47,7 @@ async def get_auth_session(
     session_data, history = await login_to_website(task_id, url, LoginMethod.ANY, secrets)
 
     if session_data is None:
-        raise RuntimeError(f"[AN ERROR OCCURRED] Login failed for {url}: {history.final_result()}")
+        raise RuntimeError(f"Login failed for {url}: {history.final_result()}")
 
     # Cache the new session for future use
     await cache_session(url, user_id, session_data)
