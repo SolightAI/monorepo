@@ -10,15 +10,16 @@ from logging import getLogger
 from tempfile import NamedTemporaryFile
 from langchain_openai import AzureChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig
-from fixtures.generate_auth_session import generate_auth_session
+from fixtures.authentification.get_auth_session import get_auth_session
 from utils.dto import Product, Epic
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service
-from utils.task_status import task_status_manager
+from utils.task_status import task_status_manager, handle_background_task_errors
 from generate_page_type.generate_page_type import analyze_page_type, get_marketing_page_error_message, PageType
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_gif_to_s3
+from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
 
 
 PROMPT = """
@@ -57,18 +58,11 @@ content of the description
 """.strip()
 
 
-if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
-    raise ValueError('AZURE_OPENAI_KEY is not set')
-
-if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
-    raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
-
-
 LLM_CLIENT = AzureChatOpenAI(
     model="gpt-4o",
     api_version='2024-10-21',
-    azure_endpoint=azure_openai_endpoint,
-    api_key=SecretStr(azure_openai_key),
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+    api_key=SecretStr(AZURE_OPENAI_KEY),
     temperature=0.0,
 )
 
@@ -167,6 +161,7 @@ async def _generate_epics(
         browser_context=context,
         use_vision=False,
         use_vision_for_planner=False,
+        enable_memory=False,
     )
 
     try:
@@ -209,26 +204,6 @@ async def _generate_epics(
     return [Epic(name=e['name'], description=e['description']) for e in epics]
 
 
-def handle_background_task_errors(func):
-    """Decorator to handle background task errors."""
-    @functools.wraps(func)
-    async def wrapper(task_id: str, *args, **kwargs):
-        try:
-            task_status_manager.set_status(task_id, "pending")
-            results = await func(task_id, *args, **kwargs)
-            task_status_manager.set_status(task_id, "completed", results=results)
-            return results
-        except Exception as e:
-            error_message = str(e)
-            stack_trace = traceback.format_exc()
-            logger.error(f"[{task_id}] Error in background task: {error_message}\n{stack_trace}")
-            task_status_manager.set_status(task_id, "error", error=error_message)
-            raise e
-
-    wrapper.get_status = lambda task_id: task_status_manager.get_status(task_id)
-    return wrapper
-
-
 @handle_background_task_errors
 async def background_generate_epics(
     task_id: str,
@@ -258,7 +233,7 @@ async def background_generate_epics(
     if page_type == PageType.MARKETING:
         raise Exception(get_marketing_page_error_message(task_id))
 
-    auth_session = await generate_auth_session(
+    auth_session = await get_auth_session(
         task_id=task_id,
         url=product.url,
         secrets=secrets,

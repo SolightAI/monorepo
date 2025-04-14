@@ -11,21 +11,17 @@ from pydantic import SecretStr
 from utils.dto import PageType
 from tempfile import NamedTemporaryFile
 from utils.s3_utils import upload_gif_to_s3
+from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
+
 
 logger = getLogger(__name__)
-
-if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
-    raise ValueError('AZURE_OPENAI_KEY is not set')
-
-if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
-    raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
 
 
 LLM_CLIENT = AzureChatOpenAI(
     model="gpt-4o",
     api_version='2024-10-21',
-    azure_endpoint=azure_openai_endpoint,
-    api_key=SecretStr(azure_openai_key),
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+    api_key=SecretStr(AZURE_OPENAI_KEY),
     temperature=0.0,
 )
 
@@ -143,6 +139,7 @@ async def analyze_page_type(
             llm=LLM_CLIENT,
             initial_actions=[{'go_to_url': {'url': product.url}}, {'go_to_url': {'url': product.url}}],
             browser_context=context,
+            enable_memory=False,
         )
 
         history = await agent.run(max_steps=30)

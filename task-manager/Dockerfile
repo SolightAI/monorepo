@@ -24,12 +24,17 @@ RUN apt-get update && \
 
 WORKDIR /app
 
+# Install wheel before anything else
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools
+
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Just install pip and requirements, Playwright will be installed at runtime
-RUN pip install --no-cache-dir  -U pip wheel setuptools \
-    && pip install --no-cache-dir -r requirements.txt
+# Install requirements
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY fix_browser_use.py /app/fix_browser_use.py
+RUN python /app/fix_browser_use.py
 
 # Copy the rest of the application
 COPY src/ /app/src/

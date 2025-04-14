@@ -504,7 +504,6 @@ const TestsTable = () => {
 
       // Show appropriate message based on results
       if (testCount > 0) {
-        setSuccessMessage(`Successfully started ${testCount} tests. Status: ${formatStatus('PENDING')}`);
         setError(null);
 
         // Start polling for each test execution
@@ -834,10 +833,10 @@ const TestsTable = () => {
 
             // Refresh tests and show success
             await fetchTestsWithCurrentFilters();
-            
+
             // Get the current number of tests after refresh
             const currentTests = await getTestsByFeature(selectedFeature);
-            
+
             if (currentTests.length === 0) {
               setError('Test generation completed but no tests were created. Please check the logs for more information.');
               setSuccessMessage(null);

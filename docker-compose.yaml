@@ -1,5 +1,3 @@
-version: '3'
-
 # Root docker-compose file that includes all services
 name: laneo
 

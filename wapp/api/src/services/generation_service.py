@@ -1,7 +1,6 @@
 import os
 import asyncio
 import logging
-import requests
 from uuid import uuid4
 from fastapi import HTTPException, BackgroundTasks
 from typing import List, Dict, Any, Optional, Literal
@@ -9,12 +8,12 @@ from pydantic import UUID4
 
 from dto.models import Feature as FeatureModel, Epic as EpicModel, Product as ProductModel
 from dto.schemas import TestCreate as TestCreateSchema
-from services.feature_generation_service import generate_features
 from services.user_stories_generation_service import generate_user_stories, get_user_stories_generation_status, process_generated_user_stories
 from services.acceptance_criteria_generation_service import generate_acceptance_criteria, get_acceptance_criteria_generation_status, process_generated_acceptance_criteria
 from services.test_services import trigger_test_generation, get_test_generation_status, create_test
-from services.secret_services import get_encrypted_secrets
 from services.feature_services import get_feature
+from services.product_services import get_product
+from services.epic_services import get_epic
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -152,12 +151,12 @@ async def generate_all_for_feature(feature_id: UUID4, task_id: str) -> None:
         # Step 1: Check if user stories already exist, and only generate if they don't
         task_status[task_id]["current_item"]["stage"] = "user_stories"
         task_status[task_id]["current_item"]["progress"] = 0
-        
+
         # Get the user stories to see if any exist already
         feature_with_relations = await get_feature(feature_id)
         existing_user_stories = feature_with_relations.user_stories
         user_stories_completed = False
-        
+
         if existing_user_stories and len(existing_user_stories) > 0:
             logger.info(f"Feature {feature_id} already has {len(existing_user_stories)} user stories, skipping generation")
             user_stories_completed = True
@@ -184,9 +183,9 @@ async def generate_all_for_feature(feature_id: UUID4, task_id: str) -> None:
                     "item_id": str(feature_id),
                     "message": "User stories generation failed"
                 })
-                
+
                 logger.error(f"User stories generation failed for feature {feature_id}, skipping acceptance criteria and tests")
-                
+
                 # Mark as completed with errors and return early
                 task_status[task_id]["current_item"]["progress"] = 100
                 task_status[task_id]["current_item"] = None
@@ -200,7 +199,7 @@ async def generate_all_for_feature(feature_id: UUID4, task_id: str) -> None:
         # Get existing acceptance criteria
         existing_ac = feature_with_relations.acceptance_criteria
         acceptance_criteria_completed = False
-        
+
         if existing_ac and len(existing_ac) > 0:
             logger.info(f"Feature {feature_id} already has {len(existing_ac)} acceptance criteria, skipping generation")
             acceptance_criteria_completed = True
@@ -227,9 +226,9 @@ async def generate_all_for_feature(feature_id: UUID4, task_id: str) -> None:
                     "item_id": str(feature_id),
                     "message": "Acceptance criteria generation failed"
                 })
-                
+
                 logger.error(f"Acceptance criteria generation failed for feature {feature_id}, skipping tests")
-                
+
                 # Mark as completed with errors and return early
                 task_status[task_id]["current_item"]["progress"] = 100
                 task_status[task_id]["current_item"] = None
@@ -243,7 +242,7 @@ async def generate_all_for_feature(feature_id: UUID4, task_id: str) -> None:
         # Get existing tests
         existing_tests = feature_with_relations.tests
         test_completed = False
-        
+
         if existing_tests and len(existing_tests) > 0:
             logger.info(f"Feature {feature_id} already has {len(existing_tests)} tests, skipping generation")
             test_completed = True
@@ -270,7 +269,7 @@ async def generate_all_for_feature(feature_id: UUID4, task_id: str) -> None:
                     "item_id": str(feature_id),
                     "message": "Test generation failed"
                 })
-                
+
                 logger.error(f"Test generation failed for feature {feature_id}")
 
         # Mark as completed
@@ -305,7 +304,7 @@ async def generate_all_for_epic(epic_id: UUID4, task_id: str) -> None:
         task_id: Task ID for tracking progress
     """
     logger.info(f"Starting generation for epic {epic_id} with task_id {task_id}")
-    
+
     # Check if epic exists
     epic = await EpicModel.get_or_none(id=epic_id)
     if not epic:
@@ -343,7 +342,7 @@ async def generate_all_for_epic(epic_id: UUID4, task_id: str) -> None:
     # Process each feature sequentially
     for i, feature in enumerate(features):
         logger.info(f"Processing feature {i+1}/{len(features)}: {feature.id} - {feature.name}")
-        
+
         # Update progress
         task_status[task_id]["current_item"] = {
             "index": i + 1,
@@ -379,7 +378,7 @@ async def generate_all_for_epic(epic_id: UUID4, task_id: str) -> None:
             completed = False
             max_attempts = 180  # 30 minutes with 10-second checks
             logger.info(f"Starting to poll for feature {feature.id} completion, max_attempts={max_attempts}")
-            
+
             for attempt in range(max_attempts):
                 await asyncio.sleep(10)
 
@@ -395,7 +394,7 @@ async def generate_all_for_epic(epic_id: UUID4, task_id: str) -> None:
                     # Check if completed or failed
                     if feature_status["status"] in ["completed", "completed_with_errors", "failed"]:
                         logger.info(f"Feature {feature.id} completed with status: {feature_status['status']}")
-                        
+
                         # Add any errors to the epic's errors
                         for error in feature_status.get("errors", []):
                             logger.error(f"Error from feature {feature.id}: {error}")
@@ -496,7 +495,7 @@ async def generate_all_for_product(product_id: UUID4, task_id: str) -> None:
         try:
             # Create a nested task for this epic
             epic_task_id = str(uuid4())
-            
+
             # Initialize task status for this epic's task ID
             task_status[epic_task_id] = {
                 "task_id": epic_task_id,
@@ -507,7 +506,7 @@ async def generate_all_for_product(product_id: UUID4, task_id: str) -> None:
                 "completed_items": [],
                 "errors": []
             }
-            
+
             await generate_all_for_epic(epic.id, epic_task_id)
 
             # Process the epic results and update product status
@@ -590,15 +589,15 @@ async def wait_for_task_completion(
                 try:
                     # Get the feature_id from the parent task
                     feature_id = UUID4(task_status[parent_task_id]["scope_id"])
-                    
+
                     if task_type == "user_stories" and "results" in status_data:
                         await process_generated_user_stories(feature_id, status_data["results"])
                         logger.info(f"Successfully processed and saved user stories for feature {feature_id}")
-                    
+
                     elif task_type == "acceptance_criteria" and "results" in status_data:
                         await process_generated_acceptance_criteria(feature_id, status_data["results"])
                         logger.info(f"Successfully processed and saved acceptance criteria for feature {feature_id}")
-                    
+
                     elif task_type == "tests" and "results" in status_data:
                         # Process and save each test directly
                         for test_data in status_data["results"]:
@@ -611,16 +610,15 @@ async def wait_for_task_completion(
                                     category=test_data.get("category", ""),
                                     preconditions=test_data.get("preconditions", ""),
                                     steps=test_data.get("steps", []),
-                                    expected_results=test_data.get("expected_results", ""),
                                     assertions=test_data.get("assertions", []),
                                     secret_ids=None,
                                 )
                             )
                         logger.info(f"Successfully processed and saved tests for feature {feature_id}")
-                
+
                 except Exception as e:
                     logger.error(f"Error processing {task_type} results: {str(e)}")
-                
+
                 await asyncio.sleep(post_generation_sleep)
                 return True
             elif status_data["status"] == "error" or status_data["status"] == "failed":
@@ -650,14 +648,14 @@ async def get_in_progress_generations(organization_id: Optional[UUID4] = None, p
         List of dictionaries containing information about in-progress generations
     """
     in_progress = []
-    
+
     # Check all task statuses
     for task_id, status_data in task_status.items():
         if status_data["status"] == "in_progress":
             # Get the scope and scope_id
             scope = status_data["scope"]
             scope_id = status_data["scope_id"]
-            
+
             # Determine the organization and product IDs based on the scope
             if scope == "feature":
                 # For features, we need to get the epic and product info
@@ -701,7 +699,7 @@ async def get_in_progress_generations(organization_id: Optional[UUID4] = None, p
                 except Exception as e:
                     logger.error(f"Error checking product access: {e}")
                     continue
-            
+
             in_progress.append({
                 "task_id": task_id,
                 "scope": scope,
@@ -710,5 +708,5 @@ async def get_in_progress_generations(organization_id: Optional[UUID4] = None, p
                 "completed_items": status_data["completed_items"],
                 "errors": status_data["errors"]
             })
-    
+
     return in_progress

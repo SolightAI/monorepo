@@ -3,7 +3,8 @@ import pytest
 import logging
 
 from uuid import uuid4
-from fixtures.generate_auth_session import generate_auth_session, USERNAME_PASSWORD, OAUTH
+from fixtures.authentification.get_auth_session import get_auth_session
+from fixtures.authentification.has_required_secrets import LoginMethod
 from validate_url.validate_url import validate_url_task
 
 
@@ -35,7 +36,7 @@ def task_id() -> str:
 def valid_username_password_credentials() -> dict:
     """Fixture for valid username/password credentials."""
     return {
-        USERNAME_PASSWORD: {
+        LoginMethod.EMAIL.value: {
             "username": "testuser",
             "password": "password123"
         }
@@ -46,8 +47,7 @@ def valid_username_password_credentials() -> dict:
 def valid_google_credentials() -> dict:
     """Fixture for valid Google OAuth credentials."""
     return {
-        OAUTH: {
-            "provider": "Google",
+        LoginMethod.GOOGLE.value: {
             "username": "testuser@gmail.com",
             "password": "password123"
         }
@@ -58,7 +58,7 @@ def valid_google_credentials() -> dict:
 def invalid_username_password_credentials() -> dict:
     """Fixture for invalid username/password credentials."""
     return {
-        USERNAME_PASSWORD: {
+        LoginMethod.EMAIL.value: {
             "username": "marina",
             "password": "marinapassword"
         }
@@ -69,10 +69,9 @@ def invalid_username_password_credentials() -> dict:
 def invalid_google_credentials() -> dict:
     """Fixture for invalid Google OAuth credentials."""
     return {
-        OAUTH: {
-            "provider": "Google",
-            "username": "marina@gmail.com",
-            "password": "marinapassword"
+        LoginMethod.GOOGLE.value: {
+            "username": "this-is-not-a-valid-email@fake-domain.com",
+            "password": "this-is-not-a-valid-password"
         }
     }
 
@@ -82,7 +81,7 @@ async def test_generate_auth_session_simple_login(task_id: str, valid_username_p
     """Test authentication with valid username/password on the simple login page."""
     url = f"{playground_base_url}{EMAIL_PASSWORD_SIMPLE_PATH}"
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -103,7 +102,7 @@ async def test_generate_auth_session_google_login(task_id: str, valid_google_cre
     """Test authentication with valid Google OAuth credentials on the simple login page."""
     url = f"{playground_base_url}{GOOGLE_SIMPLE_PATH}"
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets=valid_google_credentials,
@@ -126,7 +125,7 @@ async def test_generate_auth_session_messy_login(task_id: str, valid_username_pa
     """Test authentication with valid username/password on the messy login page."""
     url = f"{playground_base_url}{EMAIL_PASSWORD_MESSY_PATH}"
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -146,7 +145,7 @@ async def test_generate_auth_session_staged_login(task_id: str, valid_username_p
     """Test authentication with valid username/password on the staged login page."""
     url = f"{playground_base_url}{STAGED_SIMPLE_PATH}"
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -167,7 +166,7 @@ async def test_generate_auth_session_staged_messy_login(task_id: str, valid_user
     """Test authentication with valid username/password on the messy staged login page."""
     url = f"{playground_base_url}{STAGED_MESSY_PATH}"
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -188,7 +187,7 @@ async def test_generate_auth_session_instant_simple_login(task_id: str, valid_us
     """Test authentication with valid credentials on the simple instant login page."""
     url = f"{playground_base_url}{INSTANT_SIMPLE_PATH}"
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -209,7 +208,7 @@ async def test_generate_auth_session_instant_messy_login(task_id: str, valid_use
     """Test authentication with valid credentials on the messy instant login page."""
     url = f"{playground_base_url}{INSTANT_MESSY_PATH}"
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -229,7 +228,7 @@ async def test_generate_auth_session_combined_email_google_simple(task_id: str, 
     """Test authentication with valid username/password on the simple combined email/Google login page."""
     url = f"{playground_base_url}{COMBINED_EMAIL_GOOGLE_SIMPLE_PATH}"
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -249,7 +248,7 @@ async def test_generate_auth_session_combined_email_google_google_auth(task_id: 
     """Test authentication with valid Google credentials on the simple combined email/Google login page."""
     url = f"{playground_base_url}{COMBINED_EMAIL_GOOGLE_SIMPLE_PATH}"
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets=valid_google_credentials,
@@ -271,7 +270,7 @@ async def test_generate_auth_session_combined_email_google_messy(task_id: str, v
     """Test authentication with valid username/password on the messy combined email/Google login page."""
     url = f"{playground_base_url}{COMBINED_EMAIL_GOOGLE_MESSY_PATH}"
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -291,7 +290,7 @@ async def test_generate_auth_session_combined_email_instant_simple(task_id: str,
     """Test authentication with valid username/password on the simple combined email/instant login page."""
     url = f"{playground_base_url}{COMBINED_EMAIL_INSTANT_SIMPLE_PATH}"
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -312,7 +311,7 @@ async def test_generate_auth_session_combined_instant_google_messy(task_id: str,
     """Test authentication with valid username/password on the messy combined instant/Google login page."""
     url = f"{playground_base_url}{COMBINED_INSTANT_GOOGLE_MESSY_PATH}"
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -333,7 +332,7 @@ async def test_generate_auth_session_combined_instant_google_messy_google_auth(t
     """Test authentication with valid Google credentials on the messy combined instant/Google login page."""
     url = f"{playground_base_url}{COMBINED_INSTANT_GOOGLE_MESSY_PATH}"
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets=valid_google_credentials,
@@ -355,7 +354,7 @@ async def test_generate_auth_session_invalid_credentials(task_id: str, invalid_u
     url = f"{playground_base_url}{EMAIL_PASSWORD_SIMPLE_PATH}"
 
     with pytest.raises(Exception) as excinfo:
-        await generate_auth_session(
+        await get_auth_session(
             task_id=task_id,
             url=url,
             secrets=invalid_username_password_credentials,
@@ -370,7 +369,7 @@ async def test_generate_auth_session_invalid_google_credentials(task_id: str, in
     url = f"{playground_base_url}{GOOGLE_SIMPLE_PATH}"
 
     with pytest.raises(Exception) as excinfo:
-        session = await generate_auth_session(
+        session = await get_auth_session(
             task_id=task_id,
             url=url,
             secrets=invalid_google_credentials,
@@ -388,7 +387,7 @@ async def test_session_reuse(task_id: str, valid_username_password_credentials: 
     url = f"{playground_base_url}{EMAIL_PASSWORD_SIMPLE_PATH}"
 
     # Generate a session first
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -396,7 +395,7 @@ async def test_session_reuse(task_id: str, valid_username_password_credentials: 
     )
 
     # Now check if reuse_session=True returns the cached session
-    reused_session = await generate_auth_session(
+    reused_session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -423,11 +422,11 @@ async def test_generate_auth_session_farmzz(task_id: str) -> None:
     if not password:
         raise ValueError("FARMZZ_PASSWORD is not set")
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets={
-            USERNAME_PASSWORD: {
+            LoginMethod.EMAIL.value: {
                 "username": username,
                 "password": password
             }
@@ -451,7 +450,7 @@ async def test_validate_url_login_farmzz(task_id: str) -> None:
     """
     Test validating the farmzz.com URL to find a login page,
     then attempt login with credentials.
-    
+
     This test:
     1. Validates the farmzz.com URL to find the login page
     2. Uses the detected login page URL for authentication
@@ -459,19 +458,19 @@ async def test_validate_url_login_farmzz(task_id: str) -> None:
     """
     # First, validate the URL
     base_url = "https://farmzz.com"
-    
+
     # Run the validation task directly
     validation_result = await validate_url_task(task_id, base_url)
-    
+
     # Debug output to show full validation result
     logger.info(f"[{task_id}] Validation result: {validation_result}")
-    
+
     # Verify that validation found a login page
     assert validation_result["valid"] is True, f"Expected valid=True, got {validation_result.get('valid')}"
     assert validation_result["login_url"] == "https://farmzz.com/#/auth/login", f"Expected login_url='https://farmzz.com/#/auth/login', got {validation_result.get('login_url')}"
     assert validation_result["confidence"] in ["high", "medium"], f"Expected confidence in ['high', 'medium'], got {validation_result.get('confidence')}"
     assert validation_result["source"] == "validation", f"Expected source='validation', got {validation_result.get('source')}"
-    
+
     logger.info(f"[{task_id}] ✅ Successfully validated URL and authenticated on: {validation_result['login_url']}")
 
 
@@ -489,11 +488,11 @@ async def test_generate_auth_session_tecla_academy(task_id: str) -> None:
     if not password:
         raise ValueError("TECLA_ACADEMY_PASSWORD is not set")
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets={
-            USERNAME_PASSWORD: {
+            LoginMethod.EMAIL.value: {
                 "username": username,
                 "password": password
             }
@@ -524,11 +523,11 @@ async def test_generate_auth_session_sesame_hr(task_id: str) -> None:
     if not password:
         raise ValueError("SESAME_HR_PASSWORD is not set")
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets={
-            USERNAME_PASSWORD: {
+            LoginMethod.EMAIL.value: {
                 "username": username,
                 "password": password
             }
@@ -561,11 +560,11 @@ async def test_generate_auth_session_meandwho(task_id: str) -> None:
     if not password:
         raise ValueError("MEANDWHO_PASSWORD is not set")
 
-    session = await generate_auth_session(
+    session = await get_auth_session(
         task_id=task_id,
         url=url,
         secrets={
-            USERNAME_PASSWORD: {
+            LoginMethod.EMAIL.value: {
                 "username": username,
                 "password": password
             }
@@ -588,7 +587,7 @@ async def test_generate_auth_session_invalid_staged_login_credentials(task_id: s
     url = f"{playground_base_url}{STAGED_SIMPLE_PATH}"
 
     with pytest.raises(Exception) as excinfo:
-        await generate_auth_session(
+        await get_auth_session(
             task_id=task_id,
             url=url,
             secrets=invalid_username_password_credentials,
@@ -603,7 +602,7 @@ async def test_generate_auth_session_invalid_instant_login_credentials(task_id: 
     url = f"{playground_base_url}{INSTANT_SIMPLE_PATH}"
 
     with pytest.raises(Exception) as excinfo:
-        await generate_auth_session(
+        await get_auth_session(
             task_id=task_id,
             url=url,
             secrets=invalid_username_password_credentials,
@@ -618,7 +617,7 @@ async def test_generate_auth_session_invalid_combined_email_google_credentials(t
     url = f"{playground_base_url}{COMBINED_EMAIL_GOOGLE_SIMPLE_PATH}"
 
     with pytest.raises(Exception) as excinfo:
-        await generate_auth_session(
+        await get_auth_session(
             task_id=task_id,
             url=url,
             secrets=invalid_username_password_credentials,
@@ -633,7 +632,7 @@ async def test_generate_auth_session_invalid_combined_google_credentials(task_id
     url = f"{playground_base_url}{COMBINED_EMAIL_GOOGLE_SIMPLE_PATH}"
 
     with pytest.raises(Exception) as excinfo:
-        await generate_auth_session(
+        await get_auth_session(
             task_id=task_id,
             url=url,
             secrets=invalid_google_credentials,
@@ -648,7 +647,7 @@ async def test_generate_auth_session_invalid_combined_email_instant_credentials(
     url = f"{playground_base_url}{COMBINED_EMAIL_INSTANT_SIMPLE_PATH}"
 
     with pytest.raises(Exception) as excinfo:
-        await generate_auth_session(
+        await get_auth_session(
             task_id=task_id,
             url=url,
             secrets=invalid_username_password_credentials,

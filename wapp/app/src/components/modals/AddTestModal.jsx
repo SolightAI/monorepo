@@ -1,57 +1,37 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
 import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
-import { MAX_NAME_LENGTH } from '@/constants/validation';
+import useTestForm from '@/hooks/useTestForm';
+import TestForm from '@/components/forms/TestForm';
 
 // Base API URL
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 function AddTestModal({ onClose, onAddTest, criteriaId }) {
-  // Real data states
+  // Real data states for context
   const [epic, setEpic] = useState(null);
   const [feature, setFeature] = useState(null);
   const [userStory, setUserStory] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [selectedSecretIds, setSelectedSecretIds] = useState([]);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    url: "",
-    category: "FUNCTIONAL",
-    type: "UserStory", // Default to UserStory since we're in an acceptance criteria
-    steps: "",
-    preconditions: "None", // Default value to avoid null
-    expected_results: "None", // Default value to avoid null
-    assertions: "None", // Default value to avoid null
-    epic_id: "",
-    feature_id: "",
-    user_story_id: "",
+  // Use our custom hook for form state management
+  const {
+    formData,
+    setFormData,
+    error,
+    setError,
+    isSubmitting,
+    setIsSubmitting,
+    selectedSecretIds,
+    testCategories,
+    testTypes,
+    handleChange,
+    handleSecretSelect,
+    validateForm
+  } = useTestForm({
     acceptance_criteria_id: criteriaId,
-    secret_ids: []
+    type: "UserStory", // Default to UserStory since we're in an acceptance criteria
   });
-
-  // Test categories from the backend schema
-  const testCategories = [
-    { id: "SMOKE", label: "Smoke" },
-    { id: "FUNCTIONAL", label: "Functional" },
-    { id: "END_TO_END", label: "End to End" },
-    { id: "UNIT", label: "Unit" },
-    { id: "REGRESSION", label: "Regression" },
-    { id: "INTEGRATION", label: "Integration" },
-    { id: "PERFORMANCE", label: "Performance" },
-    { id: "USABILITY", label: "Usability" },
-    { id: "COMPATIBILITY", label: "Compatibility" },
-    { id: "LOCALIZATION", label: "Localization" },
-  ];
-
-  // Test types
-  const testTypes = [
-    { id: "UserStory", label: "User Story" },
-    { id: "Feature", label: "Feature" },
-    { id: "Epic", label: "Epic" },
-  ];
 
   // Fetch the context info for the acceptance criteria
   useEffect(() => {
@@ -116,61 +96,16 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
     };
 
     fetchContextInfo();
-  }, [criteriaId]);
-
-  // Handle form field changes
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    // Update the form data based on the field that changed
-    if (name === "type") {
-      // When the test type changes, update the form data accordingly
-      setFormData(prev => {
-        const updates = { [name]: value };
-
-        if (value === "Epic" && epic) {
-          updates.epic_id = epic.id;
-          updates.feature_id = "";
-          updates.user_story_id = "";
-        } else if (value === "Feature" && feature) {
-          updates.epic_id = epic?.id || "";
-          updates.feature_id = feature.id;
-          updates.user_story_id = "";
-        } else if (value === "UserStory" && userStory) {
-          updates.epic_id = epic?.id || "";
-          updates.feature_id = feature?.id || "";
-          updates.user_story_id = userStory.id;
-        }
-
-        return { ...prev, ...updates };
-      });
-    } else if (name === "preconditions" || name === "assertions" || name === "expected_results") {
-      // Special handling for preconditions, assertions, and expected_results fields
-      // If the field is empty, set it to the default "None" value
-      setFormData(prev => ({
-        ...prev,
-        [name]: value.trim() === "" ? "None" : value
-      }));
-    } else {
-      // Default handling for other fields
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
-  };
-
-  const handleSecretSelect = (secretIds, secrets) => {
-    setSelectedSecretIds(secretIds);
-    setFormData(prev => ({
-      ...prev,
-      secret_ids: secretIds
-    }));
-  };
+  }, [criteriaId, setFormData, setError]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Form submitted");
+
+    // Validate the form
+    if (!validateForm()) {
+      return;
+    }
 
     // Create the test object with string fields (not arrays)
     let testData = {
@@ -180,7 +115,6 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
       category: formData.category,
       steps: formData.steps || "None",
       preconditions: formData.preconditions || "None",
-      expected_results: formData.expected_results || "None",
       assertions: formData.assertions || "None",
       secret_ids: formData.secret_ids
     };
@@ -216,211 +150,24 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
           </button>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 mx-6 mt-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {loading ? (
           <div className="flex justify-center items-center p-6">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
-            <div className="px-6 py-4 space-y-4">
-              {/* Context information display */}
-              {userStory && (
-                <div className="bg-blue-50 p-3 rounded-md">
-                  <p className="text-sm text-blue-800">
-                    Adding test for: <span className="font-semibold">{userStory.name}</span>
-                  </p>
-                  {feature && (
-                    <p className="text-xs text-blue-600 mt-1">
-                      Feature: {feature.name}
-                    </p>
-                  )}
-                  {epic && (
-                    <p className="text-xs text-blue-600">
-                      Epic: {epic.name}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                  Test Name *
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  required
-                  maxLength={MAX_NAME_LENGTH}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Enter test name"
-                />
-                <div className="mt-1 text-xs text-gray-500 flex justify-end">
-                  {formData.name.length}/{MAX_NAME_LENGTH} characters
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                  Description *
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  required
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  value={formData.description}
-                  onChange={handleChange}
-                  placeholder="Describe the purpose of this test"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
-                  Start URL *
-                </label>
-                <input
-                  type="url"
-                  id="url"
-                  name="url"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  value={formData.url}
-                  onChange={handleChange}
-                  placeholder="https://example.com/page-to-test"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                  Category *
-                </label>
-                <select
-                  id="category"
-                  name="category"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  value={formData.category}
-                  onChange={handleChange}
-                >
-                  {testCategories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="preconditions" className="block text-sm font-medium text-gray-700 mb-1">
-                  Preconditions *
-                </label>
-                <textarea
-                  id="preconditions"
-                  name="preconditions"
-                  required
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  value={formData.preconditions}
-                  onChange={handleChange}
-                  placeholder="List any required preconditions, one per line (e.g. 'User must be logged in'). Use 'None' if not applicable."
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Enter any conditions that must be met before the test can be executed. Required field.
-                </p>
-              </div>
-
-              <div>
-                <label htmlFor="expected_results" className="block text-sm font-medium text-gray-700 mb-1">
-                  Expected Results *
-                </label>
-                <textarea
-                  id="expected_results"
-                  name="expected_results"
-                  required
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  value={formData.expected_results}
-                  onChange={handleChange}
-                  placeholder="List the expected results of the test, one per line"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Enter the expected outcomes of the test. Required field.
-                </p>
-              </div>
-
-              <div>
-                <label htmlFor="steps" className="block text-sm font-medium text-gray-700 mb-1">
-                  Test Steps *
-                </label>
-                <textarea
-                  id="steps"
-                  name="steps"
-                  required
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  value={formData.steps}
-                  onChange={handleChange}
-                  placeholder="List the steps to perform this test, one step per line"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="assertions" className="block text-sm font-medium text-gray-700 mb-1">
-                  Assertions *
-                </label>
-                <textarea
-                  id="assertions"
-                  name="assertions"
-                  required
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  value={formData.assertions}
-                  onChange={handleChange}
-                  placeholder="List what should be verified during the test, one assertion per line (e.g. 'Error message appears when submitting invalid form'). Use 'None' if not applicable."
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Enter verification points that confirm the test is working as expected. Required field.
-                </p>
-              </div>
-            </div>
-
-            <div className="border-t border-gray-200 px-6 py-4 flex justify-end">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md mr-2"
-                disabled={loading}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-black text-white rounded-md"
-                disabled={loading}
-              >
-                {loading ? 'Loading...' : 'Add Test'}
-              </button>
-            </div>
-          </form>
+          <TestForm
+            formData={formData}
+            error={error}
+            isSubmitting={isSubmitting}
+            testCategories={testCategories}
+            handleChange={handleChange}
+            handleSecretSelect={handleSecretSelect}
+            selectedSecretIds={selectedSecretIds}
+            onSubmit={handleSubmit}
+            onCancel={onClose}
+            submitButtonText="Add Test"
+            contextInfo={{ userStory, feature, epic }}
+          />
         )}
       </div>
     </div>

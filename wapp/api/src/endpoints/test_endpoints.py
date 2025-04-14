@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Body, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestStatus, TestUpdate as TestUpdateSchema, TestSecretCreate, TestSecret, TestExecution as TestExecutionSchema
+from services.test_execution_services import get_test_executions_by_test
 from services.test_services import (
     get_test,
     create_test,
@@ -19,7 +20,6 @@ from services.test_services import (
     get_epic,
     get_product,
 )
-from services.test_execution_services import get_test_executions_by_test
 from pydantic import UUID4
 from typing import List
 
@@ -161,13 +161,13 @@ async def get_generate_test_status_endpoint(task_id: UUID4) -> dict:
     """
     # Get the current status
     status_response = await get_test_generation_status(task_id)
-    
+
     # If the status is completed, poll for the final results
     if status_response.get("status") == "completed":
         await poll_test_generation_status(task_id)
         # Get the final status after polling
         status_response = await get_test_generation_status(task_id)
-    
+
     return status_response
 
 

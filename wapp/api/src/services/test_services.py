@@ -7,7 +7,7 @@ import uuid
 from fastapi import HTTPException
 from dto.models import Test as TestModel, TestSecret as TestSecretModel, Secret as SecretModel
 from dto.schemas import TestCreate as TestCreateSchema, TestStatus, TestUpdate as TestUpdateSchema
-from typing import List, Dict, Optional
+from typing import List, Dict
 from uuid import UUID
 from services.product_services import get_product_by_url_path
 from services.feature_services import get_feature
@@ -17,8 +17,6 @@ from services.secret_services import get_secret_with_values
 from services.acceptance_criteria_services import get_acceptance_criteria_by_feature
 from services.secret_services import get_encrypted_secrets
 from pydantic import UUID4
-from services.organization_services import get_organization_member, verify_organization_access
-from dto.models import OrganizationMember
 
 
 TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
@@ -254,6 +252,7 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
             'dependents': [],  # TODO
             'dependencies': [],  # TODO
             'urls': feature.urls,
+            'access_conditions': feature.access_conditions,
         },
         'user_stories': [
             {
@@ -316,7 +315,7 @@ async def get_test_generation_status(test_id: UUID4) -> dict:
         raise HTTPException(status_code=500, detail=f"Failed to get test generation status ({response.status_code}): {response.text}")
 
     response_data = response.json()
-    
+
     # If this is a completed response, ensure it has a feature_id
     if response_data.get("status") == "completed" and "feature_id" not in response_data:
         # Get the feature_id from the original test generation request
@@ -327,7 +326,7 @@ async def get_test_generation_status(test_id: UUID4) -> dict:
             original_data = original_response.json()
             if "feature_id" in original_data:
                 response_data["feature_id"] = original_data["feature_id"]
-    
+
     return response_data
 
 
@@ -349,46 +348,29 @@ async def poll_test_generation_status(test_id: UUID4, max_attempts: int = 60, in
             return
 
         elif status == "completed":
+
             if not response.get("results"):
                 logger.error(f"No test results found in response for test {test_id}")
                 return
 
-            # Get the feature_id from the test generation request
-            feature_id = response.get("feature_id")
-            if not feature_id:
-                logger.error(f"No feature_id found in test generation response for test {test_id}")
-                return
-
             created_tests = []
-            for test_case in response["results"]:
+            for _test in response["results"]:
                 try:
-                    # Extract test data from the test case
-                    test_data = {
-                        "feature_id": feature_id,  # Use the feature_id from the response
-                        "name": test_case.get("name"),
-                        "description": test_case.get("description"),
-                        "url": test_case.get("url", ""),
-                        "category": test_case.get("category", "SMOKE"),
-                        "preconditions": test_case.get("preconditions", ""),
-                        "steps": test_case.get("steps", []),
-                        "expected_results": test_case.get("expected_results", []),
-                        "assertions": test_case.get("assertions", []),
-                        "secret_ids": None
-                    }
-
-                    # Validate required fields
-                    required_fields = ["name", "description", "steps", "expected_results", "assertions"]
-                    missing_fields = [field for field in required_fields if not test_data[field]]
-                    if missing_fields:
-                        logger.error(f"Missing required fields in test data: {missing_fields}")
-                        continue
-
-                    # Create the test
                     test = await create_test(
-                        TestCreateSchema(**test_data)
+                        TestCreateSchema(
+                            feature_id=_test["feature_id"],
+                            name=_test["name"],
+                            description=_test["description"],
+                            url=_test["url"],
+                            category=_test["category"],
+                            preconditions=_test["preconditions"],
+                            steps=_test["steps"],
+                            assertions=_test["assertions"],
+                            secret_ids=None,  # TODO: add secret_ids based on what the agent used
+                        )
                     )
                     created_tests.append(test)
-                    logger.info(f"Successfully created test {test.id} for feature {test_data['feature_id']}")
+                    logger.info(f"Successfully created test {test.id} for feature {_test['feature_id']}")
                 except Exception as e:
                     logger.error(f"Failed to create test: {str(e)}")
                     continue
