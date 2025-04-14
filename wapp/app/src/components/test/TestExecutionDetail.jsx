@@ -17,6 +17,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
   useEffect(() => {
     if (execution?.id) {
       fetchBugs();
+      refreshExecution(); // Call once at initialization
 
       // If test is still running, set up auto-refresh
       if (execution.status === 'PENDING') {
