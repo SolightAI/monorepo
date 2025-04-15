@@ -126,11 +126,11 @@ export default function AdminInvitations() {
   const sendInvitationEmail = (invitation) => {
     // In a real implementation, you'd send an API request to trigger an email
     // TODO
-    const subject = 'Welcome to Laneo!';
+    const subject = 'Welcome to Solight!';
     const body = `
       Hello,
 
-      You've been invited to join Laneo. Use the following invitation code to register:
+      You've been invited to join Solight. Use the following invitation code to register:
 
       Invitation Code: ${invitation.code}
 

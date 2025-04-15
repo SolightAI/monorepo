@@ -1,6 +1,6 @@
-# Laneo API
+# Solight API
 
-This is the backend API for the Laneo Application, built with FastAPI and PostgreSQL. It provides endpoints for managing products, epics, features, tests, bugs, and more.
+This is the backend API for the Solight Application, built with FastAPI and PostgreSQL. It provides endpoints for managing products, epics, features, tests, bugs, and more.
 
 ## Architecture
 

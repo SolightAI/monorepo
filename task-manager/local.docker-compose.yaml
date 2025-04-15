@@ -6,6 +6,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./src/:/app/src
+      - ./tests/:/app/tests
       - playwright_browsers:/tmp/playwright-browsers
     ports:
       - "9000:9000"
@@ -21,12 +22,23 @@ services:
       - AWS_SECRET_ACCESS_KEY=minioadmin
       - S3_BUCKET_NAME=task-manager
       - AWS_ENDPOINT_URL=http://minio:9000
+      - PLAYGROUND_URL=http://playground:3000
     networks:
       - default
       - api-tm_shared_network
     depends_on:
       - redis
       - minio
+
+  playground:
+    build:
+      context: tests/playground
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    networks:
+      - default
+      - api-tm_shared_network
 
   redis:
     image: redis:7-alpine

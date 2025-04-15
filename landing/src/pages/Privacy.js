@@ -8,7 +8,7 @@ const Privacy = () => {
       <section className="mb-8">
         <h2 className="text-2xl font-semibold mb-4 text-white">Introduction</h2>
         <p className="mb-4">
-          At Laneo, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform. Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the platform.
+          At Solight, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform. Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the platform.
         </p>
       </section>
 
@@ -80,7 +80,7 @@ const Privacy = () => {
         <p>
           If you have questions or concerns about this Privacy Policy, please contact us at:
           <br />
-          Email: privacy@laneo.ai
+          Email: privacy@solight.ai
         </p>
       </section>
 

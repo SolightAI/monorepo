@@ -12,7 +12,7 @@ const FeatureShowcase = ({ title = "Your Fully Automated QA Agent", hideTitle = 
     {
       icon: Zap,
       title: "Full Website Review",
-      description: "Comprehensive analysis of your entire website to identify issues and opportunities for improvement. Provide a URL and let Laneo do the rest.",
+      description: "Comprehensive analysis of your entire website to identify issues and opportunities for improvement. Provide a URL and let Solight do the rest.",
       detailedDescription: [
         "Automatically scans all pages and user flows",
         "Identifies functional bugs, UI inconsistencies, and performance issues",
@@ -321,7 +321,7 @@ const FeatureShowcase = ({ title = "Your Fully Automated QA Agent", hideTitle = 
                         <path d="M12 2L2 12l10 10 10-10L12 2z" fill="#2684FF" />
                         <path d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z" fill="white" />
                       </svg>
-                      <span className="text-white text-sm font-medium">LANEO-123</span>
+                      <span className="text-white text-sm font-medium">SOLIGHT-123</span>
                     </div>
                     <span className="text-xs bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded">Bug</span>
                   </div>
@@ -350,7 +350,7 @@ const FeatureShowcase = ({ title = "Your Fully Automated QA Agent", hideTitle = 
                         <path d="M12 2L2 12l10 10 10-10L12 2z" fill="#2684FF" />
                         <path d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z" fill="white" />
                       </svg>
-                      <span className="text-white text-sm font-medium">LANEO-123</span>
+                      <span className="text-white text-sm font-medium">SOLIGHT-123</span>
                     </div>
                     <span className="text-xs bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded">Bug</span>
                   </div>
@@ -382,7 +382,7 @@ const FeatureShowcase = ({ title = "Your Fully Automated QA Agent", hideTitle = 
                         <path d="M12 2L2 12l10 10 10-10L12 2z" fill="#2684FF" />
                         <path d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z" fill="white" />
                       </svg>
-                      <span className="text-white text-sm font-medium">LANEO-123</span>
+                      <span className="text-white text-sm font-medium">SOLIGHT-123</span>
                     </div>
                     <span className="text-xs bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded">Bug</span>
                   </div>

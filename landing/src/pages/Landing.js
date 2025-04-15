@@ -102,7 +102,7 @@ export default function Landing() {
                   Elevate Your Product's Quality
                 </h1>
                 <p className="text-lg md:text-xl text-gray-400 mb-8 max-w-xl">
-                  Focus on innovating. Let Laneo's fully automated Quality Assurance agents proactively monitor, audit, and improve your website and app user journeys.
+                  Focus on innovating. Let Solight's fully automated Quality Assurance agents proactively monitor, audit, and improve your website and app user journeys.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <a
@@ -134,7 +134,7 @@ export default function Landing() {
                       <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                       <div className="w-3 h-3 rounded-full bg-green-500"></div>
                     </div>
-                    <div className="mx-auto text-xs text-gray-400">Laneo QA Agent</div>
+                    <div className="mx-auto text-xs text-gray-400">Solight QA Agent</div>
                   </div>
 
                   <div className="space-y-4 min-h-[200px]">
@@ -262,7 +262,7 @@ export default function Landing() {
               {/* Left side - Text content */}
               <div className="text-left">
                 <h2 className="text-3xl md:text-5xl font-bold mb-8 pb-2 bg-gradient-to-r from-white/90 via-white/70 to-white/40 text-transparent bg-clip-text leading-relaxed">
-                  Laneo's QA Agent in Action
+                  Solight's QA Agent in Action
                 </h2>
                 <p className="text-lg text-gray-400 mb-8">
                   Watch how our intelligent QA agent automatically identifies issues, generates test cases, and provides actionable insights to improve your product quality.
@@ -314,7 +314,7 @@ export default function Landing() {
                     setIsVideoPlaying(false);
                   }}
                 >
-                  <source src="https://landing.s3.fr-par.scw.cloud/Introduction%20to%20Laneo%20QA%20Agents.mp4" type="video/mp4" />
+                  <source src="https://landing.s3.fr-par.scw.cloud/Introduction%20to%20Solight%20QA%20Agents.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
 
@@ -350,7 +350,7 @@ export default function Landing() {
                   Ready to Automate Your QA?
                 </h2>
                 <p className="text-gray-400 text-lg mb-12 text-center mx-auto max-w-2xl">
-                  Schedule a personal call with our CEO to discuss how Laneo can transform your QA process and help your team focus on what matters most.
+                  Schedule a personal call with our CEO to discuss how Solight can transform your QA process and help your team focus on what matters most.
                 </p>
 
                 <form
@@ -393,7 +393,7 @@ export default function Landing() {
                     href="https://calendly.com/antoinelevy"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full px-8 py-4 rounded-lg bg-laneo-500 hover:bg-laneo-400 transition-colors text-white font-semibold flex items-center justify-center"
+                    className="w-full px-8 py-4 rounded-lg bg-solight-500 hover:bg-solight-400 transition-colors text-white font-semibold flex items-center justify-center"
                   >
                     <span>Request a Demo</span>
                     <ChevronRight className="ml-2" />
@@ -403,7 +403,7 @@ export default function Landing() {
                     href="/about"
                     className="w-full mt-3 px-6 py-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm text-white text-sm flex items-center justify-center"
                   >
-                    <span>Learn More About Laneo</span>
+                    <span>Learn More About Solight</span>
                   </a>
                 </form>
               </div>

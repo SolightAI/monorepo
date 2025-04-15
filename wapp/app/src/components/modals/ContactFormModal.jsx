@@ -117,7 +117,7 @@ function ContactFormModal({ onClose, prefilledSubject = '', prefilledMessage = '
               </div>
               <h3 className="mt-4 text-xl font-bold text-gray-900">Access Request Confirmed!</h3>
               <p className="mt-3 text-gray-600">
-                A Laneo expert will contact you within 24 hours.
+                A Solight expert will contact you within 24 hours.
               </p>
               <div className="mt-6">
                 <button
@@ -148,7 +148,7 @@ function ContactFormModal({ onClose, prefilledSubject = '', prefilledMessage = '
                 </div> */}
 
                 <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  Why top development teams choose Laneo:
+                  Why top development teams choose Solight:
                 </h3>
 
                 <div className="mb-5 space-y-3">
@@ -270,7 +270,7 @@ function ContactFormModal({ onClose, prefilledSubject = '', prefilledMessage = '
                     )}
                   </button>
                   <p className="mt-2 text-xs text-center text-gray-500">
-                    No credit card required. A Laneo representative will contact you within 24 hours.
+                    No credit card required. A Solight representative will contact you within 24 hours.
                   </p>
                 </div>
               </form>

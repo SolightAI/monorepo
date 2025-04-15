@@ -1,4 +1,4 @@
-# Laneo Application
+# Solight Application
 
 This is a web application for managing test products, tracking bugs, and organizing the testing workflow. The application follows a hierarchical structure of Products -> Epics -> Features -> User Stories -> Acceptance Criteria -> Tests.
 
