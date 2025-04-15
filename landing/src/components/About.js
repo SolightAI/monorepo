@@ -63,7 +63,7 @@ export default function About() {
 
       <div className={`container mx-auto px-4 py-16 relative z-20 transition-all duration-1000 transform ${isIntersecting ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
         {/* Section Title */}
-        <h2 className="text-5xl py-6 font-bold text-center mb-16 bg-gradient-to-r from-white to-laneo-400 text-transparent bg-clip-text">About Us</h2>
+        <h2 className="text-5xl py-6 font-bold text-center mb-16 bg-gradient-to-r from-white to-solight-400 text-transparent bg-clip-text">About Us</h2>
 
         {/* Achievement Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-16">
@@ -72,9 +72,9 @@ export default function About() {
               key={index}
               className="relative group"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-laneo-400/10 to-purple-500/10 rounded-2xl blur-lg group-hover:blur-xl transition-all duration-300 opacity-0 group-hover:opacity-100" />
-              <div className="relative p-8 rounded-2xl border border-white/10 group-hover:border-laneo-400/50 transition-all duration-300 h-full flex flex-col bg-black/30 backdrop-blur-sm">
-                <div className="text-4xl font-bold bg-gradient-to-r from-white to-laneo-400 text-transparent bg-clip-text mb-2 flex items-center">
+              <div className="absolute inset-0 bg-gradient-to-r from-solight-400/10 to-purple-500/10 rounded-2xl blur-lg group-hover:blur-xl transition-all duration-300 opacity-0 group-hover:opacity-100" />
+              <div className="relative p-8 rounded-2xl border border-white/10 group-hover:border-solight-400/50 transition-all duration-300 h-full flex flex-col bg-black/30 backdrop-blur-sm">
+                <div className="text-4xl font-bold bg-gradient-to-r from-white to-solight-400 text-transparent bg-clip-text mb-2 flex items-center">
                   {achievement.link ? (
                     <a href={achievement.link} target="_blank" rel="noopener noreferrer" className="flex items-center hover:underline">
                       {achievement.metric}
@@ -94,7 +94,7 @@ export default function About() {
         <div className="mb-16">
           <div className="relative overflow-hidden rounded-3xl">
             <div className="relative z-10 p-8">
-              <h2 className="text-3xl font-bold text-center mb-12 bg-gradient-to-r from-white to-laneo-400 text-transparent bg-clip-text">Meet the Founders</h2>
+              <h2 className="text-3xl font-bold text-center mb-12 bg-gradient-to-r from-white to-solight-400 text-transparent bg-clip-text">Meet the Founders</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto pb-2">
                 {founders.map((founder, index) => (
                   <a
@@ -104,13 +104,13 @@ export default function About() {
                     rel="noopener noreferrer"
                     className="relative group block cursor-pointer"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-laneo-400/10 to-purple-500/10 rounded-2xl blur-lg group-hover:blur-xl transition-all duration-300 opacity-0 group-hover:opacity-100" />
-                    <div className="relative p-8 rounded-2xl border border-white/10 group-hover:border-laneo-400/50 transition-all duration-300 h-full flex flex-col bg-black/30 backdrop-blur-sm">
-                      <div className="w-32 h-32 rounded-full bg-gray-700 mx-auto mb-6 overflow-hidden ring-2 ring-laneo-400/30 group-hover:ring-laneo-400 transition-all duration-300">
+                    <div className="absolute inset-0 bg-gradient-to-r from-solight-400/10 to-purple-500/10 rounded-2xl blur-lg group-hover:blur-xl transition-all duration-300 opacity-0 group-hover:opacity-100" />
+                    <div className="relative p-8 rounded-2xl border border-white/10 group-hover:border-solight-400/50 transition-all duration-300 h-full flex flex-col bg-black/30 backdrop-blur-sm">
+                      <div className="w-32 h-32 rounded-full bg-gray-700 mx-auto mb-6 overflow-hidden ring-2 ring-solight-400/30 group-hover:ring-solight-400 transition-all duration-300">
                         {founder.image && <img src={founder.image} alt={founder.name} className="w-full h-full object-cover" />}
                       </div>
-                      <h3 className="text-2xl font-bold text-center mb-2 text-white group-hover:text-laneo-400 transition-colors duration-300">{founder.name}</h3>
-                      <p className="text-laneo-400 text-center mb-4">{founder.title}</p>
+                      <h3 className="text-2xl font-bold text-center mb-2 text-white group-hover:text-solight-400 transition-colors duration-300">{founder.name}</h3>
+                      <p className="text-solight-400 text-center mb-4">{founder.title}</p>
                       <p className="text-gray-300 text-center mb-4">{founder.bio}</p>
                     </div>
                   </a>
@@ -123,21 +123,21 @@ export default function About() {
         {/* Our Mission Statement - Now after founders */}
         <div className="mb-16">
           <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-laneo-400/10 to-purple-500/10 rounded-2xl blur-lg group-hover:blur-xl transition-all duration-300 opacity-0 group-hover:opacity-100" />
-            <div className="relative p-8 rounded-2xl border border-white/10 group-hover:border-laneo-400/50 transition-all duration-300 bg-black/30 backdrop-blur-sm">
-              <h3 className="text-3xl font-bold mb-6 bg-gradient-to-r from-white to-laneo-400 text-transparent bg-clip-text text-center">Why We Built Laneo</h3>
+            <div className="absolute inset-0 bg-gradient-to-r from-solight-400/10 to-purple-500/10 rounded-2xl blur-lg group-hover:blur-xl transition-all duration-300 opacity-0 group-hover:opacity-100" />
+            <div className="relative p-8 rounded-2xl border border-white/10 group-hover:border-solight-400/50 transition-all duration-300 bg-black/30 backdrop-blur-sm">
+              <h3 className="text-3xl font-bold mb-6 bg-gradient-to-r from-white to-solight-400 text-transparent bg-clip-text text-center">Why We Built Solight</h3>
               <div className="text-gray-300 text-lg space-y-6 text-left">
                 <p>
                   Customer Experience is how businesses win. As technical moats shrink and customer expectations rise, companies' success depends more than ever on the experience they offer. Yet today, Quality Assurance is slow, manual, and reactive, forcing PMs and engineers to fire-fight instead of innovate.
                 </p>
                 <p>
-                  We're eliminating the Experience Tax, the hidden cost businesses pay for subpar digital experiences. Laneo's Agentic AI is the ultimate weapon against digital disorder, ensuring websites and apps deliver seamless, optimized experiences that drive satisfaction and exponential growth.
+                  We're eliminating the Experience Tax, the hidden cost businesses pay for subpar digital experiences. Solight's Agentic AI is the ultimate weapon against digital disorder, ensuring websites and apps deliver seamless, optimized experiences that drive satisfaction and exponential growth.
                 </p>
                 <p>
                   Our founders, Antoine (ex PM) and Valentin (ex Engineer), left their previous roles after seeing firsthand how much time was spent on QA instead of building.
                 </p>
                 <p>
-                  We are building Laneo, so you can focus on what matters; innovation.
+                  We are building Solight, so you can focus on what matters; innovation.
                 </p>
               </div>
             </div>

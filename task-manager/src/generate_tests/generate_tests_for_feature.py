@@ -431,4 +431,4 @@ async def get_test_generation_status(
 
 # TODO: Test both w/ and w/o the browser-use to see what leads to better results
 # TODO: give access to doc RAD so the agent can ask questions about the product
-# TODO: give a Laneo doc for LLMs (super useful both for cursor and for the QA agent)
+# TODO: give a Solight doc for LLMs (super useful both for cursor and for the QA agent)

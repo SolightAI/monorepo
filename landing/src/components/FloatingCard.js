@@ -33,11 +33,11 @@ const FloatingCard = ({ title, description, icon: Icon, className = '' }) => {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-laneo-400/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-solight-400/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
       <div className="relative z-10">
         {Icon && (
-          <div className="mb-4 text-laneo-400">
+          <div className="mb-4 text-solight-400">
             <Icon size={24} />
           </div>
         )}

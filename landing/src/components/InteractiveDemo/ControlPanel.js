@@ -65,7 +65,7 @@ const ControlPanel = ({
                   className={`px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1.5
                     transition-colors ${
                     simulationMode.name === config.name
-                      ? 'bg-laneo-500 text-white'
+                      ? 'bg-solight-500 text-white'
                       : 'bg-white/10 hover:bg-white/20 text-gray-300'
                   }`}
                 >
@@ -106,7 +106,7 @@ const ControlPanel = ({
                   step="0.1"
                   value={settings.speedMultiplier}
                   onChange={(e) => onSettingsChange({ speedMultiplier: parseFloat(e.target.value) })}
-                  className="w-24 accent-laneo-500"
+                  className="w-24 accent-solight-500"
                 />
                 <span className="text-sm text-gray-400">{settings.speedMultiplier}x</span>
               </div>
@@ -123,7 +123,7 @@ const ControlPanel = ({
                   step="0.1"
                   value={settings.behaviorVariance}
                   onChange={(e) => onSettingsChange({ behaviorVariance: parseFloat(e.target.value) })}
-                  className="w-24 accent-laneo-500"
+                  className="w-24 accent-solight-500"
                 />
                 <span className="text-sm text-gray-400">{Math.round(settings.behaviorVariance * 100)}%</span>
               </div>
@@ -135,7 +135,7 @@ const ControlPanel = ({
                 onClick={onToggleABTesting}
                 className={`p-2 rounded-lg transition-colors flex items-center space-x-2 ${
                   isABTestingEnabled
-                    ? 'bg-laneo-500 text-white'
+                    ? 'bg-solight-500 text-white'
                     : 'bg-white/10 hover:bg-white/20 text-gray-300'
                 }`}
               >
@@ -160,7 +160,7 @@ const ControlPanel = ({
                 onClick={() => setShowSettings(!showSettings)}
                 className={`p-2 rounded-lg transition-colors ${
                   showSettings
-                    ? 'bg-laneo-500 text-white'
+                    ? 'bg-solight-500 text-white'
                     : 'bg-white/10 hover:bg-white/20 text-gray-300'
                 }`}
               >

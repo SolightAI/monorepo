@@ -1,7 +1,7 @@
 /**
  * InteractiveDemo.js
  *
- * This component provides an interactive demonstration of Laneo's AI-powered user behavior simulation platform.
+ * This component provides an interactive demonstration of Solight's AI-powered user behavior simulation platform.
  * It simulates a simplified e-commerce website where users can observe and influence AI-driven customer behaviors
  * in real-time.
  *
@@ -521,7 +521,7 @@ const InteractiveDemo = () => {
             <button
               onClick={() => setShowHeatmap(!showHeatmap)}
               className={`px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1.5
-                ${showHeatmap ? 'bg-laneo-500' : 'bg-white/10'}`}
+                ${showHeatmap ? 'bg-solight-500' : 'bg-white/10'}`}
             >
               <BarChart3 className="w-4 h-4" />
               <span>Heatmap</span>
@@ -529,7 +529,7 @@ const InteractiveDemo = () => {
             <button
               onClick={() => setAbTestActive(!abTestActive)}
               className={`px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1.5
-                ${abTestActive ? 'bg-laneo-500' : 'bg-white/10'}`}
+                ${abTestActive ? 'bg-solight-500' : 'bg-white/10'}`}
             >
               <Layout className="w-4 h-4" />
               <span>A/B Test</span>
@@ -539,7 +539,7 @@ const InteractiveDemo = () => {
           {/* Metrics display */}
           <div className="flex space-x-6">
             <div className="flex items-center space-x-2">
-              <Users className="w-4 h-4 text-laneo-400" />
+              <Users className="w-4 h-4 text-solight-400" />
               <span className="text-sm">{metrics.activeUsers} users</span>
             </div>
             <div className="flex items-center space-x-2">

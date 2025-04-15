@@ -8,11 +8,11 @@ export default function Header() {
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <a href="/" className="text-white font-bold text-lg flex items-center">
           <img
-            src="https://landing.s3.fr-par.scw.cloud/laneo_logo.jpg"
-            alt="Laneo Logo"
+            src="https://laneo-paris-public-media.s3.fr-par.scw.cloud/laneo-paris-public-media/Solight%20Symbol.svg"
+            alt="Solight Logo"
             className="h-9 w-auto mr-2 invert brightness-0"
           />
-          Laneo
+          Solight
         </a>
 
         {/* Mobile menu button */}
@@ -33,10 +33,10 @@ export default function Header() {
 
         {/* Desktop navigation */}
         <nav className="hidden md:flex space-x-8 md:space-x-12 mx-auto">
-          <a href="/" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
-            About Laneo
+          <a href="/" className="text-white hover:text-solight-400 transition-colors font-medium text-base py-1">
+            About Solight
           </a>
-          <a href="/about" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1 px-1 leading-relaxed">
+          <a href="/about" className="text-white hover:text-solight-400 transition-colors font-medium text-base py-1 px-1 leading-relaxed">
             About Us
           </a>
         </nav>
@@ -58,10 +58,10 @@ export default function Header() {
       {isMenuOpen && (
         <div className="md:hidden bg-black/90 py-4">
           <nav className="flex flex-col space-y-4 px-4">
-            <a href="/" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
+            <a href="/" className="text-white hover:text-solight-400 transition-colors font-medium text-base py-1">
               Home
             </a>
-            <a href="/about" className="text-white hover:text-laneo-400 transition-colors font-medium text-base py-1">
+            <a href="/about" className="text-white hover:text-solight-400 transition-colors font-medium text-base py-1">
               About Us
             </a>
             <a

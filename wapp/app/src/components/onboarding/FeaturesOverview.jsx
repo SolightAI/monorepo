@@ -15,7 +15,7 @@ const FeaturesOverview = ({ onNext, onPrev, onSkip }) => {
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-3">What to do next</h2>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Let's explore the main features of Laneo that will help you organize and execute your testing workflow.
+          Let's explore the main features of Solight that will help you organize and execute your testing workflow.
         </p>
       </div>
 

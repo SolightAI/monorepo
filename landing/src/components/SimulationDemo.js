@@ -158,7 +158,7 @@ const SimulationDemo = () => {
       <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent p-4 rounded-t-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Users className="text-laneo-400" />
+            <Users className="text-solight-400" />
             <div>
               <p className="text-sm font-mono">Simulated Users: {userCount}</p>
               <div className="flex items-center space-x-2 text-xs text-gray-400">
@@ -171,7 +171,7 @@ const SimulationDemo = () => {
           </div>
           <button
             onClick={() => setIsSimulating(prev => !prev)}
-            className="px-4 py-2 rounded-full bg-laneo-500/20 hover:bg-laneo-500/30 backdrop-blur-sm
+            className="px-4 py-2 rounded-full bg-solight-500/20 hover:bg-solight-500/30 backdrop-blur-sm
               transition-colors flex items-center space-x-2"
           >
             {isSimulating ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}

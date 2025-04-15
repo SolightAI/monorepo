@@ -192,7 +192,7 @@ export default function Login() {
 
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
         <div>
-          <h1 className="text-5xl font-bold text-center text-gray-900">Laneo</h1>
+          <h1 className="text-5xl font-bold text-center text-gray-900">Solight</h1>
           <h2 className="mt-6 text-center text-2xl font-extrabold text-gray-900">
             {isLoading && "Checking authentication..."}
             {!isLoading && (showForgotPassword ? 'Reset Your Password' : 'Sign in to your account')}

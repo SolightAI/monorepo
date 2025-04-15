@@ -56,7 +56,7 @@ export default function ResetPassword() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
         <div>
-          <h1 className="text-3xl font-bold text-center text-gray-900">Laneo</h1>
+          <h1 className="text-3xl font-bold text-center text-gray-900">Solight</h1>
           <h2 className="mt-6 text-center text-2xl font-extrabold text-gray-900">
             Reset Your Password
           </h2>

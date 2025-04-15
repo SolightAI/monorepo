@@ -265,7 +265,7 @@ export default function Layout() {
               </div>
               <div className="flex-shrink-0 flex items-center ml-4">
                 <Link to="/" className="font-bold text-xl text-gray-800">
-                  Laneo
+                  Solight
                 </Link>
               </div>
             </div>

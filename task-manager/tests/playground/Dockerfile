@@ -16,7 +16,7 @@ RUN npm install
 COPY ./ .
 
 # Define build-time arguments
-ARG REACT_APP_APP_URL=https://app.laneo.io
+ARG REACT_APP_APP_URL=https://app.solight.ai
 ARG REACT_APP_DEMO_INFERENCE_WEBSOCKET_URL
 
 # Build the app for production

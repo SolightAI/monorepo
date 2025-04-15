@@ -48,7 +48,7 @@ class HTTPInvalidTokenError(HTTPException):
 
 
 def _should_be_admin(email: str) -> bool:
-    return email.endswith(os.getenv("ADMIN_EMAIL", "@laneo.io"))
+    return email.endswith(os.getenv("ADMIN_EMAIL", "@solight.ai"))
 
 
 def get_hash(password: str) -> str:

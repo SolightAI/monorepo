@@ -91,7 +91,7 @@ async def oauth_admin_user():
     """Create an admin user specific for OAuth tests"""
     user = await User.create(
         username="OAuth Admin",
-        email="oauth_admin@laneo.io",  # Use admin domain
+        email="oauth_admin@solight.ai",  # Use admin domain
         is_admin=True,
         onboarding_completed=True
     )
