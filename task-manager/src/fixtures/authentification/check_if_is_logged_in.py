@@ -125,7 +125,12 @@ def compare_html_files(file1_content, file2_content):
 
 
 def _parse_result_from_html_diff(result: str) -> bool:
-    return re.search(r"<answer>(USER_AUTHENTICATED|USER_LOGGED_OUT|UNKNOWN)</answer>", result).group(1) == "USER_AUTHENTICATED"
+    match = re.search(r"<answer>(USER_AUTHENTICATED|USER_LOGGED_OUT|UNKNOWN)</answer>", result)
+
+    if match is None:
+        raise ValueError(f"No match found in the result: {result}")
+
+    return match.group(1) == "USER_AUTHENTICATED"
 
 
 async def check_is_logged_in_using_html_diff(
