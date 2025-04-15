@@ -11,7 +11,7 @@ from langchain_core.messages import HumanMessage
 from browser_use import Agent, Browser, BrowserConfig, AgentHistoryList
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from utils.s3_utils import upload_gif_to_s3
-from fixtures.authentification.check_if_is_logged_in import check_is_logged_in
+from fixtures.authentification.check_if_is_logged_in import check_is_logged_in_using_html_diff
 from fixtures.authentification.has_required_secrets import has_required_secrets, LoginMethod, SUPPORTED_LOGIN_METHODS
 from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, TestStatus
 from utils.dto import Test
@@ -161,6 +161,7 @@ async def login_to_website(
     url: str,
     login_method: LoginMethod,
     secrets: dict[str, dict[str, str]],
+    **kwargs: Any,
 ) -> tuple[dict[str, dict[str, str]], AgentHistoryList]:
     """
     Login to the webapp and return the generated cookies.
@@ -200,6 +201,9 @@ async def login_to_website(
         login_methods.append(f"- {LoginMethod.GOOGLE.value}")
     login_methods = "\n".join(login_methods)
 
+    await context.navigate_to(url)  # allowing us to get page html before login
+    content_before_login = await (await context.get_current_page()).content()
+
     extend_agent_history()
 
     agent = Agent(
@@ -215,8 +219,13 @@ async def login_to_website(
 
     try:
         history = await agent.run(max_steps=15)
+
+        await agent.browser_context.navigate_to(url)
+        content_after_login = await (await agent.browser_context.get_current_page()).content()
+
     except Exception as e:
         raise e
+
     finally:
         cookies = await context.session.context.cookies()
         localStorage_data = await context.execute_javascript("""
@@ -236,11 +245,15 @@ async def login_to_website(
 
     logger.info(f"[{task_id}] Checking if agent is logged in")
 
-    is_logged_in = await check_is_logged_in(
-        task_id=task_id,
-        url=url,
-        existing_session=session_data,
-    )
+    if kwargs.get("no_verify", False) is True:
+        logger.info(f"[{task_id}] Skipping verification of login status")
+        is_logged_in = True
+    else:
+        is_logged_in = await check_is_logged_in_using_html_diff(
+            task_id=task_id,
+            before_login_html=content_before_login,
+            after_login_html=content_after_login,
+        )
 
     logger.info(f"[{task_id}] Agent is logged in: {is_logged_in}")
 
