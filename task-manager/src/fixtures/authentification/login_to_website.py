@@ -11,7 +11,7 @@ from langchain_core.messages import HumanMessage
 from browser_use import Agent, Browser, BrowserConfig, AgentHistoryList
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from utils.s3_utils import upload_gif_to_s3
-from fixtures.authentification.check_if_is_logged_in import check_is_logged_in_using_html_diff
+from fixtures.authentification.check_if_is_logged_in import check_is_logged_in
 from fixtures.authentification.has_required_secrets import has_required_secrets, LoginMethod, SUPPORTED_LOGIN_METHODS
 from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, TestStatus
 from utils.dto import Test
@@ -249,10 +249,10 @@ async def login_to_website(
         logger.info(f"[{task_id}] Skipping verification of login status")
         is_logged_in = True
     else:
-        is_logged_in = await check_is_logged_in_using_html_diff(
+        is_logged_in = await check_is_logged_in(
             task_id=task_id,
-            before_login_html=content_before_login,
-            after_login_html=content_after_login,
+            url=url,
+            existing_session=session_data,
         )
 
     logger.info(f"[{task_id}] Agent is logged in: {is_logged_in}")

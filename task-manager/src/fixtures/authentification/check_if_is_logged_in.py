@@ -209,9 +209,10 @@ async def check_is_logged_in(
         context = BrowserContext(browser=browser, config=BrowserContextConfig(
             cookies_file=cookies_file.name,
             minimum_wait_page_load_time=1,
-            maximum_wait_page_load_time=5,
+            maximum_wait_page_load_time=10,
+            wait_for_network_idle_page_load_time=3,
+            wait_between_actions=3,
             viewport_expansion=0,
-            wait_between_actions=0,  # Not an env var cause we want to make sure it's always 0
         ))
 
         # First navigate to the URL to initialize the session
@@ -248,7 +249,7 @@ async def check_is_logged_in(
         )
 
         try:
-            await agent.run(max_steps=0)  # we do not need to run the agent, we just need to refresh the page
+            await agent.run(max_steps=1)
         finally:
             content_after_login = await (await agent.browser_context.get_current_page()).content()
 
