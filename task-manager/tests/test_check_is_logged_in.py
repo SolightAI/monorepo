@@ -8,7 +8,7 @@ from fixtures.authentification.check_if_is_logged_in import check_is_logged_in, 
 TICKPICK_URL = "https://tickpick_dev:tickpick.1@dev.tickpick.com/"
 FARMZZ_URL = "https://www.farmzz.com/"
 MEANDWHO_URL = "https://me.andwho.ai/"
-TECLA_ACADEMY_URL = "https://teclaacademy.com/"
+TECLA_ACADEMY_URL = "https://teclaacademy.com/logins"
 
 BASE_S3_BUCKET = "https://laneo-paris-public-media.s3.fr-par.scw.cloud/tests-media/check_is_logged_in"
 
