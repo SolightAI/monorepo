@@ -153,6 +153,9 @@ async def check_is_logged_in_using_html_diff(
 
     html_diff = compare_html_files(before_login_html, after_login_html)
 
+    if len(html_diff) == 0:
+        return False  # no changes, so the user is not logged in
+
     if len(html_diff) > max_length:
         html_diff = html_diff[-max_length:]
 
