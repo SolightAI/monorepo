@@ -1,51 +1,58 @@
 import os
+import re
 import json
+import difflib
+import asyncio
 
 from typing import Optional
 from logging import getLogger
 from pydantic import SecretStr
 from tempfile import NamedTemporaryFile
 from langchain_openai import AzureChatOpenAI
+from langchain_core.messages import HumanMessage
 from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
-from utils.s3_utils import upload_gif_to_s3
 from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
 
 
-CHECK_LOGIN_PROMPT = """
-You are an AI assistant acting as a test automation engineer. Your task is to determine whether a user is logged in to a specific web application. Here are your instructions:
+USER_AUTHENTICATED = "USER_AUTHENTICATED"
+USER_LOGGED_OUT = "USER_LOGGED_OUT"
+UNKNOWN = "UNKNOWN"
 
-1. Observe the current page and explore the web application if necessary.
 
-2. Determine if the user is logged in based on your observations.
+PROMPT = """
+You will be analyzing an HTML difference to determine if a user has successfully logged in. The HTML difference shows changes between the page before a login attempt and after. Your task is to determine the login status based on this difference.
 
-Important constraints:
-- Do not attempt to log in or sign up yourself.
-- Your role is strictly to observe and report on the current login status.
+Here is the HTML difference:
+<html_diff>
+{{html_diff}}
+</html_diff>
 
-Before providing your final answer, wrap your analysis inside <login_analysis> tags. Consider the following:
-- List specific elements you're looking for that indicate a logged-in state (e.g., user profile picture, personalized content, logout button).
-- List specific elements you're looking for that indicate a logged-out state (e.g., login/signup buttons, "guest" indicators).
-- Describe any user-specific elements you observe or their absence.
-- Note the prominence of login/signup options or their lack thereof.
-- Consider both logged-in and logged-out scenarios and weigh the evidence for each.
+Analyze the HTML difference carefully. Look for changes that might indicate a successful login, such as:
+- The appearance of a "Log out" or "Sign out" button
+- The disappearance of "Log in" or "Sign in" options
+- The presence of a user's name or profile information
+- Changes in navigation menu items that suggest a logged-in state
 
-It's OK for this section to be quite long as you thoroughly analyze the page.
+Also, look for changes that might indicate a failed login attempt, such as the persistence of "Log in" or "Sign in" options or any other element that could hint a authentication status.
 
-After your analysis, provide your final determination in one of these two formats:
-- "User is logged in"
-- "User is not logged in"
+If there are no clear indicators of a login status change, or if the difference is ambiguous, consider this as well.
 
-Example output structure:
+Provide your reasoning within <reasoning> tags. Then, give your final answer within <answer> tags using one of these three options:
+- {USER_AUTHENTICATED}: If the difference clearly indicates the user has successfully logged in
+- {USER_LOGGED_OUT}: If the difference clearly shows the user was already logged in and has now logged out
+- {UNKNOWN}: If the login status cannot be determined from the given difference
 
-<login_analysis>
-[Detailed observations and reasoning about the login status]
-</login_analysis>
-
-[Final determination: "User is logged in" OR "User is not logged in"]
-
-Please proceed with your analysis and determination.
-""".strip()
+Expected output format
+<reasoning>
+[your reasoning process]
+</reasoning>
+<answer>{USER_AUTHENTICATED}/{USER_LOGGED_OUT}/{UNKNOWN}</answer>
+""".strip().format(
+    USER_AUTHENTICATED=USER_AUTHENTICATED,
+    USER_LOGGED_OUT=USER_LOGGED_OUT,
+    UNKNOWN=UNKNOWN,
+)
 
 
 AGENT_CLIENT = AzureChatOpenAI(
@@ -60,10 +67,78 @@ AGENT_CLIENT = AzureChatOpenAI(
 logger = getLogger(__name__)
 
 
-async def check_is_logged_in(
+def clean_html_content(html_content: str) -> str:
+    """
+    Removes the 'd' attribute from SVG path elements and all content within <style> tags
+    in the given HTML string.
+    """
+    # Remove d="..." attribute specifically from path elements
+    pattern_d = r' d=".*?"'
+    cleaned_content = re.sub(pattern_d, '', html_content)
+
+    # Remove <style>...</style> content
+    pattern_style = r'<style.*?>.*?</style>'
+    cleaned_content = re.sub(pattern_style, '', cleaned_content, flags=re.DOTALL)
+
+    # Remove <script>...</script> content
+    pattern_script = r'<script.*?>.*?</script>'
+    cleaned_content = re.sub(pattern_script, '', cleaned_content, flags=re.DOTALL)
+
+    # Remove <iframe>...</iframe> content
+    pattern_iframe = r'<iframe.*?>.*?</iframe>'
+    cleaned_content = re.sub(pattern_iframe, '', cleaned_content, flags=re.DOTALL)
+
+    return cleaned_content
+
+
+def compare_html_files(file1_content, file2_content):
+    """
+    Compare two HTML files after cleaning them and return differences as a string.
+
+    Args:
+        file1_content: Content of the first HTML file
+        file2_content: Content of the second HTML file
+
+    Returns:
+        String containing the differences with prefixes
+    """
+
+    # Clean the HTML content before comparing
+    cleaned_file1_content = clean_html_content(file1_content)
+    cleaned_file2_content = clean_html_content(file2_content)
+
+    # Split content into lines for difflib
+    file1_lines = cleaned_file1_content.splitlines()
+    file2_lines = cleaned_file2_content.splitlines()
+
+    # Compare the cleaned files using unified_diff
+    diff_generator = difflib.unified_diff(
+        file1_lines,
+        file2_lines,
+        n=2,  # Number of context lines
+        lineterm=''  # Don't add newlines to control lines
+    )
+
+    # Join the differences into a single string
+    diff_text = '\n'.join(diff_generator)
+
+    return diff_text
+
+
+def _parse_result_from_html_diff(result: str) -> bool:
+    match = re.search(r"<answer>(USER_AUTHENTICATED|USER_LOGGED_OUT|UNKNOWN)</answer>", result)
+
+    if match is None:
+        raise ValueError(f"No match found in the result: {result}")
+
+    return match.group(1) == "USER_AUTHENTICATED"
+
+
+async def check_is_logged_in_using_html_diff(
     task_id: str,
-    url: str,
-    existing_session: Optional[dict[str, dict[str, str]]],
+    before_login_html: str,
+    after_login_html: str,
+    max_length: int = 100_000,
 ) -> bool:
     """
     Check if the user is still logged in to the webapp
@@ -75,6 +150,48 @@ async def check_is_logged_in(
     Returns:
         True if logged in, False otherwise
     """
+
+    html_diff = compare_html_files(before_login_html, after_login_html)
+
+    if len(html_diff) == 0:
+        return False  # no changes, so the user is not logged in
+
+    if len(html_diff) > max_length:
+        html_diff = html_diff[-max_length:]
+
+    result = AGENT_CLIENT.invoke(
+        [
+            HumanMessage(
+                content=PROMPT.format(html_diff=html_diff)
+            )
+        ]
+    ).content
+
+    logger.info(f"[{task_id}] Login check result: {result}")
+
+    return _parse_result_from_html_diff(result)
+
+
+async def check_is_logged_in(
+    task_id: str,
+    url: str,
+    existing_session: Optional[dict[str, dict[str, str]]],
+    vote_count: int = 1,
+) -> bool:
+    """
+    Check if the user is still logged in to the webapp
+
+    Args:
+        url: The website URL
+        existing_session: The session data to check
+        vote_count: The number of votes to take into account (preferably an odd number)
+
+    Returns:
+        True if logged in, False otherwise
+    """
+
+    if vote_count < 1:
+        raise ValueError("vote_count must be at positive integer")
 
     with NamedTemporaryFile(suffix='_check_login.json', delete=True, mode='w+') as cookies_file:
 
@@ -92,12 +209,15 @@ async def check_is_logged_in(
         context = BrowserContext(browser=browser, config=BrowserContextConfig(
             cookies_file=cookies_file.name,
             minimum_wait_page_load_time=1,
+            maximum_wait_page_load_time=10,
+            wait_for_network_idle_page_load_time=3,
+            wait_between_actions=3,
             viewport_expansion=0,
-            wait_between_actions=0,  # Not an env var cause we want to make sure it's always 0
         ))
 
         # First navigate to the URL to initialize the session
         await context.navigate_to(url)
+        content_before_login = await (await context.get_current_page()).content()
 
         # Apply existing session data if available
         if existing_session is not None:
@@ -119,43 +239,35 @@ async def check_is_logged_in(
                 """ % json.dumps(existing_session["localStorage"])
                 await context.execute_javascript(load_script)
 
-        agent = Agent(
-            task=CHECK_LOGIN_PROMPT,
+        agent = Agent(  # required to refresh the page
+            task="exit immediately",
             llm=AGENT_CLIENT,
             initial_actions=[{'go_to_url': {'url': url}}],
             browser_context=context,
             enable_memory=False,
+            use_vision=True,
         )
 
         try:
-            history = await agent.run(max_steps=5)
-            result = history.final_result()
+            await agent.run(max_steps=1)
         finally:
+            content_after_login = await (await agent.browser_context.get_current_page()).content()
+
+            coroutines = [
+                check_is_logged_in_using_html_diff(
+                    task_id=task_id,
+                    before_login_html=content_before_login,
+                    after_login_html=content_after_login,
+                )
+                for _ in range(vote_count)
+            ]
+
+            results = await asyncio.gather(*coroutines)
+            is_logged_in = sum(results) / len(results) > 0.5
+
             await context.close()
             await browser.close()
 
-        is_logged_in = result is not None and "User is logged in".lower() in result.lower()
         logger.info(f"[{task_id}] Login check result: {'Logged in' if is_logged_in else 'Not logged in'}")
-
-    from browser_use.agent.gif import create_history_gif  # import here to avoid thread blocking
-    with NamedTemporaryFile(suffix='.gif', delete=True) as temp_gif:
-        create_history_gif(
-            task="a",
-            history=history,
-            output_path=temp_gif.name,
-            show_task=False,
-            show_logo=False,
-            show_goals=False
-        )
-
-        # Upload GIF to S3
-        s3_url = upload_gif_to_s3(
-            file_path=temp_gif.name,
-            task_id=task_id,
-            task_type="check_login",
-            task_name=url,
-        )
-        if s3_url:
-            logger.info(f"[{task_id}] Auth Session Generation GIF uploaded to S3: {s3_url}")
 
     return is_logged_in

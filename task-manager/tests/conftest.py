@@ -2,6 +2,9 @@ import sys
 import pytest
 import os
 
+from uuid import uuid4
+
+
 # Environment variables
 PLAYGROUND_URL = os.getenv("PLAYGROUND_URL", "http://localhost:3000")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
@@ -37,3 +40,9 @@ def pytest_generate_tests(metafunc):
 def playground_base_url():
     """Return the base URL of the playground."""
     return PLAYGROUND_URL
+
+
+@pytest.fixture
+def task_id() -> str:
+    """Generate a unique task ID for each test."""
+    return str(uuid4())
