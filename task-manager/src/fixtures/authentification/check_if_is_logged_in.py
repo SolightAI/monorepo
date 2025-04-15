@@ -2,6 +2,7 @@ import os
 import re
 import json
 import difflib
+import asyncio
 
 from typing import Optional
 from logging import getLogger
@@ -172,6 +173,7 @@ async def check_is_logged_in(
     task_id: str,
     url: str,
     existing_session: Optional[dict[str, dict[str, str]]],
+    vote_count: int = 1,
 ) -> bool:
     """
     Check if the user is still logged in to the webapp
@@ -179,10 +181,14 @@ async def check_is_logged_in(
     Args:
         url: The website URL
         existing_session: The session data to check
+        vote_count: The number of votes to take into account (preferably an odd number)
 
     Returns:
         True if logged in, False otherwise
     """
+
+    if vote_count < 1:
+        raise ValueError("vote_count must be at positive integer")
 
     with NamedTemporaryFile(suffix='_check_login.json', delete=True, mode='w+') as cookies_file:
 
@@ -242,11 +248,19 @@ async def check_is_logged_in(
             await agent.run(max_steps=0)  # we do not need to run the agent, we just need to refresh the page
         finally:
             content_after_login = await (await agent.browser_context.get_current_page()).content()
-            is_logged_in = await check_is_logged_in_using_html_diff(
-                task_id=task_id,
-                before_login_html=content_before_login,
-                after_login_html=content_after_login,
-            )
+
+            coroutines = [
+                check_is_logged_in_using_html_diff(
+                    task_id=task_id,
+                    before_login_html=content_before_login,
+                    after_login_html=content_after_login,
+                )
+                for _ in range(vote_count)
+            ]
+
+            results = await asyncio.gather(*coroutines)
+            is_logged_in = sum(results) / len(results) > 0.5
+
             await context.close()
             await browser.close()
 
