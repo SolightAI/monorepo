@@ -19,10 +19,8 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
     error,
     setError,
     isSubmitting,
-    setIsSubmitting,
     selectedSecretIds,
     testCategories,
-    testTypes,
     handleChange,
     handleSecretSelect,
     validateForm

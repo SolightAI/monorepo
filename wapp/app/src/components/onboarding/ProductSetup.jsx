@@ -25,7 +25,6 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
 
   // State for URL validation
   const [validationTaskId, setValidationTaskId] = useState(null);
-  const [validatingProductId, setValidatingProductId] = useState(null);
 
   // States for tracking URL validation success
   const [loginPageFound, setLoginPageFound] = useState(false);
@@ -33,8 +32,6 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
 
   // New states for manual login page entry
   const [loginPageNotFound, setLoginPageNotFound] = useState(false);
-  const [manualLoginUrl, setManualLoginUrl] = useState('');
-  const [isValidatingManual, setIsValidatingManual] = useState(false);
 
   // Update form when organization changes
   useEffect(() => {
@@ -129,7 +126,6 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
       if (response.data && response.data.task_id) {
         // Store the task ID and product ID for validation monitoring
         setValidationTaskId(response.data.task_id);
-        setValidatingProductId(response.data.id);
         console.log("URL validation initiated with task ID:", response.data.task_id);
       }
 
@@ -152,23 +148,6 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
 
   const toggleNewProductForm = () => {
     setShowNewProductForm(!showNewProductForm);
-  };
-
-  // Handle URL update request from validation notification
-  const handleUrlUpdate = (productId) => {
-    // In onboarding, we don't have a way to edit the product directly
-    // So we'll just show a message to the user and allow them to update the URL in the form
-    setError('Please update the URL below and resubmit the form.');
-
-    // Show the URL field prominently
-    document.getElementById('url')?.focus();
-    document.getElementById('url')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  };
-
-  // Close validation notification
-  const handleCloseValidation = () => {
-    setValidationTaskId(null);
-    setValidatingProductId(null);
   };
 
   // Check if URL is valid for testing
@@ -282,51 +261,6 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
       if (intervalId) clearInterval(intervalId);
     };
   }, [validationTaskId]);
-
-  // Handle manual login URL change
-  const handleManualLoginUrlChange = (e) => {
-    setManualLoginUrl(e.target.value);
-  };
-
-  // Validate the manually entered login URL
-  const validateManualLoginUrl = async () => {
-    try {
-      // Ensure URL is valid
-      if (!isValidUrl(manualLoginUrl)) {
-        setError('Please enter a valid URL for the login page');
-        return;
-      }
-
-      setIsValidatingManual(true);
-
-      // Use the main product URL as base for validation, but override loginUrl in the success handler
-      const response = await axios.post(
-        `${API_URL}/products/validate-url/`,
-        { url: formData.url }, // Still validate original URL
-        { withCredentials: true }
-      );
-
-      if (response.data && response.data.task_id) {
-        const taskId = response.data.task_id;
-        console.log("Validation initiated for manual login URL check, task ID:", taskId);
-
-        // Wait for a moment to simulate validation and then set as success
-        setTimeout(() => {
-          // Mark as success and set the manually entered URL
-          setLoginPageFound(true);
-          setDetectedLoginUrl(manualLoginUrl);
-          setLoginPageNotFound(false);
-          setIsValidatingManual(false);
-
-          console.log("Manual login URL accepted:", manualLoginUrl);
-        }, 1500);
-      }
-    } catch (err) {
-      console.error('Error during manual login URL validation:', err);
-      setError('Failed to validate the login page URL. Please try again.');
-      setIsValidatingManual(false);
-    }
-  };
 
   return (
     <div className="p-6 space-y-6">

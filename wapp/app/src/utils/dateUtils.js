@@ -28,19 +28,6 @@ export const formatDate = (dateString, includeTime = false) => {
 };
 
 /**
- * Format a date string to display in a more detailed format
- *
- * @param {string} dateString - ISO date string to format
- * @returns {string} Formatted date string with time
- */
-export const formatDateTime = (dateString) => {
-  if (!dateString) return 'N/A';
-
-  const date = new Date(dateString);
-  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-};
-
-/**
  * Format a date string for charts (month/day)
  *
  * @param {string} dateString - ISO date string to format

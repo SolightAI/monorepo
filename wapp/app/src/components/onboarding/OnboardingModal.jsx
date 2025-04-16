@@ -33,7 +33,7 @@ const OnboardingModal = () => {
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
-        return <WelcomeScreen onNext={nextStep} onSkip={skipOnboarding} />;
+        return <WelcomeScreen onNext={nextStep} />;
       case 1:
         return <ProductHierarchy onNext={nextStep} onPrev={prevStep} onSkip={skipOnboarding} />;
       case 2:

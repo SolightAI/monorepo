@@ -7,7 +7,7 @@ import { API_URL } from '@/constants/api';
 
 const OrganizationMembers = () => {
   const navigate = useNavigate();
-  const { selectedOrganization, fetchOrganizationMembers, addOrganizationMember, updateMemberRole, removeOrganizationMember } = useOrganization();
+  const { selectedOrganization, fetchOrganizationMembers, updateMemberRole, removeOrganizationMember } = useOrganization();
 
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);

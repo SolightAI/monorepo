@@ -12,7 +12,6 @@ const SecretCreation = ({ onNext, onPrev, onSkip }) => {
 
   const [step, setStep] = useState('intro');
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -83,7 +82,6 @@ const SecretCreation = ({ onNext, onPrev, onSkip }) => {
         values: secretValues
       });
 
-      setSuccess(true);
       setStep('success');
     } catch (err) {
       console.error('Error creating secret:', err);
