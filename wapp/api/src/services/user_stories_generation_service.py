@@ -69,8 +69,6 @@ async def generate_user_stories(feature_id: UUID4, background_tasks: Optional[Ba
             "urls": feature.urls,
             "name": feature.name,
             "description": feature.description,
-            "dependents": [],
-            "dependencies": []
         }
     }
 

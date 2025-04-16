@@ -75,8 +75,6 @@ async def generate_acceptance_criteria(feature_id: UUID4, background_tasks: Opti
             "urls": feature.urls,
             "name": feature.name,
             "description": feature.description,
-            "dependents": [],
-            "dependencies": []
         },
         "user_stories": [
             {

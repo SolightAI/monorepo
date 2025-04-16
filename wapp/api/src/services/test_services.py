@@ -38,7 +38,7 @@ async def get_test(test_id: UUID) -> TestModel:
 
 
 async def get_all_tests() -> List[TestModel]:
-    tests = await TestModel.all().prefetch_related("bugs", "test_secrets__secret")
+    tests = await TestModel.all().prefetch_related("test_secrets__secret")
     return tests
 
 
@@ -68,10 +68,6 @@ async def get_tests_by_product_path(url_path: str) -> List[TestModel]:
                 await test.fetch_related("test_secrets__secret")
             tests.extend(feature.tests)
 
-    # Fetch bugs for each test
-    for test in tests:
-        await test.fetch_related("bugs")
-
     return tests
 
 
@@ -85,7 +81,7 @@ async def get_tests_by_feature(feature_id: UUID) -> List[TestModel]:
     Returns:
         List of tests for the feature
     """
-    return await TestModel.filter(feature_id=feature_id).prefetch_related("bugs")
+    return await TestModel.filter(feature_id=feature_id)
 
 
 async def create_test(test: TestCreateSchema) -> TestModel:
@@ -121,7 +117,7 @@ async def update_test_status(test_id: str | UUID, status: TestStatus) -> TestMod
 
 async def delete_test(test_id: str | UUID) -> bool:
     """
-    Delete a test and all its related bugs.
+    Delete a test.
 
     Args:
         test_id: UUID of the test to delete
@@ -132,15 +128,10 @@ async def delete_test(test_id: str | UUID) -> bool:
     Raises:
         HTTPException: If the test was not found
     """
-    test = await TestModel.get_or_none(id=test_id).prefetch_related("bugs")
+    test = await TestModel.get_or_none(id=test_id)
 
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
-
-    # Delete all bugs related to this test
-    from services.bug_services import delete_bug
-    for bug in test.bugs:
-        await delete_bug(bug.id)
 
     # Delete the test
     await test.delete()
@@ -249,8 +240,6 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
             'id': str(feature.id),
             'name': feature.name,
             'description': feature.description,
-            'dependents': [],  # TODO
-            'dependencies': [],  # TODO
             'urls': feature.urls,
             'access_conditions': feature.access_conditions,
         },
@@ -340,8 +329,6 @@ async def poll_test_generation_status(task_id: UUID4, timeout: int = 300, interv
 
         response = await get_test_generation_status(task_id)
         status = response["status"]
-
-        logger.info(f"[{task_id}] ({attempts}/{max_attempts}) Test generation status: {status}")
 
         if status in ["pending", "unknown"]:
             await asyncio.sleep(interval)
@@ -497,7 +484,7 @@ async def get_tests_by_product_id(product_id: UUID4) -> List[TestModel]:
             await feature.fetch_related("tests")
             # Fetch test secrets relation for each test
             for test in feature.tests:
-                await test.fetch_related("test_secrets__secret", "bugs")
+                await test.fetch_related("test_secrets__secret")
             tests.extend(feature.tests)
 
     return tests

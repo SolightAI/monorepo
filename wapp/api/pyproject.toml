@@ -4,25 +4,10 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = [
-    "aerich>=0.8.0",
-    "fastapi[standard]>=0.115.6",
-    "asyncpg>=0.30.0",
-    "itsdangerous>=2.2.0",
-    "passlib>=1.7.4",
-    "pyjwt>=2.10.1",
-    "python-dateutil>=2.9.0.post0",
-    "requests>=2.32.3",
-    "tomlkit>=0.13.2",
-    "tortoise-orm>=0.22.1",
-    "uvicorn>=0.32.1",
-    "cryptography>=44.0.2",
-]
+dependencies = ["aerich>=0.8.0", "fastapi[standard]>=0.115.6", "asyncpg>=0.30.0", "itsdangerous>=2.2.0", "passlib>=1.7.4", "pyjwt>=2.10.1", "python-dateutil>=2.9.0.post0", "requests>=2.32.3", "tomlkit>=0.13.2", "tortoise-orm>=0.22.1", "uvicorn>=0.32.1", "cryptography>=44.0.2"]
 
-[tool.aerich]
-tortoise_orm = "database.database.TORTOISE_ORM"
-location = "./migrations"
-src_folder = "./."
+[project.optional-dependencies]
+test = ["pytest>=7.0.0", "pytest-cov>=3.0.0", "pytest-asyncio>=0.18.0", "factory-boy>=3.2.0", "faker>=13.0.0", "httpx==0.27.2", "python-dotenv>=1.0.0"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -44,26 +29,10 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-filterwarnings = [
-    "ignore:.*'crypt' is deprecated.*:DeprecationWarning:passlib.*",
-]
-markers = [
-    "functional: End-to-end API tests",
-    "integration: Integration tests",
-    "unit: Unit tests",
-    "critical: Critical path tests",
-    "auth: Authentication related tests",
-    "slow: Tests that take longer to execute",
-    "asyncio: Tests that use asyncio"
-]
+filterwarnings = ["ignore:.*'crypt' is deprecated.*:DeprecationWarning:passlib.*"]
+markers = ["functional: End-to-end API tests", "integration: Integration tests", "unit: Unit tests", "critical: Critical path tests", "auth: Authentication related tests", "slow: Tests that take longer to execute", "asyncio: Tests that use asyncio"]
 
-[project.optional-dependencies]
-test = [
-    "pytest>=7.0.0",
-    "pytest-cov>=3.0.0",
-    "pytest-asyncio>=0.18.0",
-    "factory-boy>=3.2.0",
-    "faker>=13.0.0",
-    "httpx==0.27.2",
-    "python-dotenv>=1.0.0",
-]
+[tool.aerich]
+tortoise_orm = "dto.db_config.TORTOISE_ORM"
+location = "./migrations"
+src_folder = "./src"
