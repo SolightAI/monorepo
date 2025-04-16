@@ -25,13 +25,12 @@ import EditFeatureModal from '@/components/modals/EditFeatureModal';
 import AddTestModal from '@/components/modals/AddTestModal';
 import { getStatusIconLarge, formatStatus, getStatusColorClasses } from '@/utils/testExecutionUtils';
 import { formatDate } from '@/utils/dateUtils';
+import { API_URL } from '@/constants/api';
 
 /**
  * Displays all tests in a tabular format with sorting and filtering capabilities
  */
 const TestsTable = () => {
-  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
-
   const [tests, setTests] = useState([]);
   const [filteredTests, setFilteredTests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,14 +44,12 @@ const TestsTable = () => {
   const [selectedEpic, setSelectedEpic] = useState('all'); // Will be updated to first epic when data loads
   const [selectedFeature, setSelectedFeature] = useState('all');
   const [epicFeaturesMap, setEpicFeaturesMap] = useState({});
-  const [loadingEpics, setLoadingEpics] = useState(false);
   const [loadingFeatures, setLoadingFeatures] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
   const [isAddFeatureModalOpen, setIsAddFeatureModalOpen] = useState(false);
   const [isAddTestModalOpen, setIsAddTestModalOpen] = useState(false);
   const [isEditFeatureModalOpen, setIsEditFeatureModalOpen] = useState(false);
   const [selectedFeatureForEdit, setSelectedFeatureForEdit] = useState(null);
-  const [showFeatureActionMenu, setShowFeatureActionMenu] = useState(null); // ID of feature with open action menu
   const [isFeatureDropdownOpen, setIsFeatureDropdownOpen] = useState(false);
   const featureDropdownRef = useRef(null);
   const [isGeneratingTests, setIsGeneratingTests] = useState(false);
@@ -114,7 +111,6 @@ const TestsTable = () => {
 
   const fetchEpicsAndFeatures = async () => {
     try {
-      setLoadingEpics(true);
       setLoadingFeatures(true);
 
       if (!selectedProduct || !selectedOrganization?.id) {
@@ -126,7 +122,6 @@ const TestsTable = () => {
         });
         setEpics([]);
         setFeatures([]);
-        setLoadingEpics(false);
         setLoadingFeatures(false);
         return;
       }
@@ -177,7 +172,6 @@ const TestsTable = () => {
       setEpics([]);
       setFeatures([]);
     } finally {
-      setLoadingEpics(false);
       setLoadingFeatures(false);
     }
   };
@@ -310,18 +304,6 @@ const TestsTable = () => {
       handleFetchError('load tests data', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleEpicChange = (epicId) => {
-    setSelectedEpic(epicId);
-    if (epicId === 'all') {
-      setSelectedFeature('all');
-      // Refresh tests with product ID
-      fetchTestsByProduct(selectedProduct.id);
-    } else {
-      // Get tests for the epic using the centralized fetch function
-      fetchTestsWithCurrentFilters();
     }
   };
 
@@ -888,7 +870,6 @@ const TestsTable = () => {
   const handleEditFeature = (feature) => {
     setSelectedFeatureForEdit(feature);
     setIsEditFeatureModalOpen(true);
-    setShowFeatureActionMenu(null); // Close the menu
   };
 
   // Function to handle feature deletion
@@ -933,7 +914,6 @@ const TestsTable = () => {
       setSuccessMessage(null);
     } finally {
       setLoading(false);
-      setShowFeatureActionMenu(null); // Close the menu
     }
   };
 
@@ -961,15 +941,6 @@ const TestsTable = () => {
     // Close the modal
     setIsEditFeatureModalOpen(false);
     setSelectedFeatureForEdit(null);
-  };
-
-  // Function to toggle feature action menu
-  const toggleFeatureActionMenu = (featureId) => {
-    if (showFeatureActionMenu === featureId) {
-      setShowFeatureActionMenu(null);
-    } else {
-      setShowFeatureActionMenu(featureId);
-    }
   };
 
   // Close feature dropdown when clicking outside
@@ -1177,33 +1148,6 @@ const TestsTable = () => {
                 <option value="blocked">Blocked</option>
               </select>
             </div>
-
-            {/* Epic filter */}
-        {/* <div className="relative w-full sm:w-64">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Layers size={18} className="text-gray-400" />
-              </div>
-              <select
-                value={selectedEpic}
-                onChange={(e) => handleEpicChange(e.target.value)}
-                disabled={loadingEpics}
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
-              >
-            <option value="all">{loadingEpics ? 'Loading epics...' : 'All Epics'}</option>
-            {Array.isArray(epics) && epics.length > 0 ? (
-              epics.map(epic => {
-                console.log('Rendering epic option:', epic);
-                return (
-                  <option key={epic.id} value={epic.id}>
-                    {epic.name || 'Unnamed Epic'}
-                  </option>
-                );
-              })
-            ) : (
-              <option value="" disabled>No epics available</option>
-            )}
-              </select>
-        </div> */}
 
         {/* Feature filter and Add Feature button group */}
         <div className="flex flex-col md:flex-row w-full gap-2">

@@ -3,9 +3,7 @@ import axios from "axios"
 import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
 import useTestForm from '@/hooks/useTestForm';
 import TestForm from '@/components/forms/TestForm';
-
-// Base API URL
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+import { API_URL } from '@/constants/api';
 
 function AddTestModal({ onClose, onAddTest, criteriaId }) {
   // Real data states for context
@@ -21,10 +19,8 @@ function AddTestModal({ onClose, onAddTest, criteriaId }) {
     error,
     setError,
     isSubmitting,
-    setIsSubmitting,
     selectedSecretIds,
     testCategories,
-    testTypes,
     handleChange,
     handleSecretSelect,
     validateForm

@@ -5,7 +5,6 @@ import { useAuth } from '@/context/AuthContext';
 
 const OrganizationSetup = ({ onNext, onPrev, onSkip }) => {
   const { createOrganization, organizations } = useOrganization();
-  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     description: '',

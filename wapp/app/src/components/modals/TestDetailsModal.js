@@ -66,15 +66,6 @@ const LastTestExecution = ({ execution, onExecutionSelect }) => {
                     : 'In progress'
                 }
               </td>
-              <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
-                {execution.bugs_count > 0 ? (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                    {execution.bugs_count} {execution.bugs_count === 1 ? 'bug' : 'bugs'}
-                  </span>
-                ) : (
-                  <span className="text-gray-500">None</span>
-                )}
-              </td>
             </tr>
           </tbody>
         </table>
@@ -182,33 +173,6 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [handleClose]);
-
-  // Format date for display
-  const formatDateTime = (dateString) => {
-    if (!dateString) return 'Not yet';
-
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-  };
-
-  // Calculate duration between dates
-  const getDuration = (startDate, endDate) => {
-    if (!startDate || !endDate) return 'N/A';
-
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const durationMs = end - start;
-
-    // Format duration
-    const seconds = Math.floor(durationMs / 1000);
-    if (seconds < 60) return `${seconds}s`;
-
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
-
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
-  };
 
   // Handle test execution created
   const handleTestExecutionCreated = (execution) => {

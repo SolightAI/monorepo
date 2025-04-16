@@ -155,33 +155,6 @@ function TestDetails({ test, onClose }) {
           </div>
         )}
 
-        {test.bugs && test.bugs.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Bugs Found ({test.bugs.length})</h3>
-            <div className="space-y-4">
-              {test.bugs.map((bug, index) => (
-                <div key={index} className="bg-red-50 p-4 rounded-lg border border-red-200">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-medium text-red-800">{bug.name}</h4>
-                    <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">{bug.severity}</span>
-                  </div>
-                  <p className="text-gray-700 mb-2">{bug.description}</p>
-                  {bug.screenshot && (
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500 mb-1">Screenshot:</p>
-                      <img
-                        src={bug.screenshot || "/placeholder.svg"}
-                        alt={`Bug screenshot: ${bug.name}`}
-                        className="border border-gray-200 rounded-md max-w-full h-auto"
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="mt-8 flex justify-end space-x-3">
           <button className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg" onClick={onClose}>
             Close

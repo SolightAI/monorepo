@@ -1,7 +1,7 @@
 import React from 'react';
-import { ArrowRight, Check, Search, Activity, Lock } from 'lucide-react';
+import { ArrowRight, Check, Search, Lock } from 'lucide-react';
 
-const WelcomeScreen = ({ onNext, onSkip }) => {
+const WelcomeScreen = ({ onNext }) => {
   return (
     <div className="p-6 space-y-6">
       <div className="text-center mb-8">
@@ -22,11 +22,6 @@ const WelcomeScreen = ({ onNext, onSkip }) => {
           icon={<Check className="h-8 w-8 text-green-500" />}
           title="Comprehensive Test Management"
           description="Create, track, and manage tests with detailed steps, expected results, and actual outcomes"
-        />
-        <FeatureCard
-          icon={<Activity className="h-8 w-8 text-purple-500" />}
-          title="Bug Tracking and Reporting"
-          description="Track bugs with severity levels, screenshots, and link them directly to failed tests"
         />
         <FeatureCard
           icon={<Lock className="h-8 w-8 text-amber-500" />}

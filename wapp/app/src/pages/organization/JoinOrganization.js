@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { XCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+import { API_URL } from '@/constants/api';
 
 const JoinOrganization = () => {
   const { code } = useParams();

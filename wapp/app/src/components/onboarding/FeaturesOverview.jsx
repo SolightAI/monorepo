@@ -30,15 +30,6 @@ const FeaturesOverview = ({ onNext, onPrev, onSkip }) => {
         />
 
         <FeatureCard
-          title="Bug Tracking"
-          icon={<BugPlay className="h-6 w-6 text-red-500" />}
-          description="Log bugs with severity levels, screenshots, and detailed descriptions. Link bugs directly to failed tests for easy traceability."
-          links={[
-            { label: "View Bugs", path: "/bugs" }
-          ]}
-        />
-
-        <FeatureCard
           title="Secure Test Credential Management"
           icon={<Key className="h-6 w-6 text-purple-500" />}
           description="Safely store and manage test credentials and sensitive information with encrypted storage and controlled access."

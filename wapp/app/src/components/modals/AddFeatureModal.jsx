@@ -4,9 +4,7 @@ import { X, AlertCircle } from 'lucide-react';
 import { getModalContainerProps, getModalContentProps } from '@/utils/modalUtils';
 import useFeatureForm from '@/hooks/useFeatureForm';
 import FeatureForm from '@/components/forms/FeatureForm';
-
-// Base API URL
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+import { API_URL } from '@/constants/api';
 
 const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
   const {

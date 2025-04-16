@@ -3,12 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/context/OrganizationContext';
 import axios from 'axios';
 import { Users, Mail, CheckCircle2, XCircle, UserPlus, ChevronLeft, Copy } from 'lucide-react';
-
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+import { API_URL } from '@/constants/api';
 
 const OrganizationMembers = () => {
   const navigate = useNavigate();
-  const { selectedOrganization, fetchOrganizationMembers, addOrganizationMember, updateMemberRole, removeOrganizationMember } = useOrganization();
+  const { selectedOrganization, fetchOrganizationMembers, updateMemberRole, removeOrganizationMember } = useOrganization();
 
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);

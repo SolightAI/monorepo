@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
-import { Menu, Key } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useProduct } from "@/context/ProductContext";
 import { useOrganization } from "@/context/OrganizationContext";
 import { useAuth } from "@/context/AuthContext";

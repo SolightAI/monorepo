@@ -106,26 +106,26 @@ export const OrganizationProvider = ({ children }) => {
     if (selectedOrganization && selectedOrganization.id === organization.id) {
       return;
     }
-    
+
     // Store the previous organization for event
     const previousOrganization = selectedOrganization;
-    
+
     // Update state and localStorage
     setSelectedOrganization(organization);
     localStorage.setItem('selectedOrganizationId', organization.id);
-    
+
     // Remove product selection when organization changes
     localStorage.removeItem('selectedProductId');
-    
+
     // Dispatch custom event for organization change
-    const event = new CustomEvent(ORGANIZATION_CHANGED_EVENT, { 
-      detail: { 
-        organization, 
-        previousOrganization 
-      } 
+    const event = new CustomEvent(ORGANIZATION_CHANGED_EVENT, {
+      detail: {
+        organization,
+        previousOrganization
+      }
     });
     window.dispatchEvent(event);
-    
+
     console.log(`Organization changed to: ${organization.name}`);
   }, [selectedOrganization]);
 
@@ -187,19 +187,6 @@ export const OrganizationProvider = ({ children }) => {
     }
   }, []);
 
-  // Function to add a member to an organization
-  const addOrganizationMember = useCallback(async (organizationId, memberData) => {
-    try {
-      const response = await axios.post(`${API_URL}/organizations/${organizationId}/members`, memberData, {
-        withCredentials: true
-      });
-      return response.data;
-    } catch (err) {
-      console.error('Error adding organization member:', err);
-      throw err;
-    }
-  }, []);
-
   // Function to update a member's role
   const updateMemberRole = useCallback(async (organizationId, userId, roleData) => {
     try {
@@ -244,7 +231,6 @@ export const OrganizationProvider = ({ children }) => {
         updateOrganization,
         deleteOrganization,
         fetchOrganizationMembers,
-        addOrganizationMember,
         updateMemberRole,
         removeOrganizationMember
       }}

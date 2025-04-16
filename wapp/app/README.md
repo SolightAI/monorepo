@@ -1,6 +1,6 @@
 # Solight Application
 
-This is a web application for managing test products, tracking bugs, and organizing the testing workflow. The application follows a hierarchical structure of Products -> Epics -> Features -> User Stories -> Acceptance Criteria -> Tests.
+This is a web application for managing test products, and organizing the testing workflow. The application follows a hierarchical structure of Products -> Epics -> Features -> User Stories -> Acceptance Criteria -> Tests.
 
 ## Architecture
 
@@ -42,7 +42,6 @@ The application is structured as follows:
   - UserStory - Description of a user need
   - AcceptanceCriteria - Specific conditions for a user story
   - Test - Actual tests associated with acceptance criteria
-  - Bug - Issues detected during testing
   - TestCredential - Manages encrypted credentials for testing
   - TestCredentialValue - Individual encrypted values within a secret
   - TestCredentialAccess - Logs access to secrets for audit purposes
@@ -57,7 +56,6 @@ The application is structured as follows:
   - `/user-stories` - User story management
   - `/acceptance-criteria` - Acceptance criteria management
   - `/tests` - Test management
-  - `/bugs` - Bug reporting and tracking
   - `/secrets` - TestCredential management for test credentials
   - `/dashboard` - Dashboard data endpoints
 

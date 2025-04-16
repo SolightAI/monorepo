@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Server, Calendar } from 'lucide-react';
 import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus } from '@/utils/testExecutionUtils';
 
@@ -98,7 +98,6 @@ const TestExecutionHistory = ({ executions = [], isLoading = false, error = null
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Environment</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Executor</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Bugs</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -140,15 +139,6 @@ const TestExecutionHistory = ({ executions = [], isLoading = false, error = null
                         ? 'Completed'
                         : 'In progress'
                     }
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">
-                    {execution.bugs_count > 0 ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                        {execution.bugs_count} {execution.bugs_count === 1 ? 'bug' : 'bugs'}
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">None</span>
-                    )}
                   </td>
                 </tr>
               );

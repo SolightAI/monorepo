@@ -4,8 +4,7 @@ import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import { isValidUrl } from '@/utils/urlUtils';
 import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+import { API_URL } from '@/constants/api';
 
 const ProductSetup = ({ onNext, onPrev, onSkip }) => {
   const { products, refreshProducts } = useProduct();
@@ -26,16 +25,13 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
 
   // State for URL validation
   const [validationTaskId, setValidationTaskId] = useState(null);
-  const [validatingProductId, setValidatingProductId] = useState(null);
 
   // States for tracking URL validation success
   const [loginPageFound, setLoginPageFound] = useState(false);
   const [detectedLoginUrl, setDetectedLoginUrl] = useState('');
-  
+
   // New states for manual login page entry
   const [loginPageNotFound, setLoginPageNotFound] = useState(false);
-  const [manualLoginUrl, setManualLoginUrl] = useState('');
-  const [isValidatingManual, setIsValidatingManual] = useState(false);
 
   // Update form when organization changes
   useEffect(() => {
@@ -60,7 +56,7 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
       ...prev,
       [name]: value
     }));
-    
+
     // When URL field changes in loginPageNotFound state, consider it a manual URL entry
     if (name === 'url' && loginPageNotFound && isValidUrl(value)) {
       // We'll treat this as the login URL
@@ -125,12 +121,11 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
       // Update state for success
       setCreateSuccess(true);
       await refreshProducts(selectedOrganization.id);
-      
+
       // Check if the response contains a task_id for URL validation
       if (response.data && response.data.task_id) {
         // Store the task ID and product ID for validation monitoring
         setValidationTaskId(response.data.task_id);
-        setValidatingProductId(response.data.id);
         console.log("URL validation initiated with task ID:", response.data.task_id);
       }
 
@@ -155,23 +150,6 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
     setShowNewProductForm(!showNewProductForm);
   };
 
-  // Handle URL update request from validation notification
-  const handleUrlUpdate = (productId) => {
-    // In onboarding, we don't have a way to edit the product directly
-    // So we'll just show a message to the user and allow them to update the URL in the form
-    setError('Please update the URL below and resubmit the form.');
-    
-    // Show the URL field prominently
-    document.getElementById('url')?.focus();
-    document.getElementById('url')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  };
-  
-  // Close validation notification
-  const handleCloseValidation = () => {
-    setValidationTaskId(null);
-    setValidatingProductId(null);
-  };
-
   // Check if URL is valid for testing
   const validateUrl = async (url) => {
     try {
@@ -179,21 +157,21 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
       if (validationTaskId || loginPageFound) {
         return false;
       }
-      
+
       if (!isValidUrl(url)) {
         return false;
       }
-      
+
       // Reset not found state when starting a new validation
       setLoginPageNotFound(false);
-      
+
       // Direct validation of URL without creating a product
       const response = await axios.post(
         `${API_URL}/products/validate-url/`,
         { url },
         { withCredentials: true }
       );
-      
+
       if (response.data && response.data.task_id) {
         // Store the task ID for validation monitoring
         setValidationTaskId(response.data.task_id);
@@ -206,7 +184,7 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
       return false;
     }
   };
-  
+
   // Handle URL field blur - validate URL when user finishes typing
   const handleUrlBlur = async (e) => {
     const url = e.target.value;
@@ -231,7 +209,7 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
         `${API_URL}/products/url-validation-status/${taskId}`,
         { withCredentials: true }
       );
-      
+
       // If validation is completed
       if (response.data && response.data.status === 'completed') {
         // If login page was found
@@ -240,11 +218,11 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
           setDetectedLoginUrl(response.data.results.login_url || '');
           // Clear the task ID since validation is complete and successful
           setValidationTaskId(null);
-          
+
           // Reset the not found state if it was previously set
           setLoginPageNotFound(false);
           return true;
-        } 
+        }
         // If login page was not found
         else {
           // Mark as not found and clear task ID
@@ -262,11 +240,11 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
       return false;
     }
   };
-  
+
   // Poll for validation results when taskId is available
   useEffect(() => {
     if (!validationTaskId) return;
-    
+
     let intervalId;
     const pollValidation = () => {
       intervalId = setInterval(async () => {
@@ -276,58 +254,13 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
         }
       }, 5000); // Check every 5 seconds
     };
-    
+
     pollValidation();
-    
+
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
   }, [validationTaskId]);
-
-  // Handle manual login URL change
-  const handleManualLoginUrlChange = (e) => {
-    setManualLoginUrl(e.target.value);
-  };
-  
-  // Validate the manually entered login URL
-  const validateManualLoginUrl = async () => {
-    try {
-      // Ensure URL is valid
-      if (!isValidUrl(manualLoginUrl)) {
-        setError('Please enter a valid URL for the login page');
-        return;
-      }
-      
-      setIsValidatingManual(true);
-      
-      // Use the main product URL as base for validation, but override loginUrl in the success handler
-      const response = await axios.post(
-        `${API_URL}/products/validate-url/`,
-        { url: formData.url }, // Still validate original URL
-        { withCredentials: true }
-      );
-      
-      if (response.data && response.data.task_id) {
-        const taskId = response.data.task_id;
-        console.log("Validation initiated for manual login URL check, task ID:", taskId);
-        
-        // Wait for a moment to simulate validation and then set as success
-        setTimeout(() => {
-          // Mark as success and set the manually entered URL
-          setLoginPageFound(true);
-          setDetectedLoginUrl(manualLoginUrl);
-          setLoginPageNotFound(false);
-          setIsValidatingManual(false);
-          
-          console.log("Manual login URL accepted:", manualLoginUrl);
-        }, 1500);
-      }
-    } catch (err) {
-      console.error('Error during manual login URL validation:', err);
-      setError('Failed to validate the login page URL. Please try again.');
-      setIsValidatingManual(false);
-    }
-  };
 
   return (
     <div className="p-6 space-y-6">
@@ -527,9 +460,9 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                               {detectedLoginUrl && (
                                 <div className="mt-1 flex items-center text-sm text-green-700">
                                   <LinkIcon className="h-4 w-4 mr-1 flex-shrink-0" />
-                                  <a 
-                                    href={detectedLoginUrl} 
-                                    target="_blank" 
+                                  <a
+                                    href={detectedLoginUrl}
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     className="underline hover:text-green-800"
                                   >
@@ -635,13 +568,13 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                     <ArrowLeft className="mr-2 h-5 w-5" />
                     Back
                   </button>
-                  
+
                   <button
                     type="submit"
                     disabled={isLoading || (validationTaskId && !loginPageFound)}
-                    className={`px-5 py-2 rounded-md flex items-center 
-                      ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 
-                        loginPageFound ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'} 
+                    className={`px-5 py-2 rounded-md flex items-center
+                      ${isLoading ? 'bg-gray-400 cursor-not-allowed' :
+                        loginPageFound ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}
                       text-white transition-colors`}
                   >
                     {isLoading ? (
@@ -786,9 +719,9 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                         {detectedLoginUrl && (
                           <div className="mt-1 flex items-center text-sm text-green-700">
                             <LinkIcon className="h-4 w-4 mr-1 flex-shrink-0" />
-                            <a 
-                              href={detectedLoginUrl} 
-                              target="_blank" 
+                            <a
+                              href={detectedLoginUrl}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className="underline hover:text-green-800"
                             >
@@ -900,9 +833,9 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
             <button
               type="submit"
               disabled={isLoading || (validationTaskId && !loginPageFound)}
-              className={`px-5 py-2 rounded-md flex items-center 
-                ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 
-                  loginPageFound ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'} 
+              className={`px-5 py-2 rounded-md flex items-center
+                ${isLoading ? 'bg-gray-400 cursor-not-allowed' :
+                  loginPageFound ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}
                 text-white transition-colors`}
             >
               {isLoading ? (

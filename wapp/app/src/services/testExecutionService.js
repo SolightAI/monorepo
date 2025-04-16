@@ -1,7 +1,5 @@
 import axios from 'axios';
-
-// Base API URL
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+import { API_URL } from '@/constants/api';
 
 /**
  * Get all executions for a specific test
@@ -79,24 +77,6 @@ export const updateTestExecution = async (executionId, updateData) => {
     return response.data;
   } catch (error) {
     console.error(`Error updating test execution ${executionId}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Get bugs found during a specific test execution
- *
- * @param {string} executionId - The UUID of the test execution
- * @returns {Promise<Array>} Promise with the bugs data
- */
-export const getBugsByTestExecution = async (executionId) => {
-  try {
-    const response = await axios.get(`${API_URL}/bugs/by-test-execution/${executionId}`, {
-      withCredentials: true
-    });
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching bugs for test execution ${executionId}:`, error);
     throw error;
   }
 };

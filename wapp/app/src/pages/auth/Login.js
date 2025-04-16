@@ -23,7 +23,7 @@ export default function Login() {
   const [showInviteCode, setShowInviteCode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login: authLogin, error: authError, isAuthenticated, handleGoogleCallback, logout } = useAuth();
+  const { login: authLogin, error: authError, isAuthenticated, logout } = useAuth();
   const authChecked = useRef(false);
 
   const fetchGoogleAuthUrl = useCallback(async (codeOverride = null) => {

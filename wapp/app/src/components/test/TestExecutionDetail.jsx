@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Server, Calendar, Clock, File, Image, Link2, ArrowLeft } from 'lucide-react';
-import { getBugsByTestExecution, getTestExecution } from '@/services/testExecutionService';
+import { getTestExecution } from '@/services/testExecutionService';
 import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatExecutionDuration, formatStatus, getStatusColorClasses } from '@/utils/testExecutionUtils';
 import PropTypes from 'prop-types';
 
@@ -9,14 +9,10 @@ import PropTypes from 'prop-types';
  */
 const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
   const [execution, setExecution] = useState(initialExecution);
-  const [bugs, setBugs] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const refreshingRef = useRef(false);
 
   useEffect(() => {
     if (execution?.id) {
-      fetchBugs();
       refreshExecution(); // Call once at initialization
 
       // If test is still running, set up auto-refresh
@@ -31,19 +27,6 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
   useEffect(() => {
     setExecution(initialExecution);
   }, [initialExecution]);
-
-  const fetchBugs = async () => {
-    try {
-      setLoading(true);
-      const data = await getBugsByTestExecution(execution.id);
-      setBugs(data);
-    } catch (err) {
-      console.error('Error fetching bugs:', err);
-      setError('Failed to load bugs for this execution.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const refreshExecution = async () => {
     // Prevent concurrent refresh calls
@@ -72,30 +55,6 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
     const { icon } = getStatusInfo(status);
     // Make the icon bigger for the header
     return React.cloneElement(icon, { size: 20 });
-  };
-
-  // Get background color based on execution status
-  const getStatusColor = (status) => {
-    switch (status?.toUpperCase()) {
-      case 'PASSED':
-        return 'bg-green-50 border-green-200';
-      case 'FAILED':
-        return 'bg-red-50 border-red-200';
-      case 'ERROR':
-        return 'bg-red-50 border-red-200';
-      case 'PENDING':
-        return 'bg-yellow-50 border-yellow-200';
-      case 'BLOCKED':
-        return 'bg-orange-50 border-orange-200';
-      case 'SKIPPED':
-        return 'bg-blue-50 border-blue-200';
-      case 'AGENT_LIMITATION':
-        return 'bg-purple-50 border-purple-200';
-      case 'UNEXISTING_FEATURE':
-        return 'bg-amber-50 border-amber-200';
-      default:
-        return 'bg-gray-50 border-gray-200';
-    }
   };
 
   if (!execution) {
@@ -209,65 +168,6 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
           </div>
         </div>
       )}
-
-      {/* Bugs section */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">
-          Bugs Found ({bugs.length})
-        </h3>
-
-        {loading ? (
-          <div className="flex justify-center items-center p-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
-            <span className="ml-2">Loading bugs...</span>
-          </div>
-        ) : error ? (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-            <p>{error}</p>
-          </div>
-        ) : bugs.length === 0 && execution.status !== 'PENDING' ? (
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-gray-700">
-            <p>No bugs were found during this test execution.</p>
-          </div>
-        ) : execution.status === 'PENDING' ? (
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-700">
-            <p>Waiting for test execution to complete...</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {bugs.map((bug) => (
-              <div key={bug.id} className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex justify-between">
-                  <h4 className="font-semibold text-red-800">{bug.name}</h4>
-                  <span className="px-2 py-0.5 bg-red-100 text-red-800 rounded-full text-xs">
-                    {bug.severity}
-                  </span>
-                </div>
-                <p className="mt-2 text-gray-700">{bug.description}</p>
-                {bug.screenshots && bug.screenshots.length > 0 && (
-                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {bug.screenshots.map((screenshot, idx) => (
-                      <a
-                        key={idx}
-                        href={screenshot}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block"
-                      >
-                        <img
-                          src={screenshot}
-                          alt={`Bug ${bug.id} screenshot ${idx}`}
-                          className="border border-red-200 rounded w-full h-auto"
-                        />
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* Logs section */}
       {(execution.tracing || execution.status === 'PENDING') && (
