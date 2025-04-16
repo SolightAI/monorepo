@@ -578,14 +578,6 @@ const TestsTable = () => {
             delete updated[testId];
             return updated;
           });
-
-          // Display brief status message
-          const statusMessage = normalizedStatus === 'PASSED'
-            ? `Test execution completed successfully with status: ${formatStatus(normalizedStatus)}`
-            : `Test execution completed with status: ${formatStatus(normalizedStatus)}`;
-
-          setSuccessMessage(statusMessage);
-          setTimeout(() => setSuccessMessage(null), 3000);
         }
       } catch (err) {
         console.error(`Error polling test execution status for ${executionId}:`, err);

@@ -41,7 +41,7 @@ jobs:
       MEANDWHO_USERNAME: ${{ secrets.MEANDWHO_USERNAME }}
       MEANDWHO_PASSWORD: ${{ secrets.MEANDWHO_PASSWORD }}
       S3_BUCKET_NAME: task-manager-github-actions
-      AWS_ENDPOINT_URL: https://minio-n0ooc44wsgk0kkkwoksw48ck.34.155.147.62.sslip.io
+      AWS_ENDPOINT_URL: https://minio.internal.solight.ai/browser/task-manager-github-actions
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       # Create unique identifiers for this run
