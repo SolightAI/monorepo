@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status, BackgroundTasks
 from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestStatus, TestUpdate as TestUpdateSchema, TestSecretCreate, TestSecret, TestExecution as TestExecutionSchema
 from services.test_execution_services import get_test_executions_by_test
 from services.test_services import (
@@ -111,7 +111,8 @@ async def delete_test_endpoint(test_id: UUID4) -> dict:
 @router.post("/generate")
 async def generate_test(
     feature_id: UUID4,
-    current_user: User = Depends(get_current_user_dependency)
+    current_user: User = Depends(get_current_user_dependency),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ) -> dict:
     """
     Generate tests for a feature.
@@ -139,6 +140,10 @@ async def generate_test(
 
         # Trigger test generation
         response_data = await trigger_test_generation(feature_id=feature_id)
+        background_tasks.add_task(
+            poll_test_generation_status,
+            task_id=response_data["task_id"],
+        )
         return response_data
 
     except HTTPException as e:
@@ -159,16 +164,7 @@ async def get_generate_test_status_endpoint(task_id: UUID4) -> dict:
     Returns:
         A dictionary containing the status of the task and any results if completed
     """
-    # Get the current status
-    status_response = await get_test_generation_status(task_id)
-
-    # If the status is completed, poll for the final results
-    if status_response.get("status") == "completed":
-        await poll_test_generation_status(task_id)
-        # Get the final status after polling
-        status_response = await get_test_generation_status(task_id)
-
-    return status_response
+    return await get_test_generation_status(task_id)
 
 
 @router.post("/{test_id}/secrets", response_model=TestSecret, status_code=status.HTTP_201_CREATED)

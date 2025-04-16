@@ -330,27 +330,31 @@ async def get_test_generation_status(test_id: UUID4) -> dict:
     return response_data
 
 
-async def poll_test_generation_status(test_id: UUID4, max_attempts: int = 60, interval: int = 1) -> None:
+async def poll_test_generation_status(task_id: UUID4, timeout: int = 300, interval: float = 0.5) -> None:
     attempts = 0
+
+    max_attempts = timeout / interval
 
     while attempts < max_attempts:
         attempts += 1
 
-        response = await get_test_generation_status(test_id)
+        response = await get_test_generation_status(task_id)
         status = response["status"]
 
-        if status == "pending":
+        logger.info(f"[{task_id}] ({attempts}/{max_attempts}) Test generation status: {status}")
+
+        if status in ["pending", "unknown"]:
             await asyncio.sleep(interval)
             continue
 
         elif status == "error":
-            logger.error(f"Test generation failed for test {test_id}")
+            logger.error(f"Test generation failed for task {task_id}")
             return
 
         elif status == "completed":
 
             if not response.get("results"):
-                logger.error(f"No test results found in response for test {test_id}")
+                logger.error(f"No test results found in response for task {task_id}")
                 return
 
             created_tests = []
@@ -376,9 +380,9 @@ async def poll_test_generation_status(test_id: UUID4, max_attempts: int = 60, in
                     continue
 
             if not created_tests:
-                logger.error(f"No tests were successfully created for test {test_id}")
+                logger.error(f"No tests were successfully created for task {task_id}")
             else:
-                logger.info(f"Successfully created {len(created_tests)} tests for test {test_id}")
+                logger.info(f"Successfully created {len(created_tests)} tests for task {task_id}")
             return
 
         else:
@@ -386,7 +390,7 @@ async def poll_test_generation_status(test_id: UUID4, max_attempts: int = 60, in
             return
 
     # If we've exhausted attempts, log a timeout error
-    logger.error(f"Timed out waiting for test generation to complete for test {test_id}")
+    logger.error(f"Timed out waiting for test generation to complete for task {task_id}")
     return
 
 
