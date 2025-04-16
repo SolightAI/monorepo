@@ -9,4 +9,4 @@ source ./install_dependencies.sh
 cd src
 
 # Run the application
-exec uvicorn main:app --host 0.0.0.0 --port 9000 --reload
+exec fastapi run src/main.py --host 0.0.0.0 --port 8001

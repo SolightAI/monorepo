@@ -1,5 +1,5 @@
 # Root docker-compose file that includes all services
-name: laneo
+name: solight
 
 include:
   - path: ./wapp/local.docker-compose.yaml

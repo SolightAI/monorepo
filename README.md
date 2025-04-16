@@ -26,7 +26,7 @@ This will:
 After starting, you can access your services at:
 - React App: http://localhost:3000
 - API: http://localhost:8000
-- Task Manager: http://localhost:9000
+- Task Manager: http://localhost:8001
 - PgAdmin: http://localhost:8080
 - Weaviate: http://localhost:8081
 

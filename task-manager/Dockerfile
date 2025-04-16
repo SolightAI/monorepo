@@ -46,7 +46,7 @@ RUN chmod +x /app/entrypoint.sh
 RUN chmod +x /app/install_dependencies.sh
 
 # Expose the port the app runs on
-EXPOSE 9000
+EXPOSE 8001
 
 WORKDIR /app/
 
