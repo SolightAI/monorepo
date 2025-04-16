@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, AlertCircle, X, Link as LinkIcon, Edit } from 'lucide-react';
-import { useUrlValidation, formatValidationResult } from '@/utils/urlValidationUtils';
+import { useUrlValidation, formatValidationResult } from '@/services/urlValidationService';
 
 /**
  * URL Validation Notification Component
  * Displays the status of a URL validation task and appropriate notifications
  * based on whether a login page was found
- * 
+ *
  * @param {Object} props
  * @param {string} props.taskId - The task ID for URL validation
  * @param {string} props.productId - ID of the product being validated
@@ -17,17 +17,17 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
   const { status, result, error, isPolling } = useUrlValidation(taskId);
   const [visible, setVisible] = useState(true);
   const [autoCloseTimer, setAutoCloseTimer] = useState(null);
-  
+
   // Debug logging
   useEffect(() => {
     console.log("UrlValidationNotification mounted with taskId:", taskId);
     console.log("Status:", status, "Result:", result, "Error:", error, "IsPolling:", isPolling);
-    
+
     return () => {
       console.log("UrlValidationNotification unmounted");
     };
   }, [taskId]);
-  
+
   // Log status changes
   useEffect(() => {
     console.log("Validation status changed:", status);
@@ -38,10 +38,10 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
       console.log("Validation error:", error);
     }
   }, [status, result, error]);
-  
+
   // Format the validation result for display
   const formattedResult = formatValidationResult(result);
-  
+
   // Handle successful validation with auto-close
   useEffect(() => {
     // If validation succeeded, set auto-close timer
@@ -49,16 +49,16 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
       const timer = setTimeout(() => {
         handleClose();
       }, 5000); // Auto-close after 5 seconds
-      
+
       setAutoCloseTimer(timer);
-      
+
       // Clear timer on unmount
       return () => {
         if (timer) clearTimeout(timer);
       };
     }
   }, [status, formattedResult]);
-  
+
   // Close the notification
   const handleClose = () => {
     setVisible(false);
@@ -69,20 +69,20 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
       onClose();
     }
   };
-  
+
   // If notification is not visible, don't render anything
   if (!visible) {
     return null;
   }
-  
+
   // Check if this is a timeout error
   const isTimeoutError = error && (
-    error.includes("Timeout") || 
-    error.includes("timeout") || 
+    error.includes("Timeout") ||
+    error.includes("timeout") ||
     error.includes("timed out") ||
     error.includes("ETIMEDOUT")
   );
-  
+
   // Determine what to display based on the validation status
   const getNotificationContent = () => {
     // If still polling, show the pending state
@@ -94,7 +94,7 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
         </div>
       );
     }
-    
+
     // Handle timeout errors as "login page not found"
     if (isTimeoutError) {
       return (
@@ -104,7 +104,7 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
             <p className="font-medium">Login page not found</p>
             <p className="text-sm text-gray-600">The URL couldn't be validated because the page took too long to respond.</p>
             <p className="text-sm text-gray-600 mt-1">Please check that the URL is correct and the site is accessible.</p>
-            
+
             {/* Button to update URL */}
             <button
               onClick={() => onUrlUpdate && onUrlUpdate(productId)}
@@ -117,7 +117,7 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
         </div>
       );
     }
-    
+
     // If there was a different error, show error state
     if (status === 'error' || error) {
       return (
@@ -127,7 +127,7 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
             <p className="font-medium">Login page not found</p>
             <p className="text-sm text-gray-600">We couldn't validate the URL.</p>
             <p className="text-sm text-gray-600 mt-1">{error || 'An unknown error occurred during validation.'}</p>
-            
+
             {/* Button to update URL */}
             <button
               onClick={() => onUrlUpdate && onUrlUpdate(productId)}
@@ -140,7 +140,7 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
         </div>
       );
     }
-    
+
     // If validation completed successfully
     if (status === 'completed' && formattedResult) {
       // Login page found
@@ -154,9 +154,9 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
               {formattedResult.loginUrl && (
                 <div className="mt-1 flex items-center text-sm text-blue-600">
                   <LinkIcon className="h-4 w-4 mr-1" />
-                  <a 
-                    href={formattedResult.loginUrl} 
-                    target="_blank" 
+                  <a
+                    href={formattedResult.loginUrl}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="underline hover:text-blue-800"
                   >
@@ -167,7 +167,7 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
             </div>
           </div>
         );
-      } 
+      }
       // Login page not found
       else {
         return (
@@ -176,7 +176,7 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
             <div>
               <p className="font-medium">Login page not found</p>
               <p className="text-sm text-gray-600">{formattedResult.message || 'We could not find a login page at the provided URL.'}</p>
-              
+
               {/* Button to update URL */}
               <button
                 onClick={() => onUrlUpdate && onUrlUpdate(productId)}
@@ -190,33 +190,33 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
         );
       }
     }
-    
+
     // Default case - should not reach here
     return (
       <div>Unknown validation state</div>
     );
   };
-  
+
   // Determine background color based on status
   const getBgColor = () => {
     if (isPolling || status === 'pending') return 'bg-blue-50 border-blue-200';
     if (isTimeoutError) return 'bg-amber-50 border-amber-200';
     if (status === 'error' || error) return 'bg-amber-50 border-amber-200';
     if (status === 'completed' && formattedResult) {
-      return formattedResult.isValid 
-        ? 'bg-green-50 border-green-200' 
+      return formattedResult.isValid
+        ? 'bg-green-50 border-green-200'
         : 'bg-amber-50 border-amber-200';
     }
     return 'bg-gray-50 border-gray-200';
   };
-  
+
   return (
     <div className={`fixed bottom-4 right-4 max-w-md rounded-lg shadow-lg border p-4 ${getBgColor()} z-50`}>
       <div className="flex justify-between items-start">
         <div className="flex-1">
           {getNotificationContent()}
         </div>
-        <button 
+        <button
           onClick={handleClose}
           className="ml-3 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
           aria-label="Close notification"
@@ -228,4 +228,4 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
   );
 };
 
-export default UrlValidationNotification; 
+export default UrlValidationNotification;

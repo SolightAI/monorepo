@@ -1,9 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useOrganization, ORGANIZATION_CHANGED_EVENT } from './OrganizationContext';
-
-// Base API URL
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+import { API_URL } from '@/constants/api';
 
 const ProductContext = createContext();
 
@@ -74,29 +72,29 @@ export const ProductProvider = ({ children }) => {
   useEffect(() => {
     const handleOrganizationChange = (event) => {
       console.log("Organization changed, refreshing products");
-      
+
       // Clear current product selection
       setSelectedProduct(null);
-      
+
       // Clear products while we're loading
       setProducts([]);
-      
+
       // Fetch products for new organization
       const { organization } = event.detail;
       if (organization && organization.id) {
         fetchProducts(organization.id);
       }
     };
-    
+
     // Add event listener
     window.addEventListener(ORGANIZATION_CHANGED_EVENT, handleOrganizationChange);
-    
+
     // Clean up
     return () => {
       window.removeEventListener(ORGANIZATION_CHANGED_EVENT, handleOrganizationChange);
     };
   }, [fetchProducts]);
-  
+
   // Update products when selectedOrganization changes
   useEffect(() => {
     if (selectedOrganization && selectedOrganization.id) {

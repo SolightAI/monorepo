@@ -6,9 +6,7 @@ import { useOrganization, ORGANIZATION_CHANGED_EVENT } from '@/context/Organizat
 import { isValidUrl } from '@/utils/urlUtils';
 import axios from 'axios';
 import UrlValidationNotification from '@/components/common/UrlValidationNotification';
-
-// Base API URL
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+import { API_URL } from '@/constants/api';
 
 const ProductSelector = ({ isMobile = false }) => {
   const { products, selectedProduct, selectProduct, loading, error, refreshProducts } = useProduct();
@@ -30,7 +28,7 @@ const ProductSelector = ({ isMobile = false }) => {
   const [formError, setFormError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [currentProductId, setCurrentProductId] = useState(null);
-  
+
   // State for URL validation
   const [validationTaskId, setValidationTaskId] = useState(null);
   const [validatingProductId, setValidatingProductId] = useState(null);
@@ -55,17 +53,17 @@ const ProductSelector = ({ isMobile = false }) => {
     const handleOrganizationChange = () => {
       // Close dropdown when organization changes
       setIsOpen(false);
-      
+
       // Also close modal if it's open
       if (isModalOpen) {
         handleModalClose();
       }
-      
+
       console.log("Organization changed - ProductSelector UI updated");
     };
-    
+
     window.addEventListener(ORGANIZATION_CHANGED_EVENT, handleOrganizationChange);
-    
+
     return () => {
       window.removeEventListener(ORGANIZATION_CHANGED_EVENT, handleOrganizationChange);
     };
@@ -176,7 +174,7 @@ const ProductSelector = ({ isMobile = false }) => {
     }
 
     // Validate documentation links
-    const invalidLinks = formData.links_to_documentation.filter(link => 
+    const invalidLinks = formData.links_to_documentation.filter(link =>
       link.url.trim() !== '' && !isValidUrl(link.url)
     );
 
@@ -277,7 +275,7 @@ const ProductSelector = ({ isMobile = false }) => {
       handleEditProduct(product);
     }
   };
-  
+
   // Close validation notification
   const handleCloseValidation = () => {
     setShowValidationNotification(false);

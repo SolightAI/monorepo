@@ -25,13 +25,12 @@ import EditFeatureModal from '@/components/modals/EditFeatureModal';
 import AddTestModal from '@/components/modals/AddTestModal';
 import { getStatusIconLarge, formatStatus, getStatusColorClasses } from '@/utils/testExecutionUtils';
 import { formatDate } from '@/utils/dateUtils';
+import { API_URL } from '@/constants/api';
 
 /**
  * Displays all tests in a tabular format with sorting and filtering capabilities
  */
 const TestsTable = () => {
-  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
-
   const [tests, setTests] = useState([]);
   const [filteredTests, setFilteredTests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -961,15 +960,6 @@ const TestsTable = () => {
     // Close the modal
     setIsEditFeatureModalOpen(false);
     setSelectedFeatureForEdit(null);
-  };
-
-  // Function to toggle feature action menu
-  const toggleFeatureActionMenu = (featureId) => {
-    if (showFeatureActionMenu === featureId) {
-      setShowFeatureActionMenu(null);
-    } else {
-      setShowFeatureActionMenu(featureId);
-    }
   };
 
   // Close feature dropdown when clicking outside

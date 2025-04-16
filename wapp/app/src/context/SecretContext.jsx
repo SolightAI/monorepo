@@ -2,8 +2,7 @@ import React, { createContext, useState, useContext, useCallback } from 'react';
 import axios from 'axios';
 import { useOrganization } from './OrganizationContext';
 import { useProduct } from './ProductContext';
-
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+import { API_URL } from '@/constants/api';
 
 const SecretContext = createContext();
 

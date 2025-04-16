@@ -13,16 +13,10 @@ import OrganizationCreate from './pages/organization/OrganizationCreate';
 import OrganizationDashboard from './pages/organization/OrganizationDashboard';
 import OrganizationMembers from './pages/organization/OrganizationMembers';
 import JoinOrganization from './pages/organization/JoinOrganization';
-import Dashboard from './pages/Dashboard';
-import Home from './pages/common/Home';
-import EpicDetails from './pages/product/EpicDetails';
-import FeatureDetails from './pages/product/FeatureDetails';
 import TestCredentials from './pages/product/TestCredentials';
 import TestsTable from './pages/product/TestsTable';
-import BugsTable from './pages/product/BugsTable';
 import { ProductProvider } from './context/ProductContext';
 import { OrganizationProvider } from './context/OrganizationContext';
-import { DashboardProvider } from './context/DashboardContext';
 import { SecretProvider } from './context/SecretContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { OnboardingProvider } from './context/OnboardingContext';
@@ -119,32 +113,14 @@ function AppContent() {
 
                 {/* Protected routes with Layout */}
                 <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                  {/* Home page showing epics of selected product */}
-                  {/* <Route path="/" element={<Home />} /> */}
+
+                  {/* Test table page */}
                   <Route path="/" element={<Navigate to="/tests" replace />} />  {/* Redirects to /tests*/}
 
-                  {/* Dashboard Routes */}
-                  <Route path="/dashboard" element={
-                    <DashboardProvider>
-                      <Dashboard />
-                    </DashboardProvider>
-                  } />
-                  <Route path="/dashboard/product/:productId" element={
-                    <DashboardProvider>
-                      <Dashboard />
-                    </DashboardProvider>
-                  } />
-
-                  {/* Epic details page */}
-                  <Route path="/epics/:epicId" element={<EpicDetails />} />
-                  {/* Feature details page */}
-                  <Route path="/features/:featureId" element={<FeatureDetails />} />
                   {/* TestCredentials Management page */}
                   <Route path="/secrets" element={<TestCredentials />} />
                   {/* Tests Table page */}
                   <Route path="/tests" element={<TestsTable />} />
-                  {/* Bugs Table page */}
-                  <Route path="/bugs" element={<BugsTable />} />
                   {/* Organization routes */}
                   <Route path="/organizations/dashboard" element={<OrganizationDashboard />} />
                   <Route path="/organizations/members" element={<OrganizationMembers />} />
