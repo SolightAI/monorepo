@@ -1552,7 +1552,8 @@ const TestsTable = () => {
                       filteredTests.map((test) => (
                         <tr
                           key={test.id}
-                          className={`hover:bg-gray-50 ${selectedTestIds.has(test.id) ? 'bg-blue-50' : ''}`}
+                          className={`hover:bg-gray-50 cursor-pointer ${selectedTestIds.has(test.id) ? 'bg-blue-50' : ''}`}
+                          onClick={() => handleTestSelect(test)}
                         >
                           <td className="px-4 py-4 whitespace-nowrap">
                             <input
@@ -1563,7 +1564,7 @@ const TestsTable = () => {
                               onClick={(e) => e.stopPropagation()} // Prevent row click handler
                             />
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleTestSelect(test)}>
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                           {runningTests[test.id] ? (
                             <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
@@ -1592,15 +1593,6 @@ const TestsTable = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end items-center space-x-2">
-                            <button
-                              className="text-blue-600 hover:text-blue-900"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleTestSelect(test);
-                              }}
-                            >
-                              View
-                            </button>
                           <button
                             className={`text-green-600 hover:text-green-900 flex items-center ${runningTests[test.id] || !secrets || secrets.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                             onClick={(e) => {
