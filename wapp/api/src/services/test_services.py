@@ -249,8 +249,6 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
             'id': str(feature.id),
             'name': feature.name,
             'description': feature.description,
-            'dependents': [],  # TODO
-            'dependencies': [],  # TODO
             'urls': feature.urls,
             'access_conditions': feature.access_conditions,
         },

@@ -1,5 +1,5 @@
 from tortoise import fields, models
-from .schemas import TestStatus, SeverityLevel, TestCategory, OrganizationRole, OrganizationType, SecretType, ExecutorType, Test as TestSchema
+from .schemas import TestStatus, TestCategory, OrganizationRole, OrganizationType, SecretType, ExecutorType, Test as TestSchema
 
 
 class User(models.Model):
@@ -107,9 +107,6 @@ class Feature(models.Model):
     description = fields.TextField()
     access_conditions = fields.JSONField()  # conditions under which the feature is accessible (i.e. must_be_logged_in)
 
-    # dependents = fields.ManyToManyField("models.Feature", related_name="dependencies")  # features depending on this feature
-    dependencies = fields.ManyToManyField("models.Feature", related_name="dependents")  # features this feature depends on
-
     epic = fields.ForeignKeyField("models.Epic", related_name="features")
     user_stories = fields.ReverseRelation["UserStory"]
     acceptance_criteria = fields.ReverseRelation["AcceptanceCriteria"]
@@ -158,7 +155,6 @@ class Test(models.Model):
     ended_at = fields.DatetimeField(null=True)
 
     feature = fields.ForeignKeyField("models.Feature", related_name="tests")
-    bugs = fields.ReverseRelation["Bug"]
     test_secrets = fields.ReverseRelation["TestSecret"]
     executions = fields.ReverseRelation["TestExecution"]
 
@@ -166,7 +162,7 @@ class Test(models.Model):
         table = "tests"
 
     def to_schema(self) -> TestSchema:
-        return TestSchema.model_validate(dict(self) | {"bugs": list()})  # bugs are currently unused
+        return TestSchema.model_validate(dict(self))
 
 
 class TestExecution(models.Model):
@@ -186,31 +182,10 @@ class TestExecution(models.Model):
 
     # Relations
     test = fields.ForeignKeyField("models.Test", related_name="executions", db_index=True)
-    bugs = fields.ReverseRelation["Bug"]
 
     class Meta:
         table = "test_executions"
         indexes = [("test_id", "started_at")]
-
-
-class Bug(models.Model):
-    id = fields.UUIDField(primary_key=True)
-    name = fields.CharField(max_length=255)
-    description = fields.TextField()
-    severity = fields.CharEnumField(SeverityLevel, max_length=255)
-    url = fields.CharField(max_length=255)   # url of the bug
-    screenshots = fields.JSONField(default=[])   # urls to screenshots of the bug
-    status = fields.CharField(max_length=50, null=True)   # retrieved from Jira/Linear/other
-    detected_at = fields.DatetimeField(auto_now_add=True)
-
-    test = fields.ForeignKeyField("models.Test", related_name="bugs")
-    test_execution = fields.ForeignKeyField("models.TestExecution", related_name="bugs", null=True)
-
-    class Meta:
-        table = "bugs"
-
-    def __str__(self) -> str:
-        return f"{self.name} - {self.severity} ({self.url})"
 
 
 class Secret(models.Model):

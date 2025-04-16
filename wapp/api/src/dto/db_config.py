@@ -1,7 +1,5 @@
 import os
 
-from tortoise import Tortoise
-
 
 def _get_db_config():
 
@@ -12,22 +10,22 @@ def _get_db_config():
     POSTGRES_DB = os.getenv("POSTGRES_DB")
 
     if POSTGRES_USER is None:
-        raise ValueError(f"POSTGRES_USER env variable is not defined")
+        raise ValueError("POSTGRES_USER env variable is not defined")
 
     if POSTGRES_PASSWORD is None:
-        raise ValueError(f"POSTGRES_PASSWORD env variable is not defined")
+        raise ValueError("POSTGRES_PASSWORD env variable is not defined")
 
     if POSTGRES_HOST is None:
-        raise ValueError(f"POSTGRES_HOST env variable is not defined")
+        raise ValueError("POSTGRES_HOST env variable is not defined")
 
     if POSTGRES_PORT is None:
-        raise ValueError(f"POSTGRES_PORT env variable is not defined")
+        raise ValueError("POSTGRES_PORT env variable is not defined")
 
     if POSTGRES_DB is None:
-        raise ValueError(f"POSTGRES_DB env variable is not defined")
+        raise ValueError("POSTGRES_DB env variable is not defined")
 
     return {
-    'connections': {
+        'connections': {
             'default': {
                 'engine': 'tortoise.backends.asyncpg',
                 'credentials': {
@@ -41,7 +39,6 @@ def _get_db_config():
         },
         'apps': {
             'models': {
-                # 'models': ['database.models'],
                 'models': ['dto.models', 'aerich.models'],
                 'default_connection': 'default',
             }
