@@ -103,9 +103,9 @@ async def update_test_endpoint(test_id: UUID4, test_update: TestUpdateSchema) ->
 
 @router.delete("/{test_id}")
 async def delete_test_endpoint(test_id: UUID4) -> dict:
-    """Delete a test and all its related bugs."""
+    """Delete a test."""
     deleted = await delete_test(test_id)
-    return {"success": deleted, "message": "Test and all related bugs deleted successfully"}
+    return {"success": deleted, "message": "Test deleted successfully"}
 
 
 @router.post("/generate")
