@@ -9,4 +9,4 @@ source ./install_dependencies.sh
 cd src
 
 # Run the application
-exec fastapi run src/main.py --host 0.0.0.0 --port 8001
+exec fastapi run main.py --host 0.0.0.0 --port 8001
