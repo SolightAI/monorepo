@@ -1,4 +1,5 @@
 import os
+import logging
 
 from fastapi import FastAPI
 from endpoints.product_endpoints import router as product_router
@@ -23,6 +24,9 @@ from tortoise.contrib.fastapi import RegisterTortoise
 from contextlib import asynccontextmanager
 from dto.db_config import _get_db_config
 from endpoints.auth_endpoints import router as auth_router
+
+
+logging.basicConfig(level=logging.INFO)
 
 
 @asynccontextmanager
