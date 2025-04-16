@@ -172,7 +172,7 @@ jobs:
           --user $(id -u):$(id -g) \
           -e PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright \
           ${{ env.PLAYWRIGHT_IMAGE }} \
-          bash -c "cd /app && python -m pytest -vvvs -n 10 -W ignore::RuntimeWarning:pydantic.main"
+          bash -c "cd /app && python -m pytest -vvvs -n 5 -W ignore::RuntimeWarning:pydantic.main"
 
         # Clean up env file
         rm .env.test
