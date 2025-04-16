@@ -9,10 +9,6 @@ from endpoints.user_story_endpoints import router as user_story_router
 from endpoints.test_endpoints import router as test_router
 from endpoints.test_execution_endpoints import router as test_execution_router
 from endpoints.acceptance_criteria_endpoints import router as acceptance_criteria_router
-from endpoints.acceptance_criteria_generation_endpoints import router as acceptance_criteria_generation_router
-from endpoints.feature_generation_endpoints import router as feature_generation_router
-from endpoints.epic_generation_endpoints import router as epic_generation_router
-from endpoints.generation_endpoints import router as generation_router
 from endpoints.invitation_endpoints import router as invitation_router
 from endpoints.organization_endpoints import router as organization_router
 from endpoints.secret_endpoints import router as secret_router
@@ -57,10 +53,6 @@ app.include_router(epic_router)
 app.include_router(feature_router)
 app.include_router(user_story_router)
 app.include_router(acceptance_criteria_router)
-app.include_router(acceptance_criteria_generation_router)
-app.include_router(feature_generation_router)
-app.include_router(epic_generation_router)
-app.include_router(generation_router)
 app.include_router(test_router)
 app.include_router(test_execution_router)
 app.include_router(invitation_router)

@@ -1,3 +1,9 @@
+import requests
+import os
+import logging
+import uuid
+import asyncio
+
 from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks, Body
 from dto.schemas import ProductCreate as ProductCreateSchema, Product as ProductSchema, ProductUpdate as ProductUpdateSchema
 from services.product_services import get_product, create_product, get_products_list, delete_product, update_product
@@ -6,14 +12,9 @@ from pydantic import UUID4
 from typing import List, Optional
 from uuid import UUID
 from dependencies import get_current_user_dependency
-import requests
-import os
-from urllib.parse import urlparse
-import logging
-import uuid
-import asyncio
 
-router = APIRouter(prefix="/products", tags=["products"])
+
+router = APIRouter(prefix="/products", tags=["products"], dependencies=[Depends(get_current_user_dependency)])
 
 
 # Task manager base URL from environment variable or default to localhost
@@ -332,8 +333,7 @@ async def delete_product_endpoint(
 @router.post("/validate-url/")
 async def validate_url_endpoint(
     background_tasks: BackgroundTasks,
-    request: dict = Body(..., example={"url": "https://example.com"}),
-    current_user=Depends(get_current_user_dependency)
+    request: dict = Body(..., examples=[{"url": "https://example.com"}]),
 ) -> dict:
     """
     Directly validate a URL without creating a product.

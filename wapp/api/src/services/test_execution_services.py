@@ -1,15 +1,16 @@
 from __future__ import annotations
+
 import uuid
 import json
 import asyncio
-from datetime import datetime
-from typing import List
-from fastapi import HTTPException, BackgroundTasks
-from pydantic import UUID4
 import requests
 import os
 import logging
 
+from datetime import datetime
+from typing import List
+from fastapi import HTTPException, BackgroundTasks
+from pydantic import UUID4
 from dto.models import TestExecution as TestExecutionModel, Test as TestModel
 from dto.schemas import (
     TestExecutionCreate as TestExecutionCreateSchema,
@@ -22,6 +23,7 @@ from services.secret_services import get_encrypted_secrets
 
 
 TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
+
 
 if not TASK_MANAGER_URL:
     raise ValueError("TASK_MANAGER_URL is not set")
