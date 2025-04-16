@@ -13,8 +13,8 @@ const useTestForm = (initialData = {}) => {
     url: initialData.url || '',
     category: initialData.category || 'SMOKE',
     steps: initialData.steps || '',
-    preconditions: initialData.preconditions || 'None',
-    assertions: initialData.assertions || 'None',
+    preconditions: initialData.preconditions || '',
+    assertions: initialData.assertions || '',
     secret_ids: initialData.secret_ids || [],
     epic_id: initialData.epic_id || '',
     feature_id: initialData.feature_id || '',
@@ -65,7 +65,7 @@ const useTestForm = (initialData = {}) => {
       // If the field is empty, set it to the default "None" value
       setFormData(prev => ({
         ...prev,
-        [name]: value.trim() === "" ? "None" : value
+        [name]: value
       }));
     } else {
       // Default handling for other fields
