@@ -61,6 +61,8 @@ const TestsTable = () => {
   const [selectedTestIds, setSelectedTestIds] = useState(new Set()); // State for selected tests
   const [isDeleting, setIsDeleting] = useState(false); // State for delete operation
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // State for confirmation modal
+  const [isConfirmFeatureDeleteModalOpen, setIsConfirmFeatureDeleteModalOpen] = useState(false); // State for feature delete confirmation
+  const [featureToDeleteId, setFeatureToDeleteId] = useState(null); // ID of feature marked for deletion
 
   const { selectedProduct } = useProduct();
   const { selectedOrganization } = useOrganization();
@@ -107,11 +109,22 @@ const TestsTable = () => {
   useEffect(() => {
     if (selectedEpic !== 'all') {
       fetchFeaturesByEpic(selectedEpic);
+      // Fetch tests for the newly selected epic
+      fetchTestsWithCurrentFilters();
     } else {
       setSelectedFeature('all');
       setFeatures(Object.values(epicFeaturesMap).flat());
     }
   }, [selectedEpic, epicFeaturesMap]);
+
+  // Fetch tests when the selected feature changes
+  useEffect(() => {
+    // Avoid fetching on initial load if feature starts as 'all' and product fetch already ran
+    // Or if the selection hasn't changed from initial render
+    if (selectedProduct) { // Ensure product context is available
+        fetchTestsWithCurrentFilters();
+    }
+  }, [selectedFeature]); // Re-fetch when feature selection changes
 
   const fetchEpicsAndFeatures = async () => {
     try {
@@ -318,8 +331,6 @@ const TestsTable = () => {
 
   const handleFeatureChange = (featureId) => {
     setSelectedFeature(featureId);
-    // Use the centralized fetch function for any filter change
-    fetchTestsWithCurrentFilters();
   };
 
   const getSortIcon = (key) => {
@@ -896,32 +907,35 @@ const TestsTable = () => {
     setIsEditFeatureModalOpen(true);
   };
 
-  // Function to handle feature deletion
-  const handleDeleteFeature = async (featureId) => {
+  // Function to trigger feature deletion confirmation
+  const handleDeleteFeature = (featureId) => {
     if (!featureId) return;
+    setFeatureToDeleteId(featureId);
+    setIsConfirmFeatureDeleteModalOpen(true);
+  };
 
-    if (!window.confirm('Are you sure you want to delete this feature? This will also delete all associated tests.')) {
-      return;
-    }
+  // Function to perform feature deletion after confirmation
+  const confirmDeleteFeature = async () => {
+    if (!featureToDeleteId) return;
 
     try {
-      setLoading(true);
-      await axios.delete(`${API_URL}/features/${featureId}`, {
+      setLoading(true); // You might want a specific loading state for this
+      await axios.delete(`${API_URL}/features/${featureToDeleteId}`, {
         withCredentials: true
       });
 
       // Update the features state by removing the deleted feature
-      setFeatures(prevFeatures => prevFeatures.filter(f => f.id !== featureId));
+      setFeatures(prevFeatures => prevFeatures.filter(f => f.id !== featureToDeleteId));
 
       // Update the epicFeaturesMap
       const updatedMap = { ...epicFeaturesMap };
       Object.keys(updatedMap).forEach(epicId => {
-        updatedMap[epicId] = updatedMap[epicId].filter(f => f.id !== featureId);
+        updatedMap[epicId] = updatedMap[epicId].filter(f => f.id !== featureToDeleteId);
       });
       setEpicFeaturesMap(updatedMap);
 
       // If the deleted feature was the selected one, reset to 'all'
-      if (selectedFeature === featureId) {
+      if (selectedFeature === featureToDeleteId) {
         setSelectedFeature('all');
       }
 
@@ -929,7 +943,7 @@ const TestsTable = () => {
       setSuccessMessage('Feature deleted successfully');
       setTimeout(() => setSuccessMessage(null), 3000);
 
-      // Refresh tests
+      // Refresh tests (might need adjustment depending on desired behavior)
       fetchTestsWithCurrentFilters();
 
     } catch (err) {
@@ -937,7 +951,9 @@ const TestsTable = () => {
       setError('Failed to delete feature. Please try again.');
       setSuccessMessage(null);
     } finally {
-      setLoading(false);
+      setLoading(false); // Reset general loading or specific loading state
+      setIsConfirmFeatureDeleteModalOpen(false); // Close modal
+      setFeatureToDeleteId(null); // Reset feature ID
     }
   };
 
@@ -1145,6 +1161,20 @@ const TestsTable = () => {
         title="Delete Selected Tests"
         message={`Are you sure you want to delete ${selectedTestIds.size} selected test(s)? This action cannot be undone.`}
         confirmButtonText="Delete"
+        confirmButtonVariant="danger"
+      />
+
+      {/* Confirmation Modal for Feature Deletion */}
+      <ConfirmationModal
+        isOpen={isConfirmFeatureDeleteModalOpen}
+        onClose={() => {
+          setIsConfirmFeatureDeleteModalOpen(false);
+          setFeatureToDeleteId(null);
+        }}
+        onConfirm={confirmDeleteFeature} // Call the actual feature delete logic on confirm
+        title="Delete Feature"
+        message={`Are you sure you want to delete this feature? This will also delete all associated tests. This action cannot be undone.`}
+        confirmButtonText="Delete Feature"
         confirmButtonVariant="danger"
       />
 
