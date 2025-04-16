@@ -122,6 +122,7 @@ async def create_test_execution(
 
         # Create payload for task manager
         task_manager_payload = {
+            "task_id": str(test_execution_model.id),
             "test": {
                 "name": test.name,
                 "category": test.category,

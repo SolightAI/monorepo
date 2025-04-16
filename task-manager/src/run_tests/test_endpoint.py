@@ -1,6 +1,5 @@
 import json
 
-from uuid import uuid4
 from typing import Any, Optional
 from pydantic import SecretStr
 from logging import getLogger
@@ -9,7 +8,7 @@ from langchain_openai import AzureChatOpenAI
 from fixtures.authentification.get_auth_session import get_auth_session
 from run_tests.router import select_and_call_agent
 from utils.dto import Test
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Body
 from utils.crypto import crypto_service
 from utils.task_status import task_status_manager, handle_background_task_errors
 from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
@@ -81,10 +80,9 @@ async def background_run_test(
 async def run_test(
     test: Test,
     background_task: BackgroundTasks,
+    task_id: str = Body(..., embed=True),
     encrypted_secrets: Optional[dict[str, dict[str, str]]] = None,
 ) -> str:
-
-    task_id = str(uuid4())
 
     # Decrypt encrypted secrets if provided
     secrets = {}
