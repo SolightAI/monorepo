@@ -13,7 +13,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import axios from 'axios';
-import { getTestsByFeature, getTestsByEpic, getTestsByProduct, triggerFeatureTestGeneration, getTestGenerationStatus } from '@/services/testService';
+import { getTestsByFeature, getTestsByEpic, getTestsByProduct, triggerFeatureTestGeneration, getTestGenerationStatus, deleteTest } from '@/services/testService';
 import { getAllEpics, getFeaturesByEpic } from '@/services/productService';
 import { createTestExecution, getTestExecution } from '@/services/testExecutionService';
 import { useProduct } from '@/context/ProductContext';
@@ -23,6 +23,7 @@ import TestDetailsModal from '@/components/modals/TestDetailsModal';
 import AddFeatureModal from '@/components/modals/AddFeatureModal';
 import EditFeatureModal from '@/components/modals/EditFeatureModal';
 import AddTestModal from '@/components/modals/AddTestModal';
+import ConfirmationModal from '@/components/modals/ConfirmationModal';
 import { getStatusIconLarge, formatStatus, getStatusColorClasses } from '@/utils/testExecutionUtils';
 import { formatDate } from '@/utils/dateUtils';
 import { API_URL } from '@/constants/api';
@@ -57,6 +58,9 @@ const TestsTable = () => {
   const pollingIntervalRef = useRef(null);
   const [runningTests, setRunningTests] = useState({}); // Track tests that are currently running
   const testPollingIntervalsRef = useRef({}); // Track polling intervals for individual tests
+  const [selectedTestIds, setSelectedTestIds] = useState(new Set()); // State for selected tests
+  const [isDeleting, setIsDeleting] = useState(false); // State for delete operation
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // State for confirmation modal
 
   const { selectedProduct } = useProduct();
   const { selectedOrganization } = useOrganization();
@@ -281,6 +285,8 @@ const TestsTable = () => {
     // Re-sort the filtered tests using the reusable function
     const sorted = sortItems(filteredTests, key, direction);
     setFilteredTests(sorted);
+    // Clear selection when sorting changes
+    setSelectedTestIds(new Set());
   };
 
   // Centralized function to fetch tests based on the current filters
@@ -304,6 +310,9 @@ const TestsTable = () => {
       handleFetchError('load tests data', err);
     } finally {
       setLoading(false);
+      setSuccessMessage(null);
+      setIsDeleting(false); // Reset deleting state on fetch
+      setSelectedTestIds(new Set()); // Clear selection on refresh
     }
   };
 
@@ -331,12 +340,27 @@ const TestsTable = () => {
   const handleTestClose = () => {
     setSelectedTest(null);
     // We don't need to refresh on every close - TestDetailsModal will call onTestUpdated when there's an actual change
+    setSelectedTestIds(new Set()); // Clear selection on modal close as well? Or keep it? Let's clear for now.
   };
 
   // This function will be called only when a test is actually updated
   const handleTestUpdated = () => {
     // Refresh tests list after viewing test details with current filters
     fetchTestsWithCurrentFilters();
+    setSuccessMessage(null);
+    setIsDeleting(false); // Reset deleting state
+
+    // Clear any existing interval
+    if (pollingIntervalRef.current) {
+      console.log('Stopping polling for test generation task:', testGenerationTaskId);
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    if (testGenerationTaskId) {
+      console.log('Cleaning up test generation polling on unmount or feature change');
+      setIsGeneratingTests(false);
+      setTestGenerationTaskId(null);
+    }
   };
 
   // Handle running a single test
@@ -973,6 +997,74 @@ const TestsTable = () => {
     return Object.keys(runningTests).length > 0;
   };
 
+  const handleSelectAll = (event) => {
+    if (event.target.checked) {
+      const allIds = filteredTests.map(test => test.id);
+      setSelectedTestIds(new Set(allIds));
+    } else {
+      setSelectedTestIds(new Set());
+    }
+  };
+
+  const handleSelectTest = (event, testId) => {
+    const newSelectedIds = new Set(selectedTestIds);
+    if (event.target.checked) {
+      newSelectedIds.add(testId);
+    } else {
+      newSelectedIds.delete(testId);
+    }
+    setSelectedTestIds(newSelectedIds);
+  };
+
+  const handleDeleteSelectedTests = async () => {
+    const numSelected = selectedTestIds.size;
+    if (numSelected === 0) return;
+
+    // Open the confirmation modal instead of using window.confirm
+    setIsConfirmModalOpen(true);
+  };
+
+  // New function to handle the actual deletion after confirmation
+  const confirmDeleteSelectedTests = async () => {
+    const numSelected = selectedTestIds.size;
+    if (numSelected === 0) return; // Should not happen if modal was opened, but good practice
+
+    setIsDeleting(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    const deletionPromises = Array.from(selectedTestIds).map(testId =>
+      deleteTest(testId)
+        .then(() => ({ status: 'fulfilled', testId }))
+        .catch(err => ({ status: 'rejected', testId, error: err }))
+    );
+
+    const results = await Promise.allSettled(deletionPromises);
+
+    const failedDeletions = results.filter(result => result.status === 'rejected' || (result.status === 'fulfilled' && result.value.status === 'rejected'));
+    const successfulDeletions = numSelected - failedDeletions.length;
+
+    setIsDeleting(false);
+    setSelectedTestIds(new Set()); // Clear selection after deletion attempt
+
+    if (successfulDeletions > 0) {
+      setSuccessMessage(`${successfulDeletions} test(s) deleted successfully.`);
+      // Refresh the test list after successful deletions
+      await fetchTestsWithCurrentFilters();
+    }
+
+    if (failedDeletions.length > 0) {
+      console.error('Failed to delete tests:', failedDeletions);
+      setError(`Failed to delete ${failedDeletions.length} test(s). Check console for details.`);
+    }
+
+    // Clear messages after a delay
+    setTimeout(() => {
+      setSuccessMessage(null);
+      setError(null);
+    }, 3000);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center p-12">
@@ -1044,6 +1136,17 @@ const TestsTable = () => {
           onFeatureUpdated={handleFeatureUpdated}
         />
       )}
+
+      {/* Confirmation Modal for Deletion */}
+      <ConfirmationModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={confirmDeleteSelectedTests} // Call the actual delete logic on confirm
+        title="Delete Selected Tests"
+        message={`Are you sure you want to delete ${selectedTestIds.size} selected test(s)? This action cannot be undone.`}
+        confirmButtonText="Delete"
+        confirmButtonVariant="danger"
+      />
 
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-800 flex items-center">
@@ -1306,7 +1409,9 @@ const TestsTable = () => {
         {/* Add "Run Selected Tests" button above the table */}
         <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
           <div className="text-sm text-gray-500">
-            {filteredTests.length} tests selected
+            {selectedTestIds.size > 0
+              ? `${selectedTestIds.size} test(s) selected`
+              : `${filteredTests.length} tests showing`}
           </div>
           <div className="flex gap-2">
             <button
@@ -1332,6 +1437,27 @@ const TestsTable = () => {
                 </>
               )}
             </button>
+            {/* Delete Selected Tests button - Conditionally rendered */}
+            {selectedTestIds.size > 0 && (
+              <button
+                onClick={handleDeleteSelectedTests} // This now opens the modal
+                disabled={isDeleting || hasRunningTests()}
+                className={`flex items-center px-3 py-1.5 text-sm bg-red-600 text-white rounded-md shadow hover:bg-red-700 transition duration-150 disabled:bg-red-300 disabled:cursor-not-allowed ${isDeleting ? 'cursor-wait' : ''}`}
+                title={isDeleting ? "Deleting..." : hasRunningTests() ? "Cannot delete while tests are running" : "Delete selected tests"}
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={18} className="mr-2" />
+                    Delete ({selectedTestIds.size})
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
@@ -1340,6 +1466,16 @@ const TestsTable = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <input
+                          type="checkbox"
+                          className="form-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          onChange={handleSelectAll}
+                          checked={filteredTests.length > 0 && selectedTestIds.size === filteredTests.length}
+                          disabled={filteredTests.length === 0}
+                          title={filteredTests.length > 0 ? "Select/deselect all visible tests" : "No tests to select"}
+                        />
+                      </th>
                       <th
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSort('status')}
@@ -1386,10 +1522,18 @@ const TestsTable = () => {
                       filteredTests.map((test) => (
                         <tr
                           key={test.id}
-                          className="hover:bg-gray-50 cursor-pointer"
-                          onClick={() => handleTestSelect(test)}
+                          className={`hover:bg-gray-50 ${selectedTestIds.has(test.id) ? 'bg-blue-50' : ''}`}
                         >
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <input
+                              type="checkbox"
+                              className="form-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              checked={selectedTestIds.has(test.id)}
+                              onChange={(e) => handleSelectTest(e, test.id)}
+                              onClick={(e) => e.stopPropagation()} // Prevent row click handler
+                            />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleTestSelect(test)}>
                             <div className="flex items-center">
                           {runningTests[test.id] ? (
                             <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
@@ -1450,7 +1594,7 @@ const TestsTable = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="5" className="px-6 py-12 text-center text-lg text-gray-500">
+                        <td colSpan="6" className="px-6 py-12 text-center text-lg text-gray-500">
                           {tests.length === 0 ? (
                             <div className="flex flex-col items-center">
                               <p>No tests found in the system.</p>
@@ -1483,6 +1627,9 @@ const TestsTable = () => {
             <div className="bg-gray-50 px-6 py-3 flex justify-between items-center border-t border-gray-200">
               <div className="text-gray-500 text-sm">
                 Showing {filteredTests.length} of {tests.length} tests
+                {selectedTestIds.size > 0 && (
+                  <span className="ml-2 text-gray-500 text-sm">({selectedTestIds.size} selected)</span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {/* Pagination placeholder for future implementation */}
