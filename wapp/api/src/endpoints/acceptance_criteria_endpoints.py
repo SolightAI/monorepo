@@ -32,9 +32,9 @@ async def create_acceptance_criteria_endpoint(acceptance_criteria: AcceptanceCri
 
 @router.delete("/{acceptance_criteria_id}")
 async def delete_acceptance_criteria_endpoint(acceptance_criteria_id: UUID4) -> dict:
-    """Delete an acceptance criteria and all its related tests, bugs, etc."""
+    """Delete an acceptance criteria."""
     deleted = await delete_acceptance_criteria(acceptance_criteria_id)
-    return {"success": deleted, "message": "Acceptance criteria and all related items deleted successfully"}
+    return {"success": deleted, "message": "Acceptance criteria deleted successfully"}
 
 
 @router.put("/{acceptance_criteria_id}")

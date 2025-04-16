@@ -8,6 +8,8 @@ RUN pip install --no-cache-dir .
 
 COPY src/ ./src/
 
+COPY migrations/ ./migrations/
+
 COPY *.py ./
 
 ENV WORKERS=1

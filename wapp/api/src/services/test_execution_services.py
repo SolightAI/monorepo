@@ -43,7 +43,7 @@ async def get_test_execution(test_execution_id: UUID4) -> TestExecutionModel:
     Raises:
         HTTPException: If the test execution was not found
     """
-    test_execution = await TestExecutionModel.get_or_none(id=test_execution_id).prefetch_related("bugs")
+    test_execution = await TestExecutionModel.get_or_none(id=test_execution_id)
 
     if not test_execution:
         raise HTTPException(status_code=404, detail="Test execution not found")

@@ -145,13 +145,6 @@ class TestStatus(str, Enum):
     UNEXISTING_FEATURE = "UNEXISTING_FEATURE"
 
 
-class SeverityLevel(str, Enum):
-    CRITICAL = "Critical"
-    HIGH = "High"
-    MEDIUM = "Medium"
-    LOW = "Low"
-
-
 class TestCategory(str, Enum):
     SMOKE = "SMOKE"  # testing basic functionalities of a feature
     NEGATIVE = "NEGATIVE"  # testing a negative path of a feature
@@ -330,68 +323,8 @@ class Test(TestBase):
     ended_at: Optional[datetime]
     feature_id: UUID4
     secrets: List[Dict[str, Any]] = []
-    bugs: list[UUID4] = []
 
     model_config = ConfigDict(from_attributes=True)
-
-
-class BugCreate(BaseModel):
-    test_id: UUID4
-    name: str
-    description: str
-    severity: SeverityLevel
-    screenshots: list[str]
-    url: str
-    status: Optional[str]
-    detected_at: datetime
-
-
-class BugBase(BugCreate):
-    id: UUID4
-
-
-class Bug(BugBase):
-    test_id: UUID4
-    test_execution_id: Optional[UUID4] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-# Dashboard Schema Models
-class MetricsSummary(BaseModel):
-    """Summary metrics for the dashboard."""
-    tests_total: int
-    tests_by_status: Dict[str, int]
-    bugs_total: int
-    bugs_by_severity: Dict[str, int]
-    test_pass_rate: float
-
-
-class TrendDataPoint(BaseModel):
-    """Data point for trend charts."""
-    date: datetime
-    count: int
-    category: str
-
-
-class FeatureHealth(BaseModel):
-    """Health metrics for a feature."""
-    feature_id: UUID4
-    feature_name: str
-    test_coverage: float  # percentage
-    bug_count: int
-    test_pass_rate: float  # percentage
-
-
-class OrganizationHealth(BaseModel):
-    """Health metrics for an organization."""
-    avg_test_coverage: float  # percentage
-    avg_bug_resolution_time: float  # in hours
-    overall_health_score: float  # calculated score based on metrics
-    total_products: int
-    total_features: int
-    total_tests: int
-    total_bugs: int
 
 
 class SecretType(str, Enum):

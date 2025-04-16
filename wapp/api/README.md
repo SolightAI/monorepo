@@ -1,6 +1,6 @@
 # Solight API
 
-This is the backend API for the Solight Application, built with FastAPI and PostgreSQL. It provides endpoints for managing products, epics, features, tests, bugs, and more.
+This is the backend API for the Solight Application, built with FastAPI and PostgreSQL. It provides endpoints for managing products, epics, features, and tests.
 
 ## Architecture
 
@@ -78,11 +78,6 @@ The API provides the following endpoints:
   - Create/read/update/delete tests
   - List tests by acceptance criteria
   - Update test status
-
-- `/bugs`: Bug reporting and tracking
-  - Create/read/update/delete bugs
-  - List bugs by test or product
-  - Update bug status
 
 - `/secrets`: Secret management
   - Create/read/update/delete secrets
@@ -261,14 +256,6 @@ The API provides self-documenting endpoints using Swagger UI and ReDoc:
 
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
-
-## Helper Scripts
-
-The API includes several helper scripts:
-
-- `add_successful_tests.py`: Add test results to the database
-- `import_bugs.py`: Import bugs from external sources
-- `upload_report_to_db.py`: Upload test reports to the database
 
 ## Security Considerations
 
