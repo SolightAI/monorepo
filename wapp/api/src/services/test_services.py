@@ -341,8 +341,6 @@ async def poll_test_generation_status(task_id: UUID4, timeout: int = 300, interv
         response = await get_test_generation_status(task_id)
         status = response["status"]
 
-        logger.info(f"[{task_id}] ({attempts}/{max_attempts}) Test generation status: {status}")
-
         if status in ["pending", "unknown"]:
             await asyncio.sleep(interval)
             continue
