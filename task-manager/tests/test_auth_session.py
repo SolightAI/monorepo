@@ -503,6 +503,41 @@ async def test_generate_auth_session_tecla_academy(task_id: str) -> None:
 
 
 @pytest.mark.asyncio
+async def test_generate_auth_session_tickpick(task_id: str) -> None:
+    """Test authentication with valid username/password on the simple login page."""
+
+    url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/"
+
+    username = os.getenv("TICKPICK_USERNAME")
+    if not username:
+        raise ValueError("TICKPICK_USERNAME is not set")
+
+    password = os.getenv("TICKPICK_PASSWORD")
+    if not password:
+        raise ValueError("TICKPICK_PASSWORD is not set")
+
+    session = await get_auth_session(
+        task_id=task_id,
+        url=url,
+        secrets={
+            LoginMethod.EMAIL.value: {
+                "username": username,
+                "password": password
+            }
+        },
+        reuse_session=False
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify cookies contains the expected auth data
+    assert "apiToken" in [cookie["name"] for cookie in session["cookies"]]
+    assert [cookie for cookie in session["cookies"] if cookie["name"] == "apiToken"][0]["value"] is not None
+
+
+@pytest.mark.asyncio
 async def test_generate_auth_session_sesame_hr(task_id: str) -> None:
     """Test authentication with valid username/password on the simple login page."""
 

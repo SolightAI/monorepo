@@ -201,9 +201,6 @@ async def login_to_website(
         login_methods.append(f"- {LoginMethod.GOOGLE.value}")
     login_methods = "\n".join(login_methods)
 
-    await context.navigate_to(url)  # allowing us to get page html before login
-    content_before_login = await (await context.get_current_page()).content()
-
     extend_agent_history()
 
     agent = Agent(
@@ -219,9 +216,6 @@ async def login_to_website(
 
     try:
         history = await agent.run(max_steps=15)
-
-        await agent.browser_context.navigate_to(url)
-        content_after_login = await (await agent.browser_context.get_current_page()).content()
 
     except Exception as e:
         raise e
