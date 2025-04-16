@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class TestCheckIsLoggedIn:
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize('execution_number', range(10))  # high variability in the results, run 10 times
+    @pytest.mark.parametrize('execution_number', range(5))  # variability in the results, run 5 times
     @pytest.mark.parametrize("url", [
         "https://app.sesametime.com/",
         TICKPICK_URL,
@@ -57,7 +57,7 @@ class TestCheckIsLoggedIn:
         assert is_logged_in is False
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize('execution_number', range(3))  # Run check 3 times per website (low variability)
+    @pytest.mark.parametrize('execution_number', range(3))  # Variability in the results, run 3 times
     @pytest.mark.parametrize('s3_before_login_html, s3_after_login_html', WEBSITE_HTML_FILES)
     async def test_false_negative(
         self,

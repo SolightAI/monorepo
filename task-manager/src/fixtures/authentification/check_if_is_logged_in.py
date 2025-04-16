@@ -193,6 +193,8 @@ async def check_is_logged_in(
     if vote_count < 1:
         raise ValueError("vote_count must be at positive integer")
 
+    logger.info(f"[{task_id}] Checking if the user is logged in to {url}")
+
     with NamedTemporaryFile(suffix='_check_login.json', delete=True, mode='w+') as cookies_file:
 
         json.dump(existing_session["cookies"], cookies_file)
@@ -204,8 +206,21 @@ async def check_is_logged_in(
                 headless=os.getenv("HEADLESS", "true").lower() == "true",
             )
         )
-        logger.info(f"[{task_id}] Checking if the user is logged in to {url}")
 
+        logger.info(f"[{task_id}] Creating temporary browser context without cookies")
+        context = BrowserContext(browser=browser, config=BrowserContextConfig(
+            minimum_wait_page_load_time=1,
+            wait_for_network_idle_page_load_time=2,
+        ))
+
+        await context.navigate_to(url)
+        content_before_login = await (await context.get_current_page()).content()
+
+        logger.info(f"[{task_id}] Closing temporary browser context without cookies")
+        await context.close()
+
+        # First navigate to the URL to initialize the session
+        logger.info(f"[{task_id}] Creating browser context with cookies")
         context = BrowserContext(browser=browser, config=BrowserContextConfig(
             cookies_file=cookies_file.name,
             minimum_wait_page_load_time=1,
@@ -214,10 +229,7 @@ async def check_is_logged_in(
             wait_between_actions=3,
             viewport_expansion=0,
         ))
-
-        # First navigate to the URL to initialize the session
-        await context.navigate_to(url)
-        content_before_login = await (await context.get_current_page()).content()
+        await context.navigate_to(url)  # this is required to initialize the session
 
         # Apply existing session data if available
         if existing_session is not None:
