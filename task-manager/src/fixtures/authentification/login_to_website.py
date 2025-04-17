@@ -303,6 +303,18 @@ async def login_to_website_agent(
     login_method: LoginMethod,
     secrets: dict[str, dict[str, str]],
 ) -> tuple[dict[str, dict[str, str]], str]:
+    """
+    Agent specialized in logging in to a website and returning the generated cookies.
+
+    Args:
+        task_id: The ID of the task.
+        url: The URL of the website to login to.
+        login_method: The login method to use.
+        secrets: The secrets to use.
+
+    Returns:
+        A dictionary containing the status of the test, the results, and the tracing.
+    """
 
     base_ouput = {
         "agent_thoughts": "",
