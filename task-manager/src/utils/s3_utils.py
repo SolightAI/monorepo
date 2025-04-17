@@ -53,7 +53,8 @@ class S3Manager:
         required_vars = {
             'AWS_ACCESS_KEY_ID': os.getenv('AWS_ACCESS_KEY_ID'),
             'AWS_SECRET_ACCESS_KEY': os.getenv('AWS_SECRET_ACCESS_KEY'),
-            'S3_BUCKET_NAME': os.getenv('S3_BUCKET_NAME')
+            'S3_BUCKET_NAME': os.getenv('S3_BUCKET_NAME'),
+            'AWS_ENDPOINT_URL': os.getenv('AWS_ENDPOINT_URL')
         }
 
         missing_vars = [var for var, value in required_vars.items() if not value]
@@ -61,11 +62,13 @@ class S3Manager:
             raise EnvironmentError(f"Missing required environment variables: {', '.join(missing_vars)}")
 
         self.bucket_name = required_vars['S3_BUCKET_NAME']
+        self.endpoint_url = required_vars['AWS_ENDPOINT_URL']
         self.s3_client = boto3.client(
             's3',
             aws_access_key_id=required_vars['AWS_ACCESS_KEY_ID'],
             aws_secret_access_key=required_vars['AWS_SECRET_ACCESS_KEY'],
-            region_name=os.getenv('AWS_REGION', 'us-east-1')
+            region_name=os.getenv('AWS_REGION', 'us-east-1'),
+            endpoint_url=required_vars['AWS_ENDPOINT_URL']
         )
 
         # Ensure bucket exists
@@ -130,7 +133,7 @@ class S3Manager:
             )
 
             # Generate the URL for the uploaded file
-            url = f"https://{self.bucket_name}.s3.amazonaws.com/{s3_key}"
+            url = f"{self.endpoint_url}/{self.bucket_name}/{s3_key}"
             return url
 
         except Exception as e:
