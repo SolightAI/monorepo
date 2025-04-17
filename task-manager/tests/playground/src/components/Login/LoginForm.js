@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 const VALID_USERNAME = "testuser";
 const VALID_PASSWORD = "password123";
 
-const LoginForm = ({ onLoginSuccess, onLoginError }) => {
+const LoginForm = ({ onLoginSuccess, onLoginError, onSwitchToSignUp }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -64,6 +64,20 @@ const LoginForm = ({ onLoginSuccess, onLoginError }) => {
       >
         Login
       </button>
+
+      {/* Add link to switch to Sign Up if function is provided */}
+      {onSwitchToSignUp && (
+        <div className="mt-4 text-center text-sm">
+          <span className="text-gray-600">Don't have an account? </span>
+          <button
+            type="button"
+            onClick={onSwitchToSignUp}
+            className="font-medium text-indigo-600 hover:text-indigo-500"
+          >
+            Sign up
+          </button>
+        </div>
+      )}
     </form>
   );
 };

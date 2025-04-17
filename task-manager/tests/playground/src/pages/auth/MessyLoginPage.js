@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import LoginForm from '../../components/LoginForm';
-import GoogleOAuth from '../../components/GoogleOAuth';
-import StagedLoginForm from '../../components/StagedLoginForm';
-import InstantLoginForm from '../../components/InstantLoginForm';
-import LoginWithInstantOption from '../../components/LoginWithInstantOption';
+import LoginForm from '../../components/Login/LoginForm';
+import GoogleOAuth from '../../components/Login/GoogleOAuth';
+import StagedLoginForm from '../../components/Login/StagedLoginForm';
+import InstantLoginForm from '../../components/Login/InstantLoginForm';
+import LoginWithInstantOption from '../../components/Login/LoginWithInstantOption';
+import SignUpForm from '../../components/Signup/SignUpForm';
 import PrivacyBanner from '../../components/Privacy/PrivacyBanner';
 import PrivacyModal from '../../components/Privacy/PrivacyModal';
 
@@ -14,10 +15,12 @@ const MessyLoginPage = ({
   showStagedLogin = false,
   showInstantLogin = false,
   showCombinedInstantLogin = false,
+  showSignUpForm = false,
   showPrivacyBanner = false,
   showPrivacyModal = false
 }) => {
   const navigate = useNavigate();
+  const [currentView, setCurrentView] = useState('login');
   const [counter, setCounter] = useState(0);
   const [fakeNotifications, setFakeNotifications] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
@@ -62,6 +65,16 @@ const MessyLoginPage = ({
     { symbol: 'AMZN', price: 3000 + Math.random() * 300, change: (Math.random() * 5 - 2.5).toFixed(2) },
     { symbol: 'FB', price: 250 + Math.random() * 25, change: (Math.random() * 5 - 2.5).toFixed(2) }
   ]);
+
+  useEffect(() => {
+    if (showSignUpForm) {
+      setCurrentView('signup');
+    } else if (showEmailPassword || showStagedLogin || showInstantLogin || showCombinedInstantLogin) {
+       setCurrentView('login');
+    } else {
+       setCurrentView('login');
+    }
+  }, [showSignUpForm, showEmailPassword, showStagedLogin, showInstantLogin, showCombinedInstantLogin]);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -169,6 +182,19 @@ const MessyLoginPage = ({
       navigate('/error');
     }
   };
+
+  const handleSignUpSuccess = () => {
+    // Just logging for now, SignUpForm handles its own UI state
+    console.log('Sign up successful in MessyLoginPage');
+    // Or navigate: navigate('/success?signup=true');
+  };
+
+  // Functions to switch views
+  const showLoginView = () => setCurrentView('login');
+  const showSignUpView = () => setCurrentView('signup');
+
+  // Determine if navigation between forms is possible
+  const canNavigate = (showEmailPassword || showStagedLogin || showInstantLogin || showCombinedInstantLogin) && showSignUpForm;
 
   const generateRandomColorText = (text) => {
     return text.split('').map((char, i) => (
@@ -305,7 +331,7 @@ const MessyLoginPage = ({
           </div>
 
           <h2 className="text-2xl font-bold mb-6 text-center text-gray-800 relative">
-            {generateRandomColorText("Login Portal v3.8.2")}
+            {generateRandomColorText(currentView === 'signup' ? "Sign Up Portal v3.8.2" : "Login Portal v3.8.2")}
             <span className="absolute -top-4 right-0 text-xs bg-green-100 px-1 rounded animate-pulse">BETA</span>
           </h2>
 
@@ -331,30 +357,50 @@ const MessyLoginPage = ({
               <div className="animate-spin text-2xl">🔄</div>
             </div>
 
-            {/* Conditional rendering of auth components */}
-            {showEmailPassword && !showStagedLogin && !showInstantLogin && !showCombinedInstantLogin && (
-              <LoginForm onLoginSuccess={handleLoginSuccess} />
+            {/* Render based on currentView state */}
+            {currentView === 'login' && (
+              <>
+                {showEmailPassword && (
+                    <LoginForm
+                        onLoginSuccess={handleLoginSuccess}
+                        onSwitchToSignUp={canNavigate ? showSignUpView : undefined}
+                     />
+                )}
+                {showStagedLogin && (
+                     <StagedLoginForm
+                         onLoginSuccess={handleLoginSuccess}
+                     />
+                 )}
+                {showInstantLogin && (
+                    <InstantLoginForm
+                        onLoginSuccess={handleLoginSuccess}
+                        onSwitchToRegular={handleSwitchToRegular}
+                    />
+                )}
+                {showCombinedInstantLogin && (
+                    <LoginWithInstantOption
+                        onLoginSuccess={handleLoginSuccess}
+                     />
+                )}
+                {showGoogleAuth && (
+                    <div className="mt-4 border-t pt-4">
+                        <GoogleOAuth onSuccess={handleLoginSuccess} />
+                    </div>
+                )}
+              </>
             )}
 
-            {showStagedLogin && !showInstantLogin && !showCombinedInstantLogin && (
-              <StagedLoginForm onLoginSuccess={handleLoginSuccess} />
-            )}
-
-            {showInstantLogin && !showCombinedInstantLogin && (
-              <InstantLoginForm
-                onLoginSuccess={handleLoginSuccess}
-                onSwitchToRegular={handleSwitchToRegular}
-              />
-            )}
-
-            {showCombinedInstantLogin && (
-              <LoginWithInstantOption onLoginSuccess={handleLoginSuccess} />
-            )}
-
-            {showGoogleAuth && (
-              <div className="mt-4">
-                <GoogleOAuth onSuccess={handleLoginSuccess} />
-              </div>
+            {currentView === 'signup' && showSignUpForm && (
+              <>
+                <SignUpForm
+                    onSwitchToLogin={canNavigate ? showLoginView : undefined}
+                 />
+                {showGoogleAuth && (
+                    <div className="mt-4 border-t pt-4">
+                        <GoogleOAuth onSuccess={handleLoginSuccess} />
+                    </div>
+                )}
+              </>
             )}
           </div>
 
