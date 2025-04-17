@@ -6,6 +6,7 @@ from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage
 from run_tests.general_test_runner import general_test_runner_agent, get_parameters_for_general_test_runner
 from fixtures.authentification.login_to_website import login_to_website_agent, get_parameters_for_login_to_website
+from fixtures.authentification.signup_agent import signup_agent, get_parameters_for_signup_agent
 from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
 from pydantic import SecretStr
 from inspect import getfullargspec
@@ -18,6 +19,7 @@ logger = getLogger(__name__)
 AGENTS = {
     general_test_runner_agent: get_parameters_for_general_test_runner,
     login_to_website_agent: get_parameters_for_login_to_website,
+    signup_agent: get_parameters_for_signup_agent,
 }
 
 
