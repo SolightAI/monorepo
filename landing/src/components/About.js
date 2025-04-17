@@ -63,7 +63,7 @@ export default function About() {
 
       <div className={`container mx-auto px-4 py-16 relative z-20 transition-all duration-1000 transform ${isIntersecting ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
         {/* Section Title */}
-        <h2 className="text-5xl py-6 font-bold text-center mb-16 bg-gradient-to-r from-white to-solight-400 text-transparent bg-clip-text">About Us</h2>
+        <h2 className="text-5xl py-6 font-bold text-center mb-16 bg-gradient-to-r from-white to-solight-400 text-transparent bg-clip-text">Meet the Team</h2>
 
         {/* Achievement Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-16">
