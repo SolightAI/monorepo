@@ -156,6 +156,59 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
         )}
       </div>
 
+      {/* Evidence section (e.g., GIF) */}
+      {execution.evidence && execution.evidence.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-2 flex items-center">
+            <Image size={18} className="mr-2" />
+            Evidence
+          </h3>
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            {execution.evidence.map((item, index) => {
+              try {
+                // Check if it's a string URL
+                if (typeof item === 'string') {
+                  // Parse the URL and check the pathname
+                  const url = new URL(item);
+                  const pathname = url.pathname;
+
+                  // Check if the pathname ends with .gif (case-insensitive)
+                  if (pathname.toLowerCase().endsWith('.gif')) {
+                    return (
+                      <img
+                        key={index}
+                        src={item} // Use the full pre-signed URL
+                        alt={`Execution evidence ${index + 1}`}
+                        className="max-w-full h-auto rounded border border-gray-300 shadow-sm mb-2"
+                      />
+                    );
+                  } else {
+                    // Render as a link if it's a string but not a GIF
+                    return (
+                      <a
+                        key={index}
+                        href={item}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline flex items-center mb-1"
+                      >
+                        <Link2 size={14} className="mr-1" />
+                        {item} // Show the full URL for non-GIFs
+                      </a>
+                    );
+                  }
+                }
+              } catch (e) {
+                // Handle potential URL parsing errors or non-string items gracefully
+                console.error("Error processing evidence item:", item, e);
+                // Optionally render something to indicate an issue, or just skip
+              }
+              return null; // Skip invalid/unparsable items
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Notes section */}
       {execution.notes && (
         <div className="mb-6">
@@ -253,39 +306,6 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
                 );
               })}
             </pre>
-          </div>
-        </div>
-      )}
-
-      {/* Evidence section */}
-      {execution.evidence && execution.evidence.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-2 flex items-center">
-            <Image size={18} className="mr-2" />
-            Evidence
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {execution.evidence.map((item, index) => (
-              <div key={index} className="p-2 border border-gray-200 rounded-lg">
-                {item.endsWith('.jpg') || item.endsWith('.png') || item.endsWith('.gif') ? (
-                  <img
-                    src={item}
-                    alt={`Evidence ${index + 1}`}
-                    className="w-full h-auto rounded"
-                  />
-                ) : (
-                  <a
-                    href={item}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center text-blue-600 hover:text-blue-800"
-                  >
-                    <Link2 size={14} className="mr-1" />
-                    {item.split('/').pop() || `Evidence ${index + 1}`}
-                  </a>
-                )}
-              </div>
-            ))}
           </div>
         </div>
       )}
