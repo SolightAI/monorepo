@@ -203,6 +203,8 @@ async def general_test_runner_agent(
         if s3_url:
             logger.info(f"[{task_id}] Features GIF uploaded to S3: {s3_url}")
 
+    evidence = [s3_url] if s3_url else []
+
     if result is None:
         logger.error(f"[{task_id}] Couldn't run test for {test.name}: {history.final_result()}")
         return base_ouput | {
@@ -211,6 +213,7 @@ async def general_test_runner_agent(
             "tracing": history.get_logs(),
             "error": "Failed to run test, result is None",
             "traceback": "",
+            "evidence": evidence,
         }
 
     if AGENT_LIMITATION_MESSAGE in result:
@@ -221,6 +224,7 @@ async def general_test_runner_agent(
             "tracing": history.get_logs(),
             "error": "",
             "traceback": "",
+            "evidence": evidence,
         }
 
     if UNEXISTING_FEATURE_MESSAGE in result:
@@ -231,6 +235,7 @@ async def general_test_runner_agent(
             "tracing": history.get_logs(),
             "error": "",
             "traceback": "",
+            "evidence": evidence,
         }
 
     if AN_ERROR_OCCURED_MESSAGE in result:
@@ -241,6 +246,7 @@ async def general_test_runner_agent(
             "tracing": history.get_logs(),
             "error": "An error occurred during the test.",
             "traceback": "",
+            "evidence": evidence,
         }
 
     if PRECONDITION_NOT_MET_MESSAGE in result:
@@ -251,6 +257,7 @@ async def general_test_runner_agent(
             "tracing": history.get_logs(),
             "error": "Precondition not met.",
             "traceback": "",
+            "evidence": evidence,
         }
 
     if TEST_FAILED_MESSAGE in result:
@@ -261,6 +268,7 @@ async def general_test_runner_agent(
             "tracing": history.get_logs(),
             "error": "",
             "traceback": "",
+            "evidence": evidence,
         }
 
     if TEST_SUCCESS_MESSAGE in result:
@@ -271,6 +279,7 @@ async def general_test_runner_agent(
             "tracing": history.get_logs(),
             "error": "",
             "traceback": "",
+            "evidence": evidence,
         }
 
     logger.error(f"[{task_id}] Unknown status of test run: {result}")
@@ -280,4 +289,5 @@ async def general_test_runner_agent(
         "tracing": history.get_logs(),
         "error": "Unknown status of test run.",
         "traceback": "",
+        "evidence": evidence,
     }

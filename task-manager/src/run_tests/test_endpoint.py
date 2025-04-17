@@ -71,6 +71,7 @@ async def background_run_test(
         agent_thoughts=result.get('agent_thoughts', None),
         agent_actions=result.get('agent_actions', None),
         tracing=result.get('tracing', None),
+        evidence=result.get('evidence', None),
     )
 
     return result
