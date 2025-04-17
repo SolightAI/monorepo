@@ -1,9 +1,6 @@
-import json
-
 from typing import Any, Optional
 from pydantic import SecretStr
 from logging import getLogger
-from tempfile import NamedTemporaryFile
 from langchain_openai import AzureChatOpenAI
 from fixtures.authentification.get_auth_session import get_auth_session
 from run_tests.router import select_and_call_agent
@@ -46,22 +43,15 @@ async def background_run_test(
         logger.error(f"[{task_id}] Error in background task: {e}")
         raise e
 
-    logger.info(f"[{task_id}] Generated cookies for {test.url}")
+    logger.info(f"[{task_id}] Running test {test.name} for {test.url}")
+    result = await select_and_call_agent(
+        task_id=task_id,
+        test=test,
+        secrets=secrets,
+        auth_session=auth_session,
+    )
 
-    with NamedTemporaryFile(delete=True, suffix='.json', mode='w+') as f:
-        if auth_session.get('cookies') is not None:
-            json.dump(auth_session['cookies'], f)
-            f.flush()
-            f.seek(0)
-
-        logger.info(f"[{task_id}] Running test {test.name} for {test.url}")
-        result = await select_and_call_agent(
-            task_id=task_id,
-            test=test,
-            secrets=secrets,
-        )
-
-        logger.info(f"[{task_id}] Ran tests for {test.url}")
+    logger.info(f"[{task_id}] Ran tests for {test.url}")
 
     task_status_manager.set_status(
         task_id=task_id,

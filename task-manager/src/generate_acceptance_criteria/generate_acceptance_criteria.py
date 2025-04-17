@@ -1,8 +1,7 @@
 import os
 import json
 import re
-import functools
-import traceback
+
 from uuid import uuid4
 from typing import Any, Optional
 from pydantic import SecretStr
@@ -17,7 +16,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service
 from utils.task_status import task_status_manager, handle_background_task_errors
 from utils.history_validator import validate_agent_history
-from utils.s3_utils import upload_gif_to_s3
+from utils.s3_utils import upload_file_to_s3
 from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
 
 
@@ -205,12 +204,14 @@ async def _generate_acceptance_criteria(
         )
 
         # Upload GIF to S3
-        s3_url = upload_gif_to_s3(
+        s3_url = upload_file_to_s3(
             task_id=task_id,
             file_path=temp_gif.name,
             task_type="acceptance_criteria",
             task_name=feature.name,
-            additional_params=feature.model_dump()
+            additional_params=feature.model_dump(),
+            extension="gif",
+            content_type="image/gif",
         )
         if s3_url:
             logger.info(f"[{task_id}] Acceptance Criteria GIF uploaded to S3: {s3_url}")

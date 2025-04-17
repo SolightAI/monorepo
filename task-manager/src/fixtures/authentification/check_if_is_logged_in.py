@@ -3,8 +3,8 @@ import re
 import json
 import difflib
 import asyncio
+import base64
 
-from typing import Optional
 from logging import getLogger
 from pydantic import SecretStr
 from tempfile import NamedTemporaryFile
@@ -13,6 +13,7 @@ from langchain_core.messages import HumanMessage
 from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
+from utils.s3_utils import upload_file_to_s3
 
 
 USER_AUTHENTICATED = "USER_AUTHENTICATED"
@@ -91,7 +92,7 @@ def clean_html_content(html_content: str) -> str:
     return cleaned_content
 
 
-def compare_html_files(file1_content, file2_content):
+def compare_html_files(file1_content: str, file2_content: str) -> str:
     """
     Compare two HTML files after cleaning them and return differences as a string.
 
@@ -175,7 +176,7 @@ async def check_is_logged_in_using_html_diff(
 async def check_is_logged_in(
     task_id: str,
     url: str,
-    existing_session: Optional[dict[str, dict[str, str]]],
+    existing_session: dict[str, dict[str, str]],
     vote_count: int = 1,
 ) -> bool:
     """
@@ -215,9 +216,26 @@ async def check_is_logged_in(
 
         await context.navigate_to(url)
         content_before_login = await (await context.get_current_page()).content()
+        base64_screenshot_before_login = await context.take_screenshot()
 
         logger.info(f"[{task_id}] Closing temporary browser context without cookies")
         await context.close()
+
+        # Upload before_login screenshot
+        try:
+            with NamedTemporaryFile(suffix='.png', delete=True) as temp_png:
+                temp_png.write(base64.b64decode(base64_screenshot_before_login))
+                temp_png.flush()
+                upload_file_to_s3(
+                    file_path=temp_png.name,
+                    task_id=task_id,
+                    task_type="auth_check",
+                    task_name=f"{url}_before",
+                    extension="png",
+                    content_type="image/png"
+                )
+        except Exception as e:
+            logger.error(f"[{task_id}] Failed to upload 'before login' screenshot: {e}")
 
         # First navigate to the URL to initialize the session
         logger.info(f"[{task_id}] Creating browser context with cookies")
@@ -263,7 +281,24 @@ async def check_is_logged_in(
         try:
             await agent.run(max_steps=1)
         finally:
+            base64_screenshot_after_login = await context.take_screenshot()
             content_after_login = await (await agent.browser_context.get_current_page()).content()
+
+            # Upload after_login screenshot
+            try:
+                with NamedTemporaryFile(suffix='.png', delete=True) as temp_png:
+                    temp_png.write(base64.b64decode(base64_screenshot_after_login))
+                    temp_png.flush()
+                    upload_file_to_s3(
+                        file_path=temp_png.name,
+                        task_id=task_id,
+                        task_type="auth_check",
+                        task_name=f"{url}_after",
+                        extension="png",
+                        content_type="image/png"
+                    )
+            except Exception as e:
+                logger.error(f"[{task_id}] Failed to upload 'after login' screenshot: {e}")
 
             coroutines = [
                 check_is_logged_in_using_html_diff(
