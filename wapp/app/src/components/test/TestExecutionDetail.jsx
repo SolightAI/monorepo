@@ -10,6 +10,8 @@ import PropTypes from 'prop-types';
 const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
   const [execution, setExecution] = useState(initialExecution);
   const refreshingRef = useRef(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [fullScreenSrc, setFullScreenSrc] = useState('');
 
   useEffect(() => {
     if (execution?.id) {
@@ -55,6 +57,16 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
     const { icon } = getStatusInfo(status);
     // Make the icon bigger for the header
     return React.cloneElement(icon, { size: 20 });
+  };
+
+  const handleImageClick = (src) => {
+    setFullScreenSrc(src);
+    setIsFullScreen(true);
+  };
+
+  const handleCloseFullScreen = () => {
+    setIsFullScreen(false);
+    setFullScreenSrc('');
   };
 
   if (!execution) {
@@ -174,7 +186,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-2 flex items-center">
             <File size={18} className="mr-2" />
-            Logs
+            Browser Logs
           </h3>
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
             {/* Display console logs */}
@@ -206,6 +218,61 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
                 </div>
               );
             })()}
+          </div>
+        </div>
+      )}
+
+
+      {/* Evidence section (e.g., GIF) */}
+      {execution.evidence && execution.evidence.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-2 flex items-center">
+            <Image size={18} className="mr-2" />
+            Evidence
+          </h3>
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            {execution.evidence.map((item, index) => {
+              try {
+                // Check if it's a string URL
+                if (typeof item === 'string') {
+                  // Parse the URL and check the pathname
+                  const url = new URL(item);
+                  const pathname = url.pathname;
+
+                  // Check if the pathname ends with .gif (case-insensitive)
+                  if (pathname.toLowerCase().endsWith('.gif')) {
+                    return (
+                      <img
+                        key={index}
+                        src={item} // Use the full pre-signed URL
+                        alt={`Execution evidence ${index + 1}`}
+                        className="max-w-full h-auto rounded border border-gray-300 shadow-sm mb-2 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => handleImageClick(item)} // Add onClick handler
+                      />
+                    );
+                  } else {
+                    // Render as a link if it's a string but not a GIF
+                    return (
+                      <a
+                        key={index}
+                        href={item}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline flex items-center mb-1"
+                      >
+                        <Link2 size={14} className="mr-1" />
+                        {item} // Show the full URL for non-GIFs
+                      </a>
+                    );
+                  }
+                }
+              } catch (e) {
+                // Handle potential URL parsing errors or non-string items gracefully
+                console.error("Error processing evidence item:", item, e);
+                // Optionally render something to indicate an issue, or just skip
+              }
+              return null; // Skip invalid/unparsable items
+            })}
           </div>
         </div>
       )}
@@ -257,36 +324,25 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
         </div>
       )}
 
-      {/* Evidence section */}
-      {execution.evidence && execution.evidence.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-2 flex items-center">
-            <Image size={18} className="mr-2" />
-            Evidence
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {execution.evidence.map((item, index) => (
-              <div key={index} className="p-2 border border-gray-200 rounded-lg">
-                {item.endsWith('.jpg') || item.endsWith('.png') || item.endsWith('.gif') ? (
-                  <img
-                    src={item}
-                    alt={`Evidence ${index + 1}`}
-                    className="w-full h-auto rounded"
-                  />
-                ) : (
-                  <a
-                    href={item}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center text-blue-600 hover:text-blue-800"
-                  >
-                    <Link2 size={14} className="mr-1" />
-                    {item.split('/').pop() || `Evidence ${index + 1}`}
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
+      {/* Full Screen Image Overlay */}
+      {isFullScreen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={handleCloseFullScreen} // Close on background click
+        >
+          <img
+            src={fullScreenSrc}
+            alt="Full screen evidence"
+            className="max-w-full max-h-full object-contain bg-white rounded shadow-lg"
+            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking the image itself
+          />
+          {/* Optional: Add a close button */}
+          <button
+             className="absolute top-4 right-4 text-white text-2xl font-bold hover:text-gray-300"
+             onClick={handleCloseFullScreen}
+          >
+             &times;
+          </button>
         </div>
       )}
     </div>

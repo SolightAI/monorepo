@@ -20,6 +20,7 @@ from dto.schemas import (
 )
 from services.test_services import get_test
 from services.secret_services import get_encrypted_secrets
+from utils.s3_utils import generate_presigned_url
 
 
 TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
@@ -50,6 +51,13 @@ async def get_test_execution(test_execution_id: UUID4) -> TestExecutionModel:
     if not test_execution:
         raise HTTPException(status_code=404, detail="Test execution not found")
 
+    # Generate pre-signed URLs for evidence if available
+    if test_execution.evidence:
+        generated_urls = (
+            generate_presigned_url(url) for url in test_execution.evidence if isinstance(url, str)
+        )
+        test_execution.evidence = [url for url in generated_urls if url is not None]
+
     return test_execution
 
 
@@ -74,6 +82,14 @@ async def get_test_executions_by_test(test_id: UUID4) -> List[TestExecutionEleme
 
     # Execute the query
     test_executions = await query
+
+    # Generate pre-signed URLs for evidence in each execution
+    for execution in test_executions:
+        if execution.evidence:
+            generated_urls = (
+                generate_presigned_url(url) for url in execution.evidence if isinstance(url, str)
+            )
+            execution.evidence = [url for url in generated_urls if url is not None]
 
     return test_executions
 
@@ -251,6 +267,9 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                 "agent_actions": agent_actions
             }
 
+            # Extract evidence list if present
+            evidence_list = status_data.get("evidence") or []
+
             # Update the test execution based on the task status
             if status_data["status"] == "completed":
                 # Task completed successfully
@@ -262,6 +281,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                         ended_at=datetime.now(tzinfo),
                         metadata=updated_metadata,
                         tracing=tracing_data,
+                        evidence=evidence_list,
                     )
                 )
                 break
@@ -276,6 +296,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                         ended_at=datetime.now(tzinfo),
                         metadata=updated_metadata | {"error": status_data.get("error"), "traceback": status_data.get("traceback")},
                         tracing=tracing_data,
+                        evidence=evidence_list,
                     )
                 )
                 break
@@ -292,6 +313,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                         ended_at=datetime.now(tzinfo),
                         metadata=updated_metadata,
                         tracing=tracing_data,
+                        evidence=evidence_list,
                     )
                 )
                 break
@@ -305,6 +327,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                         ended_at=datetime.now(tzinfo),
                         metadata=updated_metadata,
                         tracing=tracing_data,
+                        evidence=evidence_list,
                     )
                 )
                 break
@@ -318,6 +341,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                         ended_at=datetime.now(tzinfo),
                         metadata=updated_metadata,
                         tracing=tracing_data,
+                        evidence=evidence_list,
                     )
                 )
                 break
@@ -332,6 +356,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                         ended_at=datetime.now(tzinfo),
                         metadata=updated_metadata,
                         tracing=tracing_data,
+                        evidence=evidence_list,
                     )
                 )
                 break

@@ -7,8 +7,22 @@ services:
     volumes:
       - ./src:/app/src
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - TASK_MANAGER_URL=${TASK_MANAGER_URL}
+      # Redis Cache Configuration
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=1 # Use DB 1 for API cache (task-manager uses 0)
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - APP_URL=${APP_URL}
       - POSTGRES_DB=${POSTGRES_DB:-test}
       - POSTGRES_USER=${POSTGRES_USER:-test}

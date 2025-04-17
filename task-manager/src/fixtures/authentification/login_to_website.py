@@ -273,9 +273,9 @@ async def login_to_website(
             logger.info(f"[{task_id}] Auth Session Generation GIF uploaded to S3: {s3_url}")
 
     if not is_logged_in:
-        return None, history
+        return None, history, s3_url
 
-    return session_data, history
+    return session_data, history, s3_url
 
 
 def _parse_login_attempt(xml_string: str) -> dict[str, str]:
@@ -321,7 +321,7 @@ async def login_to_website_agent(
             "traceback": "",
         }
 
-    session_data, history = await login_to_website(
+    session_data, history, s3_url = await login_to_website(
         task_id=task_id,
         url=url,
         login_method=login_method,
@@ -338,5 +338,6 @@ async def login_to_website_agent(
         "results": json.dumps(parsed_result),  # Store parsed result as JSON string
         "tracing": history.get_logs(),
         "error": "" if session_data is not None else parsed_result.get("error_message", "Login failed"),  # Use parsed error
+        "evidence": [s3_url],
         "traceback": "",
     }

@@ -68,6 +68,7 @@ class TaskStatusManager:
             error: Optional error message if task failed
             agent_thoughts: Optional agent thoughts from the task
             agent_actions: Optional agent actions from the task
+            evidence: Optional list of evidence URLs (e.g., GIF URL)
         """
 
         error = kwargs.get("error")
@@ -87,6 +88,7 @@ class TaskStatusManager:
             "agent_thoughts": kwargs.get("agent_thoughts"),
             "agent_actions": kwargs.get("agent_actions"),
             "feature_id": kwargs.get("feature_id"),
+            "evidence": kwargs.get("evidence"),
         }
         logger.debug(f"Task {task_id} status set to {status}")
 
@@ -100,7 +102,7 @@ class TaskStatusManager:
         Returns:
             Dictionary containing status information
         """
-        status = self.tasks.get(task_id, {"status": "unknown", "results": None, "error": None, "agent_thoughts": None, "agent_actions": None, "feature_id": None})
+        status = self.tasks.get(task_id, {"status": "unknown", "results": None, "error": None, "agent_thoughts": None, "agent_actions": None, "feature_id": None, "evidence": None})
 
         # Make sure error is a string
         if status.get("error") is not None and not isinstance(status["error"], str):
