@@ -208,6 +208,7 @@ async def select_and_call_agent(
     task_id: str,
     test: Test,
     secrets: dict[str, dict[str, str]],
+    auth_session: dict[str, dict[str, str]],
 ) -> dict:
 
     logger.info(f"[{task_id}] Selecting agent for test {test.name}")
@@ -216,4 +217,4 @@ async def select_and_call_agent(
 
     logger.info(f"[{task_id}] Calling agent {agent.__name__}")
 
-    return await agent(**AGENTS[agent](task_id, test, secrets))
+    return await agent(**AGENTS[agent](task_id, test, secrets, auth_session))

@@ -1,6 +1,7 @@
 import os
 import boto3
 import json
+import mimetypes
 
 from typing import Optional, Literal
 from logging import getLogger
@@ -10,9 +11,10 @@ logger = getLogger(__name__)
 
 
 def generate_s3_key(
-    task_type: Literal["test", "feature", "epic", "user_story", "acceptance_criteria"],
+    task_type: Literal["test", "feature", "epic", "user_story", "acceptance_criteria", "auth_check"],
     task_name: str,
     task_id: str,
+    extension: str,
 ) -> str:
     """
     Generate a unique S3 key based on task parameters.
@@ -20,6 +22,8 @@ def generate_s3_key(
     Args:
         task_type: Type of task (test, feature, etc.)
         task_name: Name of the task
+        task_id: ID of the task
+        extension: File extension (e.g., "gif", "png")
 
     Returns:
         Formatted S3 key
@@ -31,7 +35,7 @@ def generate_s3_key(
     # Base path
     base_path = f"{task_id}/{task_type}_{clean_name}"
 
-    return f"{base_path}.gif"
+    return f"{base_path}.{extension}"
 
 
 class S3Manager:
@@ -99,22 +103,27 @@ class S3Manager:
                 logger.error(f"Error checking bucket: {str(e)}")
                 raise
 
-    def upload_gif(
+    def upload_file(
         self,
         task_id: str,
         file_path: str,
-        task_type: Literal["test", "feature", "epic", "user_story", "acceptance_criteria"],
+        task_type: Literal["test", "feature", "epic", "user_story", "acceptance_criteria", "auth_check"],
         task_name: str,
         additional_params: Optional[dict] = None,
+        content_type: Optional[str] = None,
+        extension: Optional[str] = None,
     ) -> str:
         """
-        Upload a GIF file to S3 bucket with a task-specific key
+        Upload a file to S3 bucket with a task-specific key
 
         Args:
-            file_path: Local path to the GIF file
+            task_id: ID of the task
+            file_path: Local path to the file
             task_type: Type of task (test, feature, etc.)
             task_name: Name of the task
-            additional_params: Additional parameters to include in the key
+            additional_params: Additional parameters to include in the key as Metadata
+            content_type: MIME type of the file. If None, it will be guessed.
+            extension: File extension. If None, it will be guessed from file_path.
 
         Returns:
             str: The URL of the uploaded file
@@ -122,14 +131,31 @@ class S3Manager:
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        s3_key = generate_s3_key(task_type, task_name, task_id)
+        # Determine extension if not provided
+        if extension is None:
+            _, ext = os.path.splitext(file_path)
+            extension = ext.lstrip('.')
+            if not extension:
+                raise ValueError("Could not determine file extension and none was provided.")
+
+        s3_key = generate_s3_key(task_type, task_name, task_id, extension)
+
+        # Determine content type if not provided
+        if content_type is None:
+            content_type, _ = mimetypes.guess_type(file_path)
+            if content_type is None:
+                content_type = 'application/octet-stream'
 
         try:
+            extra_args = {'ContentType': content_type}
+            if additional_params:
+                extra_args["Metadata"] = {k: json.dumps(v) for k, v in additional_params.items()}
+
             self.s3_client.upload_file(
                 file_path,
                 self.bucket_name,
                 s3_key,
-                ExtraArgs={'ContentType': 'image/gif', "Metadata": {k: json.dumps(v) for k, v in additional_params.items()} if additional_params else {}}
+                ExtraArgs=extra_args
             )
 
             # Generate the URL for the uploaded file
@@ -138,17 +164,20 @@ class S3Manager:
 
         except Exception as e:
             logger.error(f"Error uploading file to S3: {str(e)}")
+            raise
 
 
-def upload_gif_to_s3(
+def upload_file_to_s3(
     file_path: str,
     task_id: str,
-    task_type: Literal["test", "feature", "epic", "user_story", "acceptance_criteria"],
+    task_type: Literal["test", "feature", "epic", "user_story", "acceptance_criteria", "auth_check"],
     task_name: str,
     additional_params: Optional[dict] = None,
+    content_type: Optional[str] = None,
+    extension: Optional[str] = None,
 ) -> Optional[str]:
     """
-    Helper function to upload a GIF to S3. Returns None if S3 upload fails.
+    Helper function to upload a file to S3. Returns None if S3 upload fails or in test mode.
     """
 
     if os.getenv("TEST_MODE", "false").lower() == "true":
@@ -157,7 +186,15 @@ def upload_gif_to_s3(
 
     try:
         s3_manager = S3Manager()
-        return s3_manager.upload_gif(task_id, file_path, task_type, task_name, additional_params)
+        return s3_manager.upload_file(
+            task_id=task_id,
+            file_path=file_path,
+            task_type=task_type,
+            task_name=task_name,
+            additional_params=additional_params,
+            content_type=content_type,
+            extension=extension,
+        )
     except Exception as e:
-        logger.error(f"[{task_id}] Failed to upload GIF to S3: {str(e)}")
+        logger.error(f"[{task_id}] Failed to upload file to S3: {str(e)}")
         return None

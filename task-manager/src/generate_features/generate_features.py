@@ -16,7 +16,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from utils.crypto import crypto_service
 from utils.task_status import task_status_manager, handle_background_task_errors
 from utils.history_validator import validate_agent_history
-from utils.s3_utils import upload_gif_to_s3
+from utils.s3_utils import upload_file_to_s3
 from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
 
 
@@ -187,12 +187,14 @@ async def _generate_features(
         )
 
         # Upload GIF to S3
-        s3_url = upload_gif_to_s3(
+        s3_url = upload_file_to_s3(
             task_id=task_id,
             file_path=temp_gif.name,
             task_type="feature",
             task_name=epic.name,
-            additional_params=epic.model_dump()
+            additional_params=epic.model_dump(),
+            extension="gif",
+            content_type="image/gif",
         )
         if s3_url:
             logger.info(f"[{task_id}] Features GIF uploaded to S3: {s3_url}")

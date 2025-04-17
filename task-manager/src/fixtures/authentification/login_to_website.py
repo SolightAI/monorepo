@@ -10,7 +10,7 @@ from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage
 from browser_use import Agent, Browser, BrowserConfig, AgentHistoryList
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
-from utils.s3_utils import upload_gif_to_s3
+from utils.s3_utils import upload_file_to_s3
 from fixtures.authentification.check_if_is_logged_in import check_is_logged_in
 from fixtures.authentification.has_required_secrets import has_required_secrets, LoginMethod, SUPPORTED_LOGIN_METHODS
 from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, TestStatus
@@ -121,6 +121,8 @@ def get_parameters_for_login_to_website(
     task_id: str,
     test: Test,
     secrets: dict[str, dict[str, str]],
+    *args: Any,
+    **kwargs: Any,
 ) -> dict[str, Any]:
 
     query = HumanMessage(PROMPT_SELECT_PARAMETERS.format(
@@ -263,11 +265,13 @@ async def login_to_website(
         )
 
         # Upload GIF to S3
-        s3_url = upload_gif_to_s3(
+        s3_url = upload_file_to_s3(
             file_path=temp_gif.name,
             task_id=task_id,
             task_type="auth",
             task_name=url,
+            extension="gif",
+            content_type="image/gif",
         )
         if s3_url:
             logger.info(f"[{task_id}] Auth Session Generation GIF uploaded to S3: {s3_url}")
