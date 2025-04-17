@@ -47,8 +47,7 @@ def generate_presigned_url(s3_url: str, expiration: int = 3600) -> str | None:
     """
     if not s3_client:
         logger.error("S3 client not initialized. Cannot generate pre-signed URL.")
-        # Return original URL as fallback if client fails
-        return s3_url
+        return None
     if not s3_url:
         return None
 
@@ -77,15 +76,10 @@ def generate_presigned_url(s3_url: str, expiration: int = 3600) -> str | None:
         path_parts = parsed_url.path.strip('/').split('/', 1)
         if len(path_parts) < 2:
             logger.error(f"Could not parse bucket and key from S3 URL: {s3_url}")
-            # Fallback: return original URL if parsing fails
-            return s3_url
+            return None
 
         bucket_name = path_parts[0]
         object_key = path_parts[1]
-
-        logger.info(f"The bucket name is: {AWS_ACCESS_KEY_ID=} {AWS_SECRET_ACCESS_KEY=} {AWS_ENDPOINT_URL=} {S3_REGION=}")
-
-        logger.info(f"The url before generating the presigned url is: {s3_url}")
 
         # Generate the presigned URL
         response = s3_client.generate_presigned_url(
@@ -93,7 +87,6 @@ def generate_presigned_url(s3_url: str, expiration: int = 3600) -> str | None:
             Params={'Bucket': bucket_name, 'Key': object_key},
             ExpiresIn=expiration
         )
-        logger.info(f"The url after generating the presigned url is: {response}")
 
         # Get redis client again in case it failed initialization initially
         redis_client = redis_manager.get_client()
@@ -112,9 +105,7 @@ def generate_presigned_url(s3_url: str, expiration: int = 3600) -> str | None:
         return response
     except ClientError as e:
         logger.error(f"Error generating presigned URL for {s3_url}: {e}")
-        # Fallback: return original URL if generation fails
-        return s3_url
+        return None
     except Exception as e:
         logger.error(f"Unexpected error generating presigned URL for {s3_url}: {e}")
-        # Fallback: return original URL for unexpected errors
-        return s3_url
+        return None

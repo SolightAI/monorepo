@@ -53,9 +53,10 @@ async def get_test_execution(test_execution_id: UUID4) -> TestExecutionModel:
 
     # Generate pre-signed URLs for evidence if available
     if test_execution.evidence:
-        test_execution.evidence = [
-            generate_presigned_url(url) or url for url in test_execution.evidence if isinstance(url, str)
-        ]
+        generated_urls = (
+            generate_presigned_url(url) for url in test_execution.evidence if isinstance(url, str)
+        )
+        test_execution.evidence = [url for url in generated_urls if url is not None]
 
     return test_execution
 
@@ -85,9 +86,10 @@ async def get_test_executions_by_test(test_id: UUID4) -> List[TestExecutionEleme
     # Generate pre-signed URLs for evidence in each execution
     for execution in test_executions:
         if execution.evidence:
-            execution.evidence = [
-                generate_presigned_url(url) or url for url in execution.evidence if isinstance(url, str)
-            ]
+            generated_urls = (
+                generate_presigned_url(url) for url in execution.evidence if isinstance(url, str)
+            )
+            execution.evidence = [url for url in generated_urls if url is not None]
 
     return test_executions
 
