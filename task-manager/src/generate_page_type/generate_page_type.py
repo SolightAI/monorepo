@@ -10,7 +10,7 @@ from langchain_openai import AzureChatOpenAI
 from pydantic import SecretStr
 from utils.dto import PageType
 from tempfile import NamedTemporaryFile
-from utils.s3_utils import upload_gif_to_s3
+from utils.s3_utils import upload_file_to_s3
 from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
 
 
@@ -157,12 +157,14 @@ async def analyze_page_type(
             )
 
             # Upload GIF to S3
-            s3_url = upload_gif_to_s3(
+            s3_url = upload_file_to_s3(
                 task_id=task_id,
                 file_path=temp_gif.name,
                 task_type="page_type",
                 task_name=product.name,
-                additional_params=product.model_dump()
+                additional_params=product.model_dump(),
+                extension="gif",
+                content_type="image/gif",
             )
             if s3_url:
                 logger.info(f"[{task_id}] Page Type Analysis GIF uploaded to S3: {s3_url}")

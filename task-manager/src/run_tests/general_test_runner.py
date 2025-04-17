@@ -7,11 +7,10 @@ from logging import getLogger
 from tempfile import NamedTemporaryFile
 from langchain_openai import AzureChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig
-from browser_use.agent.service import logger as agent_logger
 from utils.dto import Test
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from run_tests.tracing import initialize, extend_agent_history
-from utils.s3_utils import upload_gif_to_s3
+from utils.s3_utils import upload_file_to_s3
 from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, TestStatus
 
 
@@ -79,11 +78,13 @@ def get_parameters_for_general_test_runner(
     task_id: str,
     test: Test,
     secrets: dict[str, dict[str, str]],
+    auth_session: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
     return {
         "task_id": task_id,
         "test": test,
         "secrets": secrets,
+        "auth_session": auth_session,
     }
 
 
@@ -91,6 +92,7 @@ async def general_test_runner_agent(
     task_id: str,
     test: Test,
     secrets: dict[str, dict[str, str]],
+    auth_session: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
     """
     General test runner that can be used for most of the tests.
@@ -106,16 +108,14 @@ async def general_test_runner_agent(
         A dictionary containing the status of the test, the results, and the tracing.
     """
 
-    localStorage = secrets.get("localStorage")
-    with NamedTemporaryFile(delete=False, suffix='.json', mode='w+') as f:
-        if localStorage is not None:
-            json.dump(localStorage, f)
+    # localStorage = auth_session.get("localStorage")
+    with NamedTemporaryFile(delete=False, suffix='_cookies.json', mode='w+') as f:
+        if auth_session.get("cookies") is not None:
+            json.dump(auth_session.get("cookies"), f)
             f.flush()
             f.seek(0)
 
-    cookies_file = f.name
-
-    agent_logger.name = f"{agent_logger.name}-{task_id}"
+        cookies_file = f.name
 
     # Initialize JavaScript logging
     initialize()
@@ -136,7 +136,7 @@ async def general_test_runner_agent(
     logger.info(f"[{task_id}] Navigating to {test.url}")
     await context.navigate_to(test.url)  # allowing us to load the localStorage
 
-    if localStorage is not None:
+    if auth_session.get("localStorage") is not None:
         load_script = """
         (storage => {
             Object.keys(storage).forEach(key => {
@@ -144,7 +144,7 @@ async def general_test_runner_agent(
             });
             return localStorage.length;
         })(%s)
-        """.strip() % json.dumps(localStorage)
+        """.strip() % json.dumps(auth_session.get("localStorage"))
         await context.execute_javascript(load_script)
 
     # Extend agent history with JS logging capabilities
@@ -164,6 +164,7 @@ async def general_test_runner_agent(
         initial_actions=[{'go_to_url': {'url': test.url}}, {'go_to_url': {'url': test.url}}],
         browser_context=context,
         enable_memory=False,
+        sensitive_data={f"{_sec_category}:{_sec_name}": _sec_value for _sec_category, _secrets in secrets.items() for _sec_name, _sec_value in _secrets.items()},
     )
 
     try:
@@ -171,10 +172,9 @@ async def general_test_runner_agent(
     finally:
         await context.close()
         await browser.close()
+        os.remove(cookies_file)
 
     result = history.final_result()
-
-    os.remove(cookies_file)
 
     base_ouput = {
         "agent_thoughts": history.model_thoughts(),
@@ -193,12 +193,14 @@ async def general_test_runner_agent(
         )
 
         # Upload GIF to S3
-        s3_url = upload_gif_to_s3(
+        s3_url = upload_file_to_s3(
             task_id=task_id,
             file_path=temp_gif.name,
             task_type="test",
             task_name=test.name,
-            additional_params=test.model_dump()
+            additional_params=test.model_dump(),
+            extension="gif",
+            content_type="image/gif",
         )
         if s3_url:
             logger.info(f"[{task_id}] Features GIF uploaded to S3: {s3_url}")

@@ -314,7 +314,7 @@ export default function Landing() {
                     setIsVideoPlaying(false);
                   }}
                 >
-                  <source src="https://landing.s3.fr-par.scw.cloud/Introduction%20to%20Solight%20QA%20Agents.mp4" type="video/mp4" />
+                  <source src="https://landing.s3.fr-par.scw.cloud/Introduction%20to%20Laneo%20QA%20Agents.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
 
