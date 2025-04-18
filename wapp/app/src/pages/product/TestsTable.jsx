@@ -64,6 +64,48 @@ const TestsTable = () => {
   const [isConfirmFeatureDeleteModalOpen, setIsConfirmFeatureDeleteModalOpen] = useState(false); // State for feature delete confirmation
   const [featureToDeleteId, setFeatureToDeleteId] = useState(null); // ID of feature marked for deletion
 
+  // Add localStorage key for test generation status
+  const TEST_GENERATION_STORAGE_KEY = 'test_generation_status';
+
+  // Function to save test generation status to localStorage
+  const saveTestGenerationStatus = (taskId, status) => {
+    localStorage.setItem(TEST_GENERATION_STORAGE_KEY, JSON.stringify({
+      taskId,
+      status,
+      timestamp: new Date().toISOString()
+    }));
+  };
+
+  // Function to clear test generation status from localStorage
+  const clearTestGenerationStatus = () => {
+    localStorage.removeItem(TEST_GENERATION_STORAGE_KEY);
+  };
+
+  // Function to get test generation status from localStorage
+  const getStoredTestGenerationStatus = () => {
+    const stored = localStorage.getItem(TEST_GENERATION_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  };
+
+  // Add localStorage key for running tests
+  const RUNNING_TESTS_STORAGE_KEY = 'running_tests';
+
+  // Function to save running tests to localStorage
+  const saveRunningTests = (tests) => {
+    localStorage.setItem(RUNNING_TESTS_STORAGE_KEY, JSON.stringify(tests));
+  };
+
+  // Function to clear running tests from localStorage
+  const clearRunningTests = () => {
+    localStorage.removeItem(RUNNING_TESTS_STORAGE_KEY);
+  };
+
+  // Function to get running tests from localStorage
+  const getStoredRunningTests = () => {
+    const stored = localStorage.getItem(RUNNING_TESTS_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : {};
+  };
+
   const { selectedProduct } = useProduct();
   const { selectedOrganization } = useOrganization();
   const { secrets, fetchSecrets } = useSecret();
@@ -550,6 +592,13 @@ const TestsTable = () => {
       clearInterval(testPollingIntervalsRef.current[testId]);
     }
 
+    // Mark test as running in state and localStorage
+    setRunningTests(prev => {
+      const updated = { ...prev, [testId]: executionId };
+      saveRunningTests(updated);
+      return updated;
+    });
+
     // Start polling
     testPollingIntervalsRef.current[testId] = setInterval(async () => {
       try {
@@ -589,10 +638,11 @@ const TestsTable = () => {
           clearInterval(testPollingIntervalsRef.current[testId]);
           delete testPollingIntervalsRef.current[testId];
 
-          // Remove from running tests
+          // Remove from running tests in state and localStorage
           setRunningTests(prev => {
             const updated = { ...prev };
             delete updated[testId];
+            saveRunningTests(updated);
             return updated;
           });
         }
@@ -602,10 +652,11 @@ const TestsTable = () => {
         clearInterval(testPollingIntervalsRef.current[testId]);
         delete testPollingIntervalsRef.current[testId];
 
-        // Remove from running tests
+        // Remove from running tests in state and localStorage
         setRunningTests(prev => {
           const updated = { ...prev };
           delete updated[testId];
+          saveRunningTests(updated);
           return updated;
         });
       }
@@ -758,11 +809,103 @@ const TestsTable = () => {
     }
   };
 
-  // Function to handle test generation for the selected feature
+  // Add useEffect to check for existing test generation status on mount
+  useEffect(() => {
+    const storedStatus = getStoredTestGenerationStatus();
+    if (storedStatus && storedStatus.taskId) {
+      setIsGeneratingTests(true);
+      setTestGenerationTaskId(storedStatus.taskId);
+      setSuccessMessage(`Test generation in progress. Status: ${formatStatus(storedStatus.status || 'PENDING')}`);
+      
+      // Start polling for the stored task
+      startTestGenerationPolling(storedStatus.taskId);
+    }
+  }, []);
+
+  // Extract polling logic into a separate function
+  const startTestGenerationPolling = (taskId) => {
+    // Clear any existing interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+
+    // Poll for status
+    pollingIntervalRef.current = setInterval(async () => {
+      try {
+        console.log('Polling test generation status for task:', taskId);
+        const response = await getTestGenerationStatus(taskId);
+        console.log('Test generation status response:', response);
+
+        // Save current status to localStorage
+        saveTestGenerationStatus(taskId, response.status);
+
+        // Update success message with current status
+        setSuccessMessage(
+          `Test generation in progress. Status: ${response.status ? formatStatus(response.status) : formatStatus('PENDING')}${response.progress ? ` (${response.progress})` : ''}`
+        );
+
+        if (response.status === 'completed') {
+          console.log('Test generation completed successfully:', response);
+          // Clear the interval
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+          setIsGeneratingTests(false);
+          setTestGenerationTaskId(null);
+          clearTestGenerationStatus();
+
+          try {
+            // Force a refresh of the tests list
+            await fetchTestsWithCurrentFilters();
+            
+            // Show success message with the number of tests generated
+            const generatedCount = response.results?.length || 0;
+            setSuccessMessage(
+              `Successfully generated ${generatedCount} tests. The list has been updated.`
+            );
+
+            // Clear success message after 5 seconds
+            setTimeout(() => {
+              setSuccessMessage(null);
+            }, 5000);
+          } catch (fetchErr) {
+            console.error('Error fetching tests after generation:', fetchErr);
+            // Show success message even if we couldn't fetch the tests
+            setSuccessMessage(
+              `Test generation completed successfully. Please refresh the page to see the generated tests.`
+            );
+          }
+        }
+      } catch (err) {
+        console.error('Error polling test generation status:', err);
+        // Clear the interval
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+        setIsGeneratingTests(false);
+        setTestGenerationTaskId(null);
+        clearTestGenerationStatus();
+
+        // If the error is a 422, it means the task is completed but we can't fetch tests
+        if (err.response?.status === 422) {
+          setSuccessMessage(
+            `Test generation completed successfully. Please select a feature to view the generated tests.`
+          );
+          // Clear success message after 5 seconds
+          setTimeout(() => {
+            setSuccessMessage(null);
+          }, 5000);
+        } else {
+          setError('Error checking test generation status. Please try again.');
+        }
+      }
+    }, 2000); // Poll every 2 seconds
+  };
+
+  // Update the handleGenerateTests function to use the new polling function
   const handleGenerateTests = async () => {
     // Check if a feature is selected
     if (selectedFeature === 'all') {
       // Show error message
+      setError('Please select a feature to generate tests for.');
 
       // Highlight the feature dropdown
       const featureDropdown = document.querySelector('[data-feature-dropdown]');
@@ -816,90 +959,34 @@ const TestsTable = () => {
       console.log('Test generation task ID received:', taskId);
       setTestGenerationTaskId(taskId?.toString() || null); // Ensure taskId is a string or null
 
-      // Clear any existing interval
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
+      // Save initial status to localStorage
+      saveTestGenerationStatus(taskId, 'PENDING');
 
-      // Poll for status
-      pollingIntervalRef.current = setInterval(async () => {
-        try {
-          console.log('Polling test generation status for task:', taskId);
-          const response = await getTestGenerationStatus(taskId);
-          console.log('Test generation status response:', response);
-
-          // Update success message with current status
-          setSuccessMessage(
-            `Test generation in progress. Status: ${response.status ? formatStatus(response.status) : formatStatus('PENDING')}${response.progress ? ` (${response.progress})` : ''}`
-          );
-
-          if (response.status === 'completed') {
-            console.log('Test generation completed successfully:', response);
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-            setIsGeneratingTests(false);
-            setTestGenerationTaskId(null);
-
-            // Refresh tests and show success
-            await fetchTestsWithCurrentFilters();
-
-            // Get the current number of tests after refresh
-            const currentTests = await getTestsByFeature(selectedFeature);
-
-            if (currentTests.length === 0) {
-              setError('Test generation completed but no tests were created. Please check the logs for more information.');
-              setSuccessMessage(null);
-            } else {
-              setSuccessMessage(
-                `Successfully generated ${currentTests.length} tests for the selected feature. Status: ${formatStatus('COMPLETED')}`
-              );
-            }
-
-            // Clear success message after 5 seconds
-            setTimeout(() => {
-              setSuccessMessage(null);
-            }, 5000);
-          }
-        } catch (err) {
-          console.error('Error polling test generation status:', err);
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-          setIsGeneratingTests(false);
-          setTestGenerationTaskId(null);
-          setError('Error checking test generation status. Please try again.');
-        }
-      }, 2000); // Poll every 2 seconds
+      // Start polling using the extracted function
+      startTestGenerationPolling(taskId);
 
     } catch (err) {
       console.error('Error generating tests:', err);
       setIsGeneratingTests(false);
       setTestGenerationTaskId(null);
+      clearTestGenerationStatus();
       setError('Failed to start test generation. Please try again.');
       setSuccessMessage(null);
     }
   };
 
-  // Add useEffect for cleanup of polling interval
+  // Update cleanup in useEffect
   useEffect(() => {
-    // Log when the polling is started/active
-    if (pollingIntervalRef.current) {
-      console.log('Polling is active for test generation task:', testGenerationTaskId);
-    }
-
-    // Cleanup function to stop polling when component unmounts or feature changes
     return () => {
+      // Clean up intervals
       if (pollingIntervalRef.current) {
-        console.log('Stopping polling for test generation task:', testGenerationTaskId);
         clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
       }
-      if (testGenerationTaskId) {
-        console.log('Cleaning up test generation polling on unmount or feature change');
-        setIsGeneratingTests(false);
-        setTestGenerationTaskId(null);
-      }
+      Object.values(testPollingIntervalsRef.current).forEach(interval => {
+        clearInterval(interval);
+      });
     };
-  }, [selectedFeature]);
+  }, []);
 
   // Function to handle feature editing
   const handleEditFeature = (feature) => {
@@ -1080,6 +1167,21 @@ const TestsTable = () => {
       setError(null);
     }, 3000);
   };
+
+  // Add useEffect to check for existing running tests on mount
+  useEffect(() => {
+    const storedRunningTests = getStoredRunningTests();
+    if (Object.keys(storedRunningTests).length > 0) {
+      setRunningTests(storedRunningTests);
+      
+      // Resume polling for each running test
+      Object.entries(storedRunningTests).forEach(([testId, executionId]) => {
+        if (executionId) {
+          pollTestExecutionStatus(testId, executionId);
+        }
+      });
+    }
+  }, []);
 
   if (loading) {
     return (
