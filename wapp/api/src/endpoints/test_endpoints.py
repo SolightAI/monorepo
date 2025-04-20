@@ -27,6 +27,7 @@ from dependencies import get_current_user_dependency
 from dto.models import User
 from services import organization_services, secret_services
 from logging import getLogger
+from utils.generations_manager import get_generations
 
 
 router = APIRouter(prefix="/tests", tags=["tests"])
@@ -258,3 +259,18 @@ async def delete_test_secret_endpoint(
         )
 
     await delete_test_secret(test_id, secret_id)
+
+
+@router.get("/generate/{feature_id}")
+async def get_test_generation_task_id_endpoint(feature_id: UUID4) -> dict:
+    """
+    Get the task ID for test generation of a feature from Redis.
+    
+    Args:
+        feature_id: The ID of the feature
+        
+    Returns:
+        A dictionary containing the task ID or None if not found
+    """
+    task_id = await get_generations(str(feature_id))
+    return {"task_id": task_id}

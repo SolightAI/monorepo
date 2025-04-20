@@ -90,7 +90,7 @@ class TaskStatusManager:
             "feature_id": kwargs.get("feature_id"),
             "evidence": kwargs.get("evidence"),
         }
-        logger.debug(f"Task {task_id} status set to {status}")
+        logger.info(f"Task {task_id} status set to {status}")
 
     def get_status(self, task_id: str) -> Dict[str, Any]:
         """
@@ -112,7 +112,7 @@ class TaskStatusManager:
                 logger.error(f"Error converting error object to string for task {task_id}: {e}")
                 status["error"] = "Unknown error (could not convert to string)"
 
-        logger.debug(f"Retrieved status for task {task_id}: {status['status']}")
+        logger.info(f"Retrieved status for task {task_id}: {status['status']}")
         return status
 
 

@@ -97,7 +97,8 @@ export const triggerFeatureTestGeneration = async (featureId) => {
       {},
       { withCredentials: true }
     );
-    return response.data.task_id;
+    // Return the entire response data instead of just task_id
+    return response.data;
   } catch (error) {
     console.error(`Error triggering test generation for feature ${featureId}:`, error);
     throw error;
@@ -174,3 +175,18 @@ export const updateTest = async (testId, testData) => {
     throw error;
   }
 };
+
+export const getTestGenerationTaskId = async (featureId) => {
+  try {
+    const response = await axios.get(`${API_URL}/tests/generate/${featureId}`, {
+      withCredentials: true
+    });
+    
+    // Return the task_id from the response
+    return response.data;
+  } catch (error) {
+    console.error(`Error getting test generation task id for feature ${featureId}:`, error);
+    // Return null instead of throwing to handle gracefully
+    return null;
+  }
+}

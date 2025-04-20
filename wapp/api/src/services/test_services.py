@@ -17,6 +17,7 @@ from services.secret_services import get_secret_with_values
 from services.acceptance_criteria_services import get_acceptance_criteria_by_feature
 from services.secret_services import get_encrypted_secrets
 from pydantic import UUID4
+from utils.generations_manager import clear_generations
 
 
 TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
@@ -291,7 +292,7 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
     response_data = response.json()
     if isinstance(response_data, str):
         response_data = {"task_id": response_data}
-    response_data["feature_id"] = str(feature_id)
+    response_data["feature_id"] = str(feature_id)    
     return response_data
 
 
@@ -315,6 +316,10 @@ async def get_test_generation_status(test_id: UUID4) -> dict:
             original_data = original_response.json()
             if "feature_id" in original_data:
                 response_data["feature_id"] = original_data["feature_id"]
+                
+                # Clear the task ID from Redis when the task is completed
+                await clear_generations(response_data["feature_id"])
+                logger.info(f"Cleared task ID for feature {response_data['feature_id']} from Redis after completion")
 
     return response_data
 
