@@ -291,14 +291,27 @@ async def background_generate_tests_for_feature(
 ) -> list[Test]:
     """
     Background task to generate tests for a feature.
+
+    Args:
+        task_id: Task ID for tracking
+        product: Product information
+        epic: Epic information
+        feature: Feature information
+        user_stories: List of user stories associated with the feature
+        acceptance_criteria_list: List of acceptance criteria associated with the feature
+        categories_of_test: List of test categories to generate
+        secrets: Dictionary of secrets for authentication
+        gif_output_path: Path to store GIF output of browser automation
+
+    Returns:
+        List of generated tests
     """
-    logger.info(f"[{task_id}] Starting test generation for feature {feature.name}")
+
     task_status_manager.set_status(task_id, "pending")
 
     auth_session = dict()
     try:
         if feature.access_conditions is not None and feature.access_conditions.get("must_be_logged_in") is True:
-            logger.info(f"[{task_id}] Getting auth session for feature {feature.name}")
             auth_session = await get_auth_session(
                 task_id=task_id,
                 url=feature.urls[0],
@@ -315,7 +328,6 @@ async def background_generate_tests_for_feature(
         cookies_file.seek(0)
 
         for category in categories_of_test:
-            logger.info(f"[{task_id}] Generating {category} tests for feature {feature.name}")
             category_tests = await _generate_test_category_for_feature(
                 task_id=task_id,
                 product=product,
@@ -329,9 +341,7 @@ async def background_generate_tests_for_feature(
                 gif_output_path=gif_output_path,
             )
             tests.extend(category_tests)
-            logger.info(f"[{task_id}] Generated {len(category_tests)} {category} tests for feature {feature.name}")
 
-    logger.info(f"[{task_id}] Completed test generation for feature {feature.name}. Total tests: {len(tests)}")
     # Set the status with the feature_id
     task_status_manager.set_status(task_id, "completed", results=tests, feature_id=feature.id)
 
@@ -358,6 +368,7 @@ async def generate_tests_for_feature(
         user_stories: List of user stories associated with the feature
         acceptance_criteria: List of acceptance criteria associated with the feature
         background_task: Background tasks handler
+        secrets: Dictionary of secrets for authentication
         encrypted_secrets: Dictionary of encrypted secrets for authentication
 
     Returns:
@@ -403,6 +414,7 @@ async def generate_tests_for_feature(
     )
 
     return task_id
+
 
 @router.get("/get-test-generation-status/{task_id}")
 async def get_test_generation_status(
