@@ -3,9 +3,12 @@ Task Status Manager - Singleton utility for tracking background task status acro
 """
 import functools
 import traceback
+import json
 
-from typing import Dict, Any
+from typing import Dict, Any, List
 from logging import getLogger
+from utils.session_manager import get_redis
+from utils.dto import Test
 
 
 logger = getLogger(__name__)
@@ -32,7 +35,7 @@ def handle_background_task_errors(func):
             logger.error(f"[{task_id}] Traceback: {error_traceback}")
 
             # Update task_ids to indicate failure
-            task_status_manager.set_status(
+            await task_status_manager.set_status(
                 task_id=task_id,
                 status="error",
                 error=error_message,
@@ -54,10 +57,36 @@ class TaskStatusManager:
         if cls._instance is None:
             logger.info("Initializing TaskStatusManager singleton")
             cls._instance = super(TaskStatusManager, cls).__new__(cls)
-            cls._instance.tasks = {}
         return cls._instance
 
-    def set_status(self, task_id: str, status: str, **kwargs) -> None:
+    def _serialize_results(self, results: Any) -> Any:
+        """
+        Serialize results for Redis storage.
+        
+        Args:
+            results: The results to serialize
+            
+        Returns:
+            Serialized results
+        """
+        if results is None:
+            return None
+            
+        if isinstance(results, list):
+            serialized = []
+            for item in results:
+                if isinstance(item, Test):
+                    serialized.append(item.model_dump())
+                else:
+                    serialized.append(item)
+            return serialized
+            
+        if isinstance(results, Test):
+            return results.model_dump()
+            
+        return results
+
+    async def set_status(self, task_id: str, status: str, **kwargs) -> None:
         """
         Set the status of a task.
 
@@ -81,18 +110,33 @@ class TaskStatusManager:
                 logger.error(f"Error converting error object to string for task {task_id}: {e}")
                 error = "Unknown error (could not convert to string)"
 
-        self.tasks[task_id] = {
+        # Serialize results if they exist
+        results = kwargs.get("results")
+        if results is not None:
+            results = self._serialize_results(results)
+
+        task_data = {
             "status": status,
-            "results": kwargs.get("results"),
+            "results": results,
             "error": error,
             "agent_thoughts": kwargs.get("agent_thoughts"),
             "agent_actions": kwargs.get("agent_actions"),
             "feature_id": kwargs.get("feature_id"),
             "evidence": kwargs.get("evidence"),
         }
-        logger.info(f"Task {task_id} status set to {status}")
 
-    def get_status(self, task_id: str) -> Dict[str, Any]:
+        try:
+            redis_client = await get_redis()
+            if redis_client is None:
+                logger.warning("Redis not available, cannot set task status")
+                return
+                
+            await redis_client.hset("task_statuses", task_id, json.dumps(task_data))
+            logger.info(f"Task {task_id} status set to {status}")
+        except Exception as e:
+            logger.error(f"Error setting task status in Redis: {str(e)}")
+
+    async def get_status(self, task_id: str) -> Dict[str, Any]:
         """
         Get the current status of a task.
 
@@ -102,18 +146,31 @@ class TaskStatusManager:
         Returns:
             Dictionary containing status information
         """
-        status = self.tasks.get(task_id, {"status": "unknown", "results": None, "error": None, "agent_thoughts": None, "agent_actions": None, "feature_id": None, "evidence": None})
+        try:
+            redis_client = await get_redis()
+            if redis_client is None:
+                logger.warning("Redis not available, cannot get task status")
+                return {"status": "unknown", "results": None, "error": None, "agent_thoughts": None, "agent_actions": None, "feature_id": None, "evidence": None}
+                
+            status_data = await redis_client.hget("task_statuses", task_id)
+            if status_data:
+                status = json.loads(status_data)
+            else:
+                status = {"status": "unknown", "results": None, "error": None, "agent_thoughts": None, "agent_actions": None, "feature_id": None, "evidence": None}
 
-        # Make sure error is a string
-        if status.get("error") is not None and not isinstance(status["error"], str):
-            try:
-                status["error"] = str(status["error"])
-            except Exception as e:
-                logger.error(f"Error converting error object to string for task {task_id}: {e}")
-                status["error"] = "Unknown error (could not convert to string)"
+            # Make sure error is a string
+            if status.get("error") is not None and not isinstance(status["error"], str):
+                try:
+                    status["error"] = str(status["error"])
+                except Exception as e:
+                    logger.error(f"Error converting error object to string for task {task_id}: {e}")
+                    status["error"] = "Unknown error (could not convert to string)"
 
-        logger.info(f"Retrieved status for task {task_id}: {status['status']}")
-        return status
+            logger.info(f"Retrieved status for task {task_id}: {status['status']}")
+            return status
+        except Exception as e:
+            logger.error(f"Error getting task status from Redis: {str(e)}")
+            return {"status": "unknown", "results": None, "error": None, "agent_thoughts": None, "agent_actions": None, "feature_id": None, "evidence": None}
 
 
 # Initialize the singleton

@@ -306,8 +306,7 @@ async def background_generate_tests_for_feature(
     Returns:
         List of generated tests
     """
-
-    task_status_manager.set_status(task_id, "pending")
+    await task_status_manager.set_status(task_id, "pending")
 
     auth_session = dict()
     try:
@@ -343,7 +342,7 @@ async def background_generate_tests_for_feature(
             tests.extend(category_tests)
 
     # Set the status with the feature_id
-    task_status_manager.set_status(task_id, "completed", results=tests, feature_id=feature.id)
+    await task_status_manager.set_status(task_id, "completed", results=tests, feature_id=feature.id)
 
     return tests
 
@@ -429,7 +428,7 @@ async def get_test_generation_status(
     Returns:
         Dictionary with task status information
     """
-    status = task_status_manager.get_status(task_id)
+    status = await task_status_manager.get_status(task_id)
     return status
 
 

@@ -18,7 +18,7 @@ async def set_generations(feature_id: str, task_id: str) -> None:
             return
             
         # Add the task_id to the feature's hash
-        await redis_client.hset("Generations", feature_id, task_id)
+        await redis_client.hset("generations", feature_id, task_id)
         logger.info(f"Added task {task_id} to feature {feature_id} generations")
         
     except Exception as e:
