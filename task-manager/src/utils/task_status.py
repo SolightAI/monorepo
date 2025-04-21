@@ -78,13 +78,27 @@ class TaskStatusManager:
                 if isinstance(item, BaseModel):
                     serialized.append(item.model_dump())
                 else:
-                    serialized.append(item)
+                    # Handle non-serializable objects by converting to string
+                    try:
+                        # Try to serialize normally first
+                        json.dumps(item)
+                        serialized.append(item)
+                    except (TypeError, OverflowError):
+                        # If serialization fails, convert to string
+                        serialized.append(str(item))
             return serialized
             
         if isinstance(results, BaseModel):
             return results.model_dump()
             
-        return results
+        # Handle non-serializable objects by converting to string
+        try:
+            # Try to serialize normally first
+            json.dumps(results)
+            return results
+        except (TypeError, OverflowError):
+            # If serialization fails, convert to string
+            return str(results)
 
     async def set_status(self, task_id: str, status: str, **kwargs) -> None:
         """
@@ -115,14 +129,29 @@ class TaskStatusManager:
         if results is not None:
             results = self._serialize_results(results)
 
+        # Serialize agent_thoughts if they exist
+        agent_thoughts = kwargs.get("agent_thoughts")
+        if agent_thoughts is not None:
+            agent_thoughts = self._serialize_results(agent_thoughts)
+
+        # Serialize agent_actions if they exist
+        agent_actions = kwargs.get("agent_actions")
+        if agent_actions is not None:
+            agent_actions = self._serialize_results(agent_actions)
+
+        # Serialize evidence if it exists
+        evidence = kwargs.get("evidence")
+        if evidence is not None:
+            evidence = self._serialize_results(evidence)
+
         task_data = {
             "status": status,
             "results": results,
             "error": error,
-            "agent_thoughts": kwargs.get("agent_thoughts"),
-            "agent_actions": kwargs.get("agent_actions"),
+            "agent_thoughts": agent_thoughts,
+            "agent_actions": agent_actions,
             "feature_id": kwargs.get("feature_id"),
-            "evidence": kwargs.get("evidence"),
+            "evidence": evidence,
         }
 
         try:

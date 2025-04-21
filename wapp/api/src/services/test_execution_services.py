@@ -301,7 +301,17 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                 )
                 break
 
-            elif status_data["status"] == "pending":
+            elif status_data["status"] in ["pending", "running"]:
+                # Task is still running, update metadata and continue polling
+                await update_test_execution(
+                    execution_id,
+                    TestExecutionUpdateSchema(
+                        status=TestStatus.PENDING,
+                        metadata=updated_metadata,
+                        tracing=tracing_data,
+                        evidence=evidence_list,
+                    )
+                )
                 attempts += 1
 
             elif status_data["status"] == "failed":
