@@ -31,20 +31,11 @@ import { API_URL } from '@/constants/api';
 // Add the missing functions
 const getTestGenerationTaskId = async (featureId) => {
   try {
-    const response = await fetch(`${API_URL}/tests/generate/${featureId}`, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+    const response = await axios.get(`${API_URL}/tests/generate/${featureId}`, {
+      withCredentials: true
     });
     
-    if (!response.ok) {
-      throw new Error(`Failed to get task ID: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    return data;
+    return response.data;
   } catch (error) {
     console.error('Error getting test generation task ID:', error);
     return null;
