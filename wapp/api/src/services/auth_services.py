@@ -20,8 +20,8 @@ ALGORITHM = "HS256"
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")  # generated with `openssl rand -hex 23
 EMAIL_SALT = "email-confirmation-salt"
 PASSWORD_RESET_SALT = "password-reset-salt"
-
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 30 # TODO: must be define in var env
+REFRESH_TOKEN_EXPIRE_DAYS = 30
 VALIDATION_TOKEN_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
 
 
@@ -55,10 +55,21 @@ def get_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
+def create_tokens(email: str):
+    access_token = create_access_token(data={"sub": email})
+    refresh_token = create_refresh_token(data={"sub": email})
+    return access_token, refresh_token
+
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "token_type": "access"})
+    return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=ALGORITHM)
+
+def create_refresh_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
+    to_encode.update({"exp": expire, "token_type": "refresh"})
     return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -75,7 +86,6 @@ def set_auth_cookie(response: Response, token: str) -> None:
 
 async def get_current_user(token: str) -> UserModel:
     try:
-
         if len(token.split()) != 2:
             raise CredentialsException()
 
@@ -84,6 +94,11 @@ async def get_current_user(token: str) -> UserModel:
         if email is None:
             logging.info("No email found in token, returning 401.")
             raise CredentialsException()
+        
+        token_type = payload.get("token_type")
+        if token_type != "access":
+            logging.warning("Token is not an access token. It's a " + str(token_type))
+            raise HTTPInvalidTokenError()
     except jwt.InvalidTokenError:
         raise HTTPInvalidTokenError()
 
@@ -94,6 +109,50 @@ async def get_current_user(token: str) -> UserModel:
         raise CredentialsException()
 
     return user
+
+
+async def refresh_access_token(refresh_token: str, response: Response) -> dict:
+    """Generate a new access token using a refresh token"""
+    try:
+        payload = jwt.decode(refresh_token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
+        
+        token_type = payload.get("token_type")
+        if token_type != "refresh":
+            logging.error(f"Invalid token type: {token_type}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid token type. Expected refresh token."
+            )
+        
+        email = payload.get("sub")
+        if email is None:
+            logging.error("Token missing 'sub' claim")
+            raise HTTPInvalidTokenError()
+                
+        access_token = create_access_token(data={"sub": email})
+        set_auth_cookie(response, access_token)
+   
+        return {
+            "access_token": access_token,
+            "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        }
+    
+    except jwt.ExpiredSignatureError:
+        logging.error("Refresh token has expired")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except jwt.InvalidTokenError as e:
+        logging.error(f"Invalid token: {str(e)}")
+        raise HTTPInvalidTokenError()
+    except Exception as e:
+        logging.error(f"Unexpected error refreshing token: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error refreshing token: {str(e)}",
+        )
 
 
 async def check_is_admin(user: UserModel) -> bool:
@@ -224,42 +283,15 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
                 # Log the error but don't block the login
                 logging.error(f"Failed to process organization invitation: {str(e)}")
 
-    # Create JWT access token
-    jwt_token = create_access_token(data={
-        "sub": user.email,
-    })
+    access_token, refresh_token = create_tokens(user.email)
 
-    # Always redirect to the main app with the token
-    redirect_url = f"{os.getenv('APP_URL')}/auth/google/callback?token={jwt_token}"
+    # Always redirect to the main app with the tokens
+    redirect_url = f"{os.getenv('APP_URL')}/auth/google/callback?token={access_token}&refresh_token={refresh_token}&expires_in={ACCESS_TOKEN_EXPIRE_MINUTES * 60}"
     print("REDIRECTING TO: ", redirect_url)
     redirect_response = RedirectResponse(url=redirect_url)
-    set_auth_cookie(redirect_response, jwt_token)
+    set_auth_cookie(redirect_response, access_token)
 
     return redirect_response
-
-
-async def refresh_google_token(refresh_token: str) -> dict:
-    token_url = "https://accounts.google.com/o/oauth2/token"
-
-    data = {
-        "client_id": os.getenv('GOOGLE_CLIENT_ID'),
-        "client_secret": os.getenv('GOOGLE_CLIENT_SECRET'),
-        "refresh_token": refresh_token,
-        "grant_type": "refresh_token",
-    }
-
-    response = requests.post(token_url, data=data, timeout=5)
-
-    if response.status_code != 200:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to refresh Google token")
-
-    tokens = response.json()
-
-    return {
-        "access_token": tokens["access_token"],
-        "expires_in": tokens["expires_in"],
-        "expires_at": (datetime.now(timezone.utc) + timedelta(seconds=tokens["expires_in"])).isoformat()
-    }
 
 
 async def logout(response: Response) -> dict:

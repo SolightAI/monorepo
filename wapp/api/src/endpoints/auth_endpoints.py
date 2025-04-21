@@ -6,13 +6,12 @@ from services import auth_services
 from services.invitation_services import get_invitation_by_code
 from dependencies import get_current_user_dependency
 from dto.models import User
-from fastapi import APIRouter, Depends, Response, HTTPException
+from fastapi import APIRouter, Depends, Response, HTTPException, Form
 from pydantic import BaseModel
 from typing import Optional
 
 
 router = APIRouter(prefix="/auth")
-
 
 @router.get("/login/google")
 async def login_google(invitation_code: Optional[str] = None) -> dict:
@@ -44,15 +43,6 @@ async def login_google(invitation_code: Optional[str] = None) -> dict:
     }
 
 
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str
-
-
-@router.post("/refresh-google-token")
-async def refresh_google_token(params: RefreshTokenRequest) -> dict:
-    return await auth_services.refresh_google_token(refresh_token=params.refresh_token)
-
-
 @router.get("/google/callback")
 async def auth_google(code: str, state: Optional[str] = None, response: Response = None) -> dict:
     invitation_code = None
@@ -65,6 +55,20 @@ async def auth_google(code: str, state: Optional[str] = None, response: Response
             pass
 
     return await auth_services.auth_google_callback(code=code, response=response, invitation_code=invitation_code)
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+@router.post("/refresh")
+async def refresh_token(request: RefreshTokenRequest, response: Response):
+    """Generate a new access token using a refresh token"""
+    print("refresh token", request.refresh_token)
+    try:
+        result = await auth_services.refresh_access_token(request.refresh_token, response)
+        return result
+    except HTTPException as e:
+        raise e
 
 
 # @router.post("/confirm/new")

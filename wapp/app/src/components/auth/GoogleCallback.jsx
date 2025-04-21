@@ -10,15 +10,29 @@ function GoogleCallback() {
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const token = searchParams.get('token');
+    const refreshToken = searchParams.get('refresh_token');
+    const expiresIn = searchParams.get('expires_in');
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
-    if (token) {
-      // Set the token in a cookie (this is just for consistency, as the backend already sets the cookie)
-      document.cookie = `access_token=Bearer ${token}; path=/; secure; samesite=lax`;
+    console.log('GoogleCallback received:', { 
+      token: token ? `${token.substring(0, 10)}...` : null,
+      refreshToken: refreshToken ? `${refreshToken.substring(0, 10)}...` : null,
+      expiresIn,
+      error,
+      errorDescription
+    });
 
-      // Update authentication state using context
-      handleGoogleCallback(token);
+    if (token) {
+      if (refreshToken) {
+        handleGoogleCallback({
+          access_token: token,
+          refresh_token: refreshToken,
+          expires_in: expiresIn ? parseInt(expiresIn) : undefined
+        });
+      } else {
+        handleGoogleCallback(token);
+      }
 
       // Always redirect to the main app
       navigate('/', { replace: true });
