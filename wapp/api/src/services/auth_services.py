@@ -95,6 +95,7 @@ async def get_current_user(token: str) -> UserModel:
             logging.info("No email found in token, returning 401.")
             raise CredentialsException()
         
+        # FIXME: this check doesn't work in test mode
         # token_type = payload.get("token_type")
         # if token_type != "access":
         #     logging.warning("Token is not an access token. It's a " + str(token_type))
