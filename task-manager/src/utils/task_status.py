@@ -14,6 +14,19 @@ from pydantic import BaseModel
 logger = getLogger(__name__)
 
 
+class CustomJSONEncoder(json.JSONEncoder):
+    """
+    Custom JSON encoder that handles non-serializable objects by converting them to strings.
+    """
+    def default(self, obj):
+        try:
+            # Try to serialize normally first
+            return super().default(obj)
+        except (TypeError, OverflowError):
+            # If serialization fails, convert to string
+            return str(obj)
+
+
 def handle_background_task_errors(func):
     """
     Decorator for background task functions that handles errors and updates task_ids.
@@ -160,7 +173,8 @@ class TaskStatusManager:
                 logger.warning("Redis not available, cannot set task status")
                 return
                 
-            await redis_client.hset("task_statuses", task_id, json.dumps(task_data))
+            # Use the custom JSON encoder to handle non-serializable objects
+            await redis_client.hset("task_statuses", task_id, json.dumps(task_data, cls=CustomJSONEncoder))
             logger.info(f"Task {task_id} status set to {status}")
         except Exception as e:
             logger.error(f"Error setting task status in Redis: {str(e)}")
