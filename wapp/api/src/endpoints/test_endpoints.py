@@ -19,6 +19,7 @@ from services.test_services import (
     get_feature,
     get_epic,
     get_product,
+    get_generations,
 )
 from pydantic import UUID4
 from typing import List
@@ -27,7 +28,6 @@ from dependencies import get_current_user_dependency
 from dto.models import User
 from services import organization_services, secret_services
 from logging import getLogger
-from utils.generations_manager import get_generations
 
 
 router = APIRouter(prefix="/tests", tags=["tests"])

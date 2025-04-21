@@ -778,7 +778,7 @@ const TestsTable = () => {
     }
   };
 
-  // Add a new useEffect to ensure the success message is always shown when isGeneratingTests is true
+  // Ensure the success message is always shown when isGeneratingTests is true
   useEffect(() => {
     // If we're generating tests but don't have a success message, set one
     if (isGeneratingTests && !successMessage) {
@@ -793,7 +793,7 @@ const TestsTable = () => {
     }
   }, [isGeneratingTests, successMessage, selectedFeature, features]);
 
-  // Update the useEffect that checks for existing test generation status
+  // Checks for existing test generation status
   useEffect(() => {
     let isMounted = true;
     let checkTimeout = null;
@@ -803,7 +803,7 @@ const TestsTable = () => {
 
       if (selectedFeature !== 'all') {
         try {
-          // Get the task ID from Redis via the API
+          //Get the task ID via the API
           const response = await getTestGenerationTaskId(selectedFeature);
           if (!isMounted) return;
 

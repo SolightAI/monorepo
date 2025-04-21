@@ -8,7 +8,7 @@ import json
 from typing import Dict, Any, List
 from logging import getLogger
 from utils.session_manager import get_redis
-from utils.dto import Test
+from pydantic import BaseModel
 
 
 logger = getLogger(__name__)
@@ -75,13 +75,13 @@ class TaskStatusManager:
         if isinstance(results, list):
             serialized = []
             for item in results:
-                if isinstance(item, Test):
+                if isinstance(item, BaseModel):
                     serialized.append(item.model_dump())
                 else:
                     serialized.append(item)
             return serialized
             
-        if isinstance(results, Test):
+        if isinstance(results, BaseModel):
             return results.model_dump()
             
         return results

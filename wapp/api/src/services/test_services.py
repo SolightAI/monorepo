@@ -17,7 +17,7 @@ from services.secret_services import get_secret_with_values
 from services.acceptance_criteria_services import get_acceptance_criteria_by_feature
 from services.secret_services import get_encrypted_secrets
 from pydantic import UUID4
-from utils.generations_manager import clear_generations
+from utils.redis_client import redis_manager
 
 
 TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
@@ -27,6 +27,56 @@ if not TASK_MANAGER_URL:
 
 
 logger = logging.getLogger(__name__)
+
+
+async def get_generations(feature_id: str) -> str | None:
+    """
+    Get task ID for a specific feature from Generations.
+    
+    Args:
+        feature_id: Feature ID to get task for
+      
+    Returns:
+        Task ID for the feature or None if not found
+    """
+    try:
+        redis_client = redis_manager.get_client()
+        if redis_client is None:
+            logger.warning("Redis not available, cannot get generations")
+            return None
+        task_id = redis_client.hget("generations", feature_id)
+        if task_id:
+            return task_id.decode('utf-8') if isinstance(task_id, bytes) else task_id
+        else:
+            return None
+    except Exception as e:
+        logger.error(f"Error getting generations: {str(e)}")
+        return None
+
+
+async def clear_generations(feature_id: str) -> bool:
+    """
+    Remove task ID for a specific feature from Redis.
+    
+    Args:
+        feature_id: Feature ID to clear task for
+      
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        redis_client = redis_manager.get_client()
+        if redis_client is None:
+            logger.warning("Redis not available, cannot clear generations")
+            return False
+            
+        # Remove the task_id for the feature_id
+        redis_client.hdel("generations", feature_id)
+        logger.info(f"Cleared task ID for feature {feature_id} from Redis")
+        return True
+    except Exception as e:
+        logger.error(f"Error clearing generations: {str(e)}")
+        return False
 
 
 async def get_test(test_id: UUID) -> TestModel:
@@ -292,7 +342,7 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
     response_data = response.json()
     if isinstance(response_data, str):
         response_data = {"task_id": response_data}
-    response_data["feature_id"] = str(feature_id)    
+    response_data["feature_id"] = str(feature_id) 
     return response_data
 
 

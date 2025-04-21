@@ -18,7 +18,7 @@ from utils.task_status import task_status_manager, handle_background_task_errors
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_file_to_s3
 from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
-from utils.generations_manager import set_generations
+from utils.session_manager import get_redis
 
 
 PROMPT = """
@@ -431,6 +431,27 @@ async def get_test_generation_status(
     status = await task_status_manager.get_status(task_id)
     return status
 
+
+async def set_generations(feature_id: str, task_id: str) -> None:
+    """
+    Add a task ID to the feature's hash in Generations.
+    
+    Args:
+        feature_id: The ID of the feature
+        task_id: The ID of the task to add
+    """
+    try:
+        redis_client = await get_redis()
+        if redis_client is None:
+            logger.warning("Redis not available, cannot set generations")
+            return
+            
+        # Add the task_id to the feature's hash
+        await redis_client.hset("generations", feature_id, task_id)
+        logger.info(f"Added task {task_id} to feature {feature_id} generations")
+        
+    except Exception as e:
+        logger.error(f"Error setting generations: {str(e)}")
 
 
 # TODO: Test both w/ and w/o the browser-use to see what leads to better results
