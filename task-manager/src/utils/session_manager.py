@@ -3,51 +3,23 @@ import logging
 import json
 import time
 import os
-import redis.asyncio as redis
+from .redis_client import get_redis
 
 
 DEFAULT_EXPIRATION = 86400
 
 
-_redis = None
 logger = logging.getLogger(__name__)
-
-
-async def get_redis() -> Optional[redis.Redis]:
-    """
-    Get Redis client instance
-    
-    Returns:
-        Redis client or None if Redis is not available
-    """
-    global _redis
-    try:
-        if _redis is None:
-            _redis = redis.Redis(
-                host=os.getenv("REDIS_HOST", "localhost"),
-                port=int(os.getenv("REDIS_PORT", "6379")),
-                db=int(os.getenv("REDIS_DB", "0")),
-                password=os.getenv("REDIS_PASSWORD", None),
-                decode_responses=False,
-                socket_connect_timeout=2.0,  # 2 seconds timeout for connection
-                socket_timeout=2.0,  # 2 seconds timeout for operations
-            )
-            # Test the connection
-            await _redis.ping()
-        return _redis
-    except Exception as e:
-        logger.warning(f"Redis connection failed: {str(e)}. Functionality requiring Redis will be degraded.")
-        return None
 
 
 async def get_cached_session(url: str, user_id: str) -> Optional[Dict]:
     """
     Get a cached session for a URL and user_id from Redis
-    
+
     Args:
         url: The website URL
         user_id: User identifier
-    
+
     Returns:
         The cached session data or None
     """
@@ -56,17 +28,17 @@ async def get_cached_session(url: str, user_id: str) -> Optional[Dict]:
         if redis_client is None:
             logger.warning("Redis not available, cannot retrieve cached session")
             return None
-            
+
         key = f"session:{url}:{user_id}"
-        data = await redis_client.get(key)
-        
-        if not data:
+        data_bytes = await redis_client.get(key)
+
+        if not data_bytes:
             return None
-            
-        session_data = json.loads(data)
+
+        session_data = json.loads(data_bytes.decode('utf-8'))
         logger.info(f"Retrieved session for {url} (user: {user_id})")
         return session_data.get("session_data")
-        
+
     except Exception as e:
         logger.error(f"Error retrieving session: {str(e)}")
         return None
@@ -75,7 +47,7 @@ async def get_cached_session(url: str, user_id: str) -> Optional[Dict]:
 async def cache_session(url: str, user_id: str, session_data: Dict) -> None:
     """
     Cache a session in Redis
-    
+
     Args:
         url: The website URL
         user_id: User identifier
@@ -86,18 +58,18 @@ async def cache_session(url: str, user_id: str, session_data: Dict) -> None:
         if redis_client is None:
             logger.warning("Redis not available, session will not be cached")
             return
-            
+
         key = f"session:{url}:{user_id}"
-        
+
         data = {
             "session_data": session_data,
             "created_at": time.time()
         }
-        
+
         expiration = int(os.getenv("SESSION_EXPIRATION_SECONDS", DEFAULT_EXPIRATION))
-        await redis_client.setex(key, expiration, json.dumps(data))
+        await redis_client.setex(key, expiration, json.dumps(data).encode('utf-8'))
         logger.info(f"Cached session for {url} (user: {user_id})")
-    
+
     except Exception as e:
         logger.error(f"Error caching session: {str(e)}")
 
@@ -105,7 +77,7 @@ async def cache_session(url: str, user_id: str, session_data: Dict) -> None:
 async def update_session_timestamp(url: str, user_id: str) -> None:
     """
     Refresh the expiration time for a session
-    
+
     Args:
         url: The website URL
         user_id: User identifier
@@ -115,18 +87,18 @@ async def update_session_timestamp(url: str, user_id: str) -> None:
         if redis_client is None:
             logger.warning("Redis not available, cannot update session timestamp")
             return
-            
+
         key = f"session:{url}:{user_id}"
-        
+
         # Check if session exists
         if not await redis_client.exists(key):
             return
-            
+
         # Reset the expiration time
         expiration = int(os.getenv("SESSION_EXPIRATION_SECONDS", DEFAULT_EXPIRATION))
         await redis_client.expire(key, expiration)
         logger.info(f"Refreshed expiration for session {url} (user: {user_id})")
-    
+
     except Exception as e:
         logger.error(f"Error updating session expiration: {str(e)}")
 
@@ -134,7 +106,7 @@ async def update_session_timestamp(url: str, user_id: str) -> None:
 async def delete_session(url: str, user_id: str) -> bool:
     """
     Delete a session
-    
+
     Args:
         url: The website URL
         user_id: User identifier
@@ -144,7 +116,7 @@ async def delete_session(url: str, user_id: str) -> bool:
         if redis_client is None:
             logger.warning("Redis not available, cannot delete session")
             return False
-            
+
         key = f"session:{url}:{user_id}"
         result = await redis_client.delete(key)
         return result > 0

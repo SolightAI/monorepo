@@ -27,6 +27,7 @@ jobs:
         working-directory: ./task-manager
 
     env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
       AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
       PLAYGROUND_URL: "http://playground:3000" # use container endpoint
@@ -142,6 +143,7 @@ jobs:
       timeout-minutes: 30
       run: |
         cat > .env.test << EOF
+        OPENAI_API_KEY=$OPENAI_API_KEY
         AZURE_OPENAI_KEY=$AZURE_OPENAI_KEY
         AZURE_OPENAI_ENDPOINT=$AZURE_OPENAI_ENDPOINT
         OPENAI_API_KEY=$AZURE_OPENAI_KEY

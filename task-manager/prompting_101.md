@@ -1,0 +1,3 @@
+- Enforcing only one action per sequence dramaticaly improves the agent's accuracy.
+- Browser use sometimes fails to screenshot the whole page and takes only the top half page.
+- Removing the vision from the agent helps him on the actions and page reading but reduces the verfication's accuracy.

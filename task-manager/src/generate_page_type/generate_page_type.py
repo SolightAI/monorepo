@@ -1,27 +1,23 @@
 import re
+import os
+import json
+
 from logging import getLogger
 from typing import Literal
 from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from utils.dto import Product
-import os
-import json
-from langchain_openai import AzureChatOpenAI
-from pydantic import SecretStr
+from langchain_openai import ChatOpenAI
 from utils.dto import PageType
 from tempfile import NamedTemporaryFile
 from utils.s3_utils import upload_file_to_s3
-from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
 
 
 logger = getLogger(__name__)
 
 
-LLM_CLIENT = AzureChatOpenAI(
-    model="gpt-4o",
-    api_version='2024-10-21',
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
-    api_key=SecretStr(AZURE_OPENAI_KEY),
+LLM_CLIENT = ChatOpenAI(
+    model="gpt-4.1",
     temperature=0.0,
 )
 
@@ -77,7 +73,8 @@ def check_page_type(task_id: str, result: str) -> Literal["marketing", "product"
         logger.error(f"[{task_id}] Agent response missing <page_type> tag. Response: {result}")
         raise Exception(f"[{task_id}] Agent response missing <page_type> tag")
 
-    page_type = page_type_check.group(1).strip().lower()
+    page_type: Literal["marketing", "product"] = page_type_check.group(1).strip().lower()  # type: ignore
+
     return page_type
 
 
