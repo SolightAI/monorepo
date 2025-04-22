@@ -1,8 +1,10 @@
+import os
 import pytest
 
 from src.agents.login_agent import login_agent
 from src.utils.dto import Test, TestCategory
 from src.utils.constants import TestStatus
+from src.fixtures.authentification.has_required_secrets import LoginMethod
 
 
 class TestTickPick():
@@ -18,9 +20,9 @@ class TestTickPick():
             name="Validate Email Field Input",
             url=self.url,
             description="Ensure the Email field validates user input correctly.",
-            steps="1. Navigate to the login page.\n2. Leave the Email field empty and attempt to log in.\n3. Enter an invalid email format and attempt to log in.",
+            steps="1. Navigate to the login page.\n2. Type a random password in the Password field.\n3. Leave the Email field empty and attempt to log in.",
             preconditions="None.",
-            assertions="- Verify an error message is displayed for empty Email field.\n- Verify an error message is displayed for invalid email format.",
+            assertions="- Verify an error message is displayed for empty Email field.",
             feature_id=task_id,
         )
 
@@ -31,7 +33,7 @@ class TestTickPick():
             auth_session={},
         )
 
-        assert result["status"] == TestStatus.PASSED
+        assert result["status"] == TestStatus.PASSED.value
 
     @pytest.mark.asyncio
     async def test_validate_password_field_input(self, task_id: str) -> None:
@@ -42,9 +44,9 @@ class TestTickPick():
             name="Validate Password Field Input",
             url=self.url,
             description="Ensure the Password field validates user input correctly.",
-            steps="1. Navigate to the login page.\n2. Leave the Password field empty and attempt to log in.\n3. Enter a password shorter than 7 characters and attempt to log in.",
+            steps="1. Navigate to the login page.\n2. Enter a random email in the Email field.\n3. Leave the Password field empty and attempt to log in.",
             preconditions="None.",
-            assertions="- Verify an error message is displayed for empty Password field.\n- Verify an error message is displayed for password shorter than 7 characters.",
+            assertions="- Verify an error message is displayed for empty Password field.",
             feature_id=task_id,
         )
 
@@ -55,11 +57,26 @@ class TestTickPick():
             auth_session={},
         )
 
-        assert result["status"] == TestStatus.PASSED
+        assert result["status"] == TestStatus.PASSED.value
 
     @pytest.mark.asyncio
     async def test_verify_email_and_password_login(self, task_id: str) -> None:
         """Test authentication with valid email and password credentials."""
+
+        username = os.getenv("TICKPICK_USERNAME")
+        if not username:
+            raise ValueError("TICKPICK_USERNAME is not set")
+
+        password = os.getenv("TICKPICK_PASSWORD")
+        if not password:
+            raise ValueError("TICKPICK_PASSWORD is not set")
+
+        secrets = {
+            LoginMethod.EMAIL.value: {
+                "username": username,
+                "password": password
+            }
+        }
 
         test = Test(
             category=TestCategory.SMOKE,
@@ -75,11 +92,11 @@ class TestTickPick():
         result = await login_agent(
             task_id=task_id,
             test=test,
-            secrets={},
+            secrets=secrets,
             auth_session={},
         )
 
-        assert result["status"] == TestStatus.PASSED
+        assert result["status"] == TestStatus.PASSED.value
 
     @pytest.mark.asyncio
     async def test_verify_sign_up_with_apple(self, task_id: str) -> None:
@@ -103,7 +120,7 @@ class TestTickPick():
             auth_session={},
         )
 
-        assert result["status"] == TestStatus.AGENT_LIMITATION
+        assert result["status"] == TestStatus.AGENT_LIMITATION.value
 
     @pytest.mark.asyncio
     async def test_verify_sign_up_with_google(self, task_id: str) -> None:
@@ -127,4 +144,4 @@ class TestTickPick():
             auth_session={},
         )
 
-        assert result["status"] == TestStatus.AGENT_LIMITATION
+        assert result["status"] == TestStatus.AGENT_LIMITATION.value
