@@ -152,6 +152,8 @@ class TaskStatusManager:
         }
 
         try:
+            # Ensure the entire task_data is serializable
+            json.dumps(task_data)
             redis_client = await get_redis()
             if redis_client is None:
                 logger.warning("Redis not available, cannot set task status")
