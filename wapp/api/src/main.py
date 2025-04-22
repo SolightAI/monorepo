@@ -23,6 +23,36 @@ from endpoints.auth_endpoints import router as auth_router
 logging.basicConfig(level=logging.INFO)
 
 
+# --- Environment Variable Check ---
+required_env_vars = {
+    "JWT_SECRET_KEY": None,  # Check for JWT secret as well
+    "GOOGLE_CLIENT_ID": None,
+    "GOOGLE_CLIENT_SECRET": None,
+    "GOOGLE_REDIRECT_URI": None,
+    "AZURE_CLIENT_ID": None,
+    "AZURE_CLIENT_SECRET": None,
+    "AZURE_TENANT_ID": None,
+    "AZURE_REDIRECT_URI": None,
+    "APP_URL": None,  # Frontend URL needed for redirects
+    # Add any other essential variables here
+}
+
+missing_vars = []
+for var in required_env_vars:
+    value = os.getenv(var)
+    if not value:
+        missing_vars.append(var)
+    else:
+        required_env_vars[var] = value  # Store the value if needed elsewhere, though usually accessed via os.getenv directly
+
+if missing_vars:
+    logging.error(f"Missing required environment variables: {', '.join(missing_vars)}")
+    raise ValueError(f"Application cannot start due to missing environment variables: {', '.join(missing_vars)}")
+else:
+    logging.info("All required environment variables are present.")
+# --- End Environment Variable Check ---
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with RegisterTortoise(
