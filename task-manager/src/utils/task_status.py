@@ -9,22 +9,10 @@ from typing import Dict, Any, List
 from logging import getLogger
 from utils.session_manager import get_redis
 from pydantic import BaseModel
+from uuid import UUID
 
 
 logger = getLogger(__name__)
-
-
-class CustomJSONEncoder(json.JSONEncoder):
-    """
-    Custom JSON encoder that handles non-serializable objects by converting them to strings.
-    """
-    def default(self, obj):
-        try:
-            # Try to serialize normally first
-            return super().default(obj)
-        except (TypeError, OverflowError):
-            # If serialization fails, convert to string
-            return str(obj)
 
 
 def handle_background_task_errors(func):
@@ -131,11 +119,7 @@ class TaskStatusManager:
 
         # Convert error to string if it's not None and not a string already
         if error is not None and not isinstance(error, str):
-            try:
-                error = str(error)
-            except Exception as e:
-                logger.error(f"Error converting error object to string for task {task_id}: {e}")
-                error = "Unknown error (could not convert to string)"
+            error = str(error)
 
         # Serialize results if they exist
         results = kwargs.get("results")
@@ -172,12 +156,11 @@ class TaskStatusManager:
             if redis_client is None:
                 logger.warning("Redis not available, cannot set task status")
                 return
-                
-            # Use the custom JSON encoder to handle non-serializable objects
-            await redis_client.hset("task_statuses", task_id, json.dumps(task_data, cls=CustomJSONEncoder))
+            await redis_client.hset("task_statuses", task_id, json.dumps(task_data))
             logger.info(f"Task {task_id} status set to {status}")
         except Exception as e:
             logger.error(f"Error setting task status in Redis: {str(e)}")
+            raise
 
     async def get_status(self, task_id: str) -> Dict[str, Any]:
         """

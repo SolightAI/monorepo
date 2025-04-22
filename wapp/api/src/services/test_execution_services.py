@@ -301,7 +301,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                 )
                 break
 
-            elif status_data["status"] in ["pending", "running"]:
+            elif status_data["status"] in ["pending"]:
                 # Task is still running, update metadata and continue polling
                 await update_test_execution(
                     execution_id,

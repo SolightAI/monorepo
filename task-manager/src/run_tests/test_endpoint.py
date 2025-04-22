@@ -35,10 +35,17 @@ async def background_run_test(task_id: str, test: Test, secrets: dict[str, str])
         secrets: The secrets to use for the test.
     """
     try:
+        if test.access_conditions.get("must_be_logged_in") is True:
+            auth_session = await get_auth_session(
+                task_id=task_id,
+                url=test.url,
+                secrets=secrets,
+            )
+
         # Set status to running
         await task_status_manager.set_status(
             task_id=task_id,
-            status="running",
+            status="pending",
             results=None,
         )
 
@@ -50,9 +57,7 @@ async def background_run_test(task_id: str, test: Test, secrets: dict[str, str])
             else:
                 formatted_secrets[category] = {"value": value}
 
-        logger.info(f"[{task_id}] Starting test execution for {test.name}")
-        logger.info(f"[{task_id}] Test URL: {test.url}")
-        logger.info(f"[{task_id}] Test category: {test.category}")
+        logger.info(f"[{task_id}] Starting test execution: {test.name}")
 
         # Run the test using select_and_call_agent
         result = await select_and_call_agent(
