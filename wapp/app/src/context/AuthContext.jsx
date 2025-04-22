@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -21,7 +22,7 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
 
-  const AUTH_ROUTES = ['/login', '/register', '/auth/google/callback'];
+  const AUTH_ROUTES = ['/login', '/register', '/auth/callback'];
 
   // Validate invitation code
   const validateInvitationCode = async (code, email) => {
@@ -249,14 +250,11 @@ export const AuthProvider = ({ children }) => {
             const invitationCode = currentUrl.searchParams.get('invitation_code');
             const invitationType = currentUrl.searchParams.get('type');
 
-            // Construct the login URL with invitation code if present
-            let loginUrl = '/login';
-            if (invitationCode) {
-              loginUrl += `?invitation_code=${encodeURIComponent(invitationCode)}`;
-              if (invitationType) {
-                loginUrl += `&type=${encodeURIComponent(invitationType)}`;
-              }
-            }
+            // Construct login path with potential invitation params
+            const loginParams = new URLSearchParams();
+            if (invitationCode) loginParams.set('invitation_code', invitationCode);
+            if (invitationType) loginParams.set('type', invitationType);
+            const loginPath = `/login${loginParams.toString() ? '?' + loginParams.toString() : ''}`;
 
             isRedirecting = true;
             console.log('401 Authentication error detected, redirecting to login with invitation code');
@@ -269,7 +267,7 @@ export const AuthProvider = ({ children }) => {
 
             // Use setTimeout to allow current execution to complete
             setTimeout(() => {
-              window.location.href = loginUrl;
+              window.location.href = loginPath;
               isRedirecting = false;
             }, 100);
           }
@@ -309,14 +307,11 @@ export const AuthProvider = ({ children }) => {
                 const invitationCode = currentUrl.searchParams.get('invitation_code');
                 const invitationType = currentUrl.searchParams.get('type');
 
-                // Construct the login URL with invitation code if present
-                let loginUrl = '/login';
-                if (invitationCode) {
-                  loginUrl += `?invitation_code=${encodeURIComponent(invitationCode)}`;
-                  if (invitationType) {
-                    loginUrl += `&type=${encodeURIComponent(invitationType)}`;
-                  }
-                }
+                // Construct login path with potential invitation params
+                const loginParams = new URLSearchParams();
+                if (invitationCode) loginParams.set('invitation_code', invitationCode);
+                if (invitationType) loginParams.set('type', invitationType);
+                const loginPath = `/login${loginParams.toString() ? '?' + loginParams.toString() : ''}`;
 
                 // Update authentication state
                 setIsAuthenticated(false);
@@ -326,7 +321,7 @@ export const AuthProvider = ({ children }) => {
 
                 // Use setTimeout to allow current execution to complete
                 setTimeout(() => {
-                  window.location.href = loginUrl;
+                  window.location.href = loginPath;
                   isRedirecting = false;
                   isCheckingAuth = false;
                 }, 100);
@@ -341,14 +336,11 @@ export const AuthProvider = ({ children }) => {
               const invitationCode = currentUrl.searchParams.get('invitation_code');
               const invitationType = currentUrl.searchParams.get('type');
 
-              // Construct the login URL with invitation code if present
-              let loginUrl = '/login';
-              if (invitationCode) {
-                loginUrl += `?invitation_code=${encodeURIComponent(invitationCode)}`;
-                if (invitationType) {
-                  loginUrl += `&type=${encodeURIComponent(invitationType)}`;
-                }
-              }
+              // Construct login path with potential invitation params
+              const loginParams = new URLSearchParams();
+              if (invitationCode) loginParams.set('invitation_code', invitationCode);
+              if (invitationType) loginParams.set('type', invitationType);
+              const loginPath = `/login${loginParams.toString() ? '?' + loginParams.toString() : ''}`;
 
               // Update authentication state
               setIsAuthenticated(false);
@@ -358,7 +350,7 @@ export const AuthProvider = ({ children }) => {
 
               // Use setTimeout to allow current execution to complete
               setTimeout(() => {
-                window.location.href = loginUrl;
+                window.location.href = loginPath;
                 isRedirecting = false;
                 isCheckingAuth = false;
               }, 100);
@@ -376,41 +368,73 @@ export const AuthProvider = ({ children }) => {
     };
   }, [isAuthenticated]);
 
-  // Google auth callback handler
-  const handleGoogleCallback = useCallback((tokenOrUserData) => {
-    if (tokenOrUserData) {
-      // Set authentication state
+  // Login with Google
+  const loginWithGoogle = async (invitationCode = null) => {
+    try {
+      const params = invitationCode ? `?invitation_code=${invitationCode}` : '';
+      const response = await axios.get(`${API_URL}/auth/login/google${params}`);
+      window.location.href = response.data.url; // Redirect to Google auth URL
+    } catch (error) {
+      console.error('Error initiating Google login:', error);
+      setError('Could not initiate Google login.');
+    }
+  };
+
+  // Login with Azure
+  const loginWithAzure = async (invitationCode = null) => {
+    try {
+      const params = invitationCode ? `?invitation_code=${invitationCode}` : '';
+      const response = await axios.get(`${API_URL}/auth/login/azure${params}`);
+      window.location.href = response.data.url; // Redirect to Azure auth URL
+    } catch (error) {
+      console.error('Error initiating Azure login:', error);
+      setError('Could not initiate Azure login.');
+    }
+  };
+
+  // Handle OAuth callback (Google, Azure, etc.)
+  const handleOAuthCallback = useCallback(async (searchParams) => {
+    setLoading(true);
+    const token = searchParams.get('token');
+    const errorParam = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+
+    if (errorParam) {
+      console.error(`OAuth Error: ${errorParam} - ${errorDescription}`);
+      setError(errorDescription || 'OAuth authentication failed.');
+      setIsAuthenticated(false);
+      localStorage.removeItem('isAuthenticated');
+      setLoading(false);
+      return; // Stop processing if there's an error
+    }
+
+    if (token) {
+      // In a real app, you might want to verify the token signature client-side
+      // or preferably, make a call to your backend to validate the token
+      // and get user info securely.
+      // For now, we assume the token received from our backend redirect is valid.
+      console.log('OAuth callback successful, received token.');
       setIsAuthenticated(true);
       localStorage.setItem('isAuthenticated', 'true');
 
-      // If we received user data (from direct API check), save it
-      if (typeof tokenOrUserData === 'object' && tokenOrUserData.user) {
-        setUser(tokenOrUserData.user);
-
-        // Set admin status if provided
-        if (tokenOrUserData.user.is_admin !== undefined) {
-          setIsAdmin(tokenOrUserData.user.is_admin);
-          localStorage.setItem('isAdmin', JSON.stringify({
-            isAdmin: tokenOrUserData.user.is_admin,
-            timestamp: Date.now()
-          }));
-        }
-
-        // Set onboarding status if provided
-        if (tokenOrUserData.user.onboarding_completed !== undefined) {
-          console.log('Setting onboarding status from Google callback:', tokenOrUserData.user.onboarding_completed);
-          setOnboardingCompleted(tokenOrUserData.user.onboarding_completed);
-          localStorage.setItem('onboardingCompleted', tokenOrUserData.user.onboarding_completed.toString());
-        }
-      } else {
-        // Just a token, check admin status and authenticate
-        checkAdminStatus();
-
-        // Also check auth status to get full user data including onboarding status
-        checkAuthStatus();
+      // Fetch user details after successful auth
+      try {
+        await checkAuthStatus(); // This will fetch user details and set admin/onboarding status
+      } catch (authError) {
+        console.error('Error fetching user status after OAuth callback:', authError);
+        setError('Authentication successful, but failed to fetch user details.');
+        // Keep isAuthenticated true, but show an error
       }
+    } else {
+      // Handle cases where neither token nor error is present (unexpected)
+      console.warn('OAuth callback received without token or error.');
+      setError('OAuth callback completed with an unexpected state.');
+      setIsAuthenticated(false);
+      localStorage.removeItem('isAuthenticated');
     }
-  }, [checkAdminStatus, checkAuthStatus]);
+
+    setLoading(false);
+  }, [checkAuthStatus]);
 
   // Update onboarding status
   const updateOnboardingStatus = async (completed) => {
@@ -449,10 +473,12 @@ export const AuthProvider = ({ children }) => {
     error,
     onboardingCompleted,
     login,
+    loginWithGoogle,
+    loginWithAzure,
     register,
     logout,
     checkAdminStatus,
-    handleGoogleCallback,
+    handleOAuthCallback,
     checkAuthStatus,
     validateInvitationCode,
     updateOnboardingStatus,
