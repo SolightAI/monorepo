@@ -290,14 +290,14 @@ async def check_is_logged_in(
             except Exception as e:
                 logger.error(f"[{task_id}] Failed to upload 'after login' screenshot: {e}")
 
-            is_logged_in = await check_is_logged_in_using_html_diff(
-                task_id=task_id,
-                before_login_html=content_before_login,
-                after_login_html=content_after_login,
-            )
-
             await context.close()
             await browser.close()
+
+        is_logged_in = await check_is_logged_in_using_html_diff(
+            task_id=task_id,
+            before_login_html=content_before_login,
+            after_login_html=content_after_login,
+        )
 
         logger.info(f"[{task_id}] Login check result: {'Logged in' if is_logged_in else 'Not logged in'}")
 
