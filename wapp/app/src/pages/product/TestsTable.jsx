@@ -819,10 +819,9 @@ const TestsTable = () => {
 
     const checkExistingTaskId = async () => {
       if (!isMounted) return;
-      try {
-        setIsGeneratingTests(true);
-        setError(null);
-        setSuccessMessage(`Starting test generation. Status: ${formatStatus(TEST_STATUS.PENDING)}`);
+      setIsGeneratingTests(true);
+      setError(null);
+      setSuccessMessage(`Starting test generation. Status: ${formatStatus(TEST_STATUS.PENDING)}`);
 
       if (selectedFeature !== 'all') {
         try {
@@ -1039,8 +1038,7 @@ const TestsTable = () => {
             // Show success message even if we couldn't fetch the tests, but only if it's not an initial check
             if (!isInitialCheck && selectedFeature !== 'all') {
               setSuccessMessage(
-
-                `Successfully generated ${currentTests.length} tests for the selected feature. Status: ${formatStatus(TEST_STATUS.PASSED)}`
+                `Test generation completed successfully for "${featureName}". Please select a feature to view the generated tests.`
               );
               
               // Clear success message after 5 seconds

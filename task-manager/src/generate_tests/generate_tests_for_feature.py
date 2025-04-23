@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import asyncio
 
 from uuid import uuid4
 from typing import Any, Optional
@@ -212,7 +213,15 @@ async def _generate_test_category_for_feature(
     )
 
     try:
-        history = await agent.run(max_steps=30)
+        # Add a timeout to prevent the agent from running indefinitely
+        async with asyncio.timeout(300):  # 5 minutes timeout
+            history = await agent.run(max_steps=30)
+    except asyncio.TimeoutError:
+        logger.error(f"[{task_id}] Agent run timed out after 300 seconds")
+        raise Exception("Agent run timed out after 300 seconds")
+    except Exception as e:
+        logger.error(f"[{task_id}] Error running agent: {e}")
+        raise e
     finally:
         await context.close()
         await browser.close()
@@ -451,4 +460,3 @@ async def set_generations(feature_id: str, task_id: str) -> None:
 # TODO: Test both w/ and w/o the browser-use to see what leads to better results
 # TODO: give access to doc RAD so the agent can ask questions about the product
 # TODO: give a Solight doc for LLMs (super useful both for cursor and for the QA agent)
-=======
