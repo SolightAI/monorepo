@@ -37,7 +37,7 @@ export default function Header() {
             About Solight
           </a>
           <a href="/about" className="text-white hover:text-solight-400 transition-colors font-medium text-base py-1 px-1 leading-relaxed">
-            About Us
+            Meet the Team
           </a>
         </nav>
 
@@ -62,7 +62,7 @@ export default function Header() {
               Home
             </a>
             <a href="/about" className="text-white hover:text-solight-400 transition-colors font-medium text-base py-1">
-              About Us
+              Meet the Team
             </a>
             <a
               href="https://calendly.com/antoinelevy"

@@ -1,23 +1,12 @@
 from typing import Any, Optional
-from pydantic import SecretStr
 from logging import getLogger
-from langchain_openai import AzureChatOpenAI
 from fixtures.authentification.get_auth_session import get_auth_session
 from run_tests.router import select_and_call_agent
 from utils.dto import Test
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Body
 from utils.crypto import crypto_service
 from utils.task_status import task_status_manager, handle_background_task_errors
-from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
-
-
-LLM_CLIENT = AzureChatOpenAI(
-    model="gpt-4o",
-    api_version='2024-10-21',
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
-    api_key=SecretStr(AZURE_OPENAI_KEY),
-    temperature=0.0,
-)
+from utils.constants import TestStatus
 
 
 router = APIRouter(prefix="/run-test")
@@ -57,7 +46,7 @@ async def background_run_test(task_id: str, test: Test, secrets: dict[str, str])
             else:
                 formatted_secrets[category] = {"value": value}
 
-        logger.info(f"[{task_id}] Starting test execution: {test.name}")
+        logger.info(f"[{task_id}] Running test {test.name} for {test.url}")
 
         # Run the test using select_and_call_agent
         result = await select_and_call_agent(
@@ -89,6 +78,8 @@ async def background_run_test(task_id: str, test: Test, secrets: dict[str, str])
         )
         raise
 
+    return result
+
 
 @router.post("/run-test")
 async def run_test(
@@ -107,19 +98,23 @@ async def run_test(
             logger.info(f"[{task_id}] Successfully decrypted secrets")
         except Exception as e:
             logger.error(f"[{task_id}] Failed to decrypt secrets: {str(e)}")
+            # Ensure status is set to error if decryption fails before returning
+            await task_status_manager.set_status(task_id, TestStatus.ERROR.value, error="Failed to decrypt secrets")
             raise HTTPException(status_code=400, detail="Failed to decrypt secrets")
 
+    # Set initial status to pending *before* adding the background task
+    await task_status_manager.set_status(
+        task_id=task_id,
+        status=TestStatus.PENDING.value,
+        results=None,
+    )
+
+    # Add the actual test execution to the background
     background_task.add_task(
         background_run_test,
         task_id=task_id,
         test=test,
         secrets=secrets,
-    )
-
-    await task_status_manager.set_status(
-        task_id=task_id,
-        status="pending",
-        results=None,
     )
 
     return task_id

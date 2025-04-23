@@ -197,28 +197,6 @@ async def test_get_tests_by_product(client: AsyncClient, admin_user, test_produc
 
 
 @pytest.mark.anyio
-async def test_update_test_status(client: AsyncClient, admin_user, test_case):
-    """Test updating a test's status"""
-    token = create_token(admin_user.email)
-    headers = {"Cookie": f"access_token=Bearer {token}"}
-
-    data = {
-        "status": "PASSED"
-    }
-
-    response = await client.put(
-        f"/tests/{test_case.id}/status",
-        json=data,
-        headers=headers
-    )
-
-    assert response.status_code == 200
-    result = response.json()
-    assert result["id"] == str(test_case.id)
-    assert result["status"] == data["status"]
-
-
-@pytest.mark.anyio
 async def test_update_test(client: AsyncClient, admin_user, test_case):
     """Test updating a test"""
     token = create_token(admin_user.email)

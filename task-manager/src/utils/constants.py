@@ -13,8 +13,11 @@ if AZURE_OPENAI_KEY is None:
 
 
 class TestStatus(Enum):
-    COMPLETED = "completed"
+    PENDING = "pending"
+    PASSED = "passed"
     FAILED = "failed"
     ERROR = "error"
-    AGENT_LIMTATION = "agent_limitation"
+    AGENT_LIMITATION = "agent_limitation"
     UNEXISTING_FEATURE = "unexisting_feature"
+    BLOCKED_BY_CAPTCHA = "blocked_by_captcha"
+    UNKNOWN = "unknown"

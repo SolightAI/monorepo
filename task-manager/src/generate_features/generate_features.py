@@ -79,26 +79,28 @@ router = APIRouter(prefix="/generate-features")
 logger = getLogger(__name__)
 
 
-def _parse_features(task_id: str, features_text: str) -> list[dict[str, str]]:
+def _parse_features(task_id: str, features_text: str) -> list[dict[str, str | list[str]]]:
     """Parse the text returned from LLM into a list of feature dictionaries."""
     # Use regex to extract features
-    features = []
+    features: list[dict[str, str | list[str]]] = []
     pattern = r'<feature>\s*<name>(.*?)</name>\s*<description>(.*?)</description>\s*<urls>(.*?)</urls>\s*</feature>'
 
     matches = re.finditer(pattern, features_text, re.DOTALL)
 
     for match in matches:
 
-        urls = match.group(3).strip()
         pattern = r'<url>(.*?)</url>'
-        urls = re.findall(pattern, urls, re.DOTALL)
+        urls: list[str] = re.findall(pattern, match.group(3).strip(), re.DOTALL)
 
         if not urls:
             raise Exception(f"[{task_id}] No urls found for feature {match.group(3).strip()}")
 
-        feature = {
-            'name': match.group(1).strip(),
-            'description': match.group(2).strip(),
+        name: str = match.group(1).strip()
+        description: str = match.group(2).strip()
+
+        feature: dict[str, str | list[str]] = {
+            'name': name,
+            'description': description,
             'urls': urls,
         }
         features.append(feature)
@@ -153,9 +155,6 @@ async def _generate_features(
         })(%s)
         """.strip() % json.dumps(localStorage)
         await context.execute_javascript(load_script)
-
-    if gif_output_path:
-        os.makedirs(os.path.dirname(gif_output_path), exist_ok=True)
 
     # NOTE: we do not provide a controller as models tend to provide better results when not constrained by a controller output model
     agent = Agent(
@@ -315,7 +314,7 @@ async def get_features_generation_status(
     Returns:
         Dictionary with task status information
     """
-    status = task_status_manager.get_status(task_id)
+    status = await task_status_manager.get_status(task_id)
     return status
 
 

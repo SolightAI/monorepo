@@ -4,10 +4,9 @@ import re
 
 from uuid import uuid4
 from typing import Any, Optional
-from pydantic import SecretStr
 from logging import getLogger
 from tempfile import NamedTemporaryFile
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import ChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig
 from fixtures.authentification.get_auth_session import get_auth_session
 from utils.dto import Product, Test, Epic, Feature, UserStory, AcceptanceCriteria, TestCategory, TEST_CATEGORIES_DESCRIPTION
@@ -17,8 +16,9 @@ from utils.crypto import crypto_service
 from utils.task_status import task_status_manager, handle_background_task_errors
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_file_to_s3
-from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
+from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, TestStatus
 from utils.session_manager import get_redis
+
 
 
 PROMPT = """
@@ -97,11 +97,8 @@ Make sure to close each XML tag you open.
 """.strip()
 
 
-LLM_CLIENT = AzureChatOpenAI(
-    model="gpt-4o",
-    api_version='2024-10-21',
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
-    api_key=SecretStr(AZURE_OPENAI_KEY),
+LLM_CLIENT = ChatOpenAI(
+    model="gpt-4.1",
     temperature=0.0,
 )
 
@@ -195,9 +192,6 @@ async def _generate_test_category_for_feature(
         })(%s)
         """.strip() % json.dumps(localStorage)
         await context.execute_javascript(load_script)
-
-    if gif_output_path:
-        os.makedirs(os.path.dirname(gif_output_path), exist_ok=True)
 
     # NOTE: we do not provide a controller as models tend to provide better results when not constrained by a controller output model
     agent = Agent(
@@ -306,7 +300,7 @@ async def background_generate_tests_for_feature(
     Returns:
         List of generated tests
     """
-    await task_status_manager.set_status(task_id, "pending")
+    await task_status_manager.set_status(task_id, TestStatus.PENDING.value)
 
     auth_session = dict()
     try:
@@ -342,7 +336,8 @@ async def background_generate_tests_for_feature(
             tests.extend(category_tests)
 
     # Set the status with the feature_id
-    await task_status_manager.set_status(task_id, "completed", results=tests, feature_id=feature.id)
+
+    await task_status_manager.set_status(task_id, TestStatus.PASSED.value, results=[_test.model_dump_json() for _test in tests], feature_id=feature.id)
 
     return tests
 
@@ -428,8 +423,7 @@ async def get_test_generation_status(
     Returns:
         Dictionary with task status information
     """
-    status = await task_status_manager.get_status(task_id)
-    return status
+    return await task_status_manager.get_status(task_id)
 
 
 async def set_generations(feature_id: str, task_id: str) -> None:
@@ -457,3 +451,4 @@ async def set_generations(feature_id: str, task_id: str) -> None:
 # TODO: Test both w/ and w/o the browser-use to see what leads to better results
 # TODO: give access to doc RAD so the agent can ask questions about the product
 # TODO: give a Solight doc for LLMs (super useful both for cursor and for the QA agent)
+=======

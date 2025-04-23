@@ -8,15 +8,16 @@ import os
 import logging
 
 from datetime import datetime
-from typing import List
+from typing import List, Dict
 from fastapi import HTTPException, BackgroundTasks
 from pydantic import UUID4
-from dto.models import TestExecution as TestExecutionModel, Test as TestModel
+from dto.models import TestExecution as TestExecutionModel
 from dto.schemas import (
     TestExecutionCreate as TestExecutionCreateSchema,
     TestExecutionUpdate as TestExecutionUpdateSchema,
     TestExecutionElement,
     TestStatus,
+    LatestTestExecutionResponse,
 )
 from services.test_services import get_test
 from services.secret_services import get_encrypted_secrets
@@ -120,18 +121,6 @@ async def create_test_execution(
     test_execution_dict["id"] = uuid.uuid4()
     test_execution_model = await TestExecutionModel.create(**test_execution_dict)
 
-    # Get tzinfo from the existing started_at if available, otherwise use None (system default)
-    tzinfo = test.started_at.tzinfo if test.started_at else None
-
-    # Update the test's status
-    test.status = test_execution.status
-    test.started_at = datetime.now(tzinfo) if not test.started_at else test.started_at
-
-    if test_execution.status in [TestStatus.PASSED, TestStatus.FAILED, TestStatus.BLOCKED, TestStatus.SKIPPED, TestStatus.AGENT_LIMITATION, TestStatus.UNEXISTING_FEATURE]:
-        test.ended_at = datetime.now(tzinfo)
-
-    await test.save()
-
     # Trigger test execution on task manager if this is an automated test
     try:
         # Get test data and related information
@@ -179,7 +168,7 @@ async def create_test_execution(
             await update_test_execution(
                 test_execution_model.id,
                 TestExecutionUpdateSchema(
-                    status=TestStatus.PENDING,
+                    status=TestStatus.PENDING.value,
                     metadata={"task_manager_task_id": task_id},
                 )
             )
@@ -207,7 +196,7 @@ async def create_test_execution(
     return await get_test_execution(test_execution_model.id)
 
 
-async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attempts: int = 120, interval: int = 5):
+async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attempts: int = 120, interval: int = 5) -> None:
     """
     Poll the task manager for status updates and update the test execution accordingly.
     This is a non-async function for use with FastAPI BackgroundTasks.
@@ -271,13 +260,13 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
             evidence_list = status_data.get("evidence") or []
 
             # Update the test execution based on the task status
-            if status_data["status"] == "completed":
-                # Task completed successfully
+            if status_data["status"] not in TestStatus:
+                logger.error(f"Unknown status of test run: {status_data}")
                 await update_test_execution(
                     execution_id,
                     TestExecutionUpdateSchema(
-                        status=TestStatus.PASSED,
-                        notes=str(status_data.get("results", "")),
+                        status=TestStatus.ERROR,
+                        notes=f"Unknown status of test run: {status_data}",
                         ended_at=datetime.now(tzinfo),
                         metadata=updated_metadata,
                         tracing=tracing_data,
@@ -301,7 +290,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                 )
                 break
 
-            elif status_data["status"] in ["pending"]:
+            elif status_data["status"] == TestStatus.PENDING.value:
                 # Task is still running, update metadata and continue polling
                 await update_test_execution(
                     execution_id,
@@ -312,57 +301,16 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                         evidence=evidence_list,
                     )
                 )
+
                 attempts += 1
 
-            elif status_data["status"] == "failed":
-                await update_test_execution(
-                    execution_id,
-                    TestExecutionUpdateSchema(
-                        status=TestStatus.FAILED,
-                        notes=f"{status_data.get('results', 'Unknown error')}",
-                        ended_at=datetime.now(tzinfo),
-                        metadata=updated_metadata,
-                        tracing=tracing_data,
-                        evidence=evidence_list,
-                    )
-                )
-                break
-
-            elif status_data["status"] == "agent_limitation":
-                await update_test_execution(
-                    execution_id,
-                    TestExecutionUpdateSchema(
-                        status=TestStatus.AGENT_LIMITATION,
-                        notes=f"{status_data.get('results', 'Agent limitation encountered')}",
-                        ended_at=datetime.now(tzinfo),
-                        metadata=updated_metadata,
-                        tracing=tracing_data,
-                        evidence=evidence_list,
-                    )
-                )
-                break
-
-            elif status_data["status"] == "unexisting_feature":
-                await update_test_execution(
-                    execution_id,
-                    TestExecutionUpdateSchema(
-                        status=TestStatus.UNEXISTING_FEATURE,
-                        notes=f"{status_data.get('results', 'Feature does not exist on the page')}",
-                        ended_at=datetime.now(tzinfo),
-                        metadata=updated_metadata,
-                        tracing=tracing_data,
-                        evidence=evidence_list,
-                    )
-                )
-                break
-
             else:
-                logger.error(f"Unknown status of test run: {status_data}")
+                # Task failed
                 await update_test_execution(
                     execution_id,
                     TestExecutionUpdateSchema(
-                        status=TestStatus.ERROR,
-                        notes=f"Unknown status of test run: {status_data}",
+                        status=TestStatus(status_data["status"]),
+                        notes=str(status_data.get('error')) if status_data.get('error') else str(status_data.get("results", "")),
                         ended_at=datetime.now(tzinfo),
                         metadata=updated_metadata,
                         tracing=tracing_data,
@@ -414,7 +362,6 @@ async def update_test_execution(
 
     # Get the test execution
     test_execution = await get_test_execution(test_execution_id)
-    tzinfo = test_execution.started_at.tzinfo if test_execution.started_at else None
 
     # Update the fields
     update_data = test_execution_update.model_dump(exclude_unset=True)
@@ -434,12 +381,65 @@ async def update_test_execution(
     # Save the changes
     await test_execution.save()
 
-    # If status is updated, also update the parent test's status
-    if test_execution_update.status:
-        test = await TestModel.get(id=test_execution.test_id)
-        test.status = test_execution_update.status
-        if test_execution_update.status in [TestStatus.PASSED, TestStatus.FAILED, TestStatus.BLOCKED, TestStatus.SKIPPED, TestStatus.AGENT_LIMITATION, TestStatus.UNEXISTING_FEATURE]:
-            test.ended_at = datetime.now(tzinfo)
-        await test.save()
-
     return test_execution
+
+
+async def get_latest_test_executions_by_ids(test_ids: List[UUID4]) -> Dict[UUID4, LatestTestExecutionResponse]:
+    """
+    Get the single latest test execution for each of the provided test IDs.
+
+    Args:
+        test_ids: A list of UUIDs for the tests.
+
+    Returns:
+        A dictionary mapping each test ID to its latest execution details.
+        If a test has no executions, its details will be None.
+    """
+    if not test_ids:
+        return {}
+
+    # Use Tortoise's raw SQL capabilities for an efficient query
+    # This query finds the latest execution for each test ID using row_number()
+    query = """
+        SELECT
+            t.id as test_id,
+            te.id as execution_id,
+            te.status,
+            te.started_at,
+            te.ended_at
+        FROM (
+            SELECT
+                id,
+                test_id,
+                status,
+                started_at,
+                ended_at,
+                ROW_NUMBER() OVER(PARTITION BY test_id ORDER BY started_at DESC) as rn
+            FROM test_executions
+            WHERE test_id = ANY($1::uuid[])
+        ) te
+        RIGHT JOIN tests t ON te.test_id = t.id
+        WHERE t.id = ANY($1::uuid[]) AND (te.rn = 1 OR te.rn IS NULL)
+    """
+
+    conn = TestExecutionModel._meta.db
+    results = await conn.execute_query_dict(query, [test_ids])
+
+    # Format the results into the response schema
+    latest_executions: Dict[UUID4, LatestTestExecutionResponse] = {}
+    for row in results:
+        test_id = row['test_id']
+        latest_executions[test_id] = LatestTestExecutionResponse(
+            test_id=test_id,
+            execution_id=row.get('execution_id'),
+            status=row.get('status'),
+            started_at=row.get('started_at'),
+            ended_at=row.get('ended_at')
+        )
+
+    # Ensure all requested test_ids are in the result, even if they had no executions
+    for tid in test_ids:
+        if tid not in latest_executions:
+            latest_executions[tid] = LatestTestExecutionResponse(test_id=tid)  # All fields will be None
+
+    return latest_executions

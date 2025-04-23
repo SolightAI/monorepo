@@ -4,7 +4,7 @@ import './App.css';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ResetPassword from './pages/auth/ResetPassword';
-import GoogleCallback from './components/auth/GoogleCallback';
+import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
 import NotFound from './pages/common/NotFound';
 import Layout from './components/layout/Layout';
 import Settings from './pages/user/Settings';
@@ -96,7 +96,7 @@ function AppContent() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/reset-password/:token" element={<ResetPassword />} />
-                <Route path="/auth/google/callback" element={<GoogleCallback />} />
+                <Route path="/auth/callback" element={<OAuthCallbackPage />} />
                 <Route path="/join-organization/:code" element={<JoinOrganization />} />
 
                 {/* Organization Setup Route */}

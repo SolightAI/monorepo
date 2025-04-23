@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, status, BackgroundTasks
-from typing import List
+from typing import List, Dict
 from pydantic import UUID4
 
 from dto.schemas import (
@@ -8,12 +8,15 @@ from dto.schemas import (
     TestExecutionUpdate as TestExecutionUpdateSchema,
     ExecutorType,
     TestExecutionElement,
+    LatestTestExecutionRequest,
+    LatestTestExecutionResponse
 )
 from services.test_execution_services import (
     create_test_execution,
     get_test_execution,
     get_test_executions_by_test,
-    update_test_execution
+    update_test_execution,
+    get_latest_test_executions_by_ids
 )
 from dependencies import get_current_user_dependency
 from dto.models import User
@@ -72,3 +75,13 @@ async def update_test_execution_endpoint(
     Update a test execution with new information.
     """
     return await update_test_execution(test_execution_id, test_execution_update)
+
+
+@router.post("/latest", response_model=Dict[UUID4, LatestTestExecutionResponse])
+async def get_latest_test_executions_endpoint(
+    request_body: LatestTestExecutionRequest
+) -> Dict[UUID4, LatestTestExecutionResponse]:
+    """
+    Get the latest execution details for a batch of test IDs.
+    """
+    return await get_latest_test_executions_by_ids(request_body.test_ids)

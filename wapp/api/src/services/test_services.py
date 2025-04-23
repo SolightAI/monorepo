@@ -3,6 +3,8 @@ import requests
 import asyncio
 import logging
 import uuid
+import traceback
+import json
 
 from fastapi import HTTPException
 from dto.models import Test as TestModel, TestSecret as TestSecretModel, Secret as SecretModel
@@ -153,17 +155,6 @@ async def create_test(test: TestCreateSchema) -> TestModel:
             )
 
     return await get_test(test_model.id)
-
-
-async def update_test_status(test_id: str | UUID, status: TestStatus) -> TestModel:
-    test = await TestModel.get_or_none(id=test_id)
-
-    if not test:
-        raise HTTPException(status_code=404, detail="Test not found")
-
-    test.status = status
-    await test.save()
-    return test
 
 
 async def delete_test(test_id: str | UUID) -> bool:
@@ -357,7 +348,7 @@ async def get_test_generation_status(test_id: UUID4) -> dict:
     response_data = response.json()
 
     # If this is a completed response, ensure it has a feature_id
-    if response_data.get("status") == "completed" and "feature_id" not in response_data:
+    if response_data.get("status") == TestStatus.PASSED.value and "feature_id" not in response_data:
         # Get the feature_id from the original test generation request
         original_response = requests.get(
             TASK_MANAGER_URL + f"/generate-tests/get-test-generation-request/{test_id}"
@@ -385,23 +376,26 @@ async def poll_test_generation_status(task_id: UUID4, timeout: int = 300, interv
         response = await get_test_generation_status(task_id)
         status = response["status"]
 
-        if status in ["pending", "unknown"]:
+        if status in [TestStatus.PENDING.value, TestStatus.UNKNOWN.value]:
             await asyncio.sleep(interval)
             continue
 
-        elif status == "error":
+        elif status == TestStatus.ERROR.value:
             logger.error(f"Test generation failed for task {task_id}")
             return
 
-        elif status == "completed":
+        elif status == TestStatus.PASSED.value:
 
             if not response.get("results"):
                 logger.error(f"No test results found in response for task {task_id}")
                 return
 
             created_tests = []
+            logger.info(f"Creating tests for task {task_id} {response['results']=}")
             for _test in response["results"]:
                 try:
+                    _test = json.loads(_test)
+
                     test = await create_test(
                         TestCreateSchema(
                             feature_id=_test["feature_id"],
@@ -418,7 +412,8 @@ async def poll_test_generation_status(task_id: UUID4, timeout: int = 300, interv
                     created_tests.append(test)
                     logger.info(f"Successfully created test {test.id} for feature {_test['feature_id']}")
                 except Exception as e:
-                    logger.error(f"Failed to create test: {str(e)}")
+                    logger.error(f"Failed to create test: {str(e)} {_test=}")
+                    logger.error(traceback.format_exc())
                     continue
 
             if not created_tests:

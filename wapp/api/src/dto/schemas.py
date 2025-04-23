@@ -134,15 +134,14 @@ class TokenData(BaseModel):
 
 
 class TestStatus(str, Enum):
-    NOT_STARTED = "NOT_STARTED"
-    PENDING = "PENDING"
-    PASSED = "PASSED"
-    FAILED = "FAILED"
-    BLOCKED = "BLOCKED"
-    SKIPPED = "SKIPPED"
-    ERROR = "ERROR"
-    AGENT_LIMITATION = "AGENT_LIMITATION"
-    UNEXISTING_FEATURE = "UNEXISTING_FEATURE"
+    PENDING = "pending"
+    PASSED = "passed"
+    FAILED = "failed"
+    ERROR = "error"
+    BLOCKED_BY_CAPTCHA = "blocked_by_captcha"
+    AGENT_LIMITATION = "agent_limitation"
+    UNEXISTING_FEATURE = "unexisting_feature"
+    UNKNOWN = "unknown"
 
 
 class TestCategory(str, Enum):
@@ -232,6 +231,7 @@ class FeatureUpdate(BaseModel):
     name: Optional[str] = None
     urls: list[str] = Field(default_factory=list)
     description: Optional[str] = None
+    access_conditions: Optional[dict[str, Any]] = None
 
 
 class FeatureBase(FeatureCreate):
@@ -306,7 +306,6 @@ class TestUpdate(BaseModel):
     description: Optional[str] = None
     url: Optional[str] = None
     category: Optional[TestCategory] = None
-    status: Optional[TestStatus] = None
     preconditions: Optional[str] = None
     steps: Optional[str] = None
     assertions: Optional[str] = None
@@ -318,9 +317,6 @@ class TestBase(TestCreate):
 
 
 class Test(TestBase):
-    status: TestStatus
-    started_at: Optional[datetime]
-    ended_at: Optional[datetime]
     feature_id: UUID4
     secrets: List[Dict[str, Any]] = []
 
@@ -490,3 +486,17 @@ class TestExecutionElement(BaseModel):
     started_at: datetime
     environment: str
     executor_type: ExecutorType
+
+
+class LatestTestExecutionRequest(BaseModel):
+    """Schema for requesting the latest execution for multiple tests."""
+    test_ids: List[UUID4]
+
+
+class LatestTestExecutionResponse(BaseModel):
+    """Schema for the response containing the latest execution details for a test."""
+    test_id: UUID4
+    execution_id: Optional[UUID4] = None
+    status: Optional[TestStatus] = None
+    started_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None

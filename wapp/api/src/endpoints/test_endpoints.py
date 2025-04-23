@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Body, Depends, HTTPException, status, BackgroundTasks
-from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestStatus, TestUpdate as TestUpdateSchema, TestSecretCreate, TestSecret, TestExecution as TestExecutionSchema
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestUpdate as TestUpdateSchema, TestSecretCreate, TestSecret, TestExecution as TestExecutionSchema
 from services.test_execution_services import get_test_executions_by_test
 from services.test_services import (
     get_test,
     create_test,
     get_all_tests,
-    update_test_status,
     get_tests_by_feature,
     delete_test,
     update_test,
@@ -86,14 +85,6 @@ async def get_test_executions_endpoint(test_id: UUID4) -> List[TestExecutionSche
 @router.post("/")
 async def create_test_endpoint(test: TestCreateSchema) -> TestSchema:
     return (await create_test(test)).to_schema()
-
-
-@router.put("/{test_id}/status")
-async def update_test_status_endpoint(
-    test_id: UUID4, status: TestStatus = Body(..., embed=True)
-) -> TestSchema:
-    await update_test_status(test_id, status)
-    return (await get_test(test_id)).to_schema()
 
 
 @router.put("/{test_id}")

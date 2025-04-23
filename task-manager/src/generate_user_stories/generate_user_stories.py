@@ -70,10 +70,10 @@ router = APIRouter(prefix="/generate-user-stories")
 logger = getLogger(__name__)
 
 
-def _parse_user_stories(user_stories_text: str) -> list[dict[str, str]]:
+def _parse_user_stories(user_stories_text: str) -> list[str]:
     """Parse the text returned from LLM into a list of user story dictionaries."""
     # Use regex to extract user stories
-    user_stories = []
+    user_stories: list[str] = []
     pattern = r'<user_story>\s*(.*?)</user_story>'
 
     matches = re.finditer(pattern, user_stories_text, re.DOTALL)
@@ -133,9 +133,6 @@ async def _generate_user_stories(
         })(%s)
         """.strip() % json.dumps(localStorage)
         await context.execute_javascript(load_script)
-
-    if gif_output_path:
-        os.makedirs(os.path.dirname(gif_output_path), exist_ok=True)
 
     # NOTE: we do not provide a controller as models tend to provide better results when not constrained by a controller output model
     agent = Agent(
@@ -302,7 +299,7 @@ async def get_user_stories_generation_status(
     Returns:
         Dictionary with task status information
     """
-    status = task_status_manager.get_status(task_id)
+    status = await task_status_manager.get_status(task_id)
     return status
 
 

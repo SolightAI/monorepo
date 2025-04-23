@@ -15,7 +15,7 @@ import {
 import axios from 'axios';
 import { getTestsByFeature, getTestsByEpic, getTestsByProduct, triggerFeatureTestGeneration, getTestGenerationStatus, deleteTest } from '@/services/testService';
 import { getAllEpics, getFeaturesByEpic } from '@/services/productService';
-import { createTestExecution, getTestExecution } from '@/services/testExecutionService';
+import { createTestExecution, getTestExecution, getLatestTestExecutions } from '@/services/testExecutionService';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import { useSecret } from '@/context/SecretContext';
@@ -27,6 +27,7 @@ import ConfirmationModal from '@/components/modals/ConfirmationModal';
 import { getStatusIconLarge, formatStatus, getStatusColorClasses } from '@/utils/testExecutionUtils';
 import { formatDate } from '@/utils/dateUtils';
 import { API_URL } from '@/constants/api';
+import { TEST_STATUS } from '@/utils/testExecutionUtils';
 
 // Add the missing functions
 const getTestGenerationTaskId = async (featureId) => {
@@ -77,6 +78,9 @@ const TestsTable = () => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // State for confirmation modal
   const [isConfirmFeatureDeleteModalOpen, setIsConfirmFeatureDeleteModalOpen] = useState(false); // State for feature delete confirmation
   const [featureToDeleteId, setFeatureToDeleteId] = useState(null); // ID of feature marked for deletion
+
+  // New state for latest execution data
+  const [latestExecutionsMap, setLatestExecutionsMap] = useState({});
 
   const { selectedProduct } = useProduct();
   const { selectedOrganization } = useOrganization();
@@ -240,6 +244,7 @@ const TestsTable = () => {
       const testsData = await getTestsByProduct(productId);
       setTests(testsData);
       applyFilters(testsData, selectedStatus, searchQuery);
+      await fetchLatestExecutions(testsData);
     } catch (err) {
       handleFetchError('load tests data', err);
       setFilteredTests([]);
@@ -251,9 +256,29 @@ const TestsTable = () => {
   // Sort function that can be reused across the component
   const sortItems = (items, key, direction) => {
     return [...items].sort((a, b) => {
-      const aValue = a[key];
-      const bValue = b[key];
+      let aValue, bValue;
 
+      // Get value based on sort key, checking latestExecutionsMap if needed
+      if (key === 'latest_status' || key === 'latest_ended_at') {
+        const aExec = latestExecutionsMap[a.id];
+        const bExec = latestExecutionsMap[b.id];
+        // Map key to execution field
+        const execKey = key === 'latest_status' ? 'status' : 'ended_at';
+        aValue = aExec ? aExec[execKey] : null;
+        bValue = bExec ? bExec[execKey] : null;
+
+        // Handle nulls (e.g., tests never run) - sort them last
+        if (aValue === null && bValue !== null) return direction === 'asc' ? 1 : -1;
+        if (aValue !== null && bValue === null) return direction === 'asc' ? -1 : 1;
+        if (aValue === null && bValue === null) return 0;
+
+      } else {
+        // For other keys like 'name', 'category', 'feature_name'
+        aValue = a[key];
+        bValue = b[key];
+      }
+
+      // Standard comparison
       if (aValue < bValue) {
         return direction === 'asc' ? -1 : 1;
       }
@@ -264,7 +289,7 @@ const TestsTable = () => {
     });
   };
 
-  const applyFilters = (testsToFilter = tests, statusOverride = null, queryOverride = null) => {
+  const applyFilters = (testsToFilter = tests, statusOverride = null, queryOverride = null, executionsMap = latestExecutionsMap) => {
     let result = [...testsToFilter];
 
     // Use the status override if provided, otherwise use the state
@@ -279,7 +304,8 @@ const TestsTable = () => {
       }
 
       result = result.filter(test => {
-        const testStatus = test.status?.toLowerCase();
+        const latestExecution = executionsMap[test.id];
+        const testStatus = latestExecution?.status?.toLowerCase();
         return testStatus === filterStatus;
       });
     }
@@ -295,6 +321,12 @@ const TestsTable = () => {
         test.description.toLowerCase().includes(lowercaseQuery)
       );
     }
+
+    // Add feature name to each test for easier sorting/display
+    result = result.map(test => ({
+      ...test,
+      feature_name: features.find(f => f.id === test.feature_id)?.name || 'N/A'
+    }));
 
     // Apply sorting using the reusable function
     result = sortItems(result, sortConfig.key, sortConfig.direction);
@@ -326,10 +358,12 @@ const TestsTable = () => {
         const testsData = await getTestsByFeature(selectedFeature);
         setTests(testsData);
         applyFilters(testsData, selectedStatus, searchQuery);
+        await fetchLatestExecutions(testsData);
       } else if (selectedEpic !== 'all') {
         const testsData = await getTestsByEpic(selectedEpic);
         setTests(testsData);
         applyFilters(testsData, selectedStatus, searchQuery);
+        await fetchLatestExecutions(testsData);
       } else {
         await fetchTestsByProduct(selectedProduct.id);
       }
@@ -352,10 +386,6 @@ const TestsTable = () => {
       return null;
     }
     return sortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />;
-  };
-
-  const getStatusIcon = (status) => {
-    return getStatusIconLarge(status);
   };
 
   const handleTestSelect = (test) => {
@@ -409,7 +439,7 @@ const TestsTable = () => {
 
       const executionData = {
         test_id: testId,
-        status: 'PENDING',
+        status: TEST_STATUS.PENDING,
         environment: 'development',
         executor_type: 'MANUAL',
         notes: null
@@ -489,7 +519,7 @@ const TestsTable = () => {
 
           const executionData = {
             test_id: test.id,
-            status: 'PENDING',
+            status: TEST_STATUS.PENDING,
             environment: 'development',
             executor_type: 'MANUAL',
             notes: null
@@ -576,36 +606,25 @@ const TestsTable = () => {
         const executionData = await getTestExecution(executionId);
         console.log(`Polling execution ${executionId} status:`, executionData.status);
 
-        // Normalize status to uppercase for consistency
-        const normalizedStatus = executionData.status?.toUpperCase() || '';
+        // Instead of updating the test object's status directly,
+        // update the latestExecutionsMap
+        setLatestExecutionsMap(prevMap => ({
+          ...prevMap,
+          [testId]: {
+            test_id: testId,
+            execution_id: executionId,
+            status: executionData.status,
+            started_at: executionData.started_at,
+            ended_at: executionData.ended_at
+          }
+        }));
 
-        // Update test status in state with the latest data
-        setTests(prevTests => prevTests.map(test =>
-          test.id === testId
-            ? {
-                ...test,
-                status: normalizedStatus,
-                started_at: executionData.started_at || test.started_at,
-                last_execution_id: executionId
-              }
-            : test
-        ));
-
-        // Also update filtered tests
-        setFilteredTests(prevTests => prevTests.map(test =>
-          test.id === testId
-            ? {
-                ...test,
-                status: normalizedStatus,
-                started_at: executionData.started_at || test.started_at,
-                last_execution_id: executionId
-              }
-            : test
-        ));
+        // Re-apply filters to reflect the updated status in the map
+        applyFilters(tests, selectedStatus, searchQuery);
 
         // If status is no longer pending, stop polling
-        if (normalizedStatus !== 'PENDING') {
-          console.log(`Test ${testId} execution completed with status: ${normalizedStatus}`);
+        if (executionData.status !== TEST_STATUS.PENDING) {
+          console.log(`Test ${testId} execution completed with status: ${executionData.status}`);
           clearInterval(testPollingIntervalsRef.current[testId]);
           delete testPollingIntervalsRef.current[testId];
 
@@ -800,6 +819,10 @@ const TestsTable = () => {
 
     const checkExistingTaskId = async () => {
       if (!isMounted) return;
+      try {
+        setIsGeneratingTests(true);
+        setError(null);
+        setSuccessMessage(`Starting test generation. Status: ${formatStatus(TEST_STATUS.PENDING)}`);
 
       if (selectedFeature !== 'all') {
         try {
@@ -978,16 +1001,17 @@ const TestsTable = () => {
         } else {
           // For a specific feature
           setSuccessMessage(
-            `Test generation for "${featureName}" in progress. Status: ${response.status ? formatStatus(response.status) : formatStatus('PENDING')}${response.progress ? ` (${response.progress})` : ''}`
+            `Test generation in progress. Status: ${response.status ? formatStatus(response.status) : formatStatus(TEST_STATUS.PENDING)}${response.progress ? ` (${response.progress})` : ''}`
           );
         }
 
-        if (response.status === 'completed') {
-          console.log('Test generation completed successfully:', response);
+        if (response.status === TEST_STATUS.PASSED) {
+            console.log('Test generation completed successfully:', response);
           
           // For "All Features", we don't stop polling here as there might be other generations running
           if (selectedFeature !== 'all') {
             // Clear the interval
+
             clearInterval(pollingIntervalRef.current);
             pollingIntervalRef.current = null;
             setIsGeneratingTests(false);
@@ -1015,7 +1039,8 @@ const TestsTable = () => {
             // Show success message even if we couldn't fetch the tests, but only if it's not an initial check
             if (!isInitialCheck && selectedFeature !== 'all') {
               setSuccessMessage(
-                `Test generation completed successfully for "${featureName}". Please refresh the page to see the generated tests.`
+
+                `Successfully generated ${currentTests.length} tests for the selected feature. Status: ${formatStatus(TEST_STATUS.PASSED)}`
               );
               
               // Clear success message after 5 seconds
@@ -1288,6 +1313,25 @@ const TestsTable = () => {
     }, 3000);
   };
 
+  // New function to fetch latest executions for the current tests
+  const fetchLatestExecutions = async (testsToFetchFor) => {
+    if (!testsToFetchFor || testsToFetchFor.length === 0) {
+      setLatestExecutionsMap({});
+      return;
+    }
+    try {
+      const testIds = testsToFetchFor.map(t => t.id);
+      const latestExecutions = await getLatestTestExecutions(testIds);
+      setLatestExecutionsMap(latestExecutions);
+      // Re-apply filters after getting latest executions
+      applyFilters(testsToFetchFor, selectedStatus, searchQuery, latestExecutions);
+    } catch (err) {
+      console.error('Error fetching latest executions:', err);
+      // Optionally set an error state here
+      setLatestExecutionsMap({}); // Clear map on error
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center p-12">
@@ -1481,11 +1525,12 @@ const TestsTable = () => {
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
               >
                 <option value="all">All Statuses</option>
-                <option value="passed">Passed</option>
-                <option value="failed">Failed</option>
-                <option value="pending">Pending</option>
-                <option value="not_started">Not Started</option>
-                <option value="blocked">Blocked</option>
+                {/* Dynamically generate status options */}
+                {Object.entries(TEST_STATUS).map(([key, value]) => (
+                  <option key={key} value={value}>
+                    {formatStatus(value)}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -1620,11 +1665,6 @@ const TestsTable = () => {
                 <>
                   <Beaker size={18} className="mr-2" />
                   <span className="whitespace-nowrap">Generate Tests with AI</span>
-                  {secrets && secrets.length > 0 && (
-                    <span className="ml-1.5 flex items-center justify-center bg-purple-800 text-white text-xs rounded-full h-5 min-w-5 px-1">
-                      {secrets.length}
-                    </span>
-                  )}
                 </>
               )}
             </button>
@@ -1666,11 +1706,6 @@ const TestsTable = () => {
                 <>
                   <Play size={18} className="mr-2" />
                   Run Tests
-                  {secrets && secrets.length > 0 && (
-                    <span className="ml-1.5 flex items-center justify-center bg-green-800 text-white text-xs rounded-full h-5 min-w-5 px-1">
-                      {secrets.length}
-                    </span>
-                  )}
                 </>
               )}
             </button>
@@ -1714,16 +1749,16 @@ const TestsTable = () => {
                         />
                       </th>
                       <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                        onClick={() => handleSort('status')}
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        onClick={() => handleSort('latest_status')}
                       >
                         <div className="flex items-center">
                           Status
-                          {getSortIcon('status')}
+                          {getSortIcon('latest_status')}
                         </div>
                       </th>
                       <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSort('name')}
                       >
                         <div className="flex items-center">
@@ -1732,7 +1767,16 @@ const TestsTable = () => {
                         </div>
                       </th>
                       <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        onClick={() => handleSort('feature_name')}
+                      >
+                        <div className="flex items-center">
+                          Feature
+                          {getSortIcon('feature_name')}
+                        </div>
+                      </th>
+                      <th
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hidden sm:table-cell"
                         onClick={() => handleSort('category')}
                       >
                         <div className="flex items-center">
@@ -1741,15 +1785,15 @@ const TestsTable = () => {
                         </div>
                       </th>
                       <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hidden md:table-cell"
-                        onClick={() => handleSort('started_at')}
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hidden md:table-cell"
+                        onClick={() => handleSort('latest_ended_at')}
                       >
                         <div className="flex items-center">
                           Last Run
-                          {getSortIcon('started_at')}
+                          {getSortIcon('latest_ended_at')}
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -1771,35 +1815,45 @@ const TestsTable = () => {
                               onClick={(e) => e.stopPropagation()} // Prevent row click handler
                             />
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                           {runningTests[test.id] ? (
                             <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
                           ) : (
-                            getStatusIcon(test.status)
+                            // Get status from the map
+                            getStatusIconLarge(latestExecutionsMap[test.id]?.status)
                           )}
-                          <span className={`ml-2 text-sm font-medium px-2 py-1 rounded-full ${runningTests[test.id] ? 'bg-blue-100 text-blue-800' : getStatusColorClasses(test.status)}`}>
-                            {runningTests[test.id] ? formatStatus(RUNNING_STATUS) : formatStatus(test.status)}
+                          {console.log('test', test)}
+                          {console.log('latestExecutionMap', latestExecutionsMap[test.id])}
+                          <span className={`ml-2 text-sm font-medium px-2 py-1 rounded-full ${runningTests[test.id] ? 'bg-blue-100 text-blue-800' : getStatusColorClasses(latestExecutionsMap[test.id]?.status)}`}>
+                            {/* Get status from the map or show running */}
+                            {runningTests[test.id] ? formatStatus(RUNNING_STATUS) : formatStatus(latestExecutionsMap[test.id]?.status) ?? 'Not Run'}
                               </span>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4">
                             <div className="text-sm font-medium text-gray-900">{test.name}</div>
                             <div className="text-sm text-gray-500 truncate max-w-md">{test.description}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-600 truncate">
+                              {features.find(f => f.id === test.feature_id)?.name || 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap hidden sm:table-cell">
                             <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                               {test.category}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
+                          <td className="px-4 py-4 whitespace-nowrap hidden md:table-cell">
                             <div className="text-sm text-gray-500 flex items-center">
                               <Calendar size={14} className="mr-1" />
-                              {formatDate(test.started_at)}
+                              {/* Format ended_at from the map */}
+                              {formatDate(latestExecutionsMap[test.id]?.ended_at) ?? '--'}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end items-center space-x-2">
+                          <td className="px-4 py-4 whitespace-nowrap text-center text-sm font-medium">
+                        <div className="flex justify-center items-center space-x-2">
                           <button
                             className={`text-green-600 hover:text-green-900 flex items-center ${runningTests[test.id] || !secrets || secrets.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                             onClick={(e) => {
@@ -1823,11 +1877,11 @@ const TestsTable = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="6" className="px-6 py-12 text-center text-lg text-gray-500">
+                        <td colSpan="7" className="px-6 py-12 text-center text-lg text-gray-500">
                           {tests.length === 0 ? (
                             <div className="flex flex-col items-center">
                               <p>No tests found in the system.</p>
-                              <p className="text-sm mt-2">Start by creating a test for a feature or acceptance criteria.</p>
+                              <p className="text-sm mt-2">Start by creating a test for a feature.</p>
                             </div>
                           ) : (
                             <div>
@@ -1856,6 +1910,8 @@ const TestsTable = () => {
             <div className="bg-gray-50 px-6 py-3 flex justify-between items-center border-t border-gray-200">
               <div className="text-gray-500 text-sm">
                 Showing {filteredTests.length} of {tests.length} tests
+                {/* Calculate total with executions for clarity (optional) */}
+                {` (${Object.values(latestExecutionsMap).filter(exec => exec.status).length} with runs)`}
                 {selectedTestIds.size > 0 && (
                   <span className="ml-2 text-gray-500 text-sm">({selectedTestIds.size} selected)</span>
                 )}

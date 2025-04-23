@@ -8,6 +8,7 @@ import { useSecret } from '@/context/SecretContext';
 import EditTestModal from './EditTestModal';
 import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
 import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus, getStatusIconLarge } from '@/utils/testExecutionUtils';
+import { TEST_STATUS } from '@/utils/testExecutionUtils';
 
 /**
  * Component to display the last test execution in a table format
@@ -138,7 +139,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
   // If there's an execution that's in the pending state, poll for updates
   const needsPolling = usePendingStatusPolling(
     fetchTestExecutions,
-    () => executions.some(exec => exec.status === 'PENDING'),
+    () => executions.some(exec => exec.status === TEST_STATUS.PENDING),
     [executions]
   );
 
@@ -198,7 +199,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
 
       const executionData = {
         test_id: testData.id,
-        status: 'PENDING',
+        status: TEST_STATUS.PENDING,
         environment: 'development', // Default to development environment
         executor_type: 'MANUAL',
         notes: null
@@ -299,8 +300,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
         {/* Modal header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
           <div className="flex items-center flex-grow overflow-hidden">
-            {getStatusIconLarge(testData.status)}
-            <h2 className="text-xl font-semibold text-gray-800 ml-3 truncate">{testData.name}</h2>
+            <h2 className="text-xl font-semibold text-gray-800 truncate">{testData.name}</h2>
           </div>
           <div className="flex items-center space-x-2 flex-shrink-0">
             <button
@@ -443,6 +443,16 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
                   </div>
                 </div>
               </div>
+
+              {/* Preconditions section */}
+              {testData.preconditions && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-2">Preconditions</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg max-h-[200px] overflow-y-auto">
+                    <p className="text-gray-800 whitespace-pre-line break-words">{testData.preconditions}</p>
+                  </div>
+                </div>
+              )}
 
               {/* Assertions section */}
               <div className="mb-6">
