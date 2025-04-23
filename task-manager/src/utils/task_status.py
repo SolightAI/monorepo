@@ -8,7 +8,6 @@ from typing import Dict, Any, List, Any, Optional, Callable
 from logging import getLogger
 from utils.session_manager import get_redis
 from pydantic import BaseModel
-from uuid import UUID
 import logging
 # Use the shared redis client utility
 from .redis_client import get_redis
