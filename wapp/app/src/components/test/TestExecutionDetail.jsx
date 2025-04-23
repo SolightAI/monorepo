@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Server, Calendar, Clock, File, Image, Link2, ArrowLeft } from 'lucide-react';
+import { Server, Calendar, Clock, File, Image, Link2, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getTestExecution } from '@/services/testExecutionService';
 import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatExecutionDuration, formatStatus, getStatusColorClasses } from '@/utils/testExecutionUtils';
 import PropTypes from 'prop-types';
+import { TEST_STATUS } from '@/utils/testExecutionUtils';
 
 /**
  * Component to display detailed information about a test execution
@@ -12,13 +13,14 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
   const refreshingRef = useRef(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [fullScreenSrc, setFullScreenSrc] = useState('');
+  const [currentEvidenceIndex, setCurrentEvidenceIndex] = useState(0);
 
   useEffect(() => {
     if (execution?.id) {
       refreshExecution(); // Call once at initialization
 
       // If test is still running, set up auto-refresh
-      if (execution.status === 'PENDING') {
+      if (execution.status === TEST_STATUS.PENDING) {
         const interval = setInterval(refreshExecution, 5000); // Refresh every 5 seconds
         return () => clearInterval(interval);
       }
@@ -69,9 +71,128 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
     setFullScreenSrc('');
   };
 
+  // Function to render a single evidence item
+  const renderEvidenceItem = (item, index) => {
+    try {
+      // Check if it's a string URL
+      if (typeof item === 'string') {
+        // Parse the URL and check the pathname
+        const url = new URL(item);
+        const pathname = url.pathname;
+
+        // Check if the pathname ends with .gif or .png (case-insensitive)
+        if (pathname.toLowerCase().endsWith('.gif') || pathname.toLowerCase().endsWith('.png')) {
+          return (
+            <img
+              key={index}
+              src={item} // Use the full pre-signed URL
+              alt={`Execution evidence ${index + 1}`}
+              className="max-w-full max-h-96 object-contain rounded border border-gray-300 shadow-sm cursor-pointer hover:opacity-80 transition-opacity mx-auto"
+              onClick={() => handleImageClick(item)} // Add onClick handler
+            />
+          );
+        } else {
+          // Render as a link if it's a string but not an image
+          return (
+            <a
+              key={index}
+              href={item}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline flex items-center justify-center break-all"
+            >
+              <Link2 size={14} className="mr-1 flex-shrink-0" />
+              <span className="truncate">{item}</span> {/* Show the full URL for non-GIFs */}
+            </a>
+          );
+        }
+      }
+    } catch (e) {
+      // Handle potential URL parsing errors or non-string items gracefully
+      console.error("Error processing evidence item:", item, e);
+      // Optionally render something to indicate an issue, or just skip
+      return <div className="text-red-500 text-center">Error displaying evidence</div>;
+    }
+    return <div className="text-gray-500 text-center">Unsupported evidence format</div>; // Skip invalid/unparsable items
+  };
+
+  // Helper function to check if an evidence item is an image
+  const isImageEvidence = (item) => {
+    if (typeof item !== 'string') return false;
+    try {
+      const url = new URL(item);
+      const pathname = url.pathname.toLowerCase();
+      return pathname.endsWith('.gif') || pathname.endsWith('.png');
+    } catch (e) {
+      return false;
+    }
+  };
+
+  // Helper function to find the index of the next/previous image evidence
+  const findAdjacentImageIndex = (direction) => {
+    // Ensure evidence exists and is an array
+    if (!execution?.evidence || !Array.isArray(execution.evidence) || execution.evidence.length === 0) {
+      return -1;
+    }
+
+    let foundIndex = -1;
+    if (direction === 'prev') {
+      for (let i = currentEvidenceIndex - 1; i >= 0; i--) {
+        if (isImageEvidence(execution.evidence[i])) {
+          foundIndex = i;
+          break;
+        }
+      }
+    } else if (direction === 'next') {
+      for (let i = currentEvidenceIndex + 1; i < execution.evidence.length; i++) {
+        if (isImageEvidence(execution.evidence[i])) {
+          foundIndex = i;
+          break;
+        }
+      }
+    }
+    return foundIndex; // Returns -1 if no image found in that direction
+  };
+
+  // Effect for keyboard navigation in fullscreen mode
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (!isFullScreen) return;
+
+      let direction = null;
+      if (event.key === 'ArrowLeft') {
+        direction = 'prev';
+      } else if (event.key === 'ArrowRight') {
+        direction = 'next';
+      }
+
+      if (direction) {
+        const nextIndex = findAdjacentImageIndex(direction);
+        if (nextIndex !== -1) {
+          const nextItem = execution.evidence[nextIndex];
+          setCurrentEvidenceIndex(nextIndex);
+          setFullScreenSrc(nextItem);
+        }
+      }
+    };
+
+    if (isFullScreen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    // Cleanup listener
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isFullScreen, currentEvidenceIndex, execution.evidence]); // Dependencies
+
   if (!execution) {
     return <div>No execution data available</div>;
   }
+
+  // Determine if adjacent image evidence exists for arrow visibility
+  const hasPrevImage = findAdjacentImageIndex('prev') !== -1;
+  const hasNextImage = findAdjacentImageIndex('next') !== -1;
 
   return (
     <div className="bg-white rounded-lg">
@@ -182,7 +303,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
       )}
 
       {/* Logs section */}
-      {(execution.tracing || execution.status === 'PENDING') && (
+      {(execution.tracing || execution.status === TEST_STATUS.PENDING) && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-2 flex items-center">
             <File size={18} className="mr-2" />
@@ -191,7 +312,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
             {/* Display console logs */}
             {(() => {
-              if (execution.status === 'PENDING') {
+              if (execution.status === TEST_STATUS.PENDING) {
                 return (
                   <div className="p-3 text-yellow-600">
                     Execution in progress. Logs will be available when completed.
@@ -222,7 +343,6 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
         </div>
       )}
 
-
       {/* Evidence section (e.g., GIF) */}
       {execution.evidence && execution.evidence.length > 0 && (
         <div className="mb-6">
@@ -230,49 +350,36 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
             <Image size={18} className="mr-2" />
             Evidence
           </h3>
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            {execution.evidence.map((item, index) => {
-              try {
-                // Check if it's a string URL
-                if (typeof item === 'string') {
-                  // Parse the URL and check the pathname
-                  const url = new URL(item);
-                  const pathname = url.pathname;
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg relative">
+            {/* Carousel Display */}
+            <div className="mb-4 min-h-[100px] flex items-center justify-center">
+              {renderEvidenceItem(execution.evidence[currentEvidenceIndex], currentEvidenceIndex)}
+            </div>
 
-                  // Check if the pathname ends with .gif (case-insensitive)
-                  if (pathname.toLowerCase().endsWith('.gif')) {
-                    return (
-                      <img
-                        key={index}
-                        src={item} // Use the full pre-signed URL
-                        alt={`Execution evidence ${index + 1}`}
-                        className="max-w-full h-auto rounded border border-gray-300 shadow-sm mb-2 cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => handleImageClick(item)} // Add onClick handler
-                      />
-                    );
-                  } else {
-                    // Render as a link if it's a string but not a GIF
-                    return (
-                      <a
-                        key={index}
-                        href={item}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline flex items-center mb-1"
-                      >
-                        <Link2 size={14} className="mr-1" />
-                        {item} // Show the full URL for non-GIFs
-                      </a>
-                    );
-                  }
-                }
-              } catch (e) {
-                // Handle potential URL parsing errors or non-string items gracefully
-                console.error("Error processing evidence item:", item, e);
-                // Optionally render something to indicate an issue, or just skip
-              }
-              return null; // Skip invalid/unparsable items
-            })}
+            {/* Carousel Controls */}
+            {execution.evidence.length > 1 && (
+              <div className="flex justify-center items-center space-x-4">
+                <button
+                  onClick={() => setCurrentEvidenceIndex(prev => (prev > 0 ? prev - 1 : prev))}
+                  disabled={currentEvidenceIndex === 0}
+                  className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Previous Evidence"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <span className="text-sm text-gray-600">
+                  {currentEvidenceIndex + 1} / {execution.evidence.length}
+                </span>
+                <button
+                  onClick={() => setCurrentEvidenceIndex(prev => (prev < execution.evidence.length - 1 ? prev + 1 : prev))}
+                  disabled={currentEvidenceIndex === execution.evidence.length - 1}
+                  className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Next Evidence"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -343,6 +450,42 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
           >
              &times;
           </button>
+
+          {/* Left Navigation Arrow */}
+          {hasPrevImage && (
+            <button
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-black bg-opacity-30 hover:bg-opacity-50 rounded-full p-2 z-50 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent closing fullscreen
+                const prevIndex = findAdjacentImageIndex('prev');
+                if (prevIndex !== -1) {
+                  setCurrentEvidenceIndex(prevIndex);
+                  setFullScreenSrc(execution.evidence[prevIndex]);
+                }
+              }}
+              aria-label="Previous image"
+            >
+              <ChevronLeft size={24} />
+            </button>
+          )}
+
+          {/* Right Navigation Arrow */}
+          {hasNextImage && (
+            <button
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-black bg-opacity-30 hover:bg-opacity-50 rounded-full p-2 z-50 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent closing fullscreen
+                const nextIndex = findAdjacentImageIndex('next');
+                if (nextIndex !== -1) {
+                  setCurrentEvidenceIndex(nextIndex);
+                  setFullScreenSrc(execution.evidence[nextIndex]);
+                }
+              }}
+              aria-label="Next image"
+            >
+              <ChevronRight size={24} />
+            </button>
+          )}
         </div>
       )}
     </div>

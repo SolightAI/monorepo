@@ -1,3 +1,9 @@
+
+# import logging
+
+# logging.basicConfig(level=logging.DEBUG)
+
+
 from fastapi import FastAPI
 from generate_tests.generate_tests_for_feature import router as generate_tests_router
 from run_tests.test_endpoint import router as test_endpoint_router
@@ -7,7 +13,6 @@ from generate_acceptance_criteria.generate_acceptance_criteria import router as 
 from generate_features.generate_features import router as generate_features_router
 from generate_epics.generate_epics import router as generate_epics_router
 from validate_url.validate_url import router as validate_url_router
-
 
 app = FastAPI()
 

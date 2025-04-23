@@ -6,16 +6,13 @@ import { formatDuration } from './dateUtils';
  * Test status constants
  */
 export const TEST_STATUS = {
-  PASSED: 'PASSED',
-  FAILED: 'FAILED',
-  ERROR: 'ERROR',
-  PENDING: 'PENDING',
-  IN_PROGRESS: 'IN_PROGRESS',
-  BLOCKED: 'BLOCKED',
-  SKIPPED: 'SKIPPED',
-  AGENT_LIMITATION: 'AGENT_LIMITATION',
-  UNEXISTING_FEATURE: 'UNEXISTING_FEATURE',
-  NOT_STARTED: 'NOT_STARTED'
+  PENDING: "pending",
+  PASSED: "passed",
+  FAILED: "failed",
+  ERROR: "error",
+  BLOCKED_BY_CAPTCHA: "blocked_by_captcha",
+  AGENT_LIMITATION: "agent_limitation",
+  UNEXISTING_FEATURE: "unexisting_feature",
 };
 
 /**
@@ -35,7 +32,7 @@ export const EXECUTOR_TYPE = {
  * @returns {Object} Object with icon and color for the status
  */
 export const getStatusInfo = (status) => {
-  switch (status?.toUpperCase()) {
+  switch (status) {
     case TEST_STATUS.PASSED:
       return { icon: <CheckCircle size={16} />, color: 'text-green-500 bg-green-50' };
     case TEST_STATUS.FAILED:
@@ -44,15 +41,12 @@ export const getStatusInfo = (status) => {
       return { icon: <Clock size={16} />, color: 'text-yellow-500 bg-yellow-50' };
     case TEST_STATUS.ERROR:
       return { icon: <XCircle size={16} />, color: 'text-red-500 bg-red-50' };
-    case TEST_STATUS.BLOCKED:
-      return { icon: <AlertCircle size={16} />, color: 'text-orange-500 bg-orange-50' };
-    case TEST_STATUS.SKIPPED:
-      return { icon: <SkipForward size={16} />, color: 'text-blue-500 bg-blue-50' };
     case TEST_STATUS.AGENT_LIMITATION:
       return { icon: <Info size={16} />, color: 'text-purple-500 bg-purple-50' };
     case TEST_STATUS.UNEXISTING_FEATURE:
       return { icon: <Search size={16} />, color: 'text-amber-500 bg-amber-50' };
     default:
+      console.log('getStatusInfo', status);
       return { icon: <Clock size={16} />, color: 'text-gray-500 bg-gray-50' };
   }
 };
@@ -64,7 +58,7 @@ export const getStatusInfo = (status) => {
  * @returns {JSX.Element} The icon component for the status
  */
 export const getStatusIconLarge = (status) => {
-  switch (status?.toUpperCase()) {
+  switch (status) {
     case TEST_STATUS.PASSED:
       return <CheckCircle size={20} className="text-green-500" />;
     case TEST_STATUS.FAILED:
@@ -75,16 +69,13 @@ export const getStatusIconLarge = (status) => {
       return <Clock size={20} className="text-yellow-500 animate-spin" />;
     case TEST_STATUS.IN_PROGRESS:
       return <Clock size={20} className="text-blue-500 animate-spin" />;
-    case TEST_STATUS.BLOCKED:
-      return <AlertCircle size={20} className="text-orange-500" />;
-    case TEST_STATUS.SKIPPED:
       return <SkipForward size={20} className="text-blue-500" />;
     case TEST_STATUS.AGENT_LIMITATION:
       return <Info size={20} className="text-purple-500" />;
     case TEST_STATUS.UNEXISTING_FEATURE:
       return <Search size={20} className="text-amber-500" />;
-    case TEST_STATUS.NOT_STARTED:
     default:
+      console.log('getStatusIconLarge', status);
       return <Clock size={20} className="text-gray-400" />;
   }
 };
@@ -96,7 +87,7 @@ export const getStatusIconLarge = (status) => {
  * @returns {string} CSS classes for the status
  */
 export const getStatusColorClasses = (status) => {
-  switch (status?.toUpperCase()) {
+  switch (status) {
     case TEST_STATUS.PASSED:
       return 'bg-green-100 text-green-800';
     case TEST_STATUS.FAILED:
@@ -107,15 +98,10 @@ export const getStatusColorClasses = (status) => {
       return 'bg-yellow-100 text-yellow-800';
     case TEST_STATUS.IN_PROGRESS:
       return 'bg-blue-100 text-blue-800';
-    case TEST_STATUS.BLOCKED:
-      return 'bg-orange-100 text-orange-800';
-    case TEST_STATUS.SKIPPED:
-      return 'bg-blue-100 text-blue-800';
     case TEST_STATUS.AGENT_LIMITATION:
       return 'bg-purple-100 text-purple-800';
     case TEST_STATUS.UNEXISTING_FEATURE:
       return 'bg-amber-100 text-amber-800';
-    case TEST_STATUS.NOT_STARTED:
     default:
       return 'bg-gray-100 text-gray-600';
   }
@@ -128,7 +114,7 @@ export const getStatusColorClasses = (status) => {
  * @returns {string} CSS classes for the status
  */
 export const getStatusMetricClasses = (status) => {
-  switch (status?.toUpperCase()) {
+  switch (status) {
     case TEST_STATUS.PASSED:
       return 'text-green-600 bg-green-50 border-green-100';
     case TEST_STATUS.FAILED:
@@ -137,12 +123,6 @@ export const getStatusMetricClasses = (status) => {
       return 'text-red-600 bg-red-50 border-red-100';
     case TEST_STATUS.PENDING:
       return 'text-orange-600 bg-orange-50 border-orange-100';
-    case TEST_STATUS.NOT_STARTED:
-      return 'text-gray-600 bg-gray-50 border-gray-100';
-    case TEST_STATUS.BLOCKED:
-      return 'text-purple-600 bg-purple-50 border-purple-100';
-    case TEST_STATUS.SKIPPED:
-      return 'text-blue-600 bg-blue-50 border-blue-100';
     case TEST_STATUS.AGENT_LIMITATION:
       return 'text-purple-600 bg-purple-50 border-purple-100';
     case TEST_STATUS.UNEXISTING_FEATURE:
@@ -159,7 +139,7 @@ export const getStatusMetricClasses = (status) => {
  * @returns {JSX.Element} The icon component for the executor type
  */
 export const getExecutorIcon = (executorType) => {
-  switch (executorType?.toUpperCase()) {
+  switch (executorType) {
     case EXECUTOR_TYPE.MANUAL:
       return <User size={16} className="text-gray-600" />;
     case EXECUTOR_TYPE.AUTOMATED:

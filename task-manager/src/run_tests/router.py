@@ -1,13 +1,13 @@
 import re
+import enum
 
-from enum import Enum
+from typing import Callable
 from utils.dto import Test
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
-from run_tests.general_test_runner import general_test_runner_agent, get_parameters_for_general_test_runner
-from fixtures.authentification.login_to_website import login_to_website_agent, get_parameters_for_login_to_website
-from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
-from pydantic import SecretStr
+from agents.general_agent import general_agent, get_parameters_for_general_agent
+from agents.login_agent import login_agent, get_parameters_for_login_agent
+from agents.signup_agent import signup_agent, get_parameters_for_signup_agent
 from inspect import getfullargspec
 from logging import getLogger
 
@@ -16,16 +16,14 @@ logger = getLogger(__name__)
 
 
 AGENTS = {
-    general_test_runner_agent: get_parameters_for_general_test_runner,
-    login_to_website_agent: get_parameters_for_login_to_website,
+    general_agent: get_parameters_for_general_agent,
+    login_agent: get_parameters_for_login_agent,
+    signup_agent: get_parameters_for_signup_agent,
 }
 
 
-LLM_CLIENT = AzureChatOpenAI(
-    model="gpt-4o",
-    api_version='2024-10-21',
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
-    api_key=SecretStr(AZURE_OPENAI_KEY),
+LLM_CLIENT = ChatOpenAI(
+    model="gpt-4.1-mini",
     temperature=0.0,
 )
 
@@ -162,27 +160,30 @@ def get_test_prompt_description(test: Test) -> str:
     """
 
 
-def get_agent_prompt_description(agent) -> str:
+def get_agent_prompt_description(agent: Callable) -> str:
     spec = getfullargspec(agent)
     parameters = "".join([f"\n- {name}: {spec.annotations[name]}" for name in spec.args])
     return AGENT_DESCRIPTION.format(name=agent.__name__, description=agent.__doc__, parameters=parameters)
 
 
 def parse_agent_selection(response: str) -> str:
-    return re.search(r"<agent>(.*?)</agent>", response, re.DOTALL).group(1).strip()
+    match = re.search(r"<agent>(.*?)</agent>", response, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+    raise ValueError(f"Agent selection not found in response: {response}")
 
 
 def get_type_description(_type: type) -> str:
     new_line = "\n"
     description = f"Name: {_type.__name__}\nType: {type(_type)}\nDescription: {_type.__doc__}"
 
-    if isinstance(_type, Enum):
+    if issubclass(_type, enum.Enum):
         description += f"\nOptions: {' '.join([f'{new_line}- {name}: {value.value}' for (name, value) in _type.__members__.items()])}"
 
     return description
 
 
-def select_agent_to_use(test: Test) -> str:
+def select_agent_to_use(test: Test) -> Callable:
 
     query = HumanMessage(
         content=PROMPT_AGENT_SELECTOR.format(

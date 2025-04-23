@@ -147,9 +147,6 @@ async def _generate_epics(
         for error in result['errors']:
             logger.error(f"[{task_id}] {error}")
 
-    if gif_output_path:
-        os.makedirs(os.path.dirname(gif_output_path), exist_ok=True)
-
     # Create agent with the prompt and browser context
     agent = Agent(
         task=PROMPT.format(
@@ -310,5 +307,5 @@ async def get_epics_generation_status(
     Returns:
         Dictionary with task status information
     """
-    status = task_status_manager.get_status(task_id)
+    status = await task_status_manager.get_status(task_id)
     return status

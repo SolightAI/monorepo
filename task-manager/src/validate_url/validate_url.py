@@ -6,16 +6,16 @@ import functools
 import logging
 import re
 import json
-from typing import Dict, Any, Optional
+from typing import Any, Optional, Callable
 from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel, Field
 from utils.task_status import task_status_manager
 from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
-from langchain_openai import AzureChatOpenAI
-from pydantic import SecretStr
+from langchain_openai import ChatOpenAI
 from urllib.parse import urlparse
 from utils.session_manager import get_redis
+from utils.constants import TestStatus
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -42,11 +42,8 @@ if (azure_openai_key := os.getenv('AZURE_OPENAI_KEY')) is None:
 if (azure_openai_endpoint := os.getenv('AZURE_OPENAI_ENDPOINT')) is None:
     raise ValueError('AZURE_OPENAI_ENDPOINT is not set')
 
-AGENT_CLIENT = AzureChatOpenAI(
-    model="gpt-4o",
-    api_version='2024-02-01',
-    azure_endpoint=azure_openai_endpoint,
-    api_key=SecretStr(azure_openai_key),
+AGENT_CLIENT = ChatOpenAI(
+    model="gpt-4.1",
     temperature=0.0,
 )
 
@@ -162,7 +159,7 @@ async def save_login_page_to_cache(url: str, login_url: str, confidence: str) ->
 
 
 # Get login page from cache
-async def get_login_page_from_cache(url: str) -> Dict[str, Any]:
+async def get_login_page_from_cache(url: str) -> dict[str, Any] | None:
     """
     Get a login page from Redis cache based on domain.
 
@@ -212,14 +209,14 @@ async def get_login_page_from_cache(url: str) -> Dict[str, Any]:
 
 
 # Background task error handling decorator
-def handle_background_task_errors(func):
+def handle_background_task_errors(func: Callable) -> Callable:
     """Decorator to handle background task errors."""
     @functools.wraps(func)
-    async def wrapper(task_id: str, *args, **kwargs):
+    async def wrapper(task_id: str, *args: Any, **kwargs: Any) -> dict[str, Any]:
         try:
-            task_status_manager.set_status(task_id, "pending")
+            await task_status_manager.set_status(task_id, TestStatus.PENDING.value)
             results = await func(task_id, *args, **kwargs)
-            task_status_manager.set_status(task_id, "completed", results=results)
+            await task_status_manager.set_status(task_id, TestStatus.PASSED.value, results=results)
             return results
         except Exception as e:
             error_message = str(e)
@@ -237,18 +234,18 @@ def handle_background_task_errors(func):
                     "error_type": ERROR_TIMEOUT
                 }
                 # For timeouts, we'll mark as completed but with a negative result
-                task_status_manager.set_status(task_id, "completed", results=error_result)
+                await task_status_manager.set_status(task_id, TestStatus.FAILED.value, results=error_result)
                 return error_result
 
             # For other errors, mark as error
-            task_status_manager.set_status(task_id, "error", error=error_message)
+            await task_status_manager.set_status(task_id, TestStatus.ERROR.value, error=error_message)
             raise e
 
     return wrapper
 
 
 @handle_background_task_errors
-async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
+async def validate_url_task(task_id: str, url: str, use_cache: bool = True) -> dict[str, Any]:
     """
     Background task to validate a URL by checking if a login page exists.
 
@@ -257,17 +254,19 @@ async def validate_url_task(task_id: str, url: str) -> Dict[str, Any]:
         url: URL to validate
 
     Returns:
-        Dict with validation results
+        dict with validation results
     """
     logger.info(f"[{task_id}] Starting URL validation for: {url}")
 
     # First, check the cache - if this fails, we'll just continue without the cache
     cached_result = None
-    try:
-        cached_result = await get_login_page_from_cache(url)
-    except Exception as e:
-        logger.error(f"[{task_id}] Error checking cache for {url}: {str(e)}")
-        # Continue execution - cache lookup is non-critical
+
+    if use_cache:
+        try:
+            cached_result = await get_login_page_from_cache(url)
+        except Exception as e:
+            logger.error(f"[{task_id}] Error checking cache for {url}: {str(e)}")
+            # Continue execution - cache lookup is non-critical
 
     if cached_result:
         logger.info(f"[{task_id}] Login page found in cache for {url}: {cached_result.get('login_url')}")
@@ -498,7 +497,7 @@ async def get_cached_login_page(
 @router.get("/status/{task_id}")
 async def get_url_validation_status(
     task_id: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get the status of a URL validation task.
 
@@ -508,5 +507,4 @@ async def get_url_validation_status(
     Returns:
         Dictionary with task status information
     """
-    status = task_status_manager.get_status(task_id)
-    return status
+    return await task_status_manager.get_status(task_id)

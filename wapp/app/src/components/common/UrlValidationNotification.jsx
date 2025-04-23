@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, AlertCircle, X, Link as LinkIcon, Edit } from 'lucide-react';
 import { useUrlValidation, formatValidationResult } from '@/services/urlValidationService';
+import { TEST_STATUS } from '@/utils/testExecutionUtils';
 
 /**
  * URL Validation Notification Component
@@ -142,7 +143,7 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
     }
 
     // If validation completed successfully
-    if (status === 'completed' && formattedResult) {
+    if (status === TEST_STATUS.PASSED && formattedResult) {
       // Login page found
       if (formattedResult.isValid) {
         return (

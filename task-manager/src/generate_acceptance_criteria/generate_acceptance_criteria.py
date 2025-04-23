@@ -165,9 +165,6 @@ async def _generate_acceptance_criteria(
         """.strip() % json.dumps(localStorage)
         await context.execute_javascript(load_script)
 
-    if gif_output_path:
-        os.makedirs(os.path.dirname(gif_output_path), exist_ok=True)
-
     user_stories_text = "\n".join([f"User Story:{us.name}" for us in user_stories])
 
     # NOTE: we do not provide a controller as models tend to provide better results when not constrained by a controller output model
@@ -344,7 +341,7 @@ async def get_acceptance_criteria_generation_status(
     Returns:
         Dictionary with task status information
     """
-    status = task_status_manager.get_status(task_id)
+    status = await task_status_manager.get_status(task_id)
     return status
 
 

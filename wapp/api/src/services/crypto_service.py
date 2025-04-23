@@ -23,11 +23,11 @@ class CryptoService:
     Uses the task-manager's public key for asymmetric encryption.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the crypto service."""
         self.public_key = None
         self.public_key_pem = None
-        self.last_refresh_time = 0
+        self.last_refresh_time = 0.0
         self.refresh_interval = 0  # no interval, we refresh the key on every request
         self.lock = threading.RLock()
         self.initialization_attempted = False
@@ -77,7 +77,7 @@ class CryptoService:
                 try:
                     self.public_key_pem = public_key_pem
                     self.public_key = load_pem_public_key(
-                        public_key_pem.encode(),
+                        public_key_pem.encode(),  # type: ignore
                         backend=default_backend()
                     )
                     self.last_refresh_time = current_time
@@ -115,10 +115,15 @@ class CryptoService:
             The encrypted value as a base64-encoded string, or None if encryption fails
         """
         if not value:
+            logger.warning("Cannot encrypt value because value is empty")
             return None
 
         # Try to initialize if needed, but don't fail if it doesn't work
         if not self.ensure_initialized():
+            logger.warning("Cannot encrypt value because task-manager public key is unavailable")
+            return None
+
+        if self.public_key is None:
             logger.warning("Cannot encrypt value because task-manager public key is unavailable")
             return None
 
