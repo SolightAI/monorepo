@@ -12,5 +12,4 @@ cd src
 export PYTHONPATH=$PYTHONPATH:.
 
 # Run the application
-# exec uvicorn main:app --host 0.0.0.0 --port 8001 --reload
 exec fastapi run --workers ${WORKERS:-1} main.py --host 0.0.0.0 --port 8001
