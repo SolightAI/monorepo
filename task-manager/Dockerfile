@@ -53,5 +53,8 @@ WORKDIR /app/
 # Set environment variable for Playwright browsers path
 ENV PLAYWRIGHT_BROWSERS_PATH=/tmp/playwright-browsers
 
+# Set default number of workers
+ENV WORKERS=1
+
 # Use the entrypoint script to run the application
 CMD ["/app/entrypoint.sh"]
