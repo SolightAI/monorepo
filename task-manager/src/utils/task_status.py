@@ -8,6 +8,7 @@ from typing import Dict, Any, List
 from logging import getLogger
 from utils.session_manager import get_redis
 from pydantic import BaseModel
+from utils.constants import TestStatus
 logger = getLogger(__name__)
 def handle_background_task_errors(func):
     """
@@ -29,7 +30,7 @@ def handle_background_task_errors(func):
             # Update task_ids to indicate failure
             await task_status_manager.set_status(
                 task_id=task_id,
-                status="error",
+                status=TestStatus.ERROR.value,
                 error=error_message,
             )
             return None
