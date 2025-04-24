@@ -8,7 +8,6 @@ from typing import Dict, Any, List
 from logging import getLogger
 from utils.session_manager import get_redis
 from pydantic import BaseModel
-from uuid import UUID
 logger = getLogger(__name__)
 def handle_background_task_errors(func):
     """
