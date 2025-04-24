@@ -838,7 +838,7 @@ const TestsTable = () => {
             const statusResponse = await getTestGenerationStatus(response.task_id);
             if (!isMounted) return;
             
-            if (statusResponse.status === 'completed') {
+            if (statusResponse.status === TEST_STATUS.PASSED) {
               // If the task is already completed, just refresh the tests list
               await fetchTestsWithCurrentFilters();
               setIsGeneratingTests(false);
@@ -879,7 +879,7 @@ const TestsTable = () => {
             const response = await getTestGenerationTaskId(feature.id);
             if (response && response.task_id) {
               const statusResponse = await getTestGenerationStatus(response.task_id);
-              if (statusResponse.status !== 'completed' && statusResponse.status !== 'error') {
+              if (statusResponse.status !== TEST_STATUS.PASSED && statusResponse.status !== TEST_STATUS.FAILED) {
                 runningGenerations.push({
                   id: feature.id,
                   name: feature.name,
@@ -976,7 +976,7 @@ const TestsTable = () => {
             const taskResponse = await getTestGenerationTaskId(feature.id);
             if (taskResponse && taskResponse.task_id) {
               const statusResponse = await getTestGenerationStatus(taskResponse.task_id);
-              if (statusResponse.status !== 'completed' && statusResponse.status !== 'error') {
+              if (statusResponse.status !== TEST_STATUS.PASSED && statusResponse.status !== TEST_STATUS.FAILED) {
                 allRunningGenerations.push({
                   name: feature.name,
                   status: statusResponse.status,
