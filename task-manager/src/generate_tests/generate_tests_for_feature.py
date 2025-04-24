@@ -17,7 +17,7 @@ from utils.crypto import crypto_service
 from utils.task_status import task_status_manager, handle_background_task_errors
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_file_to_s3
-from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, TestStatus
+from utils.constants import TestStatus
 from utils.session_manager import get_redis
 
 
