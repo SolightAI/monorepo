@@ -192,31 +192,6 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
             test_execution = await get_test_execution(execution_id)
             tzinfo = test_execution.started_at.tzinfo if test_execution.started_at else None
 
-            # Check task status
-            # response = requests.get(
-            #     TASK_MANAGER_URL + f"/run-test/status/{task_id}"
-            # )
-
-            # if response.status_code == 404:
-            #     logger.error(f"Failed to get task status: {task_id}")
-            #     await update_test_execution(
-            #         execution_id,
-            #         TestExecutionUpdateSchema(
-            #             status=TestStatus.FAILED,
-            #             notes="Failed to get task status.",
-            #             ended_at=datetime.now(tzinfo),
-            #             metadata={"error": "Failed to get task status."},
-            #             tracing={},
-            #         )
-            #     )
-            #     break
-
-            # if response.status_code != 200:
-            #     logger.error(f"Failed to get task status ({response.status_code}): {response.text}")
-            #     attempts += 1
-            #     continue
-
-            # status_data = response.json()
             job = Job(str(task_id), redis=redis)
             job_status = await job.status()
 
