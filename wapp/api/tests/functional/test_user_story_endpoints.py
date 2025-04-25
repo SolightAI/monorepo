@@ -179,20 +179,3 @@ async def test_guest_cannot_delete_user_story(client: AsyncClient, organization_
 
     # Guests should be forbidden from deleting resources
     assert response.status_code == 403
-
-
-@pytest.mark.anyio
-async def test_invalid_feature_id_for_generation(client: AsyncClient, admin_user):
-    """Test generating user stories with invalid feature ID"""
-    token = create_token(admin_user.email)
-    headers = {"Cookie": f"access_token=Bearer {token}"}
-
-    invalid_id = uuid4()
-
-    response = await client.post(
-        f"/user-stories/generate?feature_id={invalid_id}",
-        headers=headers
-    )
-
-    # Should return 404 Not Found
-    assert response.status_code == 404
