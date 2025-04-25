@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks, Body
+from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from dto.schemas import ProductCreate as ProductCreateSchema, Product as ProductSchema, ProductUpdate as ProductUpdateSchema, TestStatus
 from services.product_services import get_product, create_product, get_products_list, delete_product, update_product
 from services import organization_services
@@ -67,7 +67,6 @@ async def get_product_endpoint(
 @router.post("/")
 async def create_product_endpoint(
     product: ProductCreateSchema,
-    background_tasks: BackgroundTasks,
     current_user=Depends(get_current_user_dependency)
 ) -> dict:
     """
@@ -75,9 +74,6 @@ async def create_product_endpoint(
 
     If organization_id is provided, the user must be a member of the organization
     with admin or owner role.
-
-    This endpoint will also initiate a background task to validate the product URL
-    and find the login page.
     """
     if product.organization_id:
         # Check if user is a member of the organization with appropriate permissions
@@ -151,7 +147,6 @@ async def trigger_url_validation(url: str) -> str:
     Args:
         url: The URL to validate
         product_id: The ID of the product this URL belongs to
-        background_tasks: Optional BackgroundTasks for background processing
 
     Returns:
         The task ID from the task manager service or None if the service is unavailable
@@ -170,7 +165,6 @@ async def trigger_url_validation(url: str) -> str:
 async def update_product_endpoint(
     product_id: UUID4,
     product_data: ProductUpdateSchema,
-    background_tasks: BackgroundTasks,
     current_user=Depends(get_current_user_dependency)
 ) -> dict:
     """
@@ -248,7 +242,6 @@ async def delete_product_endpoint(
 
 @router.post("/validate-url/")
 async def validate_url_endpoint(
-    background_tasks: BackgroundTasks,
     url: str = Body(..., examples=[{"url": "https://example.com"}]),
 ) -> dict:
     """
