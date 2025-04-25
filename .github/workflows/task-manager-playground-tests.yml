@@ -162,6 +162,9 @@ jobs:
         AWS_ENDPOINT_URL=$AWS_ENDPOINT_URL
         AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
         AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+        REDIS_HOST=localhost
+        REDIS_PORT=6379
+        REDIS_DB=0
         EOF
 
         docker run \
