@@ -3,7 +3,6 @@ import { ArrowRight, ArrowLeft, Key, ShieldAlert, User, Lock } from 'lucide-reac
 import { useSecret } from '@/context/SecretContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import { useProduct } from '@/context/ProductContext';
-import { v4 as uuidv4 } from 'uuid';
 
 const SecretCreation = ({ onNext, onPrev, onSkip }) => {
   const { selectedOrganization } = useOrganization();

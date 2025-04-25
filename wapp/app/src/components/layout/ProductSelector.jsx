@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Plus, Sparkles, Edit, Trash, X, AlertCircle } from 'lucide-react';
+import { ChevronDown, Plus, Sparkles, Edit, Trash, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization, ORGANIZATION_CHANGED_EVENT } from '@/context/OrganizationContext';

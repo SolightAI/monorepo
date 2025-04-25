@@ -7,7 +7,7 @@ import { deleteTest } from '@/services/testService';
 import { useSecret } from '@/context/SecretContext';
 import EditTestModal from './EditTestModal';
 import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
-import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus, getStatusIconLarge } from '@/utils/testExecutionUtils';
+import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus } from '@/utils/testExecutionUtils';
 import { TEST_STATUS } from '@/utils/testExecutionUtils';
 
 /**

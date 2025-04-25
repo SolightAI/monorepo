@@ -85,8 +85,6 @@ const TestsTable = () => {
 
   useEffect(() => {
     if (selectedProduct && selectedOrganization) {
-      console.log('Selected product:', selectedProduct);
-      console.log('Selected organization:', selectedOrganization);
       fetchTestsByProduct(selectedProduct.id);
       fetchEpicsAndFeatures();
     }
@@ -94,20 +92,13 @@ const TestsTable = () => {
 
   // Add console logs for epics and features state changes
   useEffect(() => {
-    console.log('Epics updated:', epics);
-
     // When epics are loaded, select the first epic by default if available
     if (epics.length > 0 && selectedEpic === 'all') {
       const firstEpicId = epics[0].id;
-      console.log('Setting first epic as default:', firstEpicId);
       setSelectedEpic(firstEpicId);
       // Features will be fetched in the other useEffect when selectedEpic changes
     }
   }, [epics]);
-
-  useEffect(() => {
-    console.log('Features updated:', features);
-  }, [features]);
 
   // Fetch epic-specific features when an epic is selected
   useEffect(() => {
@@ -146,15 +137,8 @@ const TestsTable = () => {
         setLoadingFeatures(false);
         return;
       }
-
-      console.log('Fetching epics for:', {
-        productId: selectedProduct.id,
-        orgId: selectedOrganization.id
-      });
-
       // Fetch epics for the current product
       const epicsData = await getAllEpics(selectedProduct.id, selectedOrganization.id);
-      console.log('Fetched epics data:', epicsData);
 
       if (!Array.isArray(epicsData) || epicsData.length === 0) {
         console.warn('No epics data returned or empty array');
@@ -170,16 +154,13 @@ const TestsTable = () => {
           console.error('Epic missing ID:', epic);
           return [];
         }
-        console.log('Fetching features for epic:', epic.id);
         const epicFeatures = await getFeaturesByEpic(epic.id);
-        console.log('Features for epic', epic.id, ':', epicFeatures);
         featuresMap[epic.id] = epicFeatures;
         return epicFeatures;
       });
 
       const allFeaturesArrays = await Promise.all(fetchPromises);
       const allFeatures = allFeaturesArrays.flat();
-      console.log('All features:', allFeatures);
 
       setEpicFeaturesMap(featuresMap);
       setFeatures(allFeatures);
@@ -878,6 +859,13 @@ const TestsTable = () => {
             setTimeout(() => {
               setSuccessMessage(null);
             }, 5000);
+          } else if (response.status === TEST_STATUS.ERROR || response.status === TEST_STATUS.FAILED) {
+            setError(response.status === TEST_STATUS.ERROR ? 'Error generating tests. Please try again.' : 'Test generation failed. Please try again.');
+            clearInterval(pollingIntervalRef.current);
+            setTimeout(() => {setError(null)}, 5000);
+            setSuccessMessage(null);
+            setIsGeneratingTests(false);
+            setTestGenerationTaskId(null);
           }
         } catch (err) {
           console.error('Error polling test generation status:', err);
@@ -1610,8 +1598,6 @@ const TestsTable = () => {
                             // Get status from the map
                             getStatusIconLarge(latestExecutionsMap[test.id]?.status)
                           )}
-                          {console.log('test', test)}
-                          {console.log('latestExecutionMap', latestExecutionsMap[test.id])}
                           <span className={`ml-2 text-sm font-medium px-2 py-1 rounded-full ${runningTests[test.id] ? 'bg-blue-100 text-blue-800' : getStatusColorClasses(latestExecutionsMap[test.id]?.status)}`}>
                             {/* Get status from the map or show running */}
                             {runningTests[test.id] ? formatStatus(RUNNING_STATUS) : formatStatus(latestExecutionsMap[test.id]?.status) ?? 'Not Run'}

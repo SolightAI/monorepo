@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CheckCircle, AlertCircle, X, Link as LinkIcon, Edit } from 'lucide-react';
 import { useUrlValidation, formatValidationResult } from '@/services/urlValidationService';
 import { TEST_STATUS } from '@/utils/testExecutionUtils';
@@ -19,34 +19,13 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
   const [visible, setVisible] = useState(true);
   const [autoCloseTimer, setAutoCloseTimer] = useState(null);
 
-  // Debug logging
-  useEffect(() => {
-    console.log("UrlValidationNotification mounted with taskId:", taskId);
-    console.log("Status:", status, "Result:", result, "Error:", error, "IsPolling:", isPolling);
-
-    return () => {
-      console.log("UrlValidationNotification unmounted");
-    };
-  }, [taskId]);
-
-  // Log status changes
-  useEffect(() => {
-    console.log("Validation status changed:", status);
-    if (result) {
-      console.log("Validation result:", result);
-    }
-    if (error) {
-      console.log("Validation error:", error);
-    }
-  }, [status, result, error]);
-
-  // Format the validation result for display
-  const formattedResult = formatValidationResult(result);
+  // Format the validation result for display, memoizing it
+  const formattedResult = useMemo(() => formatValidationResult(result), [result]);
 
   // Handle successful validation with auto-close
   useEffect(() => {
     // If validation succeeded, set auto-close timer
-    if (status === 'completed' && formattedResult?.isValid) {
+    if (status === TEST_STATUS.PASSED && formattedResult?.isValid) {
       const timer = setTimeout(() => {
         handleClose();
       }, 5000); // Auto-close after 5 seconds
@@ -87,11 +66,11 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
   // Determine what to display based on the validation status
   const getNotificationContent = () => {
     // If still polling, show the pending state
-    if (isPolling || status === 'pending') {
+    if (isPolling || status === TEST_STATUS.PENDING) {
       return (
         <div className="flex items-center">
           <div className="animate-spin mr-2 h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-          <span>Validating URL and searching for login page...</span>
+          <span> A Validating URL and searching for login page...</span>
         </div>
       );
     }
@@ -120,7 +99,7 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
     }
 
     // If there was a different error, show error state
-    if (status === 'error' || error) {
+    if (status === TEST_STATUS.ERROR || error) {
       return (
         <div className="flex items-start">
           <AlertCircle className="text-amber-500 h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
@@ -191,8 +170,6 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
         );
       }
     }
-
-    // Default case - should not reach here
     return (
       <div>Unknown validation state</div>
     );
@@ -200,10 +177,10 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
 
   // Determine background color based on status
   const getBgColor = () => {
-    if (isPolling || status === 'pending') return 'bg-blue-50 border-blue-200';
+    if (isPolling || status === TEST_STATUS.PENDING) return 'bg-blue-50 border-blue-200';
     if (isTimeoutError) return 'bg-amber-50 border-amber-200';
-    if (status === 'error' || error) return 'bg-amber-50 border-amber-200';
-    if (status === 'completed' && formattedResult) {
+    if (status === TEST_STATUS.ERROR || error) return 'bg-amber-50 border-amber-200';
+    if (status === TEST_STATUS.PASSED && formattedResult) {
       return formattedResult.isValid
         ? 'bg-green-50 border-green-200'
         : 'bg-amber-50 border-amber-200';

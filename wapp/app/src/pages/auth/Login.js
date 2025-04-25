@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
@@ -35,7 +35,6 @@ export default function Login() {
   // Handle successful authentication
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('User is authenticated, checking for redirect path');
       // Check if there's a stored redirect path
       const redirectPath = sessionStorage.getItem('joinOrgRedirect');
       if (redirectPath) {
