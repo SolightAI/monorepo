@@ -14,9 +14,9 @@ logger = logging.getLogger(__name__)
 
 class WorkerSettings:
     functions = [
-        func(generate_tests, max_tries=3),
+        func(generate_tests),
         func(run_test),  # we do not want to retry test runs
-        func(validate_url, max_tries=3),
+        func(validate_url),
     ]
 
     # TODO: instead of polling we could use a webhook to inform the api that a job is done

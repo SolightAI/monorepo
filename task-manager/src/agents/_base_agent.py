@@ -653,7 +653,7 @@ async def run_agent(
             sensitive_data=sensitive_data,
             initial_actions=[{'go_to_url': {'url': url}}, {'go_to_url': {'url': url}}],  # twice cause it some case we have a redirect at the first try
             browser_context=context,
-            use_vision_for_planner=True,
+            use_vision_for_planner=False,
             use_vision=True,
             enable_memory=False,
             controller=controller,

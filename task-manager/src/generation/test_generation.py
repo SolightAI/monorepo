@@ -177,9 +177,10 @@ async def _generate_test_category_for_feature(
             initial_actions=[{'go_to_url': {'url': feature.urls[0]}}, {'go_to_url': {'url': feature.urls[0]}}],
             browser_context=context,
             enable_memory=False,
+            use_vision=False,
         )
 
-        history = await agent.run(max_steps=5)
+        history = await agent.run(max_steps=10)
 
     except Exception as e:
         raise e

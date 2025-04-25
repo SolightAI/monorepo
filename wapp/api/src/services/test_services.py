@@ -248,7 +248,10 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
     if encrypted_secrets:
         payload['secrets'] = {k.value: v for k, v in encrypted_secrets.items()}
 
-    job = await redis.enqueue_job('generate_tests', **payload)
+    job = await redis.enqueue_job('generate_tests', **payload, _job_id=str(feature_id))
+    # Job already exists, retrieve it
+    if job is None:
+        job = Job(str(feature_id), redis=redis)
 
     return {"task_id": job.job_id}
 
@@ -294,8 +297,6 @@ async def get_test_generation_status(test_id: UUID4) -> dict:
             logger.error(f"Unexpected job status: {job_status}")
             response_data["status"] = TestStatus.UNKNOWN.value
 
-        logger.info(f"Test generation status for job {test_id}: {response_data}")
-
         return response_data
 
     except ConnectionRefusedError:
@@ -336,7 +337,7 @@ async def poll_test_generation_status(task_id: UUID4, timeout: int = 300, interv
                 return
 
             created_tests = []
-            logger.info(f"Creating tests for task {task_id} {response['results']=}")
+            logger.info(f"Creating tests for task {task_id}")
             for _test in response["results"]:
                 try:
                     test = await create_test(

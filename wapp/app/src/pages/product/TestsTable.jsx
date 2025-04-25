@@ -13,9 +13,10 @@ import {
   Trash2,
 } from 'lucide-react';
 import axios from 'axios';
-import { getTestsByFeature, getTestsByEpic, getTestsByProduct, triggerFeatureTestGeneration, getTestGenerationStatus, deleteTest } from '@/services/testService';
+import { getTestsByFeature, getTestsByEpic, getTestsByProduct, deleteTest } from '@/services/testService';
 import { getAllEpics, getFeaturesByEpic } from '@/services/productService';
 import { createTestExecution, getTestExecution, getLatestTestExecutions } from '@/services/testExecutionService';
+import { handleFeatureTestGeneration } from '@/services/testGenerationService';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import { useSecret } from '@/context/SecretContext';
@@ -265,11 +266,6 @@ const TestsTable = () => {
     // Apply status filter
     if (filterStatus !== 'all') {
       // Log test statuses to help with debugging
-      if (result.length > 0) {
-        console.log("Test statuses examples:", result.slice(0, 3).map(test => test.status));
-        console.log("Filtering by status:", filterStatus);
-      }
-
       result = result.filter(test => {
         const latestExecution = executionsMap[test.id];
         const testStatus = latestExecution?.status?.toLowerCase();
@@ -372,17 +368,13 @@ const TestsTable = () => {
     setSuccessMessage(null);
     setIsDeleting(false); // Reset deleting state
 
-    // Clear any existing interval
+    // Stop test generation polling if it's running
     if (pollingIntervalRef.current) {
-      console.log('Stopping polling for test generation task:', testGenerationTaskId);
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
+        pollingIntervalRef.current(); // Call the cleanup function
+        pollingIntervalRef.current = null;
     }
-    if (testGenerationTaskId) {
-      console.log('Cleaning up test generation polling on unmount or feature change');
-      setIsGeneratingTests(false);
-      setTestGenerationTaskId(null);
-    }
+    setIsGeneratingTests(false);
+    setTestGenerationTaskId(null);
   };
 
   // Handle running a single test
@@ -460,6 +452,17 @@ const TestsTable = () => {
         return;
       }
 
+      // Filter out tests that are already running
+      const testsToRun = filteredTests.filter(test => !runningTests[test.id]);
+
+      if (testsToRun.length === 0) {
+        setError('All selected tests are already running or starting.');
+        setSuccessMessage(null);
+        // Clear error after a delay
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+
       // Check if the project has test credentials
       if (!secrets || secrets.length === 0) {
         setError(
@@ -473,13 +476,16 @@ const TestsTable = () => {
 
       setError(null);
       setSuccessMessage(null);
-      setLoading(true);
+      setLoading(true); // Consider a more specific loading state like setIsRunningSelected
 
       let testCount = 0;
       const testExecutions = [];
 
-      // Run each filtered test
-      for (const test of filteredTests) {
+      // Run each filtered test that is NOT already running
+      for (const test of testsToRun) { // Iterate over testsToRun instead of filteredTests
+        // Skip if already running (double-check, though filtering should handle this)
+        if (runningTests[test.id]) continue;
+
         try {
           // Mark test as running
           setRunningTests(prev => ({ ...prev, [test.id]: true }));
@@ -499,27 +505,24 @@ const TestsTable = () => {
           setTests(prevTests => prevTests.map(t =>
             t.id === test.id ? {
               ...t,
-              status: 'pending',
+              // Don't overwrite status if it's already running from a previous action
               last_execution_id: response.id,
-              started_at: new Date().toISOString()
             } : t
           ));
 
-          // Update filtered tests too
+          // Update filtered tests too - reflect running state immediately
           setFilteredTests(prevTests => prevTests.map(t =>
             t.id === test.id ? {
               ...t,
-              status: 'pending',
               last_execution_id: response.id,
-              started_at: new Date().toISOString()
             } : t
           ));
 
           testCount++;
         } catch (testErr) {
-          console.error(`Error running test ${test.id}:`, testErr);
+          console.error(`Error starting test ${test.id}:`, testErr);
 
-          // Remove from running tests
+          // Remove from running tests only if starting failed
           setRunningTests(prev => {
             const updated = { ...prev };
             delete updated[test.id];
@@ -533,28 +536,30 @@ const TestsTable = () => {
       // Show appropriate message based on results
       if (testCount > 0) {
         setError(null);
+        setSuccessMessage(`Started ${testCount} test(s).`);
+        setTimeout(() => setSuccessMessage(null), 3000);
 
-        // Start polling for each test execution
+        // Start polling for each test execution that was just started
         testExecutions.forEach(({ testId, executionId }) => {
           pollTestExecutionStatus(testId, executionId);
         });
       } else {
-        setError('Failed to start any tests. Please try again.');
+        // This case might happen if all attempts failed
+        setError('Failed to start any tests. Please check the console and try again.');
         setSuccessMessage(null);
+        setTimeout(() => setError(null), 5000);
       }
     } catch (err) {
       handleFetchError('run selected tests', err);
       setSuccessMessage(null);
     } finally {
-      setLoading(false);
+      setLoading(false); // Reset general loading or specific running state
     }
   };
 
   // Function to poll test execution status
   const pollTestExecutionStatus = async (testId, executionId) => {
     if (!executionId) return;
-
-    console.log(`Starting to poll execution status for test ${testId}, execution ${executionId}`);
 
     // Clear any existing interval for this test
     if (testPollingIntervalsRef.current[testId]) {
@@ -565,7 +570,6 @@ const TestsTable = () => {
     testPollingIntervalsRef.current[testId] = setInterval(async () => {
       try {
         const executionData = await getTestExecution(executionId);
-        console.log(`Polling execution ${executionId} status:`, executionData.status);
 
         // Instead of updating the test object's status directly,
         // update the latestExecutionsMap
@@ -580,12 +584,8 @@ const TestsTable = () => {
           }
         }));
 
-        // Re-apply filters to reflect the updated status in the map
-        applyFilters(tests, selectedStatus, searchQuery);
-
         // If status is no longer pending, stop polling
         if (executionData.status !== TEST_STATUS.PENDING) {
-          console.log(`Test ${testId} execution completed with status: ${executionData.status}`);
           clearInterval(testPollingIntervalsRef.current[testId]);
           delete testPollingIntervalsRef.current[testId];
 
@@ -646,7 +646,12 @@ const TestsTable = () => {
     // Check if there are any features
     if (features.length === 0) {
       // Show a prompt to create features first
-      setError('Please create at least one feature before adding tests.');
+      setError(
+        <span>
+          Please create at least one feature before adding tests. You can add one using the {' '}
+          <code className="bg-gray-100 p-1 rounded text-sm">Feature</code> dropdown menu.
+        </span>
+      );
 
       // Open the dropdown to access the create feature button
       setIsFeatureDropdownOpen(true);
@@ -676,6 +681,11 @@ const TestsTable = () => {
     // Check if a feature is selected
     else if (selectedFeature === 'all') {
       // Show a prompt to select a feature first
+      setError(
+        <span>
+          Please select a specific feature from the <code className="bg-gray-100 p-1 rounded text-sm">Feature</code> dropdown before adding a test.
+        </span>
+      );
 
       // Highlight the feature dropdown
       const featureDropdown = document.querySelector('[data-feature-dropdown]');
@@ -760,153 +770,77 @@ const TestsTable = () => {
 
   // Function to handle test generation for the selected feature
   const handleGenerateTests = async () => {
-    // Check if a feature is selected
-    if (selectedFeature === 'all') {
-      // Show error message
+    // Clear previous messages/state
+    setError(null);
+    setSuccessMessage(null);
 
-      // Highlight the feature dropdown
-      const featureDropdown = document.querySelector('[data-feature-dropdown]');
-      if (featureDropdown) {
-        // Add a pulse animation class
-        featureDropdown.classList.add('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-
-        // Remove the animation after 5 seconds
-        setTimeout(() => {
-          featureDropdown.classList.remove('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-        }, 5000);
-      }
-
-      // Open the dropdown to show options
-      setIsFeatureDropdownOpen(true);
-
-      // Automatically clear the error after 6 seconds
-      setTimeout(() => {
-        setError(null);
-      }, 6000);
-
-      // Scroll to top to make sure error is visible
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      return;
-    }
-
-    // Check if the project has test credentials
-    if (!secrets || secrets.length === 0) {
-      setError(
-        <span>
-          Cannot generate tests: No test credentials found. Please add credentials in the{' '}
-          <a href="/test-credentials" className="text-red-800 font-medium underline">
-            Test Credentials Management
-          </a>{' '}
-          section.
-        </span>
-      );
-      setSuccessMessage(null);
-      return;
-    }
-
-    try {
-      setIsGeneratingTests(true);
-      setError(null);
-      setSuccessMessage(`Starting test generation. Status: ${formatStatus(TEST_STATUS.PENDING)}`);
-
-      // Call the API to generate tests
-      console.log('Triggering test generation for feature:', selectedFeature);
-      const taskId = await triggerFeatureTestGeneration(selectedFeature);
-      console.log('Test generation task ID received:', taskId);
-      setTestGenerationTaskId(taskId?.toString() || null); // Ensure taskId is a string or null
-
-      // Clear any existing interval
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-
-      // Poll for status
-      pollingIntervalRef.current = setInterval(async () => {
-        try {
-          console.log('Polling test generation status for task:', taskId);
-          const response = await getTestGenerationStatus(taskId);
-          console.log('Test generation status response:', response);
-
-          // Update success message with current status
-          setSuccessMessage(
-            `Test generation in progress. Status: ${response.status ? formatStatus(response.status) : formatStatus(TEST_STATUS.PENDING)}${response.progress ? ` (${response.progress})` : ''}`
-          );
-
-          if (response.status === TEST_STATUS.PASSED) {
-            console.log('Test generation completed successfully:', response);
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-            setIsGeneratingTests(false);
-            setTestGenerationTaskId(null);
-
-            // Refresh tests and show success
-            await fetchTestsWithCurrentFilters();
-
-            // Get the current number of tests after refresh
-            const currentTests = await getTestsByFeature(selectedFeature);
-
-            if (currentTests.length === 0) {
-              setError('Test generation completed but no tests were created. Please check the logs for more information.');
-              setSuccessMessage(null);
-            } else {
-              setSuccessMessage(
-                `Successfully generated ${currentTests.length} tests for the selected feature. Status: ${formatStatus(TEST_STATUS.PASSED)}`
-              );
-            }
-
-            // Clear success message after 5 seconds
-            setTimeout(() => {
-              setSuccessMessage(null);
-            }, 5000);
-          } else if (response.status === TEST_STATUS.ERROR || response.status === TEST_STATUS.FAILED) {
-            setError(response.status === TEST_STATUS.ERROR ? 'Error generating tests. Please try again.' : 'Test generation failed. Please try again.');
-            clearInterval(pollingIntervalRef.current);
-            setTimeout(() => {setError(null)}, 5000);
-            setSuccessMessage(null);
-            setIsGeneratingTests(false);
-            setTestGenerationTaskId(null);
-          }
-        } catch (err) {
-          console.error('Error polling test generation status:', err);
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-          setIsGeneratingTests(false);
-          setTestGenerationTaskId(null);
-          setError('Error checking test generation status. Please try again.');
+    // Call the new service function
+    pollingIntervalRef.current = await handleFeatureTestGeneration(
+      selectedFeature,
+      secrets,
+      (taskId) => { // onStart
+        setIsGeneratingTests(true);
+        if (taskId) { // Update task ID only when we receive it
+          setTestGenerationTaskId(taskId);
         }
-      }, 2000); // Poll every 2 seconds
+      },
+      (statusUpdate) => { // onStatusUpdate
+        setSuccessMessage(statusUpdate); // Use success message for progress
+      },
+      async (successMsg) => { // onSuccess
+        setIsGeneratingTests(false);
+        setTestGenerationTaskId(null);
+        pollingIntervalRef.current = null; // Clear the cleanup ref
 
-    } catch (err) {
-      console.error('Error generating tests:', err);
-      setIsGeneratingTests(false);
-      setTestGenerationTaskId(null);
-      setError('Failed to start test generation. Please try again.');
-      setSuccessMessage(null);
-    }
+        // Refresh tests and check results
+        await fetchTestsWithCurrentFilters(); // Ensure this completes before checking tests
+
+        // Re-fetch tests to check count - Note: This might be slightly delayed, consider alternative check
+        const currentTests = await getTestsByFeature(selectedFeature); // Maybe use state?
+        if (currentTests.length === 0) {
+          setError('Test generation completed but no tests were created. Please check the logs.');
+          setSuccessMessage(null); // Clear progress message
+          setTimeout(() => setError(null), 5000);
+        } else {
+          setSuccessMessage(successMsg); // Show final success message from service
+          setTimeout(() => setSuccessMessage(null), 5000);
+        }
+      },
+      (errorMsg) => { // onError
+        setIsGeneratingTests(false);
+        setTestGenerationTaskId(null);
+        setError(errorMsg);
+        setSuccessMessage(null); // Clear progress message
+        pollingIntervalRef.current = null; // Clear the cleanup ref
+        setTimeout(() => setError(null), 5000);
+
+        // Handle specific error case for missing feature selection
+        if (typeof errorMsg === 'string' && errorMsg.includes('select a specific feature')) {
+            const featureDropdown = document.querySelector('[data-feature-dropdown]');
+            if (featureDropdown) {
+                featureDropdown.classList.add('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
+                setTimeout(() => {
+                    featureDropdown.classList.remove('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
+                }, 5000);
+            }
+            setIsFeatureDropdownOpen(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
+    );
   };
 
   // Add useEffect for cleanup of polling interval
   useEffect(() => {
-    // Log when the polling is started/active
-    if (pollingIntervalRef.current) {
-      console.log('Polling is active for test generation task:', testGenerationTaskId);
-    }
-
     // Cleanup function to stop polling when component unmounts or feature changes
     return () => {
       if (pollingIntervalRef.current) {
-        console.log('Stopping polling for test generation task:', testGenerationTaskId);
-        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current(); // Call the cleanup function returned by the service
         pollingIntervalRef.current = null;
       }
-      if (testGenerationTaskId) {
-        console.log('Cleaning up test generation polling on unmount or feature change');
-        setIsGeneratingTests(false);
-        setTestGenerationTaskId(null);
-      }
+      // No need to reset state here, it's handled by the callbacks or unmount
     };
-  }, [selectedFeature]);
+  }, [selectedFeature]); // Keep dependency on selectedFeature
 
   // Function to handle feature editing
   const handleEditFeature = (feature) => {
@@ -1007,11 +941,17 @@ const TestsTable = () => {
   // Add useEffect for cleanup of test polling intervals
   useEffect(() => {
     return () => {
-      // Clean up all polling intervals when component unmounts
+      // Clean up all test execution polling intervals when component unmounts
       Object.values(testPollingIntervalsRef.current).forEach(interval => {
         clearInterval(interval);
       });
       testPollingIntervalsRef.current = {};
+
+      // Clean up test generation polling if active
+      if (pollingIntervalRef.current) {
+        pollingIntervalRef.current();
+        pollingIntervalRef.current = null;
+      }
     };
   }, []);
 
@@ -1098,6 +1038,16 @@ const TestsTable = () => {
       const testIds = testsToFetchFor.map(t => t.id);
       const latestExecutions = await getLatestTestExecutions(testIds);
       setLatestExecutionsMap(latestExecutions);
+
+      // Start polling for any executions that are already pending
+      Object.values(latestExecutions).forEach(exec => {
+        if (exec.status === TEST_STATUS.PENDING) {
+          pollTestExecutionStatus(exec.test_id, exec.execution_id);
+          // Also mark the test as running visually
+          setRunningTests(prev => ({ ...prev, [exec.test_id]: true }));
+        }
+      });
+
       // Re-apply filters after getting latest executions
       applyFilters(testsToFetchFor, selectedStatus, searchQuery, latestExecutions);
     } catch (err) {
@@ -1105,6 +1055,12 @@ const TestsTable = () => {
       // Optionally set an error state here
       setLatestExecutionsMap({}); // Clear map on error
     }
+  };
+
+  // Add a function to check if ALL filtered tests are running
+  const allFilteredTestsRunning = () => {
+    if (filteredTests.length === 0) return false; // Cannot run if no tests are filtered
+    return filteredTests.every(test => runningTests[test.id]);
   };
 
   if (loading) {
@@ -1256,7 +1212,12 @@ const TestsTable = () => {
             <div>
               <h3 className="text-sm font-medium">Test credentials required</h3>
               <p className="mt-1 text-sm">
-                {errorMessageNoCredentials}
+                {/* Update the message slightly for consistency */}
+                You need to add test credentials before running or generating tests. Go to the{' '}
+                <a href="/test-credentials" className="text-yellow-900 font-medium underline">
+                  Test Credentials Management
+                </a>{' '}
+                section.
               </p>
             </div>
           </div>
@@ -1427,9 +1388,14 @@ const TestsTable = () => {
             {/* Generate Tests button */}
             <button
               onClick={handleGenerateTests}
-              disabled={isGeneratingTests || !secrets || secrets.length === 0}
+              disabled={isGeneratingTests || !secrets || secrets.length === 0 || selectedFeature === 'all'}
               className="flex items-center justify-center px-3 py-2 bg-purple-600 text-white rounded-md shadow hover:bg-purple-700 transition duration-150 disabled:bg-purple-300 disabled:cursor-not-allowed"
-              title={!secrets || secrets.length === 0 ? "Test credentials required to generate tests" : "Generate tests for selected feature using AI"}
+              title={
+                !secrets || secrets.length === 0 ? "Test credentials required to generate tests" :
+                selectedFeature === 'all' ? "Please select a specific feature first" :
+                isGeneratingTests ? "Generation in progress..." :
+                "Generate tests for selected feature using AI"
+              }
             >
               {isGeneratingTests ? (
                 <>
@@ -1447,8 +1413,9 @@ const TestsTable = () => {
             {/* Add Test button */}
             <button
               onClick={handleCreateTestClick}
-              className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition duration-150"
-              title="Add new test to selected feature"
+              disabled={selectedFeature === 'all'}
+              className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition duration-150 disabled:bg-blue-300 disabled:cursor-not-allowed"
+              title={selectedFeature === 'all' ? "Please select a specific feature first" : "Add new test to selected feature"}
             >
               <Plus size={18} className="mr-2" />
               <span className="whitespace-nowrap">Add Test To Feature</span>
@@ -1468,14 +1435,19 @@ const TestsTable = () => {
           <div className="flex gap-2">
             <button
               onClick={handleRunSelectedTests}
-              disabled={filteredTests.length === 0 || hasRunningTests() || !secrets || secrets.length === 0}
+              disabled={filteredTests.length === 0 || allFilteredTestsRunning() || !secrets || secrets.length === 0}
               className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150 disabled:bg-green-300 disabled:cursor-not-allowed"
-              title={!secrets || secrets.length === 0 ? "Test credentials required to run tests" : "Run selected tests"}
+              title={
+                !secrets || secrets.length === 0 ? "Test credentials required to run tests" :
+                filteredTests.length === 0 ? "No tests to run" :
+                allFilteredTestsRunning() ? "All visible tests are already running" :
+                "Run all non-running visible tests"
+              }
             >
-              {hasRunningTests() ? (
+              {allFilteredTestsRunning() ? ( // Show spinner and 'Running...' only if ALL are running
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {formatStatus(RUNNING_STATUS)} Tests
+                  Running...
                 </>
               ) : (
                 <>
@@ -1651,11 +1623,16 @@ const TestsTable = () => {
                     ) : (
                       <tr>
                         <td colSpan="7" className="px-6 py-12 text-center text-lg text-gray-500">
-                          {tests.length === 0 ? (
+                          {tests.length === 0 && selectedFeature === 'all' ? (
                             <div className="flex flex-col items-center">
-                              <p>No tests found in the system.</p>
-                              <p className="text-sm mt-2">Start by creating a test for a feature.</p>
-                            </div>
+                              <p>No features or tests found for this product.</p>
+                              <p className="text-sm mt-2">Start by adding a Feature using the dropdown menu, then generate or add tests.</p>
+                          </div>
+                          ) : tests.length === 0 && selectedFeature !== 'all' ? (
+                              <div className="flex flex-col items-center">
+                                  <p>No tests found for the selected feature.</p>
+                                  <p className="text-sm mt-2">Use "Generate Tests with AI" or "Add Test" to create some.</p>
+                              </div>
                           ) : (
                             <div>
                               <p>No tests match the current filters.</p>

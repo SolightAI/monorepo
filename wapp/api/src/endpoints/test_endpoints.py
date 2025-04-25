@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestUpdate as TestUpdateSchema, TestSecretCreate, TestSecret, TestExecution as TestExecutionSchema
 from services.test_execution_services import get_test_executions_by_test
+import traceback
 from services.test_services import (
     get_test,
     create_test,
@@ -142,6 +143,7 @@ async def generate_test(
         raise e
     except Exception as e:
         logger.error(f"Error generating tests: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error generating tests: {str(e)}")
 
 

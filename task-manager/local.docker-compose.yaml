@@ -4,14 +4,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    # deploy:
-    #   replicas: 3
+    deploy:
+      replicas: 3
     volumes:
       - ./src/:/app/src
       - ./tests/:/app/tests
       - playwright_browsers:/tmp/playwright-browsers
-    # ports:
-    #   - "8001:8001"
     environment:
       - DEV_MODE=true
       - OPENAI_API_KEY=${OPENAI_API_KEY}
