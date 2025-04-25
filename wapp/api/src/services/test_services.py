@@ -18,6 +18,7 @@ from pydantic import UUID4
 from arq import create_pool
 from arq.connections import RedisSettings
 from arq.jobs import Job, JobStatus
+from services.secret_services import get_encrypted_secrets
 
 
 logger = logging.getLogger(__name__)
@@ -239,21 +240,15 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
         },
     }
 
-    # Get organization ID from the product (if available)
-    # encrypted_secrets = await get_encrypted_secrets(organization_id=product.organization_id, product_id=product.id)
-    from services.secret_services import get_organization_secrets, get_secret_with_values
-    org_secrets = await get_organization_secrets(organization_id=product.organization_id, product_id=product.id)
+    encrypted_secrets = await get_encrypted_secrets(
+        organization_id=product.organization_id,
+        product_id=product.id
+    )
 
-    # Add the encrypted secrets to the payload if any were found
-    if org_secrets:
-        all_secrets = {}
-        for secret in org_secrets:
-            secret_with_values = await get_secret_with_values(secret.id)
-            all_secrets[secret_with_values.type.value] = secret_with_values.values
-        payload['secrets'] = all_secrets
+    if encrypted_secrets:
+        payload['secrets'] = {k.value: v for k, v in encrypted_secrets.items()}
 
     job = await redis.enqueue_job('generate_tests', **payload)
-    # logger.info(f"Successfully enqueued test generation job {job} for feature {feature_id}: {dir(job)}")
 
     return {"task_id": job.job_id}
 

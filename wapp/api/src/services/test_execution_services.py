@@ -21,9 +21,9 @@ from dto.schemas import (
     LatestTestExecutionResponse,
 )
 from services.test_services import get_test
-# from services.secret_services import get_encrypted_secrets
 from utils.s3_utils import generate_presigned_url
 from arq.jobs import Job, JobStatus
+from services.secret_services import get_encrypted_secrets
 
 
 TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
@@ -146,18 +146,13 @@ async def create_test_execution(
             },
         }
 
-        from services.secret_services import get_organization_secrets, get_secret_with_values
-        org_secrets = await get_organization_secrets(organization_id=product.organization_id, product_id=product.id)
+        encrypted_secrets = await get_encrypted_secrets(
+            organization_id=product.organization_id,
+            product_id=product.id
+        )
+        if encrypted_secrets:
+            payload['secrets'] = {k.value: v for k, v in encrypted_secrets.items()}
 
-        # Add the encrypted secrets to the payload if any were found
-        if org_secrets:
-            all_secrets = {}
-            for secret in org_secrets:
-                secret_with_values = await get_secret_with_values(secret.id)
-                all_secrets[secret_with_values.type.value] = secret_with_values.values
-            payload['secrets'] = all_secrets
-
-        # logger.info(f"Enqueuing job for test execution {payload}")
         job = await redis.enqueue_job('run_test', **payload, _job_id=str(test_execution_model.id))
 
         if background_tasks:

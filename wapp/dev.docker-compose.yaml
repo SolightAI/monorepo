@@ -32,6 +32,7 @@ services:
       - AZURE_REDIRECT_URI=${AZURE_REDIRECT_URI}
       - SECRET_ENCRYPTION_KEY=${SECRET_ENCRYPTION_KEY:-defaultsecret}
       - TASK_MANAGER_URL=${TASK_MANAGER_URL}
+      - SYMMETRIC_ENCRYPTION_KEY=${SYMMETRIC_ENCRYPTION_KEY:-S5ox-_h4p9NISVvQFPsAE5T-8K-SNp67GLQalO75rDI=}
     depends_on:
       db:
         condition: service_healthy

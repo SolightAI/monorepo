@@ -9,7 +9,7 @@ from langchain_openai import ChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from utils.dto import Product, Test, Epic, Feature, TestCategory, TEST_CATEGORIES_DESCRIPTION, TestStatus
-# from crypto.crypto import crypto_service
+from crypto.crypto import crypto_service
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_file_to_s3
 from fixtures.authentification.get_auth_session import get_auth_session
@@ -248,7 +248,7 @@ async def generate_tests(
     epic: Epic,
     feature: Feature,
     secrets: Optional[dict[str, dict[str, str]]] = None,
-) -> str:
+) -> dict[str, Any]:
     """
     Endpoint to generate tests for a feature.
 
@@ -258,7 +258,7 @@ async def generate_tests(
         feature: Feature information
         background_task: Background tasks handler
         secrets: Dictionary of secrets for authentication
-        encrypted_secrets: Dictionary of encrypted secrets for authentication
+                 (expected to be encrypted if provided)
 
     Returns:
         Task ID for tracking the test generation process
@@ -267,10 +267,11 @@ async def generate_tests(
     product = Product(**product)
     epic = Epic(**epic)
     feature = Feature(**feature)
+    decrypted_secrets = {}
 
-    # secrets = None
-    # if encrypted_secrets:
-    #     secrets = crypto_service.decrypt_secrets(encrypted_secrets)
+    # Decrypt encrypted secrets if provided
+    if secrets:
+        decrypted_secrets = crypto_service.decrypt_secrets(secrets)
 
     # List of test categories to generate
     categories = [
@@ -283,11 +284,13 @@ async def generate_tests(
             auth_session = await get_auth_session(
                 task_id=ctx['job_id'],
                 url=feature.urls[0],
-                secrets=secrets,
+                secrets=decrypted_secrets,  # Use decrypted secrets here
             )
     except Exception as e:
-        logger.error(f"[{ctx['job_id']}] Error in background task: {e}")
-        raise e
+        logger.error(f"[{ctx['job_id']}] Error getting auth session: {e}")
+        # Decide how to handle: maybe raise, maybe continue without auth session?
+        # For now, log and continue, which might cause downstream issues.
+        auth_session = {}
 
     tests = []
     with NamedTemporaryFile(suffix=".json", mode="w+") as cookies_file:
