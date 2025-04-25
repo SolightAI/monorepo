@@ -24,7 +24,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=7.0.0", "pytest-cov>=3.0.0", "pytest-asyncio>=0.18.0", "factory-boy>=3.2.0", "faker>=13.0.0", "httpx==0.27.2", "python-dotenv>=1.0.0"]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "pytest-asyncio>=0.18.0",
+    "factory-boy>=3.2.0",
+    "faker>=13.0.0",
+    "httpx==0.27.2",
+    "python-dotenv>=1.0.0",
+    "pytest-mock"
+]
 
 [tool.mypy]
 python_version = "3.12"
