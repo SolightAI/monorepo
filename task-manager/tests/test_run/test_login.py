@@ -2,8 +2,7 @@ import os
 import pytest
 
 from src.agents.login_agent import login_agent
-from src.utils.dto import Test, TestCategory
-from src.utils.constants import TestStatus
+from src.utils.dto import Test, TestCategory, TestStatus
 from src.fixtures.authentification.has_required_secrets import LoginMethod
 
 
