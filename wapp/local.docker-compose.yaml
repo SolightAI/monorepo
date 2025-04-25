@@ -51,8 +51,9 @@ services:
       # Redis Cache Configuration
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_DB=1 # Use DB 1 for API cache (task-manager uses 0)
+      - REDIS_DB=0 # Use DB 1 for API cache (task-manager uses 0)
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - WORKER_SHARED_SECRET_KEY=${WORKER_SHARED_SECRET_KEY}
     depends_on:
       db:
         condition: service_healthy

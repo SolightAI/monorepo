@@ -1,17 +1,17 @@
-import requests
 import os
 import logging
-import uuid
-import asyncio
 
 from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks, Body
-from dto.schemas import ProductCreate as ProductCreateSchema, Product as ProductSchema, ProductUpdate as ProductUpdateSchema
+from dto.schemas import ProductCreate as ProductCreateSchema, Product as ProductSchema, ProductUpdate as ProductUpdateSchema, TestStatus
 from services.product_services import get_product, create_product, get_products_list, delete_product, update_product
 from services import organization_services
 from pydantic import UUID4
-from typing import List, Optional
+from typing import List
 from uuid import UUID
 from dependencies import get_current_user_dependency
+from arq import create_pool
+from arq.connections import RedisSettings
+from arq.jobs import Job, JobStatus
 
 
 router = APIRouter(prefix="/products", tags=["products"], dependencies=[Depends(get_current_user_dependency)])
@@ -84,8 +84,8 @@ async def create_product_endpoint(
 
     If organization_id is provided, the user must be a member of the organization
     with admin or owner role.
-    
-    This endpoint will also initiate a background task to validate the product URL 
+
+    This endpoint will also initiate a background task to validate the product URL
     and find the login page.
     """
     if product.organization_id:
@@ -101,20 +101,20 @@ async def create_product_endpoint(
 
     # Create the product
     created_product = await create_product(product)
-    
+
     # Convert the Tortoise ORM model to a dictionary
     # Since model_dump() isn't available, use proper serialization method
     result_dict = dict(created_product)
-    
+
     # Validate URL in background
-    task_id = await trigger_url_validation(created_product.url, created_product.id, background_tasks)
+    task_id = await trigger_url_validation(created_product.url)
     if task_id:
         # Add the task_id to the response
         result_dict["task_id"] = task_id
         logger.info(f"Added task_id {task_id} to product creation response for product {created_product.id}")
     else:
         logger.warning(f"No task_id received for URL validation of product {created_product.id}")
-    
+
     return result_dict
 
 
@@ -124,130 +124,56 @@ async def get_url_validation_status(
 ) -> dict:
     """
     Check the status of a URL validation task.
-    
+
     Returns the status and results from the task manager service.
     """
-    try:
-        # Use asyncio.to_thread to run synchronous request in a separate thread
-        response = await asyncio.to_thread(
-            requests.get,
-            f"{TASK_MANAGER_URL}/validate-url/status/{task_id}"
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.HTTPError as e:
-        raise HTTPException(status_code=500, detail=f"Error checking URL validation status: {str(e)}")
+
+    redis = await create_pool(RedisSettings(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT")))
+    job = Job(str(task_id), redis=redis)
+    job_status = await job.status()
+
+    logger.info(f"URL validation status for job {task_id}: {job_status}")
+
+    if job_status == JobStatus.complete:
+        try:
+            return {"status": TestStatus.PASSED.value, "results": await job.result()}
+        except Exception as e:
+            return {
+                "status": TestStatus.ERROR.value,
+                "error": str(e)
+            }
+    elif job_status == JobStatus.not_found:
+        return {
+            "status": TestStatus.ERROR.value,
+            "error": "Job not found"
+        }
+    else:
+        return {
+            "status": job_status.value
+        }
 
 
-async def trigger_url_validation(url: str, product_id: UUID, background_tasks: Optional[BackgroundTasks] = None) -> str:
+async def trigger_url_validation(url: str) -> str:
     """
     Trigger the URL validation in the task manager service.
-    
+
     Args:
         url: The URL to validate
         product_id: The ID of the product this URL belongs to
         background_tasks: Optional BackgroundTasks for background processing
-        
+
     Returns:
         The task ID from the task manager service or None if the service is unavailable
     """
-    try:
-        # Use asyncio.to_thread to run synchronous request in a separate thread
-        response = await asyncio.to_thread(
-            requests.post,
-            f"{TASK_MANAGER_URL}/validate-url/",
-            json={"url": url}
-        )
-        response.raise_for_status()
-        result = response.json()
-        task_id = result.get("task_id")
-        
-        if task_id and background_tasks:
-            # Add a background task to poll the status
-            background_tasks.add_task(poll_url_validation_status, task_id, product_id)
-            
-        logger.info(f"URL validation started for product {product_id} with task ID: {task_id}")
-        return task_id
-    except requests.ConnectionError as e:
-        # Log the error but don't fail the product creation
-        logger.warning(f"Task manager service unavailable. URL validation skipped for product {product_id}: {str(e)}")
-        return None
-    except requests.HTTPError as e:
-        # Log the error
-        logger.error(f"Error triggering URL validation for product {product_id}: {str(e)}")
-        return None
-    except Exception as e:
-        # Catch any other exceptions to prevent product creation from failing
-        logger.error(f"Unexpected error during URL validation for product {product_id}: {str(e)}")
-        return None
 
+    redis = await create_pool(RedisSettings(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT")))
 
-async def poll_url_validation_status(task_id: str, product_id: UUID, max_attempts: int = 60, interval: int = 5):
-    """
-    Poll the task manager for URL validation status updates.
-    This function is meant to be used with FastAPI BackgroundTasks.
+    job = await redis.enqueue_job('validate_url', url=url)
+    redis.close()
 
-    Args:
-        task_id: Task ID from the task manager
-        product_id: ID of the product this URL belongs to
-        max_attempts: Maximum number of polling attempts before giving up
-        interval: Interval between polls in seconds
-    """
-    attempts = 0
+    task_id = job.job_id
 
-    while attempts < max_attempts:
-        try:
-            # Sleep first to give the task manager time to process
-            await asyncio.sleep(interval)
-            
-            # Check task status using asyncio.to_thread
-            response = await asyncio.to_thread(
-                requests.get,
-                f"{TASK_MANAGER_URL}/validate-url/status/{task_id}"
-            )
-            
-            if response.status_code == 404:
-                logger.error(f"Failed to get URL validation status for task: {task_id}")
-                break
-
-            if response.status_code != 200:
-                logger.error(f"Failed to get URL validation status ({response.status_code}): {response.text}")
-                attempts += 1
-                continue
-
-            status_data = response.json()
-            status = status_data.get("status")
-            
-            # If the task is completed or failed, we're done
-            if status in ["completed", "error"]:
-                logger.info(f"URL validation task {task_id} for product {product_id} finished with status: {status}")
-                
-                # Here you could add additional logic to handle the validation results
-                # For example, update the product with the login page URL if one was found
-                if status == "completed" and status_data.get("login_url"):
-                    logger.info(f"Login URL found for product {product_id}: {status_data.get('login_url')}")
-                    # You could update the product here if needed
-                
-                break
-            
-            # Continue polling
-            logger.debug(f"URL validation task {task_id} for product {product_id} status: {status}")
-            attempts += 1
-            
-        except requests.ConnectionError as e:
-            logger.warning(f"Task manager unavailable when polling status for task {task_id}: {str(e)}")
-            attempts += 1
-            # Add a longer sleep on connection errors to avoid overwhelming logs
-            await asyncio.sleep(interval * 2)
-        except requests.HTTPError as e:
-            logger.error(f"Error polling URL validation status for task {task_id}: {str(e)}")
-            attempts += 1
-        except Exception as e:
-            logger.error(f"Unexpected error polling URL validation status for task {task_id}: {str(e)}")
-            attempts += 1
-
-    if attempts >= max_attempts:
-        logger.warning(f"Gave up polling URL validation status for task {task_id} after {max_attempts} attempts")
+    return task_id
 
 
 @router.put("/{product_id}")
@@ -262,7 +188,7 @@ async def update_product_endpoint(
 
     The user must be a member of the organization that owns the product
     with admin or owner role.
-    
+
     If the URL is updated, this will also trigger a new URL validation task.
     """
     # First get the product to check its organization
@@ -284,13 +210,13 @@ async def update_product_endpoint(
 
     # Update the product
     updated_product = await update_product(product_id, update_data)
-    
+
     # Convert the Tortoise ORM model to a dictionary
     result_dict = dict(updated_product)
-    
+
     # If URL was updated, trigger validation
     if "url" in update_data and update_data["url"] != product.url:
-        task_id = await trigger_url_validation(updated_product.url, product_id, background_tasks)
+        task_id = await trigger_url_validation(updated_product.url)
         if not task_id:
             logger.warning(f"No task_id received for URL validation of updated product {product_id}")
         else:
@@ -333,35 +259,15 @@ async def delete_product_endpoint(
 @router.post("/validate-url/")
 async def validate_url_endpoint(
     background_tasks: BackgroundTasks,
-    request: dict = Body(..., examples=[{"url": "https://example.com"}]),
+    url: str = Body(..., examples=[{"url": "https://example.com"}]),
 ) -> dict:
     """
     Directly validate a URL without creating a product.
-    
+
     This endpoint triggers the task-manager's URL validation service
     and returns a task ID for tracking the validation process.
-    
+
     If the task manager service is unavailable, it will return an appropriate message
     rather than failing.
     """
-    if not request.get("url"):
-        raise HTTPException(status_code=400, detail="URL is required")
-    
-    url = request.get("url")
-    
-    # Generate a random UUID to associate with this validation request
-    temp_id = uuid.uuid4()
-    
-    # Trigger validation in the task-manager with background tasks
-    task_id = await trigger_url_validation(url, temp_id, background_tasks)
-    
-    if not task_id:
-        # Instead of a 500 error, return a 202 Accepted with a message
-        # that validation couldn't be performed but the request was valid
-        return {
-            "status": "unavailable",
-            "message": "URL validation service is currently unavailable, but the request was accepted",
-            "url": url
-        }
-    
-    return {"task_id": task_id, "status": "pending"}
+    return {"task_id": await trigger_url_validation(url), "status": "pending"}

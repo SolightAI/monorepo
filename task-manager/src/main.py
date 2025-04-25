@@ -1,31 +1,45 @@
+import os
+import asyncio
+import logging
 
-# import logging
-
-# logging.basicConfig(level=logging.DEBUG)
-
-
-from fastapi import FastAPI
-from generate_tests.generate_tests_for_feature import router as generate_tests_router
-from run_tests.test_endpoint import router as test_endpoint_router
-from utils.crypto_router import router as crypto_router
-from generate_user_stories.generate_user_stories import router as generate_user_stories_router
-from generate_acceptance_criteria.generate_acceptance_criteria import router as generate_acceptance_criteria_router
-from generate_features.generate_features import router as generate_features_router
-from generate_epics.generate_epics import router as generate_epics_router
-from validate_url.validate_url import router as validate_url_router
-
-app = FastAPI()
-
-app.include_router(generate_tests_router)
-app.include_router(test_endpoint_router)
-app.include_router(crypto_router)
-app.include_router(generate_user_stories_router)
-app.include_router(generate_acceptance_criteria_router)
-app.include_router(generate_features_router)
-app.include_router(generate_epics_router)
-app.include_router(validate_url_router)
+from arq.worker import run_worker, func
+from arq.connections import RedisSettings
+from generation.test_generation import generate_tests
+from test_run.test_endpoint import run_test
+from validate_url.validate_url import validate_url
 
 
-if __name__ == '__main__':
-    import uvicorn
-    uvicorn.run(app, port=9001)
+logger = logging.getLogger(__name__)
+
+
+class WorkerSettings:
+    functions = [
+        func(generate_tests, max_tries=3),
+        func(run_test),  # we do not want to retry test runs
+        func(validate_url, max_tries=3),
+    ]
+
+    # TODO: instead of polling we could use a webhook to inform the api that a job is done
+
+    redis_settings = RedisSettings(
+        host=os.getenv("REDIS_HOST"),
+        port=os.getenv("REDIS_PORT"),
+        database=os.getenv("REDIS_DB"),
+        password=os.getenv("REDIS_PASSWORD"),
+        retry_on_timeout=True,
+        retry_on_error=[Exception],
+        conn_timeout=5,  # 5 * 7 = 35 seconds to connect to redis
+        conn_retries=7,
+        conn_retry_delay=1,
+    )
+
+    retry_jobs = True
+    max_jobs = 1  # not true parallelism as is only for IO bound tasks (async)
+
+    keep_result = 60
+
+
+if __name__ == "__main__":
+    logger.info(f"Starting worker with {WorkerSettings.max_jobs} jobs")
+
+    asyncio.run(run_worker(WorkerSettings))

@@ -131,6 +131,7 @@ async def generate_test(
 
         # Trigger test generation
         response_data = await trigger_test_generation(feature_id=feature_id)
+        logger.info(f"Triggering test generation for feature {feature_id}. Response data: {response_data}")
         background_tasks.add_task(
             poll_test_generation_status,
             task_id=response_data["task_id"],
@@ -145,7 +146,7 @@ async def generate_test(
 
 
 @router.get("/generate/status/{task_id}")
-async def get_generate_test_status_endpoint(task_id: UUID4) -> dict:
+async def get_generate_test_status_endpoint(task_id: str) -> dict:
     """
     Get the status of a test generation task.
 

@@ -7,7 +7,7 @@ router = APIRouter(prefix="/crypto", tags=["crypto"])
 
 
 @router.get("/public-key")
-def get_public_key():
+def get_public_key() -> dict:
     """
     Get the public key of the task manager for encryption purposes.
 

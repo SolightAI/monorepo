@@ -4,12 +4,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # deploy:
+    #   replicas: 3
     volumes:
       - ./src/:/app/src
       - ./tests/:/app/tests
       - playwright_browsers:/tmp/playwright-browsers
-    ports:
-      - "8001:8001"
+    # ports:
+    #   - "8001:8001"
     environment:
       - DEV_MODE=true
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -25,6 +27,8 @@ services:
       - S3_BUCKET_NAME=task-manager
       - AWS_ENDPOINT_URL=http://minio:9000
       - PLAYGROUND_URL=http://playground:3000
+      - WORKER_SHARED_SECRET_KEY=${WORKER_SHARED_SECRET_KEY}
+      - WORKER_MAX_JOBS=${WORKER_MAX_JOBS:-3}
     networks:
       - default
       - api-tm_shared_network

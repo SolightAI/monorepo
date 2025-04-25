@@ -8,8 +8,8 @@ import logging
 from typing import Any, Optional, Callable
 
 # Use the shared redis client utility
-from .redis_client import get_redis
-from utils.constants import TestStatus
+from utils.redis_client import get_redis
+from utils.dto import TestStatus
 
 logger = logging.getLogger(__name__)
 

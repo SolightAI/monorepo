@@ -61,6 +61,17 @@ class AcceptanceCriteria(BaseModel):
     description: str
 
 
+class TestStatus(Enum):
+    PENDING = "pending"
+    PASSED = "passed"
+    FAILED = "failed"
+    ERROR = "error"
+    AGENT_LIMITATION = "agent_limitation"
+    UNEXISTING_FEATURE = "unexisting_feature"
+    BLOCKED_BY_CAPTCHA = "blocked_by_captcha"
+    UNKNOWN = "unknown"
+
+
 class Test(BaseModel):
     name: str
     description: str
