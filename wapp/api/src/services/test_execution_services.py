@@ -3,13 +3,11 @@ from __future__ import annotations
 import uuid
 import json
 import asyncio
-import os
 import logging
 
 from datetime import datetime
 from typing import List, Dict
-from arq import create_pool
-from arq.connections import RedisSettings
+from arq.jobs import Job, JobStatus
 from fastapi import HTTPException, BackgroundTasks
 from pydantic import UUID4
 from dto.models import TestExecution as TestExecutionModel
@@ -22,15 +20,8 @@ from dto.schemas import (
 )
 from services.test_services import get_test
 from utils.s3_utils import generate_presigned_url
-from arq.jobs import Job, JobStatus
 from services.secret_services import get_encrypted_secrets
-
-
-TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
-
-
-if not TASK_MANAGER_URL:
-    raise ValueError("TASK_MANAGER_URL is not set")
+from utils.redis_manager import get_redis_pool
 
 
 logger = logging.getLogger(__name__)
@@ -115,7 +106,7 @@ async def create_test_execution(
         HTTPException: If the test was not found
     """
 
-    redis = await create_pool(RedisSettings(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT")))
+    redis = await get_redis_pool()
 
     # Verify the test exists
     test = await get_test(test_execution.test_id)
@@ -190,7 +181,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
     """
     attempts = 0
 
-    redis = await create_pool(RedisSettings(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT")))
+    redis = await get_redis_pool()
 
     while attempts < max_attempts:
         try:
@@ -308,8 +299,6 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
         except Exception as e:
             logger.error(f"Error polling task manager status: {str(e)}")
             attempts += 5  # errors count quintuple
-
-    await redis.close()
 
     # If we've exhausted attempts, update the execution as timed out
     if attempts >= max_attempts:

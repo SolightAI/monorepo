@@ -1,4 +1,3 @@
-import os
 import logging
 
 from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks, Body
@@ -9,20 +8,12 @@ from pydantic import UUID4
 from typing import List
 from uuid import UUID
 from dependencies import get_current_user_dependency
-from arq import create_pool
-from arq.connections import RedisSettings
 from arq.jobs import Job, JobStatus
+from utils.redis_manager import get_redis_pool
 
 
 router = APIRouter(prefix="/products", tags=["products"], dependencies=[Depends(get_current_user_dependency)])
 
-
-# Task manager base URL from environment variable or default to localhost
-TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
-
-
-if not TASK_MANAGER_URL:
-    raise ValueError("TASK_MANAGER_URL is not set")
 
 # Configure the logger
 logger = logging.getLogger(__name__)
@@ -128,7 +119,7 @@ async def get_url_validation_status(
     Returns the status and results from the task manager service.
     """
 
-    redis = await create_pool(RedisSettings(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT")))
+    redis = await get_redis_pool()
     job = Job(str(task_id), redis=redis)
     job_status = await job.status()
 
@@ -166,10 +157,9 @@ async def trigger_url_validation(url: str) -> str:
         The task ID from the task manager service or None if the service is unavailable
     """
 
-    redis = await create_pool(RedisSettings(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT")))
+    redis = await get_redis_pool()
 
     job = await redis.enqueue_job('validate_url', url=url)
-    redis.close()
 
     task_id = job.job_id
 

@@ -1,4 +1,3 @@
-import os
 import asyncio
 import logging
 import uuid
@@ -15,10 +14,9 @@ from services.epic_services import get_epic
 from services.product_services import get_product
 from services.secret_services import get_secret_with_values
 from pydantic import UUID4
-from arq import create_pool
-from arq.connections import RedisSettings
 from arq.jobs import Job, JobStatus
 from services.secret_services import get_encrypted_secrets
+from utils.redis_manager import get_redis_pool
 
 
 logger = logging.getLogger(__name__)
@@ -210,7 +208,7 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
         A dictionary containing the task ID and feature ID
     """
 
-    redis = await create_pool(RedisSettings(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT")))
+    redis = await get_redis_pool()
 
     feature = await get_feature(feature_id)
     epic = await get_epic(feature.epic_id)
@@ -266,9 +264,8 @@ async def get_test_generation_status(test_id: UUID4) -> dict:
     Returns:
         A dictionary containing the task status and potentially results/feature_id
     """
-    redis = None
+    redis = await get_redis_pool()
     try:
-        redis = await create_pool(RedisSettings(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT")))
         job = Job(str(test_id), redis=redis)
         job_status = await job.status()
         job_info = await job.info()
@@ -306,9 +303,6 @@ async def get_test_generation_status(test_id: UUID4) -> dict:
         logger.error(f"Error getting test generation status for job {test_id}: {e}")
         logger.error(traceback.format_exc())
         return {"task_id": str(test_id), "status": TestStatus.ERROR.value}
-    finally:
-        if redis:
-            await redis.close()
 
 
 async def poll_test_generation_status(task_id: UUID4, timeout: int = 300, interval: float = 0.5) -> None:
