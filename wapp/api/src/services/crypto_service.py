@@ -26,9 +26,6 @@ class CryptoService:
         # Load the symmetric key from environment
         self._load_key()
 
-        # Keep task_manager_url for potential future use, but remove related logic
-        self.task_manager_url = os.getenv("TASK_MANAGER_URL")
-
     def _load_key(self) -> None:
         """Load the symmetric encryption key from the environment."""
         with self.lock:

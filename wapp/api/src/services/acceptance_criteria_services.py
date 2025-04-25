@@ -12,13 +12,6 @@ from typing import List, Dict, Any, Optional
 from services.secret_services import get_encrypted_secrets
 
 
-TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
-
-
-if not TASK_MANAGER_URL:
-    raise ValueError("TASK_MANAGER_URL is not set")
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -123,6 +116,7 @@ async def generate_acceptance_criteria(feature_id: UUID4, background_tasks: Opti
     Raises:
         HTTPException: If there is an error fetching data or communicating with the task manager
     """
+    raise RuntimeError("Deprecated")
     # Fetch the feature and its related data
     feature = await FeatureModel.get_or_none(id=feature_id).prefetch_related('epic')
 
@@ -222,6 +216,7 @@ async def get_acceptance_criteria_generation_status(task_id: str) -> Dict[str, A
     Raises:
         HTTPException: If there is an error communicating with the task manager
     """
+    raise RuntimeError("Deprecated")
     try:
         response = requests.get(
             TASK_MANAGER_URL + f"/generate-acceptance-criteria/status/{task_id}"
