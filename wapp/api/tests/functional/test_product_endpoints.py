@@ -128,7 +128,7 @@ async def test_create_product(
     """Test creating a new product as an admin user"""
     # Patch the trigger_url_validation function
     mocker.patch(
-        "wapp.api.src.endpoints.product_endpoints.trigger_url_validation",
+        "endpoints.product_endpoints.trigger_url_validation",
         return_value="mocked_task_id"  # Or return None if you prefer
     )
 

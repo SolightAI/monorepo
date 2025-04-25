@@ -240,7 +240,7 @@ async def test_admin_can_create_product(
     """Test that admins can create products"""
     # Patch the trigger_url_validation function
     mocker.patch(
-        "wapp.api.src.endpoints.product_endpoints.trigger_url_validation",
+        "endpoints.product_endpoints.trigger_url_validation",
         return_value="mocked_task_id"
     )
 
