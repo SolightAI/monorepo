@@ -6,9 +6,10 @@ from services import auth_services
 from services.invitation_services import get_invitation_by_code
 from dependencies import get_current_user_dependency
 from dto.models import User
-from fastapi import APIRouter, Depends, Response, HTTPException, Form
+from fastapi import APIRouter, Depends, Response, HTTPException, Form, Cookie
 from pydantic import BaseModel
 from typing import Optional
+from fastapi import status
 
 
 router = APIRouter(prefix="/auth")
@@ -58,14 +59,26 @@ async def auth_google(code: str, state: Optional[str] = None, response: Response
 
 
 class RefreshTokenRequest(BaseModel):
-    refresh_token: str
+    refresh_token: Optional[str] = None
 
 @router.post("/refresh")
-async def refresh_token(request: RefreshTokenRequest, response: Response):
+async def refresh_token(request: RefreshTokenRequest, response: Response, refresh_token_cookie: Optional[str] = Cookie(None, alias="refresh_token")):
     """Generate a new access token using a refresh token"""
-    print("refresh token", request.refresh_token)
+    # First try to get the refresh token from the cookie
+    refresh_token = refresh_token_cookie
+    
+    # If not in cookie, try the request body
+    if not refresh_token and request.refresh_token:
+        refresh_token = request.refresh_token
+    
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Refresh token not found in cookie or request body"
+        )
+    
     try:
-        result = await auth_services.refresh_access_token(request.refresh_token, response)
+        result = await auth_services.refresh_access_token(refresh_token, response)
         return result
     except HTTPException as e:
         raise e
@@ -105,3 +118,5 @@ async def check_auth(current_user: User = Depends(get_current_user_dependency)) 
             "onboarding_completed": current_user.onboarding_completed
         }
     }
+
+

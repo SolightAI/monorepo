@@ -7,7 +7,7 @@ const AuthContext = createContext(null);
 
 // Token refresh constants
 const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // TODO: must be define in var env
-const ACCESS_TOKEN_EXPIRE_MINUTES = 30; // TODO: must be define in var env
+const ACCESS_TOKEN_EXPIRE_MINUTES = 8; // TODO: must be define in var env
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -135,17 +135,12 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const refreshAccessToken = useCallback(async (refreshToken) => {
+  const refreshAccessToken = useCallback(async () => {
     try {
-      if (!refreshToken) {
-        console.log('No refresh token available');
-        return false;
-      }
-
-      console.log('Refreshing access token with refresh token:', refreshToken.substring(0, 10) + '...');
+      console.log('Refreshing access token using HTTP-only cookie');
       const response = await axios.post(
         `${API_URL}/auth/refresh`,
-        { refresh_token: refreshToken },
+        {},  // No need to send refresh token as it's in HTTP-only cookie
         { withCredentials: true }
       );
 
@@ -158,11 +153,9 @@ export const AuthProvider = ({ children }) => {
         
         setTokens({
           accessToken: response.data.access_token,
-          refreshToken,
           expiresAt
         });
 
-        localStorage.setItem('refreshToken', refreshToken);
         localStorage.setItem('tokenExpiresAt', expiresAt.toISOString());
         
         setIsAuthenticated(true);
@@ -174,26 +167,23 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Failed to refresh token:', error.response?.status, error.response?.data);
-      setIsAuthenticated(false);
-      localStorage.removeItem('isAuthenticated');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('tokenExpiresAt');
+      
+      // Don't clear auth state on refresh failures - just return false
+      // We'll let the interceptor handle auth redirects when needed
       return false;
     }
   }, []);
 
-  const setTokenData = useCallback((accessToken, refreshToken, expiresInSeconds) => {
+  const setTokenData = useCallback((accessToken, expiresInSeconds) => {
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
     
     console.log(`Setting token data: expires in ${expiresInSeconds} seconds (${new Date(expiresAt).toLocaleTimeString()})`);
     
     setTokens({
       accessToken,
-      refreshToken,
       expiresAt
     });
 
-    localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('tokenExpiresAt', expiresAt.toISOString());
   }, []);
 
@@ -204,10 +194,10 @@ export const AuthProvider = ({ children }) => {
         console.log('Cleared existing refresh timer');
       }
 
-      const { refreshToken, expiresAt } = tokens;
+      const { expiresAt } = tokens;
       
-      if (!refreshToken || !expiresAt) {
-        console.log('Cannot schedule refresh: Missing token or expiry data');
+      if (!expiresAt) {
+        console.log('Cannot schedule refresh: Missing expiry data');
         return;
       }
 
@@ -217,11 +207,11 @@ export const AuthProvider = ({ children }) => {
       const timeUntilRefresh = Math.max(0, expiryTime.getTime() - now.getTime() - TOKEN_REFRESH_THRESHOLD);
             
       refreshTimerRef.current = setTimeout(() => {
-        refreshAccessToken(refreshToken);
+        refreshAccessToken();
       }, timeUntilRefresh);
     };
 
-    if (tokens.refreshToken && tokens.expiresAt) {
+    if (tokens.expiresAt) {
       scheduleTokenRefresh();
     }
 
@@ -236,20 +226,18 @@ export const AuthProvider = ({ children }) => {
     const storedAuthState = localStorage.getItem('isAuthenticated') === 'true';
     setIsAuthenticated(storedAuthState);
 
-    const storedRefreshToken = localStorage.getItem('refreshToken');
     const storedExpiresAt = localStorage.getItem('tokenExpiresAt');
     
-    if (storedAuthState && storedRefreshToken && storedExpiresAt) {
+    if (storedAuthState && storedExpiresAt) {
       const expiresAt = new Date(storedExpiresAt);
       const now = new Date();
       
       if (expiresAt > now) {
         setTokens({
-          refreshToken: storedRefreshToken,
           expiresAt: expiresAt
         });
       } else {
-        refreshAccessToken(storedRefreshToken);
+        refreshAccessToken();
       }
     } else {
       console.log('Missing auth data, not scheduling token refresh');
@@ -290,10 +278,9 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       localStorage.setItem('isAuthenticated', 'true');
 
-      if (response.data.access_token && response.data.refresh_token) {
+      if (response.data.access_token) {
         setTokenData(
           response.data.access_token,
-          response.data.refresh_token,
           response.data.expires_in || ACCESS_TOKEN_EXPIRE_MINUTES * 60
         );
       }
@@ -340,7 +327,6 @@ export const AuthProvider = ({ children }) => {
       setIsAdmin(false);
       localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('isAdmin');
-      localStorage.removeItem('refreshToken');
       localStorage.removeItem('tokenExpiresAt');
       
       // Clear refresh timer
@@ -406,45 +392,54 @@ export const AuthProvider = ({ children }) => {
                 });
             }
 
-            const currentRefreshToken = tokens.refreshToken || localStorage.getItem('refreshToken');
-
-            if (currentRefreshToken) {
-              try {
-                isRefreshing = true;
-                
-                const response = await axios.post(
-                  `${API_URL}/auth/refresh`,
-                  { refresh_token: currentRefreshToken },
-                  { withCredentials: true }
-                );
-
-                if (response.data && response.data.access_token) {
-                  const newAccessToken = response.data.access_token;
+            try {
+              isRefreshing = true;
               
-                  setTokenData(
-                    newAccessToken,
-                    currentRefreshToken,
-                    response.data.expires_in || ACCESS_TOKEN_EXPIRE_MINUTES * 60
-                  );
-                  
-                  error.config.headers['Authorization'] = `Bearer ${newAccessToken}`;
-                  error.config.__isRetryRequest = true;
-                  
-                  processQueue(newAccessToken);
-                  isRefreshing = false;
-                  
-                  return axios(error.config);
-                }
-              } catch (refreshError) {
-                console.error('Failed to refresh token on 401:', refreshError);
-                processQueue(null, refreshError);
-              } finally {
+              const response = await axios.post(
+                `${API_URL}/auth/refresh`,
+                {},  // No need to send refresh token as it's in HTTP-only cookie
+                { withCredentials: true }
+              );
+
+              if (response.data && response.data.access_token) {
+                const newAccessToken = response.data.access_token;
+                
+                // Update access token and expiry
+                const expiresAt = new Date(Date.now() + (response.data.expires_in || ACCESS_TOKEN_EXPIRE_MINUTES * 60) * 1000);
+                setTokens({
+                  accessToken: newAccessToken,
+                  expiresAt
+                });
+                
+                localStorage.setItem('tokenExpiresAt', expiresAt.toISOString());
+                
+                error.config.headers['Authorization'] = `Bearer ${newAccessToken}`;
+                error.config.__isRetryRequest = true;
+                
+                processQueue(newAccessToken);
                 isRefreshing = false;
+                
+                return axios(error.config);
               }
+            } catch (refreshError) {
+              console.error('Failed to refresh token on 401:', refreshError);
+              
+              // Don't redirect on token refresh errors (422)
+              if (refreshError.response?.status === 422) {
+                console.log('Token refresh returned 422 - continuing without redirect');
+                processQueue(null, refreshError);
+                isRefreshing = false;
+                return Promise.reject(error);
+              }
+              
+              processQueue(null, refreshError);
+            } finally {
+              isRefreshing = false;
             }
           }
 
-          if (status === 401 && error.config && !error.config.__isRetryRequest) {
+          // Only redirect to login for true authentication failures (not refresh failures)
+          if (status === 401 && error.config && !error.config.__isRetryRequest && !isAuthenticated) {
             const currentUrl = new URL(window.location.href);
             const invitationCode = currentUrl.searchParams.get('invitation_code');
             const invitationType = currentUrl.searchParams.get('type');
@@ -464,7 +459,6 @@ export const AuthProvider = ({ children }) => {
             setIsAdmin(false);
             localStorage.removeItem('isAuthenticated');
             localStorage.removeItem('isAdmin');
-            localStorage.removeItem('refreshToken');
             localStorage.removeItem('tokenExpiresAt');
 
             setTimeout(() => {
@@ -593,10 +587,9 @@ export const AuthProvider = ({ children }) => {
       } else {
         if (typeof tokenOrUserData === 'string') {
           checkAuthStatus();
-        } else if (tokenOrUserData.access_token && tokenOrUserData.refresh_token) {
+        } else if (tokenOrUserData.access_token) {
           setTokenData(
             tokenOrUserData.access_token,
-            tokenOrUserData.refresh_token,
             tokenOrUserData.expires_in || ACCESS_TOKEN_EXPIRE_MINUTES * 60
           );
         }

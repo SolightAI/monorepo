@@ -20,7 +20,7 @@ ALGORITHM = "HS256"
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")  # generated with `openssl rand -hex 23
 EMAIL_SALT = "email-confirmation-salt"
 PASSWORD_RESET_SALT = "password-reset-salt"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30 # TODO: must be define in var env
+ACCESS_TOKEN_EXPIRE_MINUTES = 8 # TODO: must be define in var env
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 VALIDATION_TOKEN_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
 
@@ -55,6 +55,33 @@ def get_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
+async def authenticate_user(username: str, password: str) -> UserModel:
+    """Authenticate a user with username/email and password"""
+    try:
+        # Try to get user by email first
+        user = await get_user(email=username)
+        
+        # If not found by email, try by username
+        if not user:
+            user = await get_user(username=username)
+            
+        if not user:
+            logging.info(f"No user found with email/username: {username}")
+            raise CredentialsException()
+            
+        # Verify password
+        if not pwd_context.verify(password, user.password_hash):
+            logging.info(f"Invalid password for user: {username}")
+            raise CredentialsException()
+            
+        return user
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        logging.error(f"Error authenticating user: {str(e)}")
+        raise CredentialsException()
+
+
 def create_tokens(email: str):
     access_token = create_access_token(data={"sub": email})
     refresh_token = create_refresh_token(data={"sub": email})
@@ -81,6 +108,16 @@ def set_auth_cookie(response: Response, token: str) -> None:
         secure=True,  # Set to True if using HTTPS
         samesite="lax",
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
+
+def set_refresh_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key="refresh_token",
+        value=token,
+        httponly=True,
+        secure=True,  # Set to True if using HTTPS
+        samesite="lax",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
     )
 
 
@@ -291,10 +328,12 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
     print("REDIRECTING TO: ", redirect_url)
     redirect_response = RedirectResponse(url=redirect_url)
     set_auth_cookie(redirect_response, access_token)
+    set_refresh_cookie(redirect_response, refresh_token)
 
     return redirect_response
 
 
 async def logout(response: Response) -> dict:
     response.delete_cookie(key="access_token")
+    response.delete_cookie(key="refresh_token")
     return {"message": "Successfully logged out"}
