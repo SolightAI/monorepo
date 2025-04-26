@@ -1,7 +1,7 @@
 import pytest
 
 from typing import Callable
-from src.run_tests.router import select_agent_to_use, general_agent, login_agent, signup_agent
+from src.test_run.agent_selection import select_agent_to_use, general_agent, login_agent, signup_agent
 from src.utils.dto import Test, TestCategory
 
 
