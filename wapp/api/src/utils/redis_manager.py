@@ -21,11 +21,22 @@ class RedisManager:
     def __init__(self) -> None:
         if self._initialized:
             return
+
         self.redis_host = os.getenv("REDIS_HOST")
         self.redis_port = os.getenv("REDIS_PORT")
+        self.redis_db = os.getenv("REDIS_DB", 0)
+        self.redis_password = os.getenv("REDIS_PASSWORD")
+        self.redis_username = os.getenv("REDIS_USERNAME")
+
         if not self.redis_host or not self.redis_port:
             raise ValueError("REDIS_HOST and REDIS_PORT environment variables must be set.")
-        self.redis_settings = RedisSettings(host=self.redis_host, port=int(self.redis_port))
+        self.redis_settings = RedisSettings(
+            host=self.redis_host,
+            port=int(self.redis_port),
+            db=int(self.redis_db),
+            password=self.redis_password,
+            username=self.redis_username
+        )
         self._initialized = True
 
     async def get_pool(self) -> ArqRedis:
