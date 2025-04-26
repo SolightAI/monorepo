@@ -20,7 +20,7 @@ ALGORITHM = "HS256"
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")  # generated with `openssl rand -hex 23
 EMAIL_SALT = "email-confirmation-salt"
 PASSWORD_RESET_SALT = "password-reset-salt"
-ACCESS_TOKEN_EXPIRE_MINUTES = 8 # TODO: must be define in var env
+ACCESS_TOKEN_EXPIRE_MINUTES = 30 # TODO: must be define in var env
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 VALIDATION_TOKEN_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
 
@@ -53,33 +53,6 @@ def _should_be_admin(email: str) -> bool:
 
 def get_hash(password: str) -> str:
     return pwd_context.hash(password)
-
-
-async def authenticate_user(username: str, password: str) -> UserModel:
-    """Authenticate a user with username/email and password"""
-    try:
-        # Try to get user by email first
-        user = await get_user(email=username)
-        
-        # If not found by email, try by username
-        if not user:
-            user = await get_user(username=username)
-            
-        if not user:
-            logging.info(f"No user found with email/username: {username}")
-            raise CredentialsException()
-            
-        # Verify password
-        if not pwd_context.verify(password, user.password_hash):
-            logging.info(f"Invalid password for user: {username}")
-            raise CredentialsException()
-            
-        return user
-    except Exception as e:
-        if isinstance(e, HTTPException):
-            raise e
-        logging.error(f"Error authenticating user: {str(e)}")
-        raise CredentialsException()
 
 
 def create_tokens(email: str):

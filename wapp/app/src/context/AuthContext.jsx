@@ -7,7 +7,7 @@ const AuthContext = createContext(null);
 
 // Token refresh constants
 const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // TODO: must be define in var env
-const ACCESS_TOKEN_EXPIRE_MINUTES = 8; // TODO: must be define in var env
+const ACCESS_TOKEN_EXPIRE_MINUTES = 30; // TODO: must be define in var env
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
