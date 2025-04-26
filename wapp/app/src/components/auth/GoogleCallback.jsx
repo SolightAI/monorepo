@@ -15,13 +15,6 @@ function GoogleCallback() {
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
-    console.log('GoogleCallback received:', { 
-      token: token ? `${token.substring(0, 10)}...` : null,
-      refreshToken: refreshToken ? `${refreshToken.substring(0, 10)}...` : null,
-      expiresIn,
-      error,
-      errorDescription
-    });
 
     if (token) {
       if (refreshToken) {
