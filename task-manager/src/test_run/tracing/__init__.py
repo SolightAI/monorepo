@@ -5,8 +5,8 @@ This package provides tools for tracing and analyzing browser behavior in browse
 applications, including console logs and uncaught JavaScript exceptions.
 """
 
-from run_tests.tracing.js_logger import initialize, JSLogCollector, ConsoleMessage, JSException, collector, get_collector
-from run_tests.tracing.history_tracker import extend_agent_history
+from test_run.tracing.js_logger import initialize, JSLogCollector, ConsoleMessage, JSException, collector
+from test_run.tracing.history_tracker import extend_agent_history
 
 __all__ = [
     'initialize',
@@ -15,5 +15,4 @@ __all__ = [
     'ConsoleMessage',
     'JSException',
     'collector',
-    'get_collector'
-] 
+]

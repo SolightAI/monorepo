@@ -17,7 +17,6 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME}
-      - TASK_MANAGER_URL=${TASK_MANAGER_URL}
       # Redis Cache Configuration
       - REDIS_HOST=redis
       - REDIS_PORT=6379

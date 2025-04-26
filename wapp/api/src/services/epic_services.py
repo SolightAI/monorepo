@@ -11,13 +11,6 @@ from pydantic import UUID4
 from services.secret_services import get_encrypted_secrets
 # services.feature_services is imported later to avoid circular dependency
 
-
-TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
-
-
-if not TASK_MANAGER_URL:
-    raise ValueError("TASK_MANAGER_URL is not set")
-
 logger = logging.getLogger(__name__)
 
 
@@ -114,6 +107,7 @@ async def generate_epics(product_id: UUID4, background_tasks: Optional[Backgroun
     Raises:
         HTTPException: If there is an error fetching data or communicating with the task manager
     """
+    raise RuntimeError("Deprecated")
     # Fetch the product data
     product = await ProductModel.get_or_none(id=product_id)
 
@@ -181,6 +175,7 @@ async def get_epic_generation_status(task_id: str) -> Dict[str, Any]:
     Raises:
         HTTPException: If there is an error communicating with the task manager
     """
+    raise RuntimeError("Deprecated")
     try:
         response = requests.get(
             TASK_MANAGER_URL + f"/generate-epics/status/{task_id}"

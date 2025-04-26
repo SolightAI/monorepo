@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, XCircle, Clock, AlertCircle, SkipForward, Server, User, RefreshCw, Info, Search } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, SkipForward, Server, User, RefreshCw, Info, Search } from 'lucide-react';
 import { formatDuration } from './dateUtils';
 
 /**
@@ -69,7 +69,6 @@ export const getStatusIconLarge = (status) => {
       return <Clock size={20} className="text-yellow-500 animate-spin" />;
     case TEST_STATUS.IN_PROGRESS:
       return <Clock size={20} className="text-blue-500 animate-spin" />;
-      return <SkipForward size={20} className="text-blue-500" />;
     case TEST_STATUS.AGENT_LIMITATION:
       return <Info size={20} className="text-purple-500" />;
     case TEST_STATUS.UNEXISTING_FEATURE:

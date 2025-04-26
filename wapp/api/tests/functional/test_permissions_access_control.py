@@ -234,9 +234,16 @@ async def test_member_cannot_create_product(
 async def test_admin_can_create_product(
     client: AsyncClient,
     organization_admin,
-    organization
+    organization,
+    mocker
 ):
     """Test that admins can create products"""
+    # Patch the trigger_url_validation function
+    mocker.patch(
+        "endpoints.product_endpoints.trigger_url_validation",
+        return_value="mocked_task_id"
+    )
+
     token = create_token(organization_admin.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
 

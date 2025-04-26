@@ -2,21 +2,17 @@ import os
 import json
 import re
 
-from uuid import uuid4
-from typing import Any, Optional
+from typing import Optional, Any
 from logging import getLogger
 from tempfile import NamedTemporaryFile
 from langchain_openai import ChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig
-from fixtures.authentification.get_auth_session import get_auth_session
-from utils.dto import Product, Test, Epic, Feature, UserStory, AcceptanceCriteria, TestCategory, TEST_CATEGORIES_DESCRIPTION
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
-from fastapi import APIRouter, BackgroundTasks, HTTPException
-from utils.crypto import crypto_service
-from utils.task_status import task_status_manager, handle_background_task_errors
+from utils.dto import Product, Test, Epic, Feature, TestCategory, TEST_CATEGORIES_DESCRIPTION, TestStatus
+from crypto.crypto import crypto_service
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_file_to_s3
-from utils.constants import TestStatus
+from fixtures.authentification.get_auth_session import get_auth_session
 
 
 PROMPT = """
@@ -37,12 +33,6 @@ Description: {epic.description}
 Name: {feature.name}
 Description: {feature.description}
 URL: {url}
-
-== User Stories ==
-{user_stories_text}
-
-== Acceptance Criteria ==
-{acceptance_criteria_text}
 
 Analyze the provided information carefully. Pay special attention to the acceptance criteria, as this will be the primary basis for your test cases.
 
@@ -100,8 +90,6 @@ LLM_CLIENT = ChatOpenAI(
     temperature=0.0,
 )
 
-
-router = APIRouter(prefix="/generate-tests")
 logger = getLogger(__name__)
 
 
@@ -125,16 +113,13 @@ def _parse_test_cases(test_case_text: str) -> list[dict[str, str]]:
 
 
 async def _generate_test_category_for_feature(
-    task_id: str,
+    job_id: str,
     product: Product,
     epic: Epic,
     feature: Feature,
-    user_stories: list[UserStory],
-    acceptance_criteria_list: list[AcceptanceCriteria],
     category_of_test: TestCategory,
     cookies_file: str | None = None,
     localStorage: str | None = None,
-    gif_output_path: str | bool = False,
 ) -> list[Test]:
     """
     Generate test cases for a specific category for a feature.
@@ -143,8 +128,6 @@ async def _generate_test_category_for_feature(
         product: Product information
         epic: Epic information
         feature: Feature information
-        user_stories: List of user stories associated with the feature
-        acceptance_criteria_list: List of acceptance criteria associated with the feature
         category_of_test: Category of tests to generate
         cookies_file: Path to cookies file for browser automation
         localStorage: Path to localStorage file for browser automation
@@ -153,17 +136,6 @@ async def _generate_test_category_for_feature(
     Returns:
         List of generated tests
     """
-
-    # Format user stories and acceptance criteria for the prompt
-    user_stories_text = "\n".join([
-        f"User Story: {us.name}"
-        for us in user_stories
-    ])
-
-    acceptance_criteria_text = "\n\n".join([
-        f"Name: {ac.name}\nDescription: {ac.description}"
-        for ac in acceptance_criteria_list
-    ])
 
     # Configure the browser session with cookies and localStorage
     browser_config = BrowserConfig(
@@ -177,48 +149,50 @@ async def _generate_test_category_for_feature(
         viewport_expansion=0,
     ))
 
-    # TODO: not only on the first url, but on all the urls
-    await context.navigate_to(feature.urls[0])  # allowing us to load the localStorage
-
-    if localStorage is not None:
-        load_script = """
-        (storage => {
-            Object.keys(storage).forEach(key => {
-                localStorage.setItem(key, storage[key]);
-            });
-            return localStorage.length;
-        })(%s)
-        """.strip() % json.dumps(localStorage)
-        await context.execute_javascript(load_script)
-
-    # NOTE: we do not provide a controller as models tend to provide better results when not constrained by a controller output model
-    agent = Agent(
-        task=PROMPT.format(
-            product=product,
-            epic=epic,
-            feature=feature,
-            url=feature.urls[0],
-            user_stories_text=user_stories_text,
-            acceptance_criteria_text=acceptance_criteria_text,
-            category_of_test=category_of_test,
-            test_categories_description="- ".join([f"{k}: {v}" for k, v in TEST_CATEGORIES_DESCRIPTION.items()]),
-        ),
-        llm=LLM_CLIENT,
-        initial_actions=[{'go_to_url': {'url': feature.urls[0]}}, {'go_to_url': {'url': feature.urls[0]}}],
-        browser_context=context,
-        enable_memory=False,
-    )
-
     try:
-        history = await agent.run(max_steps=30)
+        await context.navigate_to(feature.urls[0])  # allowing us to load the localStorage
+
+        if localStorage is not None:
+            load_script = """
+            (storage => {
+                Object.keys(storage).forEach(key => {
+                    localStorage.setItem(key, storage[key]);
+                });
+                return localStorage.length;
+            })(%s)
+            """.strip() % json.dumps(localStorage)
+            await context.execute_javascript(load_script)
+
+        # NOTE: we do not provide a controller as models tend to provide better results when not constrained by a controller output model
+        agent = Agent(
+            task=PROMPT.format(
+                product=product,
+                epic=epic,
+                feature=feature,
+                url=feature.urls[0],
+                category_of_test=category_of_test,
+                test_categories_description="- ".join([f"{k}: {v}" for k, v in TEST_CATEGORIES_DESCRIPTION.items()]),
+            ),
+            llm=LLM_CLIENT,
+            initial_actions=[{'go_to_url': {'url': feature.urls[0]}}, {'go_to_url': {'url': feature.urls[0]}}],
+            browser_context=context,
+            enable_memory=False,
+            use_vision=False,
+        )
+
+        history = await agent.run(max_steps=10)
+
+    except Exception as e:
+        raise e
+
     finally:
         await context.close()
         await browser.close()
 
-    from browser_use.agent.gif import create_history_gif  # import here to avoid thread blocking
     with NamedTemporaryFile(suffix='.gif', delete=True) as temp_gif:
+        from browser_use.agent.gif import create_history_gif
         create_history_gif(
-            task="a",
+            task="unused",
             history=history,
             output_path=temp_gif.name,
             show_task=False,
@@ -228,7 +202,7 @@ async def _generate_test_category_for_feature(
 
         # Upload GIF to S3
         s3_url = upload_file_to_s3(
-            task_id=task_id,
+            job_id=job_id,
             file_path=temp_gif.name,
             task_type="test",
             task_name=feature.name,
@@ -237,15 +211,15 @@ async def _generate_test_category_for_feature(
             content_type="image/gif",
         )
         if s3_url:
-            logger.info(f"[{task_id}] Test Generation GIF uploaded to S3: {s3_url}")
+            logger.info(f"[{job_id}] Test Generation GIF uploaded to S3: {s3_url}")
 
     result = await validate_agent_history(
-        task_id=task_id,
+        job_id=job_id,
         history=history,
         task_name=f"generate tests for {feature.name}",
     )
 
-    logger.info(f"[{task_id}] Test Generation Result: {result}")
+    logger.info(f"[{job_id}] Test Generation Result: {result}")
 
     # Parse the test cases from the LLM response
     test_cases = _parse_test_cases(result)
@@ -269,87 +243,13 @@ async def _generate_test_category_for_feature(
     return tests
 
 
-@handle_background_task_errors
-async def background_generate_tests_for_feature(
-    task_id: str,
+async def generate_tests(
+    ctx: dict[Any, Any],
     product: Product,
     epic: Epic,
     feature: Feature,
-    user_stories: list[UserStory],
-    acceptance_criteria_list: list[AcceptanceCriteria],
-    categories_of_test: list[TestCategory],
-    secrets: dict[str, dict[str, str]],
-    gif_output_path: str | bool = False,
-) -> list[Test]:
-    """
-    Background task to generate tests for a feature.
-
-    Args:
-        task_id: Task ID for tracking
-        product: Product information
-        epic: Epic information
-        feature: Feature information
-        user_stories: List of user stories associated with the feature
-        acceptance_criteria_list: List of acceptance criteria associated with the feature
-        categories_of_test: List of test categories to generate
-        secrets: Dictionary of secrets for authentication
-        gif_output_path: Path to store GIF output of browser automation
-
-    Returns:
-        List of generated tests
-    """
-
-    await task_status_manager.set_status(task_id, TestStatus.PENDING.value)
-
-    auth_session = dict()
-    try:
-        if feature.access_conditions is not None and feature.access_conditions.get("must_be_logged_in") is True:
-            auth_session = await get_auth_session(
-                task_id=task_id,
-                url=feature.urls[0],
-                secrets=secrets,
-            )
-    except Exception as e:
-        logger.error(f"[{task_id}] Error in background task: {e}")
-        raise e
-
-    tests = []
-    with NamedTemporaryFile(suffix=".json", mode="w+") as cookies_file:
-        cookies_file.write(json.dumps(auth_session.get('cookies')))
-        cookies_file.flush()
-        cookies_file.seek(0)
-
-        for category in categories_of_test:
-            category_tests = await _generate_test_category_for_feature(
-                task_id=task_id,
-                product=product,
-                epic=epic,
-                feature=feature,
-                user_stories=user_stories,
-                acceptance_criteria_list=acceptance_criteria_list,
-                category_of_test=category,
-                cookies_file=cookies_file.name if auth_session.get('cookies') is not None else None,
-                localStorage=auth_session.get('localStorage'),
-                gif_output_path=gif_output_path,
-            )
-            tests.extend(category_tests)
-
-    # Set the status with the feature_id
-    await task_status_manager.set_status(task_id, TestStatus.PASSED.value, results=[_test.model_dump_json() for _test in tests], feature_id=feature.id)
-
-    return tests
-
-
-@router.post("/generate-tests-for-feature")
-async def generate_tests_for_feature(
-    product: Product,
-    epic: Epic,
-    feature: Feature,
-    user_stories: list[UserStory],
-    acceptance_criteria: list[AcceptanceCriteria],
-    background_task: BackgroundTasks,
-    encrypted_secrets: Optional[dict[str, dict[str, str]]] = None,
-) -> str:
+    secrets: Optional[dict[str, dict[str, str]]] = None,
+) -> dict[str, Any]:
     """
     Endpoint to generate tests for a feature.
 
@@ -357,68 +257,65 @@ async def generate_tests_for_feature(
         product: Product information
         epic: Epic information
         feature: Feature information
-        user_stories: List of user stories associated with the feature
-        acceptance_criteria: List of acceptance criteria associated with the feature
         background_task: Background tasks handler
         secrets: Dictionary of secrets for authentication
-        encrypted_secrets: Dictionary of encrypted secrets for authentication
+                 (expected to be encrypted if provided)
 
     Returns:
         Task ID for tracking the test generation process
     """
-    task_id = str(uuid4())
 
-    if len(user_stories) == 0:
-        raise HTTPException(status_code=400, detail="No user stories provided")
+    product = Product(**product)
+    epic = Epic(**epic)
+    feature = Feature(**feature)
+    decrypted_secrets = {}
 
-    if len(acceptance_criteria) == 0:
-        raise HTTPException(status_code=400, detail="No acceptance criteria provided")
-
-    # Decrypt secrets if provided
-    secrets_to_use = None
-
-    if encrypted_secrets:
-        try:
-            secrets_to_use = crypto_service.decrypt_secrets(encrypted_secrets)
-            if not secrets_to_use:
-                raise HTTPException(status_code=400, detail="No secrets provided")
-        except Exception as e:
-            logger.error(f"[{task_id}] Failed to decrypt secrets: {str(e)}")
-            raise HTTPException(status_code=400, detail=f"Failed to decrypt secrets: {str(e)}")
+    # Decrypt encrypted secrets if provided
+    if secrets:
+        decrypted_secrets = crypto_service.decrypt_secrets(secrets)
 
     # List of test categories to generate
     categories = [
         TestCategory.SMOKE,
     ]
 
-    background_task.add_task(
-        background_generate_tests_for_feature,
-        task_id=task_id,
-        product=product,
-        epic=epic,
-        feature=feature,
-        user_stories=user_stories,
-        acceptance_criteria_list=acceptance_criteria,
-        categories_of_test=categories,
-        secrets=secrets_to_use or {},
-        gif_output_path="/tmp",
-    )
+    auth_session = dict()
+    try:
+        if feature.access_conditions is not None and feature.access_conditions.get("must_be_logged_in") is True:
+            auth_session = await get_auth_session(
+                task_id=ctx['job_id'],
+                url=feature.urls[0],
+                secrets=decrypted_secrets,  # Use decrypted secrets here
+            )
+    except Exception as e:
+        logger.error(f"[{ctx['job_id']}] Error getting auth session: {e}")
+        # Decide how to handle: maybe raise, maybe continue without auth session?
+        # For now, log and continue, which might cause downstream issues.
+        auth_session = {}
 
-    return task_id
+    tests = []
+    with NamedTemporaryFile(suffix=".json", mode="w+") as cookies_file:
+        cookies_file.write(json.dumps(auth_session.get('cookies')))
+        cookies_file.flush()
+        cookies_file.seek(0)
 
+        for category in categories:
+            category_tests = await _generate_test_category_for_feature(
+                job_id=ctx['job_id'],
+                product=product,
+                epic=epic,
+                feature=feature,
+                category_of_test=category,
+                cookies_file=cookies_file.name if auth_session.get('cookies') is not None else None,
+                localStorage=auth_session.get('localStorage'),
+            )
+            tests.extend(category_tests)
 
-@router.get("/get-test-generation-status/{task_id}")
-async def get_test_generation_status(
-    task_id: str,
-) -> dict[str, Any]:
-    """
-    Get the status of a test generation task.
+    output = {
+        "results": [_test.model_dump() | {'category': _test.category.value} for _test in tests],
+        "status": TestStatus.PASSED.value,
+    }
 
-    Args:
-        task_id: Task ID to check
+    logger.info(f"[{ctx['job_id']}] Test Generation Output: {output}")
 
-    Returns:
-        Dictionary with task status information
-    """
-
-    return await task_status_manager.get_status(task_id)
+    return output

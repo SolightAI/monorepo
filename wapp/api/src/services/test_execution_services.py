@@ -3,12 +3,11 @@ from __future__ import annotations
 import uuid
 import json
 import asyncio
-import requests
-import os
 import logging
 
 from datetime import datetime
 from typing import List, Dict
+from arq.jobs import Job, JobStatus
 from fastapi import HTTPException, BackgroundTasks
 from pydantic import UUID4
 from dto.models import TestExecution as TestExecutionModel
@@ -20,15 +19,9 @@ from dto.schemas import (
     LatestTestExecutionResponse,
 )
 from services.test_services import get_test
-from services.secret_services import get_encrypted_secrets
 from utils.s3_utils import generate_presigned_url
-
-
-TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
-
-
-if not TASK_MANAGER_URL:
-    raise ValueError("TASK_MANAGER_URL is not set")
+from services.secret_services import get_encrypted_secrets
+from utils.redis_manager import get_redis_pool
 
 
 logger = logging.getLogger(__name__)
@@ -95,7 +88,6 @@ async def get_test_executions_by_test(test_id: UUID4) -> List[TestExecutionEleme
     return test_executions
 
 
-# TODO: trigger test execution on task manager
 async def create_test_execution(
     test_execution: TestExecutionCreateSchema,
     background_tasks: BackgroundTasks = None
@@ -113,6 +105,9 @@ async def create_test_execution(
     Raises:
         HTTPException: If the test was not found
     """
+
+    redis = await get_redis_pool()
+
     # Verify the test exists
     test = await get_test(test_execution.test_id)
 
@@ -127,12 +122,11 @@ async def create_test_execution(
         await test.fetch_related("feature__epic__product")
         product = test.feature.epic.product
 
-        # Create payload for task manager
-        task_manager_payload = {
-            "task_id": str(test_execution_model.id),
+        # Create payload for task manager job
+        payload = {
             "test": {
                 "name": test.name,
-                "category": test.category,
+                "category": test.category.value,
                 "description": test.description,
                 "url": test.url,
                 "feature_id": "random_id",
@@ -141,45 +135,23 @@ async def create_test_execution(
                 "assertions": test.assertions,
                 "access_conditions": test.feature.access_conditions,
             },
-            "encrypted_secrets": await get_encrypted_secrets(organization_id=product.organization_id, product_id=product.id),
         }
 
-        # Send request to task manager
-        response = requests.post(
-            TASK_MANAGER_URL + "/run-test/run-test",
-            json=task_manager_payload
+        encrypted_secrets = await get_encrypted_secrets(
+            organization_id=product.organization_id,
+            product_id=product.id
         )
+        if encrypted_secrets:
+            payload['secrets'] = {k.value: v for k, v in encrypted_secrets.items()}
 
-        if response.status_code != 200:
-            logger.error(f"Failed to trigger test execution ({response.status_code}): {response.text}")
-            # We don't raise an exception here to avoid failing the test execution creation
-            # Instead, we'll update the execution with an error status
-            await update_test_execution(
-                test_execution_model.id,
-                TestExecutionUpdateSchema(
-                    status=TestStatus.ERROR,
-                    notes=f"Failed to trigger test execution on task manager: {response.text}",
-                    ended_at=datetime.now(test_execution_model.started_at.tzinfo if test_execution_model.started_at else None)
-                )
-            )
-        else:
-            # Update the execution with the task manager task ID for later status updates
-            task_id = response.json()
-            await update_test_execution(
-                test_execution_model.id,
-                TestExecutionUpdateSchema(
-                    status=TestStatus.PENDING.value,
-                    metadata={"task_manager_task_id": task_id},
-                )
-            )
+        job = await redis.enqueue_job('run_test', **payload, _job_id=str(test_execution_model.id))
 
-            # Start a background task to check status periodically if BackgroundTasks is provided
-            if background_tasks:
-                background_tasks.add_task(
-                    poll_task_manager_status,
-                    execution_id=test_execution_model.id,
-                    task_id=task_id
-                )
+        if background_tasks:
+            background_tasks.add_task(
+                poll_task_manager_status,
+                execution_id=test_execution_model.id,
+                task_id=job.job_id
+            )
 
     except Exception as e:
         logger.error(f"Error triggering test execution: {str(e)}")
@@ -209,6 +181,8 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
     """
     attempts = 0
 
+    redis = await get_redis_pool()
+
     while attempts < max_attempts:
         try:
             # Sleep first to give the task manager time to process
@@ -218,31 +192,35 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
             test_execution = await get_test_execution(execution_id)
             tzinfo = test_execution.started_at.tzinfo if test_execution.started_at else None
 
-            # Check task status
-            response = requests.get(
-                TASK_MANAGER_URL + f"/run-test/status/{task_id}"
-            )
+            job = Job(str(task_id), redis=redis)
+            job_status = await job.status()
 
-            if response.status_code == 404:
-                logger.error(f"Failed to get task status: {task_id}")
+            if job_status in [JobStatus.queued, JobStatus.deferred, JobStatus.in_progress]:
+                attempts += 1
+                continue
+
+            if job_status == JobStatus.not_found:
                 await update_test_execution(
                     execution_id,
                     TestExecutionUpdateSchema(
-                        status=TestStatus.FAILED,
-                        notes="Failed to get task status.",
-                        ended_at=datetime.now(tzinfo),
-                        metadata={"error": "Failed to get task status."},
-                        tracing={},
+                        status=TestStatus.ERROR,
+                        notes="Test execution not found",
                     )
                 )
                 break
 
-            if response.status_code != 200:
-                logger.error(f"Failed to get task status ({response.status_code}): {response.text}")
-                attempts += 1
-                continue
-
-            status_data = response.json()
+            try:
+                status_data = await job.result()
+            except Exception as e:
+                logger.error(f"Job {task_id} failed: {str(e)}")
+                await update_test_execution(
+                    execution_id,
+                    TestExecutionUpdateSchema(
+                        status=TestStatus.ERROR,
+                        notes=f"{str(e)}",
+                    )
+                )
+                break
 
             tracing_data = status_data.get("tracing", {})
 

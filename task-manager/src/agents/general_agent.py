@@ -1,7 +1,7 @@
 from typing import Any
 from logging import getLogger
 from utils.dto import Test
-from utils.constants import TestStatus
+from utils.dto import TestStatus
 from agents._base_agent import (
     run_agent,
     get_agent_thoughts,

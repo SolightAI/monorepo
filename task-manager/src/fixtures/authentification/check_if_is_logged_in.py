@@ -218,7 +218,7 @@ async def check_is_logged_in(
                 temp_png.flush()
                 upload_file_to_s3(
                     file_path=temp_png.name,
-                    task_id=task_id,
+                    job_id=task_id,
                     task_type="auth_check",
                     task_name=f"{url}_before",
                     extension="png",
@@ -281,7 +281,7 @@ async def check_is_logged_in(
                     temp_png.flush()
                     upload_file_to_s3(
                         file_path=temp_png.name,
-                        task_id=task_id,
+                        job_id=task_id,
                         task_type="auth_check",
                         task_name=f"{url}_after",
                         extension="png",

@@ -1,7 +1,8 @@
 import os
-import json
 import re
+import json
 
+from PIL import Image
 from typing import Any
 from logging import getLogger
 from tempfile import NamedTemporaryFile, TemporaryDirectory
@@ -9,14 +10,13 @@ from langchain_openai import ChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig, AgentHistoryList, Controller
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from utils.s3_utils import upload_file_to_s3
-from run_tests.tracing import initialize, extend_agent_history
+from test_run.tracing import initialize, extend_agent_history
 from fixtures.tools import TOOLS, get_prompt_list_of_tools
-from utils.convert_gif_to_images import convert_gif_to_images
 from typing import Callable
 from healthchecks import get_prompt_list_of_healthchecks, HEALTHCHECKS
 from utils.dto import Test
 from langchain_core.messages import HumanMessage
-from utils.constants import TestStatus
+from utils.dto import TestStatus
 
 
 SHARED_AGENT_LIMITATIONS = [
@@ -334,6 +334,25 @@ AGENT_CLIENT = ChatOpenAI(
 logger = getLogger(__name__)
 
 
+def convert_gif_to_images(gif_path: str) -> list[Image.Image]:
+
+    gif = Image.open(gif_path)
+
+    # Store frames in a list
+    frames = []
+
+    # Iterate over each frame
+    try:
+        while True:
+            frame = gif.copy()
+            frames.append(frame)
+            gif.seek(gif.tell() + 1)
+    except EOFError:
+        pass  # End of sequence
+
+    return frames
+
+
 def _parse_select_additional_healthcheck_result(result: str) -> tuple[str, list[str]]:
     healthcheck_evaluation_match = re.search(r"<healthcheck_evaluation>(.*?)</healthcheck_evaluation>", result, re.DOTALL)
     final_answer_match = re.search(r"<final_answer>(.*?)</final_answer>", result, re.DOTALL)
@@ -564,7 +583,7 @@ async def _generate_and_upload_evidences(task_id: str, history: AgentHistoryList
             image.save(os.path.join(temp_dir, f"history-{idx}.png"))
             evidences.append(upload_file_to_s3(
                 file_path=os.path.join(temp_dir, f"history-{idx}.png"),
-                task_id=task_id,
+                job_id=task_id,
                 task_type="auth",
                 task_name=str(idx),
                 content_type="image/png",
@@ -616,31 +635,31 @@ async def run_agent(
         browser_window_size={"width": 1920, "height": 1080},
     ))
 
-    if auth_session and auth_session.get("localStorage") is not None:
-        await context.navigate_to(url)  # allowing us to load the localStorage
-        await _load_local_storage(context, auth_session["localStorage"])
-
-    extend_agent_history()
-
-    controller = Controller()
-
-    for tool in (tools or []):
-        controller.action(tool.__doc__)(tool)
-
-    agent = Agent(
-        task=prompt,
-        llm=AGENT_CLIENT,
-        sensitive_data=sensitive_data,
-        initial_actions=[{'go_to_url': {'url': url}}, {'go_to_url': {'url': url}}],  # twice cause it some case we have a redirect at the first try
-        browser_context=context,
-        use_vision_for_planner=True,
-        use_vision=True,
-        enable_memory=False,
-        controller=controller,
-        max_actions_per_step=1,
-    )
-
     try:
+        if auth_session and auth_session.get("localStorage") is not None:
+            await context.navigate_to(url)  # allowing us to load the localStorage
+            await _load_local_storage(context, auth_session["localStorage"])
+
+        extend_agent_history()
+
+        controller = Controller()
+
+        for tool in (tools or []):
+            controller.action(tool.__doc__)(tool)
+
+        agent = Agent(
+            task=prompt,
+            llm=AGENT_CLIENT,
+            sensitive_data=sensitive_data,
+            initial_actions=[{'go_to_url': {'url': url}}, {'go_to_url': {'url': url}}],  # twice cause it some case we have a redirect at the first try
+            browser_context=context,
+            use_vision_for_planner=False,
+            use_vision=True,
+            enable_memory=False,
+            controller=controller,
+            max_actions_per_step=1,
+        )
+
         history = await agent.run(max_steps=20)
 
     except Exception as e:

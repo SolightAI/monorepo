@@ -5,7 +5,7 @@ import { useOrganization } from '@/context/OrganizationContext';
 import { isValidUrl } from '@/utils/urlUtils';
 import axios from 'axios';
 import { API_URL } from '@/constants/api';
-
+import { TEST_STATUS } from '@/utils/testExecutionUtils';
 const ProductSetup = ({ onNext, onPrev, onSkip }) => {
   const { products, refreshProducts } = useProduct();
   const { selectedOrganization } = useOrganization();
@@ -211,7 +211,7 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
       );
 
       // If validation is completed
-      if (response.data && response.data.status === 'completed') {
+      if (response.data && response.data.status === TEST_STATUS.PASSED) {
         // If login page was found
         if (response.data.results && response.data.results.valid) {
           setLoginPageFound(true);
@@ -437,7 +437,7 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                             <div className="animate-spin mr-3 h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                             <div>
                               <p className="text-sm font-medium text-blue-700">
-                                Validating URL and searching for login page...
+                                B Validating URL and searching for login page...
                               </p>
                               <p className="text-xs text-blue-600 mt-1">
                                 This may take a few moments. We're checking if this website has a login page we can use for testing.
@@ -696,7 +696,7 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                       <div className="animate-spin mr-3 h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                       <div>
                         <p className="text-sm font-medium text-blue-700">
-                          Validating URL and searching for login page...
+                          C Validating URL and searching for login page...
                         </p>
                         <p className="text-xs text-blue-600 mt-1">
                           This may take a few moments. We're checking if this website has a login page we can use for testing.

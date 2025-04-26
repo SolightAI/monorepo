@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestUpdate as TestUpdateSchema, TestSecretCreate, TestSecret, TestExecution as TestExecutionSchema
 from services.test_execution_services import get_test_executions_by_test
+import traceback
 from services.test_services import (
     get_test,
     create_test,
@@ -131,6 +132,7 @@ async def generate_test(
 
         # Trigger test generation
         response_data = await trigger_test_generation(feature_id=feature_id)
+        logger.info(f"Triggering test generation for feature {feature_id}. Response data: {response_data}")
         background_tasks.add_task(
             poll_test_generation_status,
             task_id=response_data["task_id"],
@@ -141,11 +143,12 @@ async def generate_test(
         raise e
     except Exception as e:
         logger.error(f"Error generating tests: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error generating tests: {str(e)}")
 
 
 @router.get("/generate/status/{task_id}")
-async def get_generate_test_status_endpoint(task_id: UUID4) -> dict:
+async def get_generate_test_status_endpoint(task_id: str) -> dict:
     """
     Get the status of a test generation task.
 

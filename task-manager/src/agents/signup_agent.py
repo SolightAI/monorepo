@@ -1,7 +1,7 @@
 from typing import Any
 from utils.dto import Test
 from logging import getLogger
-from utils.constants import TestStatus
+from utils.dto import TestStatus
 from fixtures.tools import TOOLS, get_prompt_list_of_tools
 from agents._base_agent import (
     run_agent,

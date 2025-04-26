@@ -1,8 +1,7 @@
 import pytest
 
 from src.agents.signup_agent import signup_agent
-from src.utils.dto import Test, TestCategory
-from src.utils.constants import TestStatus
+from src.utils.dto import Test, TestCategory, TestStatus
 
 
 class TestTickPick():

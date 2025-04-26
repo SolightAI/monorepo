@@ -3,8 +3,7 @@ import pytest
 from src.agents._base_agent import check_final_test_result
 from src.healthchecks import get_login_status
 
-from src.utils.dto import Test, TestCategory
-from src.utils.constants import TestStatus
+from src.utils.dto import Test, TestCategory, TestStatus
 
 
 class TestTickPick():

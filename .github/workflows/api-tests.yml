@@ -41,6 +41,9 @@ jobs:
       AZURE_REDIRECT_URI: "http://localhost:8000/auth/azure/callback"
       SECRET_ENCRYPTION_KEY: "test_encryption_key_for_testing_only"
       TASK_MANAGER_URL: "http://localhost:8001"
+      REDIS_HOST: "localhost"
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
 
     steps:
     - uses: actions/checkout@v3

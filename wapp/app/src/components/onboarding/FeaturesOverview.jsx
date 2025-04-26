@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, ArrowLeft, Check, Play, BugPlay, Key, Link as LinkIcon, BarChart } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Check, Key, Link as LinkIcon } from 'lucide-react';
 import { useOnboarding } from '@/context/OnboardingContext';
 import { Link } from 'react-router-dom';
 

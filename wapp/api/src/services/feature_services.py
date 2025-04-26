@@ -16,12 +16,6 @@ from dto.models import Product as ProductModel
 from services.secret_services import get_encrypted_secrets
 
 
-TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
-
-if not TASK_MANAGER_URL:
-    raise ValueError("TASK_MANAGER_URL is not set")
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -133,6 +127,7 @@ async def generate_features(epic_id: UUID4, background_tasks: Optional[Backgroun
     Raises:
         HTTPException: If there is an error fetching data or communicating with the task manager
     """
+    raise RuntimeError("Deprecated")
     # Fetch the epic and its related data
     epic = await EpicModel.get_or_none(id=epic_id)
 
@@ -208,6 +203,7 @@ async def get_feature_generation_status(task_id: str) -> Dict[str, Any]:
     Raises:
         HTTPException: If there is an error communicating with the task manager
     """
+    raise RuntimeError("Deprecated")
     try:
         response = requests.get(
             TASK_MANAGER_URL + f"/generate-features/status/{task_id}"

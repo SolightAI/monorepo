@@ -88,7 +88,7 @@ export const getLatestTestExecutions = async (testIds) => {
   }
   try {
     const response = await axios.post(
-      `${API_URL}/test-executions/latest`,
+      `${API_URL}/test-executions/latest/`,
       { test_ids: testIds },
       {
         withCredentials: true,
