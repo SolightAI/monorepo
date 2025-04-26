@@ -4,7 +4,7 @@ import logging
 
 from fixtures.authentification.get_auth_session import get_auth_session
 from fixtures.authentification.has_required_secrets import LoginMethod
-from validate_url.validate_url import validate_url_task
+from src.validate_url.validate_url import validate_url
 
 
 # Auth paths in the playground
@@ -453,7 +453,7 @@ async def test_validate_url_login_farmzz(task_id: str) -> None:
     base_url = "https://farmzz.com"
 
     # Run the validation task directly
-    validation_result = await validate_url_task(task_id, base_url, use_cache=False)
+    validation_result = await validate_url(task_id, base_url, use_cache=False)
 
     # Debug output to show full validation result
     logger.info(f"[{task_id}] Validation result: {validation_result}")
