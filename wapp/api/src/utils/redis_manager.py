@@ -33,7 +33,7 @@ class RedisManager:
         self.redis_settings = RedisSettings(
             host=self.redis_host,
             port=int(self.redis_port),
-            db=int(self.redis_db),
+            database=int(self.redis_db),
             password=self.redis_password,
             username=self.redis_username
         )
