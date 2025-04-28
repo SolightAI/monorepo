@@ -585,7 +585,7 @@ const TestsTable = () => {
         }));
 
         // If status is no longer pending, stop polling
-        if (executionData.status !== TEST_STATUS.PENDING) {
+        if (executionData.status !== TEST_STATUS.PENDING && executionData.status !== 'unknown') {
           clearInterval(testPollingIntervalsRef.current[testId]);
           delete testPollingIntervalsRef.current[testId];
 
@@ -835,7 +835,7 @@ const TestsTable = () => {
     // Cleanup function to stop polling when component unmounts or feature changes
     return () => {
       if (pollingIntervalRef.current) {
-        pollingIntervalRef.current(); // Call the cleanup function returned by the service
+        clearInterval(pollingIntervalRef.current); // Clear the interval using the ID
         pollingIntervalRef.current = null;
       }
       // No need to reset state here, it's handled by the callbacks or unmount
@@ -1061,6 +1061,363 @@ const TestsTable = () => {
   const allFilteredTestsRunning = () => {
     if (filteredTests.length === 0) return false; // Cannot run if no tests are filtered
     return filteredTests.every(test => runningTests[test.id]);
+  };
+
+  // Add the checkExistingTaskId function
+  const checkExistingTaskId = async () => {
+    if (!selectedFeature || selectedFeature === 'all') return;
+
+    console.log('Checking for existing task ID for feature:', selectedFeature);
+    
+    try {
+      // First, try to get the task ID directly from the API
+      try {
+        const taskId = await getTestGenerationTaskId(selectedFeature);
+        if (taskId) {
+          console.log('Found existing task ID from API:', taskId);
+          setIsGeneratingTests(true);
+          setTestGenerationTaskId(taskId);
+          startTestGenerationPolling(taskId);
+          return;
+        }
+      } catch (error) {
+        console.log('No existing task ID found from API:', error);
+        // Continue to check tests
+      }
+      
+      // Get current tests for the feature
+      const currentTests = await getTestsByFeature(selectedFeature);
+      console.log('Current tests for feature:', currentTests);
+      
+      // If we have tests, check if any are in generation status
+      if (currentTests && currentTests.length > 0) {
+        // Check for tests with status 'generating' or with a task_id
+        const generatingTest = currentTests.find(test => 
+          test.status === TEST_STATUS.GENERATING || 
+          test.status === TEST_STATUS.IN_PROGRESS || 
+          test.status === TEST_STATUS.PENDING || 
+          test.task_id
+        );
+        
+        console.log('Generating test found:', generatingTest);
+        
+        if (generatingTest) {
+          // If we found a test with a task_id, use that
+          const taskId = generatingTest.task_id;
+          
+          if (taskId) {
+            console.log('Starting polling for task ID:', taskId);
+            // Found a test in generation status, start polling
+            setIsGeneratingTests(true);
+            setTestGenerationTaskId(taskId);
+            
+            // Start polling for status updates
+            startTestGenerationPolling(taskId);
+          } else {
+            console.log('Test in generating state but no task_id found');
+            // If we found a test in generating state but no task_id, 
+            // we should still set the UI state
+            setIsGeneratingTests(true);
+            setSuccessMessage('Test generation in progress. Checking status...');
+            
+            // Since we're using getTestsByFeature, we can use the test ID directly
+            const testId = generatingTest.id;
+            if (testId) {
+              console.log('Starting polling for test ID:', testId);
+              startTestGenerationPolling(testId);
+            } else {
+              console.log('Could not retrieve test ID, resetting generation state');
+              setIsGeneratingTests(false);
+              setSuccessMessage(null);
+            }
+          }
+        } else {
+          console.log('No generating test found');
+        }
+      } else {
+        console.log('No tests found for feature');
+        // Even if there are no tests, we should check if there's an ongoing task
+        try {
+          const taskId = await getTestGenerationTaskId(selectedFeature);
+          if (taskId) {
+            console.log('Found task ID for feature with no tests:', taskId);
+            setIsGeneratingTests(true);
+            setTestGenerationTaskId(taskId);
+            startTestGenerationPolling(taskId);
+          }
+        } catch (error) {
+          console.log('No task ID found for feature with no tests:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking existing task ID:', error);
+      setError('Error checking test generation status. Please try again.');
+    }
+  };
+
+  // Update the startTestGenerationPolling function to handle both task IDs and test IDs
+  const startTestGenerationPolling = async (id, isInitialCheck = false) => {
+    if (!id) return;
+
+    console.log('Starting test generation polling for ID:', id);
+
+    try {
+      // Clear any existing polling interval
+      if (pollingIntervalRef.current) {
+        console.log('Clearing existing polling interval');
+        clearInterval(pollingIntervalRef.current);
+      }
+
+      // Set initial states
+      setIsGeneratingTests(true);
+      setTestGenerationTaskId(id);
+      setError(null);
+      
+      // Add a counter for consecutive "unknown" statuses
+      let unknownStatusCount = 0;
+      const MAX_UNKNOWN_STATUS = 3; // Stop after 3 consecutive "unknown" statuses
+
+      // Start polling for status updates
+      console.log('Setting up new polling interval');
+      pollingIntervalRef.current = setInterval(async () => {
+        console.log('Polling for ID:', id);
+        try {
+          // Check if the ID is a task ID or a test ID
+          // If it's a test ID, we'll use getTestsByFeature to check its status
+          let statusData;
+          
+          if (id.includes('-')) {
+            // Assume it's a task ID (UUID format)
+            statusData = await getTestGenerationStatus(id);
+            
+            // If the API returns a task_id in the response, use that for future polling
+            if (statusData.task_id && statusData.task_id !== id) {
+              console.log('API returned a different task ID, updating to:', statusData.task_id);
+              id = statusData.task_id;
+              setTestGenerationTaskId(id);
+            }
+          } else {
+            // Assume it's a test ID, get the test status from getTestsByFeature
+            const tests = await getTestsByFeature(selectedFeature);
+            const test = tests.find(t => t.id === id);
+            
+            if (test) {
+              // If the test has a task_id, use that for future polling
+              if (test.task_id) {
+                console.log('Test has a task_id, switching to use that for polling:', test.task_id);
+                id = test.task_id;
+                setTestGenerationTaskId(id);
+                statusData = await getTestGenerationStatus(id);
+              } else {
+                statusData = {
+                  status: test.status === TEST_STATUS.PENDING ? TEST_STATUS.PENDING : 
+                          test.status === TEST_STATUS.PASSED ? TEST_STATUS.PASSED : 
+                          test.status === TEST_STATUS.FAILED ? TEST_STATUS.FAILED : 
+                          test.status === TEST_STATUS.ERROR ? TEST_STATUS.ERROR : 'in_progress'
+                };
+              }
+            } else {
+              // Test not found, assume it's completed
+              statusData = { status: TEST_STATUS.PASSED };
+            }
+          }
+          
+          console.log('Status data received:', statusData);
+          
+          // Update status message
+          setSuccessMessage(`Test generation in progress. Status: ${statusData.status}`);
+          
+          // If status is unknown, check the test list as the job might have completed
+          if (statusData.status === 'unknown') {
+            console.log('Received unknown status, checking test list');
+            const tests = await getTestsByFeature(selectedFeature);
+            
+            // Check if we have any new tests
+            if (tests && tests.length > 0) {
+              console.log('Found tests, assuming generation completed');
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+              setIsGeneratingTests(false);
+              setTestGenerationTaskId(null);
+              
+              // Refresh tests list
+              await fetchTestsWithCurrentFilters();
+              
+              // Show success message
+              setSuccessMessage('Test generation completed successfully.');
+            } else {
+              console.log('No tests found, stopping polling');
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+              setIsGeneratingTests(false);
+              setTestGenerationTaskId(null);
+            }
+          }
+          // Only continue polling if the status is PENDING
+          else if (statusData.status !== TEST_STATUS.PENDING) {
+            console.log('Test generation no longer in progress, stopping polling');
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+            setIsGeneratingTests(false);
+            setTestGenerationTaskId(null);
+            
+            // Refresh tests list
+            await fetchTestsWithCurrentFilters();
+            
+            // Show appropriate message
+            if (statusData.status === TEST_STATUS.PASSED) {
+              setSuccessMessage('Test generation completed successfully.');
+            } else if (statusData.status === TEST_STATUS.FAILED || 
+                      statusData.status === TEST_STATUS.ERROR || 
+                      statusData.status === TEST_STATUS.BLOCKED_BY_CAPTCHA || 
+                      statusData.status === TEST_STATUS.AGENT_LIMITATION || 
+                      statusData.status === TEST_STATUS.UNEXISTING_FEATURE) {
+              setError(`Test generation failed: ${statusData.status}. Please try again.`);
+            } else {
+              setSuccessMessage('Test generation status updated.');
+            }
+          } else {
+            // For PENDING status, continue polling
+            console.log('Test generation in progress, continuing to poll');
+            setSuccessMessage(`Test generation in progress. Status: ${formatStatus(statusData.status)}`);
+          }
+        } catch (error) {
+          console.error('Error polling test generation status:', error);
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+          setIsGeneratingTests(false);
+          setTestGenerationTaskId(null);
+          setError('Error checking test generation status. Please try again.');
+        }
+      }, 2000); // Poll every 2 seconds
+    } catch (error) {
+      console.error('Error starting test generation polling:', error);
+      setIsGeneratingTests(false);
+      setTestGenerationTaskId(null);
+      setError('Error starting test generation status check. Please try again.');
+    }
+  };
+
+  // Update the useEffect to use checkExistingTaskId
+  useEffect(() => {
+    console.log('useEffect triggered for selectedFeature change');
+    let isMounted = true;
+    let checkTimeout = null;
+
+    const initialize = async () => {
+      if (!isMounted) return;
+      
+      console.log('Initializing check for existing task ID');
+      // Check for existing task ID when component mounts or feature changes
+      await checkExistingTaskId();
+    };
+
+    // Use a small timeout to ensure the component is fully mounted
+    checkTimeout = setTimeout(() => {
+      initialize();
+    }, 100);
+
+    // Cleanup function
+    return () => {
+      console.log('Cleanup function called');
+      isMounted = false;
+      if (checkTimeout) {
+        clearTimeout(checkTimeout);
+      }
+      // Only clear polling interval if component is unmounting
+      if (pollingIntervalRef.current) {
+        console.log('Clearing polling interval on unmount');
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [selectedFeature]); // Remove features from dependency array
+
+  // Add a separate useEffect for handling visibility changes
+  useEffect(() => {
+    let visibilityTimeout;
+    let isHandlingVisibility = false;
+
+    const handleVisibilityChange = () => {
+      if (isHandlingVisibility) return; // Prevent multiple simultaneous handlers
+      isHandlingVisibility = true;
+
+      console.log('Visibility changed, document.hidden:', document.hidden);
+      
+      // Clear any existing timeout
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+      }
+      
+      // Only restart polling if we were previously generating tests and have a task ID
+      if (!document.hidden && isGeneratingTests && testGenerationTaskId && !pollingIntervalRef.current) {
+        console.log('Document visible again, restarting polling for task ID:', testGenerationTaskId);
+        // Add a small delay before restarting polling to prevent rapid restarts
+        visibilityTimeout = setTimeout(() => {
+          startTestGenerationPolling(testGenerationTaskId);
+          isHandlingVisibility = false;
+        }, 500);
+      } else {
+        isHandlingVisibility = false;
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+      }
+    };
+  }, [isGeneratingTests, testGenerationTaskId]); // Keep these dependencies as they're needed for the visibility handler
+
+  // Add the missing functions for test generation
+  const getTestGenerationTaskId = async (featureId) => {
+    try {
+      // First try to get the task ID from the backend
+      // The correct endpoint is /tests/generate/status/{featureId} not /tests/generation/status/{featureId}
+      const response = await axios.get(`${API_URL}/tests/generate/status/${featureId}`, {
+        withCredentials: true
+      });
+      
+      if (response.data && response.data.task_id) {
+        console.log('Retrieved task ID from backend:', response.data.task_id);
+        return response.data.task_id;
+      }
+      
+      // If no task ID found, try to start a new generation
+      const startResponse = await axios.post(`${API_URL}/tests/generate/${featureId}`, {}, {
+        withCredentials: true
+      });
+      
+      if (startResponse.data && startResponse.data.task_id) {
+        console.log('Started new test generation with task ID:', startResponse.data.task_id);
+        return startResponse.data.task_id;
+      }
+      
+      console.warn('No task ID found in either response');
+      return null;
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        console.log('No existing task found for feature:', featureId);
+        return null;
+      }
+      console.error('Error getting test generation task ID:', error);
+      return null;
+    }
+  };
+
+  const getTestGenerationStatus = async (taskId) => {
+    try {
+      const response = await axios.get(`${API_URL}/tests/generate/status/${taskId}`, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting test generation status:', error);
+      throw error;
+    }
   };
 
   if (loading) {
