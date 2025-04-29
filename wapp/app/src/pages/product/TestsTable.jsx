@@ -535,10 +535,6 @@ const TestsTable = () => {
 
       // Show appropriate message based on results
       if (testCount > 0) {
-        setError(null);
-        setSuccessMessage(`Started ${testCount} test(s).`);
-        setTimeout(() => setSuccessMessage(null), 3000);
-
         // Start polling for each test execution that was just started
         testExecutions.forEach(({ testId, executionId }) => {
           pollTestExecutionStatus(testId, executionId);
@@ -641,82 +637,6 @@ const TestsTable = () => {
     }, 3000);
   };
 
-  // Function to handle test creation button click
-  const handleCreateTestClick = () => {
-    // Check if there are any features
-    if (features.length === 0) {
-      // Show a prompt to create features first
-      setError(
-        <span>
-          Please create at least one feature before adding tests. You can add one using the {' '}
-          <code className="bg-gray-100 p-1 rounded text-sm">Feature</code> dropdown menu.
-        </span>
-      );
-
-      // Open the dropdown to access the create feature button
-      setIsFeatureDropdownOpen(true);
-
-      // Highlight the feature dropdown
-      const featureDropdown = document.querySelector('[data-feature-dropdown]');
-      if (featureDropdown) {
-        // Add a pulse animation class
-        featureDropdown.classList.add('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-
-        // Remove the animation after 5 seconds
-        setTimeout(() => {
-          featureDropdown.classList.remove('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-        }, 5000);
-      }
-
-      // Automatically clear the error after 6 seconds
-      setTimeout(() => {
-        setError(null);
-      }, 6000);
-
-      // Scroll to top to make sure error is visible
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      return;
-    }
-    // Check if a feature is selected
-    else if (selectedFeature === 'all') {
-      // Show a prompt to select a feature first
-      setError(
-        <span>
-          Please select a specific feature from the <code className="bg-gray-100 p-1 rounded text-sm">Feature</code> dropdown before adding a test.
-        </span>
-      );
-
-      // Highlight the feature dropdown
-      const featureDropdown = document.querySelector('[data-feature-dropdown]');
-      if (featureDropdown) {
-        // Add a pulse animation class
-        featureDropdown.classList.add('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-
-        // Remove the animation after 5 seconds
-        setTimeout(() => {
-          featureDropdown.classList.remove('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-        }, 5000);
-      }
-
-      // Open the dropdown to show options
-      setIsFeatureDropdownOpen(true);
-
-      // Automatically clear the error after 6 seconds
-      setTimeout(() => {
-        setError(null);
-      }, 6000);
-
-      // Scroll to top to make sure error is visible
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      return;
-    }
-
-    // If a feature is selected, open the test creation modal
-    setIsAddTestModalOpen(true);
-  };
-
   // Function to dismiss error message
   const dismissError = () => {
     setError(null);
@@ -735,9 +655,13 @@ const TestsTable = () => {
         testData.feature_id = selectedFeature;
     } else if (selectedEpic !== 'all') {
         testData.epic_id = selectedEpic;
-      } else if (selectedProduct) {
+      } else if (selectedProduct && epics.length > 0) {
         testData.epic_id = epics[0]?.id; // Use first epic as a fallback
       }
+      if (!testData.feature_id && !testData.epic_id) {
+            throw new Error("Cannot save test without associated Feature or Epic.");
+      }
+
 
       const response = await axios.post(
         `${API_URL}/tests/`,
@@ -763,8 +687,12 @@ const TestsTable = () => {
       fetchTestsWithCurrentFilters();
     } catch (err) {
       console.error('Error saving test:', err);
-      setError('Failed to create test. Please try again.');
+      setError(`Failed to create test: ${err.message || 'Please try again.'}`);
       setSuccessMessage(null);
+      // Clear error after 5 seconds
+        setTimeout(() => {
+          setError(null);
+        }, 5000);
     }
   };
 
@@ -1412,7 +1340,17 @@ const TestsTable = () => {
 
             {/* Add Test button */}
             <button
-              onClick={handleCreateTestClick}
+              onClick={() => {
+                if (selectedFeature === 'all') {
+                  setError(
+                    <span>
+                      Please select a specific feature first
+                    </span>
+                  );
+                  return;
+                }
+                setIsAddTestModalOpen(true);
+              }}
               disabled={selectedFeature === 'all'}
               className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition duration-150 disabled:bg-blue-300 disabled:cursor-not-allowed"
               title={selectedFeature === 'all' ? "Please select a specific feature first" : "Add new test to selected feature"}

@@ -75,7 +75,7 @@ const TestForm = ({
           </div>
         </div>
 
-        {/* <div>
+        <div>
           <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
             Description *
           </label>
@@ -89,7 +89,7 @@ const TestForm = ({
             onChange={handleChange}
             placeholder="One-liner on the purpose of this test"
           />
-        </div> */}
+        </div>
 
         <div>
           <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">

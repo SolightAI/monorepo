@@ -70,7 +70,7 @@ const UrlValidationNotification = ({ taskId, productId, onClose, onUrlUpdate }) 
       return (
         <div className="flex items-center">
           <div className="animate-spin mr-2 h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-          <span> A Validating URL and searching for login page...</span>
+          <span> Validating URL and searching for login page...</span>
         </div>
       );
     }
