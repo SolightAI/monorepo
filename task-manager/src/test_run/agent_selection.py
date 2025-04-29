@@ -1,5 +1,6 @@
 import re
-import enum
+import typing
+import types
 
 from typing import Callable
 from utils.dto import Test
@@ -10,6 +11,7 @@ from agents.login_agent import login_agent, get_parameters_for_login_agent
 from agents.signup_agent import signup_agent, get_parameters_for_signup_agent
 from inspect import getfullargspec
 from logging import getLogger
+import traceback
 
 
 logger = getLogger(__name__)
@@ -175,10 +177,31 @@ def parse_agent_selection(response: str) -> str:
 
 def get_type_description(_type: type) -> str:
     new_line = "\n"
-    description = f"Name: {_type.__name__}\nType: {type(_type)}\nDescription: {_type.__doc__}"
+    origin = typing.get_origin(_type)
+    args = typing.get_args(_type)
 
-    if issubclass(_type, enum.Enum):
-        description += f"\nOptions: {' '.join([f'{new_line}- {name}: {value.value}' for (name, value) in _type.__members__.items()])}"
+    try:
+        if origin is typing.Literal:
+            options_str = ' '.join([f'{new_line}- {repr(arg)}' for arg in args])
+            description = f"Name: Literal\nType: typing.Literal\nOptions: {options_str}"
+
+        elif origin is typing.Union or origin is types.UnionType:
+            union_args = [arg for arg in args if arg is not type(None)]
+            type_descriptions = [get_type_description(arg) for arg in union_args]
+            optional_indicator = " (Optional)" if type(None) in args else ""
+            description = f"Name: Union{optional_indicator}\nType: typing.Union\nPossible Types:{new_line}{new_line.join(type_descriptions)}"
+
+        # elif isclass(_type) and isinstance(_type, type) and issubclass(_type, enum.Enum):
+        #     description = f"Name: {_type.__name__}\nType: {type(_type)}\nDescription: {_type.__doc__}"
+        #     description += f"\nOptions: {' '.join([f'{new_line}- {name}: {value.value}' for (name, value) in _type.__members__.items()])}"
+
+        else:
+            description = f"Name: {_type.__name__}\nType: {type(_type)}\nDescription: {_type.__doc__}"
+
+    except Exception as e:
+        logger.error(f"Error getting type description: {e}")
+        logger.error(traceback.format_exc())
+        description = f"Name: {_type.__name__}\nType: {type(_type)}\nDescription: {_type.__doc__}"
 
     return description
 

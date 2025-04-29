@@ -20,6 +20,7 @@ class WorkerSettings:
     ]
 
     # TODO: instead of polling we could use a webhook to inform the api that a job is done
+    # FIXME: Sometimes the worker(s) pull(s) a random job at start
 
     redis_settings = RedisSettings(
         host=os.getenv("REDIS_HOST"),
@@ -33,8 +34,13 @@ class WorkerSettings:
         conn_retry_delay=1,
     )
 
-    retry_jobs = True
+    retry_jobs = False
+    max_tries = 1
     max_jobs = 1  # not true parallelism as is only for IO bound tasks (async)
+    allow_abort_jobs = True
+
+    job_timeout = 60 * 15  # 15 minutes
+    expires_extra_ms = 1000 * 60 * 15  # 15 minutes max in the queue before being timed out
 
     keep_result = 60
 

@@ -38,6 +38,11 @@ Be aware that you have the ability to:
 Be aware that you do NOT have the ability to:
 {agent_limitations}
 
+Additional information:
+- If you failed a step, you can retry it.
+- Don't give up unless you're sure the test is not going to pass.
+- Always double check your actions and the steps you're taking.
+
 Now, run the test.
 """.strip()
 

@@ -8,7 +8,7 @@ from logging import getLogger
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from langchain_openai import ChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig, AgentHistoryList, Controller
-from browser_use.browser.context import BrowserContextConfig, BrowserContext
+from browser_use.browser.context import BrowserContextConfig, BrowserContext, BrowserContextWindowSize
 from utils.s3_utils import upload_file_to_s3
 from test_run.tracing import initialize, extend_agent_history
 from fixtures.tools import TOOLS, get_prompt_list_of_tools
@@ -380,7 +380,7 @@ async def run_additional_healthcheck(
 
     logger.info(f"[{task_id}] Selecting additional healthcheck for {test.name}")
 
-    result = AGENT_CLIENT.invoke(
+    result: str = AGENT_CLIENT.invoke(
         [
             HumanMessage(
                 content=SELECT_ADDITIONAL_TEST_PROMPT.format(
@@ -389,7 +389,7 @@ async def run_additional_healthcheck(
                 )
             )
         ]
-    ).content
+    ).content  # type: ignore
 
     healthcheck_evaluation, selected_healthchecks = _parse_select_additional_healthcheck_result(result)
 
@@ -409,7 +409,7 @@ async def run_additional_healthcheck(
     }
 
 
-def _parse_check_final_test_result(result: str) -> tuple[bool, str]:
+def _parse_check_final_test_result(result: str) -> tuple[TestStatus, str]:
     status_match = re.search(r"<status>(.*?)</status>", result, re.DOTALL)
     explanation_match = re.search(r"<explanation>(.*?)</explanation>", result, re.DOTALL)
 
@@ -455,7 +455,7 @@ def check_final_test_result(
 
     logger.info(f"[{task_id}] Agent prompt: {CHECK_FINAL_TEST_RESULT_PROMPT.format(test=test, agent_output=agent_output, healthcheck_results=healthcheck_results_str).strip()}")
 
-    result = OUTPUT_VALIDATION_LLM.invoke(
+    result: str = OUTPUT_VALIDATION_LLM.invoke(
         [
             HumanMessage(
                 content=CHECK_FINAL_TEST_RESULT_PROMPT.format(
@@ -465,7 +465,7 @@ def check_final_test_result(
                 ).strip()
             )
         ]
-    ).content
+    ).content  # type: ignore
 
     status, explanation = _parse_check_final_test_result(result)
 
@@ -500,7 +500,7 @@ def is_agent_able_to_run_test(
 
     logger.info(f"[{task_id}] Running agent health check for {test.name}")
 
-    result = AGENT_CLIENT.invoke(
+    result: str = AGENT_CLIENT.invoke(
         [
             HumanMessage(
                 content=ABILITY_TO_RUN_TEST_PROMPT.format(
@@ -510,7 +510,7 @@ def is_agent_able_to_run_test(
                 )
             )
         ]
-    ).content
+    ).content  # type: ignore
 
     is_able, explanation = _parse_is_agent_able_to_run_test_result(result)
 
@@ -581,14 +581,17 @@ async def _generate_and_upload_evidences(task_id: str, history: AgentHistoryList
 
         for idx, image in enumerate(images):
             image.save(os.path.join(temp_dir, f"history-{idx}.png"))
-            evidences.append(upload_file_to_s3(
+            _evidence = upload_file_to_s3(
                 file_path=os.path.join(temp_dir, f"history-{idx}.png"),
                 job_id=task_id,
-                task_type="auth",
+                task_type="auth_check",
                 task_name=str(idx),
                 content_type="image/png",
                 extension="png",
-            ))
+            )
+
+            if _evidence is not None:
+                evidences.append(_evidence)
 
     return evidences
 
@@ -613,6 +616,11 @@ async def run_agent(
     browser = Browser(
         config=BrowserConfig(
             headless=os.getenv("HEADLESS", "true").lower() == "true",
+            extra_browser_args=[
+                "--disable-web-security",
+                "--disable-site-isolation-trials",
+                "--disable-features=IsolateOrigins,site-per-process",
+            ],
         )
     )
 
@@ -632,7 +640,7 @@ async def run_agent(
         viewport_expansion=0,
         wait_between_actions=1.5,
         user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246",
-        browser_window_size={"width": 1920, "height": 1080},
+        browser_window_size=BrowserContextWindowSize(width=1920, height=1080),
     ))
 
     try:
@@ -645,7 +653,7 @@ async def run_agent(
         controller = Controller()
 
         for tool in (tools or []):
-            controller.action(tool.__doc__)(tool)
+            controller.action(tool.__doc__ or "")(tool)
 
         agent = Agent(
             task=prompt,
@@ -660,7 +668,7 @@ async def run_agent(
             max_actions_per_step=1,
         )
 
-        history = await agent.run(max_steps=20)
+        history = await agent.run(max_steps=30)
 
     except Exception as e:
         raise e

@@ -21,7 +21,7 @@ async def get_auth_session(
     url: str,
     secrets: dict[str, dict[str, str]],
     reuse_session: bool = True,
-) -> tuple[dict[str, dict[str, str]], str]:
+) -> dict[str, dict[str, str]]:
 
     """
     Login to the webapp and return the generated cookies.
@@ -50,6 +50,7 @@ async def get_auth_session(
         raise RuntimeError(f"Login failed for {url}: {history.final_result()}")
 
     # Cache the new session for future use
-    await cache_session(url, user_id, session_data)
+    if user_id:
+        await cache_session(url, user_id, session_data)
 
     return session_data

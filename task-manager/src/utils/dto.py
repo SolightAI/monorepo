@@ -82,16 +82,3 @@ class Test(BaseModel):
     assertions: str
     feature_id: str  # Changed from acceptance_criteria_id to feature_id
     access_conditions: dict[str, Any] | None = None  # conditions to access the feature
-
-    # def toJSON(self):
-    #     return {
-    #         "name": self.name,
-    #         "description": self.description,
-    #         "url": self.url,
-    #         "category": self.category,
-    #         "preconditions": self.preconditions,
-    #         "steps": self.steps,
-    #         "assertions": self.assertions,
-    #         "feature_id": self.feature_id,
-    #         "access_conditions": self.access_conditions,
-    #     }

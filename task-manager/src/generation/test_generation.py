@@ -284,7 +284,7 @@ async def generate_tests(
         if feature.access_conditions is not None and feature.access_conditions.get("must_be_logged_in") is True:
             auth_session = await get_auth_session(
                 task_id=ctx['job_id'],
-                url=feature.urls[0],
+                url=product.url,
                 secrets=decrypted_secrets,  # Use decrypted secrets here
             )
     except Exception as e:
