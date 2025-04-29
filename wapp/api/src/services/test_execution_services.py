@@ -6,7 +6,7 @@ import asyncio
 import logging
 
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Any
 from arq.jobs import Job, JobStatus
 from fastapi import HTTPException, BackgroundTasks
 from pydantic import UUID4
@@ -24,10 +24,13 @@ from services.secret_services import get_encrypted_secrets
 from utils.redis_manager import get_redis_pool
 
 
+MAX_WAITING_TIME_FOR_TEST_EXECUTION_IN_SECONDS = 60 * 15  # 15 minutes
+
+
 logger = logging.getLogger(__name__)
 
 
-async def get_test_execution(test_execution_id: UUID4) -> TestExecutionModel:
+async def get_test_execution(test_execution_id: UUID4 | str) -> TestExecutionModel:
     """
     Get a test execution by ID.
 
@@ -45,13 +48,24 @@ async def get_test_execution(test_execution_id: UUID4) -> TestExecutionModel:
     if not test_execution:
         raise HTTPException(status_code=404, detail="Test execution not found")
 
+    # if started more than MAX_WAITING_TIME_FOR_TEST_EXECUTION_IN_SECONDS minutes ago, set status to timed out
+    tzinfo = test_execution.started_at.tzinfo if test_execution.started_at else None
+    if test_execution.status == TestStatus.PENDING.value and test_execution.started_at and (datetime.now(tzinfo) - test_execution.started_at).total_seconds() > MAX_WAITING_TIME_FOR_TEST_EXECUTION_IN_SECONDS:
+        await update_test_execution(
+            test_execution,
+            TestExecutionUpdateSchema(
+                status=TestStatus.ERROR,
+                ended_at=datetime.now(tzinfo),
+                notes="Timed out waiting for task manager to complete test execution",
+            )
+        )
+
     # Generate pre-signed URLs for evidence if available
     if test_execution.evidence:
         generated_urls = (
             generate_presigned_url(url) for url in test_execution.evidence if isinstance(url, str)
         )
         test_execution.evidence = [url for url in generated_urls if url is not None]
-
     return test_execution
 
 
@@ -124,6 +138,13 @@ async def create_test_execution(
 
         # Create payload for task manager job
         payload = {
+            "product": {
+                "url": product.url,
+                "name": product.name,
+                "description": product.description,
+                "documentation": product.documentation,
+                "links_to_documentation": product.links_to_documentation,
+            },
             "test": {
                 "name": test.name,
                 "category": test.category.value,
@@ -157,7 +178,7 @@ async def create_test_execution(
         logger.error(f"Error triggering test execution: {str(e)}")
         # Update the execution with an error status
         await update_test_execution(
-            test_execution_model.id,
+            test_execution_model,
             TestExecutionUpdateSchema(
                 status=TestStatus.ERROR,
                 notes=f"Error triggering test execution: {str(e)}",
@@ -201,7 +222,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
 
             if job_status == JobStatus.not_found:
                 await update_test_execution(
-                    execution_id,
+                    test_execution,
                     TestExecutionUpdateSchema(
                         status=TestStatus.ERROR,
                         notes="Test execution not found",
@@ -214,7 +235,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
             except Exception as e:
                 logger.error(f"Job {task_id} failed: {str(e)}")
                 await update_test_execution(
-                    execution_id,
+                    test_execution,
                     TestExecutionUpdateSchema(
                         status=TestStatus.ERROR,
                         notes=f"{str(e)}",
@@ -222,7 +243,8 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
                 )
                 break
 
-            tracing_data = status_data.get("tracing", {})
+            tracing_data: Dict[str, Any] = {}  # FIXME: add back tracing once SOL-213 solved
+            # tracing_data = status_data.get("tracing", {})
 
             # Extract agent thoughts and actions from the response
             agent_thoughts = status_data.get("agent_thoughts", {})
@@ -241,7 +263,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
             if status_data["status"] not in TestStatus:
                 logger.error(f"Unknown status of test run: {status_data}")
                 await update_test_execution(
-                    execution_id,
+                    test_execution,
                     TestExecutionUpdateSchema(
                         status=TestStatus.ERROR,
                         notes=f"Unknown status of test run: {status_data}",
@@ -259,7 +281,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
             else:
                 # Task failed
                 await update_test_execution(
-                    execution_id,
+                    test_execution,
                     TestExecutionUpdateSchema(
                         status=TestStatus(status_data["status"]),
                         notes=str(status_data.get('error')) if status_data.get('error') else str(status_data.get("results", "")),
@@ -283,7 +305,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
             tzinfo = test_execution.started_at.tzinfo if test_execution.started_at else None
 
             await update_test_execution(
-                execution_id,
+                test_execution,
                 TestExecutionUpdateSchema(
                     status=TestStatus.ERROR,
                     notes="Timed out waiting for task manager to complete test execution",
@@ -295,7 +317,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
 
 
 async def update_test_execution(
-    test_execution_id: UUID4,
+    test_execution: TestExecutionModel,
     test_execution_update: TestExecutionUpdateSchema
 ) -> TestExecutionModel:
     """
@@ -311,9 +333,6 @@ async def update_test_execution(
     Raises:
         HTTPException: If the test execution was not found
     """
-
-    # Get the test execution
-    test_execution = await get_test_execution(test_execution_id)
 
     # Update the fields
     update_data = test_execution_update.model_dump(exclude_unset=True)
