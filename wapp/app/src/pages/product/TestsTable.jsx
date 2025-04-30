@@ -605,7 +605,7 @@ const TestsTable = () => {
           return updated;
         });
       }
-    }, 2000); // Poll every 2 seconds
+    }, 5000); // Poll every 5 seconds
   };
 
   // Function to handle feature creation completion
@@ -1398,9 +1398,9 @@ const TestsTable = () => {
             {selectedTestIds.size > 0 && (
               <button
                 onClick={handleDeleteSelectedTests} // This now opens the modal
-                disabled={isDeleting || hasRunningTests()}
+                disabled={isDeleting}
                 className={`flex items-center px-3 py-1.5 text-sm bg-red-600 text-white rounded-md shadow hover:bg-red-700 transition duration-150 disabled:bg-red-300 disabled:cursor-not-allowed ${isDeleting ? 'cursor-wait' : ''}`}
-                title={isDeleting ? "Deleting..." : hasRunningTests() ? "Cannot delete while tests are running" : "Delete selected tests"}
+                title={isDeleting ? "Deleting..." : "Delete selected tests"}
               >
                 {isDeleting ? (
                   <>
