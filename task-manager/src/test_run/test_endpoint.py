@@ -55,17 +55,6 @@ async def run_test(
         auth_session=auth_session,
     )
 
-    # {
-    #     "agent_thoughts": get_agent_thoughts(history=history),
-    #     "agent_actions": get_agent_actions(history=history),
-    #     "evidence": evidences,
-    #     "status": status.value,
-    #     "results": explanation,
-    #     "tracing": history.get_logs(),
-    #     "error": explanation if status != TestStatus.PASSED else "",
-    #     "traceback": "",
-    # }
-
     result["tracing"] = {}  # deactivated for now
 
     logger.info(f"[{ctx['job_id']}] Ran tests for {test_obj.url}")

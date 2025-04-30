@@ -305,7 +305,7 @@ async def get_test_generation_status(test_id: UUID4) -> dict:
         return {"task_id": str(test_id), "status": TestStatus.ERROR.value}
 
 
-async def poll_test_generation_status(task_id: UUID4, timeout: int = 300, interval: float = 0.5) -> None:
+async def poll_test_generation_status(task_id: UUID4, timeout: int = 900, interval: float = 0.5) -> None:
     attempts = 0
 
     max_attempts = timeout / interval
