@@ -107,8 +107,8 @@ async def get_secret_with_values(secret_id: UUID4) -> SecretWithValues:
         try:
             decrypted_value = encryption_service.decrypt(value.encrypted_value)
             values[value.key] = decrypted_value
-        except ValueError as e:
-            logger.error(f"Failed to decrypt secret value, encountered: {e}")
+        except ValueError:
+            logger.error("Failed to decrypt secret value.")
             raise HTTPException(status_code=500, detail="Failed to decrypt secret value")
 
     # Construct the response

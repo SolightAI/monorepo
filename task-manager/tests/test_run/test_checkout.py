@@ -50,7 +50,7 @@ class TestTickPick():
 
     @pytest.mark.asyncio
     async def test_valid_credit_card(self, task_id: str) -> None:
-        """Test authentication with valid email credentials."""
+        """Test checkout with a valid credit card."""
         await self._run_checkout_test(
             task_id=task_id,
             name="Valid Credit Card",
@@ -62,7 +62,7 @@ class TestTickPick():
 
     @pytest.mark.asyncio
     async def test_invalid_credit_card_incorrect_number(self, task_id: str) -> None:
-        """Test authentication with valid email credentials."""
+        """Test checkout with an invalid credit card."""
         await self._run_checkout_test(
             task_id=task_id,
             name="Invalid Credit Card: Incorrect Number",
@@ -74,7 +74,7 @@ class TestTickPick():
 
     @pytest.mark.asyncio
     async def test_invalid_credit_card_exceeding_velocity_limit(self, task_id: str) -> None:
-        """Test authentication with valid email credentials."""
+        """Test checkout with an invalid credit card that will exceed its velocity limit."""
         await self._run_checkout_test(
             task_id=task_id,
             name="Invalid Credit Card: Exceeding Velocity Limit",
@@ -86,7 +86,7 @@ class TestTickPick():
 
     @pytest.mark.asyncio
     async def test_invalid_credit_card_insufficient_funds(self, task_id: str) -> None:
-        """Test authentication with valid email credentials."""
+        """Test checkout with an invalid credit card that has insufficient funds."""
         await self._run_checkout_test(
             task_id=task_id,
             name="Invalid Credit Card: Insufficient funds",
@@ -98,7 +98,7 @@ class TestTickPick():
 
     @pytest.mark.asyncio
     async def test_invalid_credit_card_invalid_cvc(self, task_id: str) -> None:
-        """Test authentication with valid email credentials."""
+        """Test checkout with an invalid credit card that has an invalid CVC."""
         await self._run_checkout_test(
             task_id=task_id,
             name="Invalid Credit Card: Invalid CVC",
@@ -110,7 +110,7 @@ class TestTickPick():
 
     @pytest.mark.asyncio
     async def test_invalid_credit_card_lost_card(self, task_id: str) -> None:
-        """Test authentication with valid email credentials."""
+        """Test checkout with an invalid credit card that has been reported to be lost."""
         await self._run_checkout_test(
             task_id=task_id,
             name="Invalid Credit Card: Lost Card",
