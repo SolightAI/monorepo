@@ -1,0 +1,8 @@
+requests>=2.32.3
+pydantic==2.10.6
+pydantic_core==2.27.2
+openai==1.70.0
+openai[datalib]
+git+https://github.com/browser-use/browser-use.git@45b9dcc1c2be6c7ffd0520cc4c6e9a398940576a
+langchain==0.3.21
+aws-lambda-typing==2.20.0

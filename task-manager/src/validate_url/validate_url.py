@@ -6,6 +6,7 @@ import logging
 from typing import Any
 from urllib.parse import urlparse
 from langchain_openai import ChatOpenAI
+import requests
 from utils.session_manager import get_redis
 from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
@@ -218,70 +219,26 @@ async def validate_url(
 
     logger.info(f"[{ctx['job_id']}] No cached login page found for {url}, running validation")
 
-    # Initialize browser
-    browser = Browser(
-        config=BrowserConfig(
-            headless=os.getenv("HEADLESS", "true").lower() == "true",
-        )
+    validate_url_endpoint = "http://validate_url_lambda:8080/2015-03-31/functions/function/invocations"
+    dev_mode = os.getenv("DEV_MODE", "false").lower() == "true"
+    
+    payload = {
+        "job_id": ctx['job_id'],
+        "url": url,
+    }
+    
+    if dev_mode:
+        payload = {
+            "body": json.dumps(payload)
+        }
+
+    result = requests.post(
+        validate_url_endpoint,
+        json=payload,
     )
-
-    context = BrowserContext(browser=browser, config=BrowserContextConfig(
-        minimum_wait_page_load_time=1,
-        viewport_expansion=0,
-        wait_between_actions=0,
-    ))
-
-    try:
-        # Setup and run the agent
-        agent = Agent(
-            task=PROMPT,
-            llm=AGENT_CLIENT,
-            initial_actions=[{'go_to_url': {'url': url}}],
-            browser_context=context,
-            use_vision=True,
-            enable_memory=False,
-        )
-
-        history = await agent.run(max_steps=10)
-
-        # Extract the result
-        result = history.final_result()
-        if result is None:
-            # If no final result, default to not found
-            result = "<login_page_detection><found>false</found></login_page_detection>"
-
-        # Parse the result to determine if a login page was found
-        found, login_url, confidence = _extract_result(result)
-
-        # Add detailed debug logging when a login page is found
-        if found and login_url:
-            await save_login_page_to_cache(url, login_url, confidence)
-
-        # Prepare the response
-        response = {
-            "valid": found,
-            "login_url": login_url if found else None,
-            "confidence": confidence,
-            "message": "Login page found successfully" if found else "Login page could not be found",
-            "original_url": url,
-            "source": "validation"
-        }
-
-        return response
-
-    except Exception as e:
-        logger.error(f"[{ctx['job_id']}] Error validating URL: {url} - {str(e)}")
-
-        return {
-            "valid": False,
-            "login_url": None,
-            "confidence": CONFIDENCE_LOW,
-            "message": "An error occurred while validating the URL",
-            "original_url": url,
-            "source": "validation"
-        }
-
-    finally:
-        # Clean up resources
-        await context.close()
-        await browser.close()
+    
+    data = result.json()
+    
+    print(data)
+    
+    return data["body"]

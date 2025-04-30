@@ -4,3 +4,4 @@ name: solight
 include:
   - path: ./wapp/local.docker-compose.yaml
   - path: ./task-manager/local.docker-compose.yaml
+  - path: ./task-manager/lambdas/local.docker-compose.yaml
