@@ -76,6 +76,7 @@ const TestsTable = () => {
 
   // Add a constant for the running status display
   const RUNNING_STATUS = 'Running';
+  const MAX_RETRIES_FEATURE_LOADING = 10; // Maximum number of retries (5 seconds total)
 
   // Fetch secrets when component loads or when product/organization changes
   useEffect(() => {
@@ -1066,13 +1067,10 @@ const TestsTable = () => {
   // Add the checkExistingTaskId function
   const checkExistingTaskId = async () => {
     if (!selectedFeature) return;
-
-    console.log('Checking for existing task ID for feature:', selectedFeature);
     
     try {
       // If "all features" is selected, check all features for ongoing generation
       if (selectedFeature === 'all') {
-        console.log('All features selected, checking all features for ongoing generation');
         
         // Get all features
         const allFeatures = features;
@@ -1084,16 +1082,13 @@ const TestsTable = () => {
           try {
             // Use feature ID to check task-manager status
             const statusData = await getTestGenerationStatus(feature.id);
-            console.log(`Task manager status for feature ${feature.id}:`, statusData);
             
             if (statusData && statusData.status === TEST_STATUS.PENDING) {
-              console.log(`Found ongoing test generation for feature ${feature.id}`);
               ongoingGenerations.push({
                 id: feature.id,
                 name: feature.name
               });
             } else if (statusData && statusData.status === 'error') {
-              console.log(`Test generation error for feature ${feature.id}:`, statusData.error);
               setError(`Test generation failed for feature "${feature.name}": ${statusData.error}`);
             }
           } catch (taskError) {
@@ -1126,10 +1121,8 @@ const TestsTable = () => {
       try {
         // Use feature ID to check task-manager status
         const statusData = await getTestGenerationStatus(selectedFeature);
-        console.log('Task manager status:', statusData);
         
         if (statusData && statusData.status === TEST_STATUS.PENDING) {
-          console.log('Found ongoing test generation in task-manager');
           setIsGeneratingTests(true);
           setGeneratingFeatures([{
             id: selectedFeature,
@@ -1137,7 +1130,6 @@ const TestsTable = () => {
           }]);
           startTestGenerationPolling(selectedFeature);
         } else if (statusData && statusData.status === 'error') {
-          console.log('Test generation error:', statusData.error);
           // Clear any existing polling interval
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
@@ -1148,7 +1140,6 @@ const TestsTable = () => {
           setError(`Test generation failed: ${statusData.error}`);
           setSuccessMessage(null);
         } else if (statusData && statusData.status === 'unknown') {
-          console.log('Task manager returned unknown status, stopping polling');
           // Clear any existing polling interval
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
@@ -1184,12 +1175,9 @@ const TestsTable = () => {
   const startTestGenerationPolling = async (featureId) => {
     if (!featureId) return;
 
-    console.log('Starting test generation polling for feature:', featureId);
-
     try {
       // Clear any existing polling interval
       if (pollingIntervalRef.current) {
-        console.log('Clearing existing polling interval');
         clearInterval(pollingIntervalRef.current);
       }
 
@@ -1198,16 +1186,12 @@ const TestsTable = () => {
       setError(null);
       
       // Start polling for status updates
-      console.log('Setting up new polling interval');
       pollingIntervalRef.current = setInterval(async () => {
-        console.log('Polling for feature:', featureId);
         try {
           const statusData = await getTestGenerationStatus(featureId);
-          console.log('Status data received:', statusData);
           
           // If status is unknown, stop polling and reset all states
           if (statusData.status === 'unknown') {
-            console.log('Received unknown status, stopping polling and resetting states');
             clearInterval(pollingIntervalRef.current);
             pollingIntervalRef.current = null;
             setIsGeneratingTests(false);
@@ -1221,7 +1205,6 @@ const TestsTable = () => {
           
           // If status is no longer pending, stop polling
           if (statusData.status !== TEST_STATUS.PENDING) {
-            console.log('Test generation no longer in progress, stopping polling');
             clearInterval(pollingIntervalRef.current);
             pollingIntervalRef.current = null;
             setIsGeneratingTests(false);
@@ -1265,14 +1248,12 @@ const TestsTable = () => {
 
   // Update the useEffect to use checkExistingTaskId
   useEffect(() => {
-    console.log('useEffect triggered for selectedFeature change');
     let isMounted = true;
     let checkTimeout = null;
 
     const initialize = async () => {
       if (!isMounted) return;
       
-      console.log('Initializing check for existing task ID');
       // Check for existing task ID when component mounts or feature changes
       await checkExistingTaskId();
     };
@@ -1291,7 +1272,6 @@ const TestsTable = () => {
       }
       // Only clear polling interval if component is unmounting
       if (pollingIntervalRef.current) {
-        console.log('Clearing polling interval on unmount');
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
       }
@@ -1300,31 +1280,27 @@ const TestsTable = () => {
 
   // Add a new useEffect for initial mount check
   useEffect(() => {
-    console.log('Initial mount useEffect triggered');
     let isMounted = true;
     let checkTimeout = null;
     let retryCount = 0;
-    const MAX_RETRIES = 10; // Maximum number of retries (5 seconds total)
 
     const initialize = async () => {
       if (!isMounted) return;
       
       // Wait for features to be loaded
       if (features.length === 0) {
-        if (retryCount >= MAX_RETRIES) {
+        if (retryCount >= MAX_RETRIES_FEATURE_LOADING) {
           console.error('Failed to load features after maximum retries');
           setError('Failed to load features. Please refresh the page or try again later.');
           return;
         }
         
-        console.log(`Waiting for features to load... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
         retryCount++;
         // Try again in 500ms
         checkTimeout = setTimeout(initialize, 500);
         return;
       }
       
-      console.log('Features loaded, running initial check for test generation');
       // Run initial check regardless of feature selection
       await checkExistingTaskId();
     };
@@ -1350,8 +1326,6 @@ const TestsTable = () => {
       isHandlingVisibility = true;
 
       try {
-        console.log('Visibility changed, document.hidden:', document.hidden);
-        
         // Clear any existing timeout
         if (visibilityTimeout) {
           clearTimeout(visibilityTimeout);
@@ -1359,7 +1333,6 @@ const TestsTable = () => {
         
         // Only restart polling if we were previously generating tests and have a task ID
         if (!document.hidden && isGeneratingTests && generatingFeatures.length > 0 && !pollingIntervalRef.current) {
-          console.log('Document visible again, restarting polling for feature:', generatingFeatures[0].id);
           // Add a small delay before restarting polling to prevent rapid restarts
           visibilityTimeout = setTimeout(() => {
             try {
