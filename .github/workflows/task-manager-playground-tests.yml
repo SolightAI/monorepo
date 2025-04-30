@@ -97,7 +97,7 @@ jobs:
         mkdir -p ~/.cache/ms-playwright
 
         # Check if Playwright browsers are already installed
-        if [ -d ~/.cache/ms-playwright/firefox* ] || [ -d ~/.cache/ms-playwright/webkit* ] || [ -d ~/.cache/ms-playwright/chromium* ]; then
+        if [ -d ~/.cache/ms-playwright/chromium* ]; then
           echo "Playwright browsers already installed, skipping installation"
           # Just create the container with the existing cache
           docker run --name ${{ env.PLAYWRIGHT_SETUP_IMAGE }} \
