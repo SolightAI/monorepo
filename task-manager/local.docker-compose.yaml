@@ -4,8 +4,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    # deploy:
-    #   replicas: 4
     volumes:
       - ./src/:/app/src
       - ./tests/:/app/tests
