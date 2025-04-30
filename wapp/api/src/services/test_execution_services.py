@@ -257,7 +257,7 @@ async def _check_status_from_redis(test_execution: TestExecutionModel) -> TestEx
     evidence_list = status_data.get("evidence") or []
 
     # Update the test execution based on the task status
-    if status_data["status"] not in TestStatus:
+    if status_data["status"] not in [status.value for status in TestStatus]:
         logger.error(f"Unknown status of test run: {status_data}")
         return TestExecutionUpdateSchema(
             status=TestStatus.ERROR,
