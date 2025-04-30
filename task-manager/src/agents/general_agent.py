@@ -109,7 +109,7 @@ async def general_agent(
         tools=TOOLS,
     )
 
-    logger.info(f"[{task_id}] General agent finished running test {test.name}")
+    logger.info(f"[{task_id}] General agent finished running test.")
 
     additional_healthchecks_results = await run_additional_healthcheck(
         task_id=task_id,
@@ -117,7 +117,7 @@ async def general_agent(
         existing_session=session_data,
     )
 
-    logger.info(f"[{task_id}] General agent finished running additional healthchecks for test {test.name}")
+    logger.info(f"[{task_id}] General agent finished running additional healthchecks.")
 
     status, explanation = check_final_test_result(
         task_id=task_id,
@@ -126,7 +126,7 @@ async def general_agent(
         healthcheck_results=additional_healthchecks_results,
     )
 
-    logger.info(f"[{task_id}] General agent finished checking final test result for test {test.name}")
+    logger.info(f"[{task_id}] General agent finished checking final test result.")
 
     return {
         "agent_thoughts": get_agent_thoughts(history=history),

@@ -58,8 +58,6 @@ logger = getLogger(__name__)
 
 def _select_login_method(login_method: LoginMethod, secrets: list[dict[str, dict[str, str]]]) -> LoginMethod:
 
-    logger.info(f"Trying to select login method from: {secrets}")
-
     if login_method != LoginMethod.ANY:
         return login_method
 
