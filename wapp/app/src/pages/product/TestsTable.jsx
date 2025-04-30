@@ -13,7 +13,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import axios from 'axios';
-import { getTestsByFeature, getTestsByEpic, getTestsByProduct, deleteTest } from '@/services/testService';
+import { getTestsByFeature, getTestsByEpic, getTestsByProduct, deleteTest, getTestGenerationStatus } from '@/services/testService';
 import { getAllEpics, getFeaturesByEpic } from '@/services/productService';
 import { createTestExecution, getTestExecution, getLatestTestExecutions } from '@/services/testExecutionService';
 import { handleFeatureTestGeneration } from '@/services/testGenerationService';
@@ -1261,19 +1261,6 @@ const TestsTable = () => {
       setGeneratingFeatures([]);
       setSuccessMessage(null);
       setError('Error starting test generation status check. Please try again.');
-    }
-  };
-
-  // Update the getTestGenerationStatus function
-  const getTestGenerationStatus = async (featureId) => {
-    try {
-      const response = await axios.get(`${API_URL}/tests/generate/status/${featureId}`, {
-        withCredentials: true
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error getting test generation status:', error);
-      throw error;
     }
   };
 
