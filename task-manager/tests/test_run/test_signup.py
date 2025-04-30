@@ -27,7 +27,7 @@ class TestTickPick():
         result = await signup_agent(
             task_id=task_id,
             test=test,
-            secrets={},
+            secrets=[],
             auth_session={},
         )
 
@@ -51,7 +51,7 @@ class TestTickPick():
         result = await signup_agent(
             task_id=task_id,
             test=test,
-            secrets={},
+            secrets=[],
             auth_session={},
         )
 
@@ -75,7 +75,7 @@ class TestTickPick():
         result = await signup_agent(
             task_id=task_id,
             test=test,
-            secrets={},
+            secrets=[],
             auth_session={},
         )
 

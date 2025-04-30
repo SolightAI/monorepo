@@ -1,3 +1,6 @@
+import asyncio
+import functools
+
 from utils.dto import Test, Product
 from typing import Optional, Any
 from logging import getLogger
@@ -9,16 +12,28 @@ from fixtures.authentification.get_auth_session import get_auth_session
 logger = getLogger(__name__)
 
 
+async def run_test_entrypoint(ctx, product, test, secrets):
+    blocking = functools.partial(run_test, ctx, product, test, secrets)
+
+    loop = asyncio.get_running_loop()
+
+    result = await loop.run_in_executor(ctx['pool'], blocking)
+
+    logger.info(f"[{ctx['job_id']}] Test {test['name']} finished running")
+
+    return result
+
+
 async def run_test(
     ctx: dict[Any, Any],
     product: dict[str, Any],  # used to get the login url
     test: dict[str, Any],
-    secrets: Optional[dict[str, dict[str, str]]] = None,
+    secrets: Optional[list[dict[str, Any]]] = None,
 ) -> dict[str, Any]:
 
     product_obj: Product = Product(**product)
     test_obj: Test = Test(**test)
-    decrypted_secrets = {}
+    decrypted_secrets: list[dict[str, Any]] = list()
 
     if secrets:
         decrypted_secrets = crypto_service.decrypt_secrets(secrets)
@@ -39,6 +54,19 @@ async def run_test(
         secrets=decrypted_secrets,
         auth_session=auth_session,
     )
+
+    # {
+    #     "agent_thoughts": get_agent_thoughts(history=history),
+    #     "agent_actions": get_agent_actions(history=history),
+    #     "evidence": evidences,
+    #     "status": status.value,
+    #     "results": explanation,
+    #     "tracing": history.get_logs(),
+    #     "error": explanation if status != TestStatus.PASSED else "",
+    #     "traceback": "",
+    # }
+
+    result["tracing"] = {}  # deactivated for now
 
     logger.info(f"[{ctx['job_id']}] Ran tests for {test_obj.url}")
 

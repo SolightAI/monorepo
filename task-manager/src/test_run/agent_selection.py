@@ -2,7 +2,7 @@ import re
 import typing
 import types
 
-from typing import Callable
+from typing import Any, Callable
 from utils.dto import Test
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
@@ -17,7 +17,7 @@ import traceback
 logger = getLogger(__name__)
 
 
-AGENTS = {
+AGENTS: dict[Callable, Callable] = {
     general_agent: get_parameters_for_general_agent,
     login_agent: get_parameters_for_login_agent,
     signup_agent: get_parameters_for_signup_agent,
@@ -217,9 +217,9 @@ def select_agent_to_use(test: Test) -> Callable:
         )
     )
 
-    response = LLM_CLIENT.invoke([query])
+    response: str = LLM_CLIENT.invoke([query]).content  # type: ignore
 
-    agent_name = parse_agent_selection(response.content)
+    agent_name = parse_agent_selection(response)
 
     for _agent in AGENTS.keys():
         if _agent.__name__ == agent_name:
@@ -231,7 +231,7 @@ def select_agent_to_use(test: Test) -> Callable:
 async def select_and_call_agent(
     task_id: str,
     test: Test,
-    secrets: dict[str, dict[str, str]],
+    secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],
 ) -> dict:
 

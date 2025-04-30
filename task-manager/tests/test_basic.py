@@ -20,7 +20,7 @@ def task_id() -> str:
     return str(uuid4())
 
 
-def create_playwright_script():
+def create_playwright_script() -> str:
     """Create a temporary script file for running playwright sessions."""
     script = """
 import asyncio

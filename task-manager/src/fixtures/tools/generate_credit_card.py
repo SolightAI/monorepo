@@ -49,7 +49,7 @@ def generate_credit_card(
     if type not in card_numbers_by_type:
         raise ValueError(f"Invalid credit card type. Expected one of {card_numbers_by_type.keys()}")
 
-    if error_type is not None and error_type not in card_numbers_by_error_type:
+    if error_type is not None and error_type != "none" and error_type not in card_numbers_by_error_type:
         raise ValueError(f"Invalid error type. Expected one of {card_numbers_by_error_type.keys()}")
 
     base_output["number"] = card_numbers_by_type[type]

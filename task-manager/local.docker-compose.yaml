@@ -4,13 +4,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    deploy:
-      replicas: 4
+    # deploy:
+    #   replicas: 4
     volumes:
       - ./src/:/app/src
       - ./tests/:/app/tests
       - playwright_browsers:/tmp/playwright-browsers
     environment:
+      - ANONYMIZED_TELEMETRY=false
       - DEV_MODE=true
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - AZURE_OPENAI_KEY=${AZURE_OPENAI_KEY}

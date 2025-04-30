@@ -1,3 +1,4 @@
+from typing import Any
 from logging import getLogger
 from utils.session_manager import get_cached_session, cache_session, update_session_timestamp
 from fixtures.authentification.login_to_website import login_to_website
@@ -8,18 +9,23 @@ from fixtures.authentification.has_required_secrets import LoginMethod
 logger = getLogger(__name__)
 
 
-def get_user_id(secrets: dict[str, dict[str, str]]) -> str | None:
-    if LoginMethod.EMAIL.value in secrets and "username" in secrets[LoginMethod.EMAIL.value]:
-        return secrets[LoginMethod.EMAIL.value]["username"]
-    elif LoginMethod.GOOGLE.value in secrets and "username" in secrets[LoginMethod.GOOGLE.value]:
-        return secrets[LoginMethod.GOOGLE.value]["username"]
+def get_user_id(secrets: list[dict[str, Any]]) -> str | None:
+
+    for secret in secrets:
+
+        if secret["category"] == LoginMethod.EMAIL.value and "username" in secret["values"]:
+            return secret["values"]["username"]
+
+        elif secret["category"] == LoginMethod.GOOGLE.value and "username" in secret["values"]:
+            return secret["values"]["username"]
+
     return None
 
 
 async def get_auth_session(
     task_id: str,
     url: str,
-    secrets: dict[str, dict[str, str]],
+    secrets: list[dict[str, Any]],
     reuse_session: bool = True,
 ) -> dict[str, dict[str, str]]:
 

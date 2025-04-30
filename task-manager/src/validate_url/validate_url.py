@@ -2,6 +2,8 @@ import os
 import re
 import json
 import logging
+import asyncio
+import functools
 
 from typing import Any
 from urllib.parse import urlparse
@@ -185,6 +187,12 @@ def _extract_result(result: str) -> tuple[bool, str, str]:
         confidence = confidence_match.group(1).strip().lower()
 
     return found, login_url, confidence
+
+
+async def validate_url_entrypoint(ctx, url, use_cache):
+    blocking = functools.partial(validate_url, ctx, url, use_cache)
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(ctx['pool'], blocking)
 
 
 async def validate_url(
