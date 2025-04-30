@@ -1,6 +1,8 @@
 import re
 import typing
 import types
+import enum
+import traceback
 
 from typing import Any, Callable
 from utils.dto import Test
@@ -9,9 +11,8 @@ from langchain_core.messages import HumanMessage
 from agents.general_agent import general_agent, get_parameters_for_general_agent
 from agents.login_agent import login_agent, get_parameters_for_login_agent
 from agents.signup_agent import signup_agent, get_parameters_for_signup_agent
-from inspect import getfullargspec
+from inspect import getfullargspec, isclass
 from logging import getLogger
-import traceback
 
 
 logger = getLogger(__name__)
@@ -191,9 +192,9 @@ def get_type_description(_type: type) -> str:
             optional_indicator = " (Optional)" if type(None) in args else ""
             description = f"Name: Union{optional_indicator}\nType: typing.Union\nPossible Types:{new_line}{new_line.join(type_descriptions)}"
 
-        # elif isclass(_type) and isinstance(_type, type) and issubclass(_type, enum.Enum):
-        #     description = f"Name: {_type.__name__}\nType: {type(_type)}\nDescription: {_type.__doc__}"
-        #     description += f"\nOptions: {' '.join([f'{new_line}- {name}: {value.value}' for (name, value) in _type.__members__.items()])}"
+        elif isclass(_type) and isinstance(_type, type) and issubclass(_type, enum.Enum):
+            description = f"Name: {_type.__name__}\nType: {type(_type)}\nDescription: {_type.__doc__}"
+            description += f"\nOptions: {' '.join([f'{new_line}- {name}: {value.value}' for (name, value) in _type.__members__.items()])}"
 
         else:
             description = f"Name: {_type.__name__}\nType: {type(_type)}\nDescription: {_type.__doc__}"
