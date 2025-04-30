@@ -6,7 +6,7 @@ from src.utils.dto import Test, TestCategory, TestStatus
 
 class TestTickPick():
 
-    url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=856526678&quantity=1&listingType=TEVO&price=9&dt=f&dv=13&e=6576178&s=PLB115&r=19"
+    url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=856731695&quantity=1&listingType=TEVO&price=164&dt=f&dv=13&e=6574558&r=W&s=J"
 
     async def _run_checkout_test(
         self,
@@ -19,13 +19,14 @@ class TestTickPick():
     ) -> None:
         """Helper method to run a checkout test case."""
         steps = f"""
-        1. Wait for the page to load
-        2. Select (new) credit card as payment method at the top of the page
-        {credit_card_step}
-        4. Scroll down and make sure contact informations are filled. If they are not filled, fill them yourself. If you need to enter a phone number, enter an US one with the +1 country code.
-        5. Scroll down and make sure "No, don't make my ticket reimbursable" is selected
-        6. Scroll down and click "Place order"
-        7. Wait for the "Processing" to finish
+1. Wait for the page to load
+2. At the top of the page, fill a random email address as "Buyer Information".
+3. Select (new) credit card as payment method at the top of the page
+{credit_card_step}
+5. Scroll down and make sure contact informations are filled. If they are not filled, fill them yourself. If you need to enter a phone number, enter an US one with the +1 country code.
+6. Scroll down and make sure "No, don't make my ticket reimbursable" is selected
+7. Scroll down and click "Place order"
+8. Wait for the "Processing" to finish until you have a final message
         """.strip()
 
         test = Test(
@@ -55,8 +56,8 @@ class TestTickPick():
             task_id=task_id,
             name="Valid Credit Card",
             description="Verify that the user can use a credit card as valid payment method.",
-            credit_card_step="3. Enter a valid credit card",
-            assertions="* The payment must succeed",
+            credit_card_step="4. Enter a valid credit card",
+            assertions="* The payment must succeed by displaying 'Order Placed' message",
             expected_status=TestStatus.PASSED,
         )
 
@@ -67,7 +68,7 @@ class TestTickPick():
             task_id=task_id,
             name="Invalid Credit Card: Incorrect Number",
             description="Verify that the user cannot use an invalid payment method.",
-            credit_card_step="3. Enter a credit card that has an incorrect number",
+            credit_card_step="4. Enter a credit card that has an incorrect number",
             assertions='* The following error must be displayed after trying to place the order : "Order Not Processed. The credit card number you entered is invalid."',
             expected_status=TestStatus.PASSED,
         )
@@ -79,7 +80,7 @@ class TestTickPick():
             task_id=task_id,
             name="Invalid Credit Card: Exceeding Velocity Limit",
             description="Verify that the user cannot use an invalid payment method.",
-            credit_card_step="3. Enter a credit card that will exceed its velocity limit",
+            credit_card_step="4. Enter a credit card that will exceed its velocity limit",
             assertions='* The following error must be displayed after trying to place the order : "We encountered an error processing your order. Please try again."',
             expected_status=TestStatus.PASSED,
         )
@@ -91,7 +92,7 @@ class TestTickPick():
             task_id=task_id,
             name="Invalid Credit Card: Insufficient funds",
             description="Verify that the user cannot use an invalid payment method.",
-            credit_card_step="3. Enter a credit card with insufficient funds",
+            credit_card_step="4. Enter a credit card with insufficient funds",
             assertions='* The following error must be displayed after trying to place the order : "We encountered an error processing your order. Please try again."',
             expected_status=TestStatus.PASSED,
         )
@@ -103,7 +104,7 @@ class TestTickPick():
             task_id=task_id,
             name="Invalid Credit Card: Invalid CVC",
             description="Verify that the user cannot use an invalid payment method.",
-            credit_card_step="3. Enter a credit card that has an invalid CVC.",
+            credit_card_step="4. Enter a credit card that has an invalid CVC.",
             assertions='* The following error must be displayed after trying to place the order : "We encountered an error processing your order. Please try again."',
             expected_status=TestStatus.PASSED,
         )
@@ -115,7 +116,7 @@ class TestTickPick():
             task_id=task_id,
             name="Invalid Credit Card: Lost Card",
             description="Verify that the user cannot use an invalid payment method.",
-            credit_card_step="3. Enter a credit card that has been reported to be lost.",
+            credit_card_step="4. Enter a credit card that has been reported to be lost.",
             assertions='* The following error must be displayed after trying to place the order : "We encountered an error processing your order. Please try again."',
             expected_status=TestStatus.PASSED,
         )

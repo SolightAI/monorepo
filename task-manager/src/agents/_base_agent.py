@@ -680,8 +680,8 @@ async def run_agent(
             use_vision=False,
             enable_memory=False,
 
-            planner_llm=PLANNER_CLIENT,
-            use_vision_for_planner=True,
+            # planner_llm=PLANNER_CLIENT,
+            # use_vision_for_planner=True,
 
             initial_actions=[{'go_to_url': {'url': url}}, {'go_to_url': {'url': url}}],  # twice cause it some case we have a redirect at the first try
             sensitive_data=sensitive_data,
@@ -703,7 +703,6 @@ async def run_agent(
         raise e
 
     finally:
-
         await context.close()
         await browser.close()
 
