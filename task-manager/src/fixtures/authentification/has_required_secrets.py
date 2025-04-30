@@ -27,15 +27,30 @@ REQUIRED_FIELDS = {
 
 def has_required_secrets(login_method: LoginMethod, secrets: list[dict[str, Any]]) -> tuple[bool, str | None]:
 
-    if login_method.value not in [secret['category'] for secret in secrets]:
+    # Filter secrets matching the login method category
+    matching_secrets = [s for s in secrets if s.get('category') == login_method.value]
+
+    if not matching_secrets:
         return False, f"No secrets found for {login_method.name}"
 
-    for secret in secrets:
-        if secret['category'] == login_method.value:
-            if not all(field in secret['values'] for field in REQUIRED_FIELDS[login_method.value]):
-                return False, f"Missing required fields ({', '.join(REQUIRED_FIELDS[login_method.value])}) for {login_method.name}. Found: {', '.join(secret['values'].keys())}"
+    # Check if this login method has defined required fields
+    if login_method.value not in REQUIRED_FIELDS:
+        # If no fields are defined as required, finding a matching category is enough
+        return True, None
 
-    # if not all(field in [ secret['values'] for secret in secrets if secret['category'] == login_method.value] for field in REQUIRED_FIELDS[login_method.value]):
-    #     return False, f"Missing required fields ({', '.join(REQUIRED_FIELDS[login_method.value])}) for {login_method.name}. Found: {', '.join([secret['values'] for secret in secrets if secret['category'] == login_method.value])}"
+    required_fields = REQUIRED_FIELDS[login_method.value]
 
-    return True, None
+    # Check if any matching secret contains all required fields
+    for secret in matching_secrets:
+        secret_values = secret.get('values', {})
+        if all(field in secret_values for field in required_fields):
+            # Found at least one secret with all required fields
+            return True, None
+
+    # If loop completes, none of the matching secrets had all required fields
+    # Construct a helpful error message showing required vs found fields across all matching secrets
+    fields_found = set()
+    for secret in matching_secrets:
+        fields_found.update(secret.get('values', {}).keys())
+
+    return False, f"No secret for {login_method.name}"
