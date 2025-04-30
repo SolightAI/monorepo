@@ -2,6 +2,7 @@ import os
 import asyncio
 import logging
 
+from typing import Any
 from concurrent import futures
 from arq.worker import run_worker, func
 from arq.connections import RedisSettings
@@ -13,10 +14,10 @@ from validate_url.validate_url import validate_url
 logger = logging.getLogger(__name__)
 
 
-MAX_JOBS = 4
+MAX_JOBS = int(os.getenv("MAX_JOBS", 4))
 
 
-async def startup(ctx):
+async def startup(ctx: dict[str, Any]) -> None:
     ctx['pool'] = futures.ProcessPoolExecutor(
         max_workers=MAX_JOBS,  # one per job
         max_tasks_per_child=1
