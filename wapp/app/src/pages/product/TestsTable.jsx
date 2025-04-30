@@ -57,6 +57,7 @@ const TestsTable = () => {
   const featureDropdownRef = useRef(null);
   const [isGeneratingTests, setIsGeneratingTests] = useState(false);
   const [testGenerationTaskId, setTestGenerationTaskId] = useState(null);
+  const [generatingFeatures, setGeneratingFeatures] = useState([]); // Change to array of features
   const pollingIntervalRef = useRef(null);
   const [runningTests, setRunningTests] = useState({}); // Track tests that are currently running
   const testPollingIntervalsRef = useRef({}); // Track polling intervals for individual tests
@@ -1065,11 +1066,67 @@ const TestsTable = () => {
 
   // Add the checkExistingTaskId function
   const checkExistingTaskId = async () => {
-    if (!selectedFeature || selectedFeature === 'all') return;
+    if (!selectedFeature) return;
 
     console.log('Checking for existing task ID for feature:', selectedFeature);
     
     try {
+      // If "all features" is selected, check all features for ongoing generation
+      if (selectedFeature === 'all') {
+        console.log('All features selected, checking all features for ongoing generation');
+        
+        // Get all features
+        const allFeatures = features;
+        console.log('All features:', allFeatures);
+        
+        const ongoingGenerations = [];
+        
+        // Check each feature for ongoing generation
+        for (const feature of allFeatures) {
+          try {
+            // Use feature ID as task ID to check task-manager status
+            const taskManagerResponse = await axios.get(`${API_URL}/tests/generate/status/${feature.id}`, {
+              withCredentials: true
+            });
+            console.log(`Task manager status for feature ${feature.id}:`, taskManagerResponse.data);
+            
+            if (taskManagerResponse.data && taskManagerResponse.data.status === TEST_STATUS.PENDING) {
+              console.log(`Found ongoing test generation for feature ${feature.id}`);
+              ongoingGenerations.push({
+                id: feature.id,
+                name: feature.name,
+                taskId: feature.id
+              });
+            } else if (taskManagerResponse.data && taskManagerResponse.data.status === 'error') {
+              console.log(`Test generation error for feature ${feature.id}:`, taskManagerResponse.data.error);
+              setError(`Test generation failed for feature "${feature.name}": ${taskManagerResponse.data.error}`);
+            }
+          } catch (taskError) {
+            console.error(`Error checking task-manager status for feature ${feature.id}:`, taskError);
+            // Continue checking other features
+          }
+        }
+
+        // Update state based on ongoing generations
+        if (ongoingGenerations.length > 0) {
+          setIsGeneratingTests(true);
+          setGeneratingFeatures(ongoingGenerations);
+          // Start polling for each feature
+          ongoingGenerations.forEach(feature => {
+            startTestGenerationPolling(feature.id);
+          });
+        } else {
+          setIsGeneratingTests(false);
+          setGeneratingFeatures([]);
+          // Clear any existing polling intervals
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+        }
+        return;
+      }
+
       // Get current tests for the feature
       const currentTests = await getTestsByFeature(selectedFeature);
       console.log('Current tests for feature:', currentTests);
@@ -1139,6 +1196,17 @@ const TestsTable = () => {
             setIsGeneratingTests(true);
             setTestGenerationTaskId(selectedFeature);
             startTestGenerationPolling(selectedFeature);
+          } else if (taskManagerResponse.data && taskManagerResponse.data.status === 'error') {
+            console.log('Test generation error:', taskManagerResponse.data.error);
+            // Clear any existing polling interval
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
+            setIsGeneratingTests(false);
+            setTestGenerationTaskId(null);
+            setError(`Test generation failed: ${taskManagerResponse.data.error}`);
+            setSuccessMessage(null);
           } else if (taskManagerResponse.data && taskManagerResponse.data.status === 'unknown') {
             console.log('Task manager returned unknown status, stopping polling');
             // Clear any existing polling interval
@@ -1334,7 +1402,40 @@ const TestsTable = () => {
         pollingIntervalRef.current = null;
       }
     };
-  }, [selectedFeature]); // Remove features from dependency array
+  }, [selectedFeature]); // Keep selectedFeature dependency
+
+  // Add a new useEffect for initial mount check
+  useEffect(() => {
+    console.log('Initial mount useEffect triggered');
+    let isMounted = true;
+    let checkTimeout = null;
+
+    const initialize = async () => {
+      if (!isMounted) return;
+      
+      // Wait for features to be loaded
+      if (features.length === 0) {
+        console.log('Waiting for features to load...');
+        // Try again in 500ms
+        checkTimeout = setTimeout(initialize, 500);
+        return;
+      }
+      
+      console.log('Features loaded, running initial check for test generation');
+      // Run initial check regardless of feature selection
+      await checkExistingTaskId();
+    };
+
+    // Start the initialization process
+    initialize();
+
+    return () => {
+      isMounted = false;
+      if (checkTimeout) {
+        clearTimeout(checkTimeout);
+      }
+    };
+  }, [features]); // Add features as a dependency
 
   // Add a separate useEffect for handling visibility changes
   useEffect(() => {
@@ -1514,14 +1615,21 @@ const TestsTable = () => {
             {isGeneratingTests && (
               <div className="flex items-center mb-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
-                <p className="font-medium">Test Generation in Progress</p>
+                <p className="font-medium">
+                  Test Generation in Progress
+                  {generatingFeatures.length > 0 && selectedFeature === 'all' && (
+                    <span className="ml-2 text-blue-600">
+                      for features: {generatingFeatures.map(f => `"${f.name}"`).join(', ')}
+                    </span>
+                  )}
+                </p>
               </div>
             )}
             <p>{successMessage}</p>
           </div>
-          {isGeneratingTests && testGenerationTaskId && (
+          {isGeneratingTests && generatingFeatures.length > 0 && (
             <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded ml-2 whitespace-nowrap">
-              Task ID: {testGenerationTaskId.substring(0, 8)}...
+              {generatingFeatures.length} feature{generatingFeatures.length > 1 ? 's' : ''} in progress
             </div>
           )}
         </div>
