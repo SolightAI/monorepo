@@ -101,7 +101,7 @@ class CryptoService:
             secrets: List of secrets to encrypt
 
         Returns:
-            List of encrypted secrets, or None if encryption was not performed or failed
+            List of encrypted secrets
         """
 
         if not secrets:
