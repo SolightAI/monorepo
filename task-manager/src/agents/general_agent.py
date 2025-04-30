@@ -54,7 +54,7 @@ logger = getLogger(__name__)
 def get_parameters_for_general_agent(
     task_id: str,
     test: Test,
-    secrets: dict[str, dict[str, str]],
+    secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
     return {
