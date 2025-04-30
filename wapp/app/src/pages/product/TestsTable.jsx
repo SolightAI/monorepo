@@ -1076,7 +1076,6 @@ const TestsTable = () => {
         
         // Get all features
         const allFeatures = features;
-        console.log('All features:', allFeatures);
         
         const ongoingGenerations = [];
         
@@ -1304,13 +1303,22 @@ const TestsTable = () => {
     console.log('Initial mount useEffect triggered');
     let isMounted = true;
     let checkTimeout = null;
+    let retryCount = 0;
+    const MAX_RETRIES = 10; // Maximum number of retries (5 seconds total)
 
     const initialize = async () => {
       if (!isMounted) return;
       
       // Wait for features to be loaded
       if (features.length === 0) {
-        console.log('Waiting for features to load...');
+        if (retryCount >= MAX_RETRIES) {
+          console.error('Failed to load features after maximum retries');
+          setError('Failed to load features. Please refresh the page or try again later.');
+          return;
+        }
+        
+        console.log(`Waiting for features to load... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+        retryCount++;
         // Try again in 500ms
         checkTimeout = setTimeout(initialize, 500);
         return;
@@ -1341,23 +1349,32 @@ const TestsTable = () => {
       if (isHandlingVisibility) return; // Prevent multiple simultaneous handlers
       isHandlingVisibility = true;
 
-      console.log('Visibility changed, document.hidden:', document.hidden);
-      
-      // Clear any existing timeout
-      if (visibilityTimeout) {
-        clearTimeout(visibilityTimeout);
-      }
-      
-      // Only restart polling if we were previously generating tests and have a task ID
-      if (!document.hidden && isGeneratingTests && generatingFeatures.length > 0 && !pollingIntervalRef.current) {
-        console.log('Document visible again, restarting polling for feature:', generatingFeatures[0].id);
-        // Add a small delay before restarting polling to prevent rapid restarts
-        visibilityTimeout = setTimeout(() => {
-          startTestGenerationPolling(generatingFeatures[0].id);
+      try {
+        console.log('Visibility changed, document.hidden:', document.hidden);
+        
+        // Clear any existing timeout
+        if (visibilityTimeout) {
+          clearTimeout(visibilityTimeout);
+        }
+        
+        // Only restart polling if we were previously generating tests and have a task ID
+        if (!document.hidden && isGeneratingTests && generatingFeatures.length > 0 && !pollingIntervalRef.current) {
+          console.log('Document visible again, restarting polling for feature:', generatingFeatures[0].id);
+          // Add a small delay before restarting polling to prevent rapid restarts
+          visibilityTimeout = setTimeout(() => {
+            try {
+              startTestGenerationPolling(generatingFeatures[0].id);
+            } finally {
+              isHandlingVisibility = false;
+            }
+          }, 500);
+        }
+      } catch (error) {
+        console.error('Error handling visibility change:', error);
+      } finally {
+        if (!visibilityTimeout) {
           isHandlingVisibility = false;
-        }, 500);
-      } else {
-        isHandlingVisibility = false;
+        }
       }
     };
 

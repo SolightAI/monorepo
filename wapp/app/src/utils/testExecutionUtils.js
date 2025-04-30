@@ -58,8 +58,8 @@ export const getStatusInfo = (status) => {
  * @returns {JSX.Element} The icon component for the status
  */
 export const getStatusIconLarge = (status) => {
-  if (!status) return null;
-  console.log('getStatusIconLarge', status);
+  if (!status) return <Clock size={20} className="text-gray-400" />;
+  
   switch (status) {
     case TEST_STATUS.PASSED:
       return <CheckCircle size={20} className="text-green-500" />;
