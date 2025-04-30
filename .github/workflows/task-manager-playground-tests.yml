@@ -44,7 +44,7 @@ jobs:
       TICKPICK_USERNAME: ${{ secrets.TICKPICK_USERNAME }}
       TICKPICK_PASSWORD: ${{ secrets.TICKPICK_PASSWORD }}
       S3_BUCKET_NAME: task-manager-github-actions
-      AWS_ENDPOINT_URL: https://minio.internal.solight.ai/browser/task-manager-github-actions
+      AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       # Create unique identifiers for this run
