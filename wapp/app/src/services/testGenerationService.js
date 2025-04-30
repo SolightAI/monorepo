@@ -113,7 +113,6 @@ export const handleFeatureTestGeneration = async (
         if (pollingIntervalId) {
             clearInterval(pollingIntervalId);
             pollingIntervalId = null;
-            console.log(`Cleaned up polling interval for Feature ${featureId}`);
         }
     };
 };

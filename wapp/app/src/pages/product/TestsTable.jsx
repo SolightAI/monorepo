@@ -1265,7 +1265,6 @@ const TestsTable = () => {
 
     // Cleanup function
     return () => {
-      console.log('Cleanup function called');
       isMounted = false;
       if (checkTimeout) {
         clearTimeout(checkTimeout);
