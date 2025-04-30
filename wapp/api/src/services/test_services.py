@@ -6,7 +6,7 @@ import traceback
 from fastapi import HTTPException
 from dto.models import Test as TestModel, TestSecret as TestSecretModel, Secret as SecretModel
 from dto.schemas import TestCreate as TestCreateSchema, TestStatus, TestUpdate as TestUpdateSchema
-from typing import List, Dict
+from typing import List, Dict, Any
 from uuid import UUID
 from services.product_services import get_product_by_url_path
 from services.feature_services import get_feature
@@ -217,7 +217,7 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
     # Get user stories for this feature
     await feature.fetch_related("user_stories")
 
-    payload = {
+    payload: dict[str, Any] = {
         'feature': {
             'id': str(feature.id),
             'name': feature.name,
@@ -244,7 +244,7 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
     )
 
     if encrypted_secrets:
-        payload['secrets'] = {k.value: v for k, v in encrypted_secrets.items()}
+        payload['secrets'] = encrypted_secrets
 
     job = await redis.enqueue_job('generate_tests', **payload, _job_id=str(feature_id))
     # Job already exists, retrieve it
@@ -305,7 +305,7 @@ async def get_test_generation_status(test_id: UUID4) -> dict:
         return {"task_id": str(test_id), "status": TestStatus.ERROR.value}
 
 
-async def poll_test_generation_status(task_id: UUID4, timeout: int = 300, interval: float = 0.5) -> None:
+async def poll_test_generation_status(task_id: UUID4, timeout: int = 900, interval: float = 0.5) -> None:
     attempts = 0
 
     max_attempts = timeout / interval

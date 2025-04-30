@@ -3,6 +3,7 @@ import logging
 
 from fixtures.authentification.get_auth_session import get_auth_session
 from test_auth_session import valid_username_password_credentials
+from typing import Any
 
 
 # Auth paths in the playground
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.mark.asyncio
-async def test_privacy_banner_email_password_simple(task_id: str, valid_username_password_credentials: dict, playground_base_url: str) -> None:
+async def test_privacy_banner_email_password_simple(task_id: str, valid_username_password_credentials: list[dict[str, Any]], playground_base_url: str) -> None:
     """Test authentication with valid username/password on the simple login page."""
     url = f"{playground_base_url}{BANNER_EMAIL_PASSWORD_SIMPLE_PATH}"
 
@@ -35,7 +36,7 @@ async def test_privacy_banner_email_password_simple(task_id: str, valid_username
 
 
 @pytest.mark.asyncio
-async def test_privacy_modal_email_password_simple(task_id: str, valid_username_password_credentials: dict, playground_base_url: str) -> None:
+async def test_privacy_modal_email_password_simple(task_id: str, valid_username_password_credentials: list[dict[str, Any]], playground_base_url: str) -> None:
     """Test authentication with valid username/password on the simple login page."""
     url = f"{playground_base_url}{MODAL_EMAIL_PASSWORD_SIMPLE_PATH}"
 

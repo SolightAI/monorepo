@@ -6,7 +6,7 @@ import asyncio
 import logging
 
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Any
 from arq.jobs import Job, JobStatus
 from fastapi import HTTPException, BackgroundTasks
 from pydantic import UUID4
@@ -24,10 +24,13 @@ from services.secret_services import get_encrypted_secrets
 from utils.redis_manager import get_redis_pool
 
 
+MAX_WAITING_TIME_FOR_TEST_EXECUTION_IN_SECONDS = 60 * 60  # 1 hour
+
+
 logger = logging.getLogger(__name__)
 
 
-async def get_test_execution(test_execution_id: UUID4) -> TestExecutionModel:
+async def get_test_execution(test_execution_id: UUID4 | str) -> TestExecutionModel:
     """
     Get a test execution by ID.
 
@@ -45,13 +48,32 @@ async def get_test_execution(test_execution_id: UUID4) -> TestExecutionModel:
     if not test_execution:
         raise HTTPException(status_code=404, detail="Test execution not found")
 
+    # if started more than MAX_WAITING_TIME_FOR_TEST_EXECUTION_IN_SECONDS minutes ago, set status to timed out
+    tzinfo = test_execution.started_at.tzinfo if test_execution.started_at else None
+    if test_execution.status == TestStatus.PENDING.value and test_execution.started_at and (datetime.now(tzinfo) - test_execution.started_at).total_seconds() > MAX_WAITING_TIME_FOR_TEST_EXECUTION_IN_SECONDS:
+        await update_test_execution(
+            test_execution,
+            TestExecutionUpdateSchema(
+                status=TestStatus.ERROR,
+                ended_at=datetime.now(tzinfo),
+                notes="Default timeout reached waiting for task manager to complete test execution",
+            )
+        )
+        return await get_test_execution(test_execution_id)
+
+    # Check if the test execution is complete
+    if test_execution.status == TestStatus.PENDING.value:
+        update_data = await _check_status_from_redis(test_execution)
+        if update_data:
+            await update_test_execution(test_execution, update_data)
+            return await get_test_execution(test_execution_id)
+
     # Generate pre-signed URLs for evidence if available
     if test_execution.evidence:
         generated_urls = (
             generate_presigned_url(url) for url in test_execution.evidence if isinstance(url, str)
         )
         test_execution.evidence = [url for url in generated_urls if url is not None]
-
     return test_execution
 
 
@@ -123,7 +145,14 @@ async def create_test_execution(
         product = test.feature.epic.product
 
         # Create payload for task manager job
-        payload = {
+        payload: dict[str, Any] = {
+            "product": {
+                "url": product.url,
+                "name": product.name,
+                "description": product.description,
+                "documentation": product.documentation,
+                "links_to_documentation": product.links_to_documentation,
+            },
             "test": {
                 "name": test.name,
                 "category": test.category.value,
@@ -141,23 +170,26 @@ async def create_test_execution(
             organization_id=product.organization_id,
             product_id=product.id
         )
+
         if encrypted_secrets:
-            payload['secrets'] = {k.value: v for k, v in encrypted_secrets.items()}
+            payload['secrets'] = encrypted_secrets
 
         job = await redis.enqueue_job('run_test', **payload, _job_id=str(test_execution_model.id))
+
+        if job is None:
+            raise HTTPException(status_code=500, detail="Failed to trigger test execution")
 
         if background_tasks:
             background_tasks.add_task(
                 poll_task_manager_status,
                 execution_id=test_execution_model.id,
-                task_id=job.job_id
             )
 
     except Exception as e:
         logger.error(f"Error triggering test execution: {str(e)}")
         # Update the execution with an error status
         await update_test_execution(
-            test_execution_model.id,
+            test_execution_model,
             TestExecutionUpdateSchema(
                 status=TestStatus.ERROR,
                 notes=f"Error triggering test execution: {str(e)}",
@@ -168,108 +200,118 @@ async def create_test_execution(
     return await get_test_execution(test_execution_model.id)
 
 
-async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attempts: int = 120, interval: int = 5) -> None:
+async def _check_status_from_redis(test_execution: TestExecutionModel) -> TestExecutionUpdateSchema | None:
+    """
+    Check the status of the test execution from Redis.
+
+    Args:
+        test_execution: The test execution to check the status of
+
+    Returns:
+        True if the test execution is complete, False otherwise
+    """
+
+    redis = await get_redis_pool()
+
+    job = Job(str(test_execution.id), redis=redis)
+    job_status = await job.status()
+
+    logger.info(f"Job {test_execution.id} status: {job_status}")
+
+    if job_status in [JobStatus.queued, JobStatus.deferred, JobStatus.in_progress]:
+        return None
+
+    tzinfo = test_execution.started_at.tzinfo if test_execution.started_at else None
+
+    if job_status == JobStatus.not_found:
+        return TestExecutionUpdateSchema(
+            status=TestStatus.ERROR,
+            notes="Test execution not found",
+            ended_at=datetime.now(tzinfo),
+        )
+
+    try:
+        status_data = await job.result()
+    except Exception as e:
+        logger.error(f"Job {test_execution.id} failed: {str(e)}")
+        return TestExecutionUpdateSchema(
+            status=TestStatus.ERROR,
+            notes=f"{str(e)}",
+            ended_at=datetime.now(tzinfo),
+        )
+
+    tracing_data: Dict[str, Any] = {}  # FIXME: add back tracing once SOL-213 solved
+    # tracing_data = status_data.get("tracing", {})
+
+    # Extract agent thoughts and actions from the response
+    agent_thoughts = status_data.get("agent_thoughts", {})
+    agent_actions = status_data.get("agent_actions", [])
+
+    # Prepare metadata with agent data
+    updated_metadata = (test_execution.metadata or {}) | {
+        "agent_thoughts": agent_thoughts,
+        "agent_actions": agent_actions
+    }
+
+    # Extract evidence list if present
+    evidence_list = status_data.get("evidence") or []
+
+    # Update the test execution based on the task status
+    if status_data["status"] not in [status.value for status in TestStatus]:
+        logger.error(f"Unknown status of test run: {status_data}")
+        return TestExecutionUpdateSchema(
+            status=TestStatus.ERROR,
+            notes=f"Unknown status of test run: {status_data}",
+            ended_at=datetime.now(tzinfo),
+            metadata=updated_metadata,
+            tracing=tracing_data,
+            evidence=evidence_list,
+        )
+
+    elif status_data["status"] == TestStatus.PENDING.value:
+        return None
+
+    else:
+        # Task failed
+        return TestExecutionUpdateSchema(
+            status=TestStatus(status_data["status"]),
+            notes=str(status_data.get('error')) if status_data.get('error') else str(status_data.get("results", "")),
+            ended_at=datetime.now(tzinfo),
+            metadata=updated_metadata,
+            tracing=tracing_data,
+            evidence=evidence_list,
+        )
+
+
+async def poll_task_manager_status(execution_id: UUID4, max_waiting_time: int = 15 * 60, interval: int = 5) -> None:
     """
     Poll the task manager for status updates and update the test execution accordingly.
     This is a non-async function for use with FastAPI BackgroundTasks.
 
     Args:
         execution_id: ID of the test execution to update
-        task_id: Task ID from the task manager
-        max_attempts: Maximum number of polling attempts before giving up
+        max_waiting_time: Maximum waiting time in seconds before giving up
         interval: Interval between polls in seconds
     """
-    attempts = 0
 
-    redis = await get_redis_pool()
+    attempts = 0
+    max_attempts = max_waiting_time // interval
+
+    test_execution = await get_test_execution(execution_id)
+    tzinfo = test_execution.started_at.tzinfo if test_execution.started_at else None
 
     while attempts < max_attempts:
+
         try:
-            # Sleep first to give the task manager time to process
+
             await asyncio.sleep(interval)
 
-            # Get the test execution to get its timezone info
-            test_execution = await get_test_execution(execution_id)
-            tzinfo = test_execution.started_at.tzinfo if test_execution.started_at else None
+            update_data = await _check_status_from_redis(test_execution)
+            if update_data:
+                await update_test_execution(test_execution, update_data)
+                return
 
-            job = Job(str(task_id), redis=redis)
-            job_status = await job.status()
-
-            if job_status in [JobStatus.queued, JobStatus.deferred, JobStatus.in_progress]:
-                attempts += 1
-                continue
-
-            if job_status == JobStatus.not_found:
-                await update_test_execution(
-                    execution_id,
-                    TestExecutionUpdateSchema(
-                        status=TestStatus.ERROR,
-                        notes="Test execution not found",
-                    )
-                )
-                break
-
-            try:
-                status_data = await job.result()
-            except Exception as e:
-                logger.error(f"Job {task_id} failed: {str(e)}")
-                await update_test_execution(
-                    execution_id,
-                    TestExecutionUpdateSchema(
-                        status=TestStatus.ERROR,
-                        notes=f"{str(e)}",
-                    )
-                )
-                break
-
-            tracing_data = status_data.get("tracing", {})
-
-            # Extract agent thoughts and actions from the response
-            agent_thoughts = status_data.get("agent_thoughts", {})
-            agent_actions = status_data.get("agent_actions", [])
-
-            # Prepare metadata with agent data
-            updated_metadata = (test_execution.metadata or {}) | {
-                "agent_thoughts": agent_thoughts,
-                "agent_actions": agent_actions
-            }
-
-            # Extract evidence list if present
-            evidence_list = status_data.get("evidence") or []
-
-            # Update the test execution based on the task status
-            if status_data["status"] not in TestStatus:
-                logger.error(f"Unknown status of test run: {status_data}")
-                await update_test_execution(
-                    execution_id,
-                    TestExecutionUpdateSchema(
-                        status=TestStatus.ERROR,
-                        notes=f"Unknown status of test run: {status_data}",
-                        ended_at=datetime.now(tzinfo),
-                        metadata=updated_metadata,
-                        tracing=tracing_data,
-                        evidence=evidence_list,
-                    )
-                )
-                break
-
-            elif status_data["status"] == TestStatus.PENDING.value:
-                attempts += 1
-
-            else:
-                # Task failed
-                await update_test_execution(
-                    execution_id,
-                    TestExecutionUpdateSchema(
-                        status=TestStatus(status_data["status"]),
-                        notes=str(status_data.get('error')) if status_data.get('error') else str(status_data.get("results", "")),
-                        ended_at=datetime.now(tzinfo),
-                        metadata=updated_metadata,
-                        tracing=tracing_data,
-                        evidence=evidence_list,
-                    )
-                )
-                break
+            attempts += 1
 
         except Exception as e:
             logger.error(f"Error polling task manager status: {str(e)}")
@@ -283,7 +325,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
             tzinfo = test_execution.started_at.tzinfo if test_execution.started_at else None
 
             await update_test_execution(
-                execution_id,
+                test_execution,
                 TestExecutionUpdateSchema(
                     status=TestStatus.ERROR,
                     notes="Timed out waiting for task manager to complete test execution",
@@ -295,7 +337,7 @@ async def poll_task_manager_status(execution_id: UUID4, task_id: str, max_attemp
 
 
 async def update_test_execution(
-    test_execution_id: UUID4,
+    test_execution: TestExecutionModel,
     test_execution_update: TestExecutionUpdateSchema
 ) -> TestExecutionModel:
     """
@@ -311,9 +353,6 @@ async def update_test_execution(
     Raises:
         HTTPException: If the test execution was not found
     """
-
-    # Get the test execution
-    test_execution = await get_test_execution(test_execution_id)
 
     # Update the fields
     update_data = test_execution_update.model_dump(exclude_unset=True)

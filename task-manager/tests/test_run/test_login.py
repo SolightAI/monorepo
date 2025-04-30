@@ -28,7 +28,7 @@ class TestTickPick():
         result = await login_agent(
             task_id=task_id,
             test=test,
-            secrets={},
+            secrets=[],
             auth_session={},
         )
 
@@ -52,7 +52,7 @@ class TestTickPick():
         result = await login_agent(
             task_id=task_id,
             test=test,
-            secrets={},
+            secrets=[],
             auth_session={},
         )
 
@@ -70,12 +70,14 @@ class TestTickPick():
         if not password:
             raise ValueError("TICKPICK_PASSWORD is not set")
 
-        secrets = {
-            LoginMethod.EMAIL.value: {
+        secrets = [{
+            "name": "Credentials",
+            "category": LoginMethod.EMAIL.value,
+            "values": {
                 "username": username,
                 "password": password
             }
-        }
+        }]
 
         test = Test(
             category=TestCategory.SMOKE,
@@ -115,7 +117,7 @@ class TestTickPick():
         result = await login_agent(
             task_id=task_id,
             test=test,
-            secrets={},
+            secrets=[],
             auth_session={},
         )
 
@@ -139,7 +141,7 @@ class TestTickPick():
         result = await login_agent(
             task_id=task_id,
             test=test,
-            secrets={},
+            secrets=[],
             auth_session={},
         )
 

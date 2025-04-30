@@ -1,21 +1,24 @@
 import re
+import typing
+import types
 import enum
+import traceback
 
-from typing import Callable
+from typing import Any, Callable
 from utils.dto import Test
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from agents.general_agent import general_agent, get_parameters_for_general_agent
 from agents.login_agent import login_agent, get_parameters_for_login_agent
 from agents.signup_agent import signup_agent, get_parameters_for_signup_agent
-from inspect import getfullargspec
+from inspect import getfullargspec, isclass
 from logging import getLogger
 
 
 logger = getLogger(__name__)
 
 
-AGENTS = {
+AGENTS: dict[Callable, Callable] = {
     general_agent: get_parameters_for_general_agent,
     login_agent: get_parameters_for_login_agent,
     signup_agent: get_parameters_for_signup_agent,
@@ -175,10 +178,31 @@ def parse_agent_selection(response: str) -> str:
 
 def get_type_description(_type: type) -> str:
     new_line = "\n"
-    description = f"Name: {_type.__name__}\nType: {type(_type)}\nDescription: {_type.__doc__}"
+    origin = typing.get_origin(_type)
+    args = typing.get_args(_type)
 
-    if issubclass(_type, enum.Enum):
-        description += f"\nOptions: {' '.join([f'{new_line}- {name}: {value.value}' for (name, value) in _type.__members__.items()])}"
+    try:
+        if origin is typing.Literal:
+            options_str = ' '.join([f'{new_line}- {repr(arg)}' for arg in args])
+            description = f"Name: Literal\nType: typing.Literal\nOptions: {options_str}"
+
+        elif origin is typing.Union or origin is types.UnionType:
+            union_args = [arg for arg in args if arg is not type(None)]
+            type_descriptions = [get_type_description(arg) for arg in union_args]
+            optional_indicator = " (Optional)" if type(None) in args else ""
+            description = f"Name: Union{optional_indicator}\nType: typing.Union\nPossible Types:{new_line}{new_line.join(type_descriptions)}"
+
+        elif isclass(_type) and isinstance(_type, type) and issubclass(_type, enum.Enum):
+            description = f"Name: {_type.__name__}\nType: {type(_type)}\nDescription: {_type.__doc__}"
+            description += f"\nOptions: {' '.join([f'{new_line}- {name}: {value.value}' for (name, value) in _type.__members__.items()])}"
+
+        else:
+            description = f"Name: {_type.__name__}\nType: {type(_type)}\nDescription: {_type.__doc__}"
+
+    except Exception as e:
+        logger.error(f"Error getting type description: {e}")
+        logger.error(traceback.format_exc())
+        description = f"Name: {_type.__name__}\nType: {type(_type)}\nDescription: {_type.__doc__}"
 
     return description
 
@@ -194,9 +218,9 @@ def select_agent_to_use(test: Test) -> Callable:
         )
     )
 
-    response = LLM_CLIENT.invoke([query])
+    response: str = LLM_CLIENT.invoke([query]).content  # type: ignore
 
-    agent_name = parse_agent_selection(response.content)
+    agent_name = parse_agent_selection(response)
 
     for _agent in AGENTS.keys():
         if _agent.__name__ == agent_name:
@@ -208,7 +232,7 @@ def select_agent_to_use(test: Test) -> Callable:
 async def select_and_call_agent(
     task_id: str,
     test: Test,
-    secrets: dict[str, dict[str, str]],
+    secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],
 ) -> dict:
 

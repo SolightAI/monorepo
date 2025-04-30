@@ -10,6 +10,7 @@ from agents._base_agent import (
     check_final_test_result,
     run_additional_healthcheck,
     get_prompt_list_of_tools,
+    format_secrets,
     SHARED_AGENT_LIMITATIONS,
 )
 from fixtures.tools import TOOLS
@@ -48,7 +49,7 @@ logger = getLogger(__name__)
 def get_parameters_for_general_agent(
     task_id: str,
     test: Test,
-    secrets: dict[str, dict[str, str]],
+    secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
     return {
@@ -62,7 +63,7 @@ def get_parameters_for_general_agent(
 async def general_agent(
     task_id: str,
     test: Test,
-    secrets: dict[str, dict[str, str]],
+    secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
     """
@@ -98,16 +99,20 @@ async def general_agent(
             tools=get_prompt_list_of_tools(TOOLS),
             agent_limitations="\n".join(SHARED_AGENT_LIMITATIONS),
         ),
-        sensitive_data={f"{_sec_category}:{_sec_name}": _sec_value for _sec_category, _secrets in secrets.items() for _sec_name, _sec_value in _secrets.items()},
+        sensitive_data=format_secrets(secrets),
         auth_session=auth_session,
         tools=TOOLS,
     )
+
+    logger.info(f"[{task_id}] General agent finished running test.")
 
     additional_healthchecks_results = await run_additional_healthcheck(
         task_id=task_id,
         test=test,
         existing_session=session_data,
     )
+
+    logger.info(f"[{task_id}] General agent finished running additional healthchecks.")
 
     status, explanation = check_final_test_result(
         task_id=task_id,
@@ -116,13 +121,15 @@ async def general_agent(
         healthcheck_results=additional_healthchecks_results,
     )
 
+    logger.info(f"[{task_id}] General agent finished checking final test result.")
+
     return {
         "agent_thoughts": get_agent_thoughts(history=history),
         "agent_actions": get_agent_actions(history=history),
         "evidence": evidences,
         "status": status.value,
         "results": explanation,
-        "tracing": history.get_logs(),
+        # "tracing": history.get_logs(),
         "error": explanation if status != TestStatus.PASSED else "",
         "traceback": "",
     }

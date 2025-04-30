@@ -8,9 +8,9 @@ from logging import getLogger
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from langchain_openai import ChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig, AgentHistoryList, Controller
-from browser_use.browser.context import BrowserContextConfig, BrowserContext
+from browser_use.browser.context import BrowserContextConfig, BrowserContext, BrowserContextWindowSize
 from utils.s3_utils import upload_file_to_s3
-from test_run.tracing import initialize, extend_agent_history
+# from test_run.tracing import initialize, extend_agent_history
 from fixtures.tools import TOOLS, get_prompt_list_of_tools
 from typing import Callable
 from healthchecks import get_prompt_list_of_healthchecks, HEALTHCHECKS
@@ -325,7 +325,18 @@ OUTPUT_VALIDATION_LLM = ChatOpenAI(
 )
 
 
+LLM_CLIENT = ChatOpenAI(
+    model="gpt-4.1",
+    temperature=0.0,
+)
+
+
 AGENT_CLIENT = ChatOpenAI(
+    model="gpt-4.1",
+    temperature=0.0,
+)
+
+PLANNER_CLIENT = ChatOpenAI(
     model="gpt-4.1",
     temperature=0.0,
 )
@@ -380,7 +391,7 @@ async def run_additional_healthcheck(
 
     logger.info(f"[{task_id}] Selecting additional healthcheck for {test.name}")
 
-    result = AGENT_CLIENT.invoke(
+    result: str = LLM_CLIENT.invoke(
         [
             HumanMessage(
                 content=SELECT_ADDITIONAL_TEST_PROMPT.format(
@@ -389,7 +400,7 @@ async def run_additional_healthcheck(
                 )
             )
         ]
-    ).content
+    ).content  # type: ignore
 
     healthcheck_evaluation, selected_healthchecks = _parse_select_additional_healthcheck_result(result)
 
@@ -409,7 +420,7 @@ async def run_additional_healthcheck(
     }
 
 
-def _parse_check_final_test_result(result: str) -> tuple[bool, str]:
+def _parse_check_final_test_result(result: str) -> tuple[TestStatus, str]:
     status_match = re.search(r"<status>(.*?)</status>", result, re.DOTALL)
     explanation_match = re.search(r"<explanation>(.*?)</explanation>", result, re.DOTALL)
 
@@ -455,7 +466,7 @@ def check_final_test_result(
 
     logger.info(f"[{task_id}] Agent prompt: {CHECK_FINAL_TEST_RESULT_PROMPT.format(test=test, agent_output=agent_output, healthcheck_results=healthcheck_results_str).strip()}")
 
-    result = OUTPUT_VALIDATION_LLM.invoke(
+    result: str = OUTPUT_VALIDATION_LLM.invoke(
         [
             HumanMessage(
                 content=CHECK_FINAL_TEST_RESULT_PROMPT.format(
@@ -465,7 +476,7 @@ def check_final_test_result(
                 ).strip()
             )
         ]
-    ).content
+    ).content  # type: ignore
 
     status, explanation = _parse_check_final_test_result(result)
 
@@ -500,7 +511,7 @@ def is_agent_able_to_run_test(
 
     logger.info(f"[{task_id}] Running agent health check for {test.name}")
 
-    result = AGENT_CLIENT.invoke(
+    result: str = LLM_CLIENT.invoke(
         [
             HumanMessage(
                 content=ABILITY_TO_RUN_TEST_PROMPT.format(
@@ -510,7 +521,7 @@ def is_agent_able_to_run_test(
                 )
             )
         ]
-    ).content
+    ).content  # type: ignore
 
     is_able, explanation = _parse_is_agent_able_to_run_test_result(result)
 
@@ -528,6 +539,14 @@ def get_agent_actions(history: AgentHistoryList) -> list[dict[str, Any]]:
         _action | {'interacted_element': _action['interacted_element'].to_dict() if _action['interacted_element'] else None}
         for _action in history.model_actions()
     ]
+
+
+def format_secrets(secrets: list[dict[str, Any]]) -> dict[str, str]:
+    return {
+        f"{_secret['category']}:{_secret['name']}:{secret_name}": secret_value
+        for _secret in secrets
+        for secret_name, secret_value in _secret['values'].items()
+    }
 
 
 async def _load_local_storage(context: BrowserContext, localStorage: dict[str, str]) -> None:
@@ -581,14 +600,17 @@ async def _generate_and_upload_evidences(task_id: str, history: AgentHistoryList
 
         for idx, image in enumerate(images):
             image.save(os.path.join(temp_dir, f"history-{idx}.png"))
-            evidences.append(upload_file_to_s3(
+            _evidence = upload_file_to_s3(
                 file_path=os.path.join(temp_dir, f"history-{idx}.png"),
                 job_id=task_id,
-                task_type="auth",
+                task_type="auth_check",
                 task_name=str(idx),
                 content_type="image/png",
                 extension="png",
-            ))
+            )
+
+            if _evidence is not None:
+                evidences.append(_evidence)
 
     return evidences
 
@@ -608,11 +630,16 @@ async def run_agent(
 
     evidences = []
 
-    initialize()
+    # initialize()
 
     browser = Browser(
         config=BrowserConfig(
             headless=os.getenv("HEADLESS", "true").lower() == "true",
+            extra_browser_args=[
+                "--disable-web-security",
+                "--disable-site-isolation-trials",
+                "--disable-features=IsolateOrigins,site-per-process",
+            ],
         )
     )
 
@@ -630,9 +657,8 @@ async def run_agent(
         minimum_wait_page_load_time=1,
         wait_for_network_idle_page_load_time=1,
         viewport_expansion=0,
-        wait_between_actions=1.5,
         user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246",
-        browser_window_size={"width": 1920, "height": 1080},
+        browser_window_size=BrowserContextWindowSize(width=1920, height=1080),
     ))
 
     try:
@@ -640,40 +666,56 @@ async def run_agent(
             await context.navigate_to(url)  # allowing us to load the localStorage
             await _load_local_storage(context, auth_session["localStorage"])
 
-        extend_agent_history()
+        # extend_agent_hsistory()
 
         controller = Controller()
 
         for tool in (tools or []):
-            controller.action(tool.__doc__)(tool)
+            controller.action(tool.__doc__ or "")(tool)
 
         agent = Agent(
             task=prompt,
+
             llm=AGENT_CLIENT,
-            sensitive_data=sensitive_data,
-            initial_actions=[{'go_to_url': {'url': url}}, {'go_to_url': {'url': url}}],  # twice cause it some case we have a redirect at the first try
-            browser_context=context,
-            use_vision_for_planner=False,
-            use_vision=True,
+            use_vision=False,
             enable_memory=False,
+
+            # planner_llm=PLANNER_CLIENT,
+            # use_vision_for_planner=True,
+
+            initial_actions=[{'go_to_url': {'url': url}}, {'go_to_url': {'url': url}}],  # twice cause it some case we have a redirect at the first try
+            sensitive_data=sensitive_data,
+            browser_context=context,
             controller=controller,
             max_actions_per_step=1,
         )
 
-        history = await agent.run(max_steps=20)
+        history = await agent.run(max_steps=50)
+
+        logger.info(f"[{task_id}] Finished running agent")
+
+        cookies = await context.session.context.cookies()
+        localStorage_data = await _get_load_local_storage_tool(context)
+
+        logger.info(f"[{task_id}] Retrieved cookies and localStorage data")
 
     except Exception as e:
         raise e
 
     finally:
-        cookies = await context.session.context.cookies()
-        localStorage_data = await _get_load_local_storage_tool(context)
         await context.close()
         await browser.close()
+
+        logger.info(f"[{task_id}] Closed browser context and browser")
+
         os.remove(cookies_file.name)
 
     session_data = {"cookies": cookies, "localStorage": localStorage_data}
 
+    logger.info(f"[{task_id}] Generating evidences")
+
     evidences = await _generate_and_upload_evidences(task_id, history)
+
+    logger.info(f"[{task_id}] Returning session data, history and evidences")
 
     return session_data, history, evidences

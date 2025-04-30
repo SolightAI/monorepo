@@ -73,7 +73,8 @@ async def update_test_execution_endpoint(
     """
     Update a test execution with new information.
     """
-    return await update_test_execution(test_execution_id, test_execution_update)
+    test_execution = await get_test_execution(test_execution_id)
+    return await update_test_execution(test_execution, test_execution_update)
 
 
 @router.post("/latest/", response_model=Dict[UUID4, LatestTestExecutionResponse])

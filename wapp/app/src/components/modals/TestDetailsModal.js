@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Loader, Play, Trash2, Edit, Server, AlertTriangle } from 'lucide-react';
+import { X, Loader, Play, Trash2, Edit, Server, AlertTriangle, Copy } from 'lucide-react';
 import TestExecutionHistory from '../test/TestExecutionHistory';
 import TestExecutionDetail from '../test/TestExecutionDetail';
 import { getTestExecutions, createTestExecution } from '@/services/testExecutionService';
-import { deleteTest } from '@/services/testService';
+import { deleteTest, duplicateTest } from '@/services/testService';
 import { useSecret } from '@/context/SecretContext';
 import EditTestModal from './EditTestModal';
 import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
@@ -79,7 +79,6 @@ const LastTestExecution = ({ execution, onExecutionSelect }) => {
  * Modal component for displaying detailed test information
  */
 const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
-  console.log("TestDetailsModal rendering with initialTest:", initialTest);
   const [testData, setTestData] = useState(initialTest);
   const [activeTab, setActiveTab] = useState('details');
   const [executions, setExecutions] = useState([]);
@@ -90,6 +89,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
   const modalRef = useRef(null);
 
   // Get secrets/credentials from the context
@@ -276,6 +276,39 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
     }
   };
 
+  // Function to handle duplicating the current test
+  const handleDuplicateTest = async () => {
+    try {
+      setIsDuplicating(true);
+      setError(null);
+
+      const { id, name, feature_name, status, last_execution_id, started_at, ended_at, ...restOfTest } = testData;
+
+      const duplicatedTest = {
+        ...restOfTest,
+        name: `${name} (Copy)`,
+        // Ensure feature_id or epic_id is correctly assigned if needed (it should be in restOfTest)
+      };
+
+      // Call the service function
+      await duplicateTest(duplicatedTest);
+
+      // Notify the parent component (TestsTable) to refresh the list
+      if (typeof onTestUpdated === 'function') {
+        onTestUpdated(); // No specific data needed, just signal update
+      }
+
+      // Close the modal after successful duplication
+      handleClose();
+
+    } catch (err) {
+      console.error('Error duplicating test:', err);
+      setError(`Failed to duplicate test: ${err.response?.data?.detail || err.message || 'Please try again.'}`);
+    } finally {
+      setIsDuplicating(false);
+    }
+  };
+
   // Find the latest execution for the Last Execution component
   const latestExecution = executions.length > 0
     ? executions.sort((a, b) => new Date(b.started_at) - new Date(a.started_at))[0]
@@ -435,12 +468,10 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
               </div>
 
               {/* Steps and Expected Results */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Steps</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg max-h-[200px] overflow-y-auto">
-                    <p className="text-gray-800 whitespace-pre-line break-words">{testData.steps}</p>
-                  </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Steps</h3>
+                <div className="bg-gray-50 p-4 rounded-lg max-h-[200px] overflow-y-auto">
+                  <p className="text-gray-800 whitespace-pre-line break-words">{testData.steps}</p>
                 </div>
               </div>
 
@@ -470,6 +501,14 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
                 >
                   <Trash2 size={16} className="mr-1" />
                   Delete
+                </button>
+                <button
+                  onClick={handleDuplicateTest}
+                  className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition duration-150 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isDuplicating}
+                >
+                  {isDuplicating ? <Loader size={16} className="mr-1 animate-spin" /> : <Copy size={16} className="mr-1" />}
+                  {isDuplicating ? 'Duplicating...' : 'Duplicate'}
                 </button>
                 <button
                   onClick={() => setShowEditModal(true)}

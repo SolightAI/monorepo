@@ -1,6 +1,8 @@
 import os
-import json
 import re
+import json
+import asyncio
+import functools
 
 from typing import Optional, Any
 from logging import getLogger
@@ -228,6 +230,10 @@ async def _generate_test_category_for_feature(
 
     # Convert parsed test cases to Test objects
     for tc in test_cases:
+        if feature.id is None:
+            logger.warning(f"[{job_id}] Skipping test case '{tc['name']}' because feature ID is missing.")
+            continue
+
         test = Test(
             name=tc['name'],
             description=tc['description'],
@@ -243,12 +249,18 @@ async def _generate_test_category_for_feature(
     return tests
 
 
+async def generate_tests_entrypoint(ctx, product, epic, feature, secrets):
+    blocking = functools.partial(generate_tests, ctx, product, epic, feature, secrets)
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(ctx['pool'], blocking)
+
+
 async def generate_tests(
     ctx: dict[Any, Any],
     product: Product,
     epic: Epic,
     feature: Feature,
-    secrets: Optional[dict[str, dict[str, str]]] = None,
+    secrets: Optional[list[dict[str, Any]]] = None,
 ) -> dict[str, Any]:
     """
     Endpoint to generate tests for a feature.
@@ -258,7 +270,7 @@ async def generate_tests(
         epic: Epic information
         feature: Feature information
         background_task: Background tasks handler
-        secrets: Dictionary of secrets for authentication
+        secrets: List of secret dictionaries for authentication
                  (expected to be encrypted if provided)
 
     Returns:
@@ -268,11 +280,21 @@ async def generate_tests(
     product = Product(**product)
     epic = Epic(**epic)
     feature = Feature(**feature)
-    decrypted_secrets = {}
+    decrypted_secrets: list[dict[str, Any]] = list()
 
     # Decrypt encrypted secrets if provided
     if secrets:
-        decrypted_secrets = crypto_service.decrypt_secrets(secrets)
+        try:
+            decrypted_secrets = crypto_service.decrypt_secrets(secrets)
+        except ValueError as e:
+            logger.error(f"[{ctx['job_id']}] Failed to decrypt secrets: {e}")
+            # Handle decryption failure, maybe return an error status
+            output = {
+                "results": [],
+                "status": TestStatus.FAILED.value,
+                "error": f"Failed to decrypt secrets: {e}"
+            }
+            return output
 
     # List of test categories to generate
     categories = [
@@ -284,7 +306,7 @@ async def generate_tests(
         if feature.access_conditions is not None and feature.access_conditions.get("must_be_logged_in") is True:
             auth_session = await get_auth_session(
                 task_id=ctx['job_id'],
-                url=feature.urls[0],
+                url=product.url,
                 secrets=decrypted_secrets,  # Use decrypted secrets here
             )
     except Exception as e:
@@ -299,6 +321,9 @@ async def generate_tests(
         cookies_file.flush()
         cookies_file.seek(0)
 
+        local_storage_data = auth_session.get('localStorage')
+        local_storage_json = json.dumps(local_storage_data) if local_storage_data is not None else None
+
         for category in categories:
             category_tests = await _generate_test_category_for_feature(
                 job_id=ctx['job_id'],
@@ -307,7 +332,7 @@ async def generate_tests(
                 feature=feature,
                 category_of_test=category,
                 cookies_file=cookies_file.name if auth_session.get('cookies') is not None else None,
-                localStorage=auth_session.get('localStorage'),
+                localStorage=local_storage_json,
             )
             tests.extend(category_tests)
 

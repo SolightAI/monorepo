@@ -10,6 +10,7 @@ from agents._base_agent import (
     is_agent_able_to_run_test,
     check_final_test_result,
     run_additional_healthcheck,
+    format_secrets,
     SHARED_AGENT_LIMITATIONS,
 )
 
@@ -73,7 +74,7 @@ def get_parameters_for_signup_agent(
 async def signup_agent(
     task_id: str,
     test: Test,
-    secrets: dict[str, dict[str, str]],
+    secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],  # unused
 ) -> dict[str, Any]:
     """
@@ -112,7 +113,7 @@ async def signup_agent(
             tools=get_prompt_list_of_tools(TOOLS),
             agent_limitations="\n".join(SHARED_AGENT_LIMITATIONS),
         ),
-        sensitive_data={f"{_sec_category}:{_sec_name}": _sec_value for _sec_category, _secrets in secrets.items() for _sec_name, _sec_value in _secrets.items()},
+        sensitive_data=format_secrets(secrets),
         auth_session=None,
         tools=TOOLS,
     )
@@ -136,7 +137,7 @@ async def signup_agent(
         "evidence": evidences,
         "status": status.value,
         "results": explanation,
-        "tracing": history.get_logs(),
+        # "tracing": history.get_logs(),
         "error": explanation if status != TestStatus.PASSED else "",
         "traceback": "",
     }
