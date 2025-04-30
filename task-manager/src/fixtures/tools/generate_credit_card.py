@@ -59,7 +59,7 @@ def generate_credit_card(
 
     credit_card_info = "\n".join(f"{k}: {v}" for (k, v) in base_output.items())
 
-    logger.info(f"Generated credit card information: {credit_card_info}")
+    logger.info(f"Generated credit card information: **{str(base_output['number'])[-2:]} {base_output['expiration_month']}/{base_output['expiration_year']}")
 
     return credit_card_info  # NOTE: we cannot return a dict here because it would crash browser-use at runtime
 
