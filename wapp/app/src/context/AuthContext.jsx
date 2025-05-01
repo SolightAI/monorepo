@@ -262,6 +262,8 @@ export const AuthProvider = ({ children }) => {
     }
 
     if (storedAuthState) {
+      // No need to await here; checkAuthStatus handles its own state updates
+      // and the useEffect doesn't need to perform actions after it completes.
       checkAuthStatus();
     } else {
       setLoading(false);

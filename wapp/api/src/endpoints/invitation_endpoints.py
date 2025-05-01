@@ -82,8 +82,8 @@ async def create_invitation_endpoint(
             invitation.role = OrganizationRole.MEMBER
         else:
             # Check if the invited role is higher than the inviter's role
-            inviter_level = role_hierarchy.get(member.role, 0)
-            invited_level = role_hierarchy.get(invitation.role, 0)
+            inviter_level = role_hierarchy.get(member.role, 0)  # by security, we set the default to lowest
+            invited_level = role_hierarchy.get(invitation.role, 9)  # by security, we set the default to highest
 
             if invited_level > inviter_level:
                 raise HTTPException(
