@@ -6,8 +6,8 @@ const API_URL = process.env.REACT_APP_API_URL;
 const AuthContext = createContext(null);
 
 // Token refresh constants
-const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // TODO: must be define in var env
-const ACCESS_TOKEN_EXPIRE_MINUTES = 30; // TODO: must be define in var env
+const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // 5 minutes before expiry
+const ACCESS_TOKEN_EXPIRE_MINUTES = 30; // Default expiry if not provided
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -191,22 +191,40 @@ export const AuthProvider = ({ children }) => {
     const scheduleTokenRefresh = () => {
       if (refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);
-        console.log('Cleared existing refresh timer');
+        // console.log('Cleared existing refresh timer');
       }
 
       const { expiresAt } = tokens;
 
       if (!expiresAt) {
-        console.log('Cannot schedule refresh: Missing expiry data');
+        // console.log('Cannot schedule refresh: Missing expiry data');
         return;
       }
 
       const now = new Date();
       const expiryTime = new Date(expiresAt);
+      const timeRemaining = expiryTime.getTime() - now.getTime();
 
-      const timeUntilRefresh = Math.max(0, expiryTime.getTime() - now.getTime() - TOKEN_REFRESH_THRESHOLD);
+      if (timeRemaining <= 0) {
+        // Don't schedule if already expired, rely on interceptor or immediate refresh elsewhere
+        // console.log('Token already expired, not scheduling refresh.');
+        return;
+      }
+
+      // Calculate the ideal refresh time based on the threshold
+      let timeUntilRefresh = timeRemaining - TOKEN_REFRESH_THRESHOLD;
+
+      // If threshold > lifetime, schedule refresh just before actual expiry
+      if (timeUntilRefresh <= 0) {
+        const safeBuffer = 5 * 1000; // Refresh 5 seconds before expiry
+        timeUntilRefresh = Math.max(1000, timeRemaining - safeBuffer); // Ensure at least 1s delay
+        // console.warn(`Token lifetime (${timeRemaining/1000}s) is shorter than refresh threshold (${TOKEN_REFRESH_THRESHOLD/1000}s). Scheduling refresh ${safeBuffer/1000}s before expiry.`);
+      }
+
+      // console.log(`Scheduling refresh in ${timeUntilRefresh / 1000}s (Expires in ${timeRemaining / 1000}s)`);
 
       refreshTimerRef.current = setTimeout(() => {
+        // console.log('Timer triggered: Refreshing access token');
         refreshAccessToken();
       }, timeUntilRefresh);
     };
@@ -254,7 +272,7 @@ export const AuthProvider = ({ children }) => {
         clearTimeout(refreshTimerRef.current);
       }
     };
-  }, [checkAdminStatus, refreshAccessToken]);
+  }, [checkAdminStatus, refreshAccessToken, setTokenData]);
 
   // Login function
   const login = async (username, password) => {
@@ -579,6 +597,7 @@ export const AuthProvider = ({ children }) => {
   const handleOAuthCallback = useCallback(async (searchParams) => {
     setLoading(true);
     const token = searchParams.get('token');
+    const expiresIn = searchParams.get('expires_in');
     const errorParam = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
@@ -591,7 +610,7 @@ export const AuthProvider = ({ children }) => {
       return; // Stop processing if there's an error
     }
 
-    if (token) {
+    if (token && expiresIn) {
       // In a real app, you might want to verify the token signature client-side
       // or preferably, make a call to your backend to validate the token
       // and get user info securely.
@@ -599,6 +618,8 @@ export const AuthProvider = ({ children }) => {
       console.log('OAuth callback successful, received token.');
       setIsAuthenticated(true);
       localStorage.setItem('isAuthenticated', 'true');
+
+      setTokenData(token, expiresIn);
 
       // Fetch user details after successful auth
       try {
@@ -617,7 +638,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     setLoading(false);
-  }, [checkAuthStatus]);
+  }, [checkAuthStatus, setTokenData]);
 
   // Update onboarding status
   const updateOnboardingStatus = async (completed) => {

@@ -51,7 +51,7 @@ async def login_google(invitation_code: Optional[str] = None) -> dict:
 
 
 @router.get("/google/callback")
-async def auth_google(code: str, state: Optional[str] = None, response: Response = None) -> dict:
+async def auth_google(response: Response, code: str, state: Optional[str] = None) -> RedirectResponse:
     invitation_code = None
     if state:
         try:
@@ -127,7 +127,7 @@ async def login_azure(invitation_code: Optional[str] = None) -> dict:
 
 
 @router.get("/azure/callback")
-async def auth_azure(code: str, state: Optional[str] = None, response: Response = None, error: Optional[str] = None, error_description: Optional[str] = None) -> dict:
+async def auth_azure(response: Response, code: str, state: Optional[str] = None, error: Optional[str] = None, error_description: Optional[str] = None) -> RedirectResponse:
     """Handles the callback from Azure AD after user authentication."""
     # Handle potential errors from Azure AD
     if error:

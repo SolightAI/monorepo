@@ -1,5 +1,4 @@
 import os
-import jwt
 import logging
 import requests
 from typing import Optional
@@ -15,16 +14,19 @@ from services.user_services import get_user
 from services.invitation_services import validate_invitation, mark_invitation_used
 from services.organization_invitation_service import handle_organization_invitation
 from dto.schemas import InvitationCreate
+from jose import jwt, JWTError, ExpiredSignatureError  # Changed import
 
 
 ALGORITHM = "HS256"
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")  # generated with `openssl rand -hex 23
 EMAIL_SALT = "email-confirmation-salt"
 PASSWORD_RESET_SALT = "password-reset-salt"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30  # TODO: must be define in var env
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 VALIDATION_TOKEN_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
 
+if not JWT_SECRET_KEY:
+    raise ValueError("JWT_SECRET_KEY environment variable not set")
 
 serializer = URLSafeTimedSerializer(JWT_SECRET_KEY)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -73,6 +75,8 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire, "token_type": "access"})
+    if not JWT_SECRET_KEY:
+        raise ValueError("JWT_SECRET_KEY environment variable not set")
     return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -80,6 +84,8 @@ def create_refresh_token(data: dict, expires_delta: timedelta | None = None) -> 
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
     to_encode.update({"exp": expire, "token_type": "refresh"})
+    if not JWT_SECRET_KEY:
+        raise ValueError("JWT_SECRET_KEY environment variable not set")
     return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -90,7 +96,7 @@ def set_auth_cookie(response: Response, token: str) -> None:
         httponly=True,
         secure=True,  # Set to True if using HTTPS
         samesite="lax",
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        max_age=int(ACCESS_TOKEN_EXPIRE_MINUTES * 60)
     )
 
 
@@ -110,18 +116,16 @@ async def get_current_user(token: str) -> UserModel:
         if len(token.split()) != 2:
             raise CredentialsException()
 
+        if not JWT_SECRET_KEY:
+            raise ValueError("JWT_SECRET_KEY environment variable not set")
+
         payload = jwt.decode(token.split()[1], JWT_SECRET_KEY, algorithms=[ALGORITHM])
         email: str | None = payload.get("sub")
         if email is None:
             logging.info("No email found in token, returning 401.")
             raise CredentialsException()
 
-        # FIXME: this check doesn't work in test mode
-        # token_type = payload.get("token_type")
-        # if token_type != "access":
-        #     logging.warning("Token is not an access token. It's a " + str(token_type))
-        #     raise HTTPInvalidTokenError()
-    except jwt.InvalidTokenError:
+    except JWTError:
         raise HTTPInvalidTokenError()
 
     user = await get_user(email=email)
@@ -136,6 +140,10 @@ async def get_current_user(token: str) -> UserModel:
 async def refresh_access_token(refresh_token: str, response: Response) -> dict:
     """Generate a new access token using a refresh token"""
     try:
+
+        if not JWT_SECRET_KEY:
+            raise ValueError("JWT_SECRET_KEY environment variable not set")
+
         payload = jwt.decode(refresh_token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
 
         token_type = payload.get("token_type")
@@ -159,14 +167,14 @@ async def refresh_access_token(refresh_token: str, response: Response) -> dict:
             "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
         }
 
-    except jwt.ExpiredSignatureError:
+    except ExpiredSignatureError:
         logging.error("Refresh token has expired")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token has expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except jwt.InvalidTokenError as e:
+    except JWTError as e:
         logging.error(f"Invalid token: {str(e)}")
         raise HTTPInvalidTokenError()
     except Exception as e:
@@ -322,14 +330,16 @@ async def auth_google_callback(code: str, response: Response, invitation_code: O
         # Use the refactored user processing logic
         user = await _process_oauth_user(user_info, invitation_code, "Google")
 
-        # Create JWT access token
-        jwt_token = create_access_token(data={"sub": user.email})
+        # Create JWT access and refresh tokens
+        access_token, refresh_token = create_tokens(user.email)
+        expires_in = ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
-        # Successful login, redirect to frontend with token
-        redirect_url = f"{frontend_callback_base_url}?token={jwt_token}"
+        # Successful login, redirect to frontend with token and expiry info
+        redirect_url = f"{frontend_callback_base_url}?token={access_token}&expires_in={expires_in}"
         logging.info(f"Google login successful for {user.email}, redirecting to frontend.")
         redirect_response = RedirectResponse(url=redirect_url)
-        set_auth_cookie(redirect_response, jwt_token)
+        set_auth_cookie(redirect_response, access_token)
+        set_refresh_cookie(redirect_response, refresh_token)
         return redirect_response
 
     except RedirectException as re:
@@ -406,14 +416,16 @@ async def auth_azure_callback(code: str, response: Response, invitation_code: Op
         # Use the refactored user processing logic
         user = await _process_oauth_user(user_info, invitation_code, "AzureAD")
 
-        # Create JWT access token
-        jwt_token = create_access_token(data={"sub": user.email})
+        # Create JWT access and refresh tokens
+        access_token, refresh_token = create_tokens(user.email)
+        expires_in = ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
-        # Successful login, redirect to frontend with token
-        redirect_url = f"{frontend_callback_base_url}?token={jwt_token}"
+        # Successful login, redirect to frontend with token and expiry info
+        redirect_url = f"{frontend_callback_base_url}?token={access_token}&expires_in={int(expires_in)}"
         logging.info(f"Azure AD login successful for {user.email}, redirecting to frontend.")
         redirect_response = RedirectResponse(url=redirect_url)
-        set_auth_cookie(redirect_response, jwt_token)
+        set_auth_cookie(redirect_response, access_token)
+        set_refresh_cookie(redirect_response, refresh_token)
         return redirect_response
 
     except RedirectException as re:
