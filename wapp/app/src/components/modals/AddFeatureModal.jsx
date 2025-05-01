@@ -14,14 +14,11 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
     isSubmitting,
     setIsSubmitting,
     touched,
-    urlErrors,
     isFormValid,
     isNameValid,
-    isUrlsValid,
+    isUrlValid,
     handleInputChange,
     handleUrlChange,
-    handleAddUrl,
-    handleRemoveUrl,
     handleLoginRequirementChange,
     validateForm
   } = useFeatureForm();
@@ -35,9 +32,6 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
       return;
     }
 
-    // Filter out empty URLs
-    const filteredUrls = formData.urls.filter(url => url.trim() !== '');
-
     setIsSubmitting(true);
 
     try {
@@ -48,7 +42,7 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
           name: formData.name,
           description: formData.description,
           epic_id: epicId,
-          urls: filteredUrls,
+          url: formData.url,
           access_conditions: formData.access_conditions,
         },
         { withCredentials: true }
@@ -107,14 +101,11 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
             error={error}
             isSubmitting={isSubmitting}
             touched={touched}
-            urlErrors={urlErrors}
             isNameValid={isNameValid}
-            isUrlsValid={isUrlsValid}
+            isUrlValid={isUrlValid}
             isFormValid={isFormValid}
             handleInputChange={handleInputChange}
             handleUrlChange={handleUrlChange}
-            handleAddUrl={handleAddUrl}
-            handleRemoveUrl={handleRemoveUrl}
             handleLoginRequirementChange={handleLoginRequirementChange}
             onSubmit={handleSubmit}
             onCancel={onClose}

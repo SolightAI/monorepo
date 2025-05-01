@@ -14,14 +14,11 @@ const EditFeatureModal = ({ onClose, feature, onFeatureUpdated }) => {
     isSubmitting,
     setIsSubmitting,
     touched,
-    urlErrors,
     isFormValid,
     isNameValid,
-    isUrlsValid,
+    isUrlValid,
     handleInputChange,
     handleUrlChange,
-    handleAddUrl,
-    handleRemoveUrl,
     handleLoginRequirementChange,
     validateForm
   } = useFeatureForm(feature);
@@ -35,8 +32,13 @@ const EditFeatureModal = ({ onClose, feature, onFeatureUpdated }) => {
       return;
     }
 
-    // Filter out empty URLs
-    const filteredUrls = formData.urls.filter(url => url.trim() !== '');
+    // Backend expects 'urls' as a list, even though we manage 'url' as a string in the form
+    const payload = {
+      name: formData.name,
+      description: formData.description,
+      urls: [formData.url], // Send as a list with the correct field name
+      access_conditions: formData.access_conditions
+    };
 
     setIsSubmitting(true);
 
@@ -44,16 +46,11 @@ const EditFeatureModal = ({ onClose, feature, onFeatureUpdated }) => {
       // Update the feature via API
       const response = await axios.put(
         `${API_URL}/features/${feature.id}`,
-        {
-          name: formData.name,
-          description: formData.description,
-          urls: filteredUrls,
-          access_conditions: formData.access_conditions
-        },
+        payload, // Use the correctly structured payload
         { withCredentials: true }
       );
 
-      // Notify parent component
+      // Notify parent component with the response data (which should have 'urls')
       if (onFeatureUpdated) {
         onFeatureUpdated(response.data);
       }
@@ -106,14 +103,11 @@ const EditFeatureModal = ({ onClose, feature, onFeatureUpdated }) => {
             error={error}
             isSubmitting={isSubmitting}
             touched={touched}
-            urlErrors={urlErrors}
             isNameValid={isNameValid}
-            isUrlsValid={isUrlsValid}
+            isUrlValid={isUrlValid}
             isFormValid={isFormValid}
             handleInputChange={handleInputChange}
             handleUrlChange={handleUrlChange}
-            handleAddUrl={handleAddUrl}
-            handleRemoveUrl={handleRemoveUrl}
             handleLoginRequirementChange={handleLoginRequirementChange}
             onSubmit={handleSubmit}
             onCancel={onClose}

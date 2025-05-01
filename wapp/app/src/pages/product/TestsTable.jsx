@@ -995,22 +995,22 @@ const TestsTable = () => {
   // Add the checkExistingTaskId function
   const checkExistingTaskId = async () => {
     if (!selectedFeature) return;
-    
+
     try {
       // If "all features" is selected, check all features for ongoing generation
       if (selectedFeature === 'all') {
-        
+
         // Get all features
         const allFeatures = features;
-        
+
         const ongoingGenerations = [];
-        
+
         // Check each feature for ongoing generation
         for (const feature of allFeatures) {
           try {
             // Use feature ID to check task-manager status
             const statusData = await getTestGenerationStatus(feature.id);
-            
+
             if (statusData && statusData.status === TEST_STATUS.PENDING) {
               ongoingGenerations.push({
                 id: feature.id,
@@ -1049,7 +1049,7 @@ const TestsTable = () => {
       try {
         // Use feature ID to check task-manager status
         const statusData = await getTestGenerationStatus(selectedFeature);
-        
+
         if (statusData && statusData.status === TEST_STATUS.PENDING) {
           setIsGeneratingTests(true);
           setGeneratingFeatures([{
@@ -1112,12 +1112,12 @@ const TestsTable = () => {
       // Set initial states
       setIsGeneratingTests(true);
       setError(null);
-      
+
       // Start polling for status updates
       pollingIntervalRef.current = setInterval(async () => {
         try {
           const statusData = await getTestGenerationStatus(featureId);
-          
+
           // If status is unknown, stop polling and reset all states
           if (statusData.status === 'unknown') {
             clearInterval(pollingIntervalRef.current);
@@ -1127,27 +1127,27 @@ const TestsTable = () => {
             setSuccessMessage(null);
             return;
           }
-          
+
           // Update status message for other statuses
           setSuccessMessage(`Test generation in progress. Status: ${statusData.status}`);
-          
+
           // If status is no longer pending, stop polling
           if (statusData.status !== TEST_STATUS.PENDING) {
             clearInterval(pollingIntervalRef.current);
             pollingIntervalRef.current = null;
             setIsGeneratingTests(false);
             setGeneratingFeatures([]);
-            
+
             // Refresh tests list
             await fetchTestsWithCurrentFilters();
-            
+
             // Show appropriate message
             if (statusData.status === TEST_STATUS.PASSED) {
               setSuccessMessage('Test generation completed successfully.');
-            } else if (statusData.status === TEST_STATUS.FAILED || 
-                      statusData.status === TEST_STATUS.ERROR || 
-                      statusData.status === TEST_STATUS.BLOCKED_BY_CAPTCHA || 
-                      statusData.status === TEST_STATUS.AGENT_LIMITATION || 
+            } else if (statusData.status === TEST_STATUS.FAILED ||
+                      statusData.status === TEST_STATUS.ERROR ||
+                      statusData.status === TEST_STATUS.BLOCKED_BY_CAPTCHA ||
+                      statusData.status === TEST_STATUS.AGENT_LIMITATION ||
                       statusData.status === TEST_STATUS.UNEXISTING_FEATURE) {
               setError(`Test generation failed: ${statusData.status}. Please try again.`);
               setSuccessMessage(null);
@@ -1181,7 +1181,7 @@ const TestsTable = () => {
 
     const initialize = async () => {
       if (!isMounted) return;
-      
+
       // Check for existing task ID when component mounts or feature changes
       await checkExistingTaskId();
     };
@@ -1213,7 +1213,7 @@ const TestsTable = () => {
 
     const initialize = async () => {
       if (!isMounted) return;
-      
+
       // Wait for features to be loaded
       if (features.length === 0) {
         if (retryCount >= MAX_RETRIES_FEATURE_LOADING) {
@@ -1221,13 +1221,13 @@ const TestsTable = () => {
           setError('Failed to load features. Please refresh the page or try again later.');
           return;
         }
-        
+
         retryCount++;
         // Try again in 500ms
         checkTimeout = setTimeout(initialize, 500);
         return;
       }
-      
+
       // Run initial check regardless of feature selection
       await checkExistingTaskId();
     };
@@ -1257,7 +1257,7 @@ const TestsTable = () => {
         if (visibilityTimeout) {
           clearTimeout(visibilityTimeout);
         }
-        
+
         // Only restart polling if we were previously generating tests and have a task ID
         if (!document.hidden && isGeneratingTests && generatingFeatures.length > 0 && !pollingIntervalRef.current) {
           // Add a small delay before restarting polling to prevent rapid restarts
@@ -1279,7 +1279,7 @@ const TestsTable = () => {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (visibilityTimeout) {
@@ -1319,6 +1319,8 @@ const TestsTable = () => {
       {selectedTest && (
         <TestDetailsModal
           test={selectedTest}
+          // Find the feature and pass its first URL
+          featureUrl={features.find(f => f.id === selectedTest.feature_id)?.urls?.[0]}
           onClose={handleTestClose}
           onTestUpdated={handleTestUpdated}
         />

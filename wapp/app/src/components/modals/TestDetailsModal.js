@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Loader, Play, Trash2, Edit, Server, AlertTriangle, Copy } from 'lucide-react';
+import { X, Loader, Play, Trash2, Edit, Server, AlertTriangle, Copy, Link } from 'lucide-react';
 import TestExecutionHistory from '../test/TestExecutionHistory';
 import TestExecutionDetail from '../test/TestExecutionDetail';
 import { getTestExecutions, createTestExecution } from '@/services/testExecutionService';
@@ -78,7 +78,7 @@ const LastTestExecution = ({ execution, onExecutionSelect }) => {
 /**
  * Modal component for displaying detailed test information
  */
-const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
+const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdated }) => {
   const [testData, setTestData] = useState(initialTest);
   const [activeTab, setActiveTab] = useState('details');
   const [executions, setExecutions] = useState([]);
@@ -333,6 +333,18 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
         {/* Modal header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
           <div className="flex items-center flex-grow overflow-hidden">
+            {/* Add clickable link icon if featureUrl exists - Moved to the left */}
+            {featureUrl && (
+              <a
+                href={featureUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open Feature URL"
+                className="mr-2 text-blue-600 hover:text-blue-800 transition-colors duration-150 flex-shrink-0"
+              >
+                <Link size={18} />
+              </a>
+            )}
             <h2 className="text-xl font-semibold text-gray-800 truncate">{testData.name}</h2>
           </div>
           <div className="flex items-center space-x-2 flex-shrink-0">
@@ -444,27 +456,6 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
                 </div>
               )}
 
-              {/* Basic details */}
-              <div className="mb-6">
-                <div className="space-y-1">
-                  <div className="text-sm text-gray-500">URL</div>
-                  <div className="text-gray-800">
-                    {testData.url ? (
-                      <a
-                        href={testData.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {testData.url}
-                      </a>
-                    ) : (
-                      'Not specified'
-                    )}
-                  </div>
-                </div>
-              </div>
-
               {/* Description section */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2 flex items-center">
@@ -481,7 +472,7 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
               </div>
 
               {/* Steps and Expected Results */}
-              <div>
+              <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2">Steps</h3>
                 <div className="bg-gray-50 p-4 rounded-lg max-h-[200px] overflow-y-auto">
                   <p className="text-gray-800 whitespace-pre-line break-words">{testData.steps}</p>

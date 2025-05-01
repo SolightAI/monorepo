@@ -143,6 +143,7 @@ async def create_test_execution(
         # Get test data and related information
         await test.fetch_related("feature__epic__product")
         product = test.feature.epic.product
+        feature = test.feature
 
         # Create payload for task manager job
         payload: dict[str, Any] = {
@@ -157,7 +158,7 @@ async def create_test_execution(
                 "name": test.name,
                 "category": test.category.value,
                 "description": test.description,
-                "url": test.url,
+                "url": feature.urls[0],
                 "feature_id": "random_id",
                 "preconditions": test.preconditions,
                 "steps": test.steps,
