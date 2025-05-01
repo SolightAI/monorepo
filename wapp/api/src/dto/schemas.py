@@ -484,6 +484,7 @@ class TestExecutionElement(BaseModel):
     test_id: UUID4
     status: TestStatus
     started_at: datetime
+    ended_at: datetime | None = None
     environment: str
     executor_type: ExecutorType
 

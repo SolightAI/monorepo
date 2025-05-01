@@ -445,10 +445,23 @@ const TestDetailsModal = ({ test: initialTest, onClose, onTestUpdated }) => {
               )}
 
               {/* Basic details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="mb-6">
                 <div className="space-y-1">
                   <div className="text-sm text-gray-500">URL</div>
-                  <div className="text-gray-800">{testData.url || 'Not specified'}</div>
+                  <div className="text-gray-800">
+                    {testData.url ? (
+                      <a
+                        href={testData.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {testData.url}
+                      </a>
+                    ) : (
+                      'Not specified'
+                    )}
+                  </div>
                 </div>
               </div>
 
