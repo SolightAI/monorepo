@@ -30,8 +30,8 @@ async def login_google(invitation_code: Optional[str] = None) -> dict:
             invitation = await get_invitation_by_code(invitation_code)
             state["invitation_code"] = invitation_code
 
-            # Determine the invitation type based on the invitation data
-            if invitation.organization_id:
+            # Determine the invitation type based on the invitation data (safe access)
+            if getattr(invitation, 'organization_id', None):
                 state["type"] = "organization"
             elif invitation.email:
                 state["type"] = "individual"
@@ -96,7 +96,8 @@ async def login_azure(invitation_code: Optional[str] = None) -> dict:
         try:
             invitation = await get_invitation_by_code(invitation_code)
             state["invitation_code"] = invitation_code
-            if invitation.organization_id:
+            # Safe access for organization_id
+            if getattr(invitation, 'organization_id', None):
                 state["type"] = "organization"
             elif invitation.email:
                 state["type"] = "individual"

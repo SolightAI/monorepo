@@ -1,10 +1,11 @@
 import os
 import pytest
 import sys
+
 from httpx import AsyncClient, ASGITransport
 from tortoise import Tortoise
 from dotenv import load_dotenv
-import jwt
+from jose import jwt
 from datetime import datetime, timezone
 
 # Load test environment variables
@@ -74,11 +75,16 @@ async def initialize_tests():
 def create_token(user_email, expires_delta=None, algorithm="HS256"):
     """Helper function to create JWT tokens"""
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "test_secret_key")
+    if not JWT_SECRET_KEY:
+        raise ValueError("Test JWT_SECRET_KEY not found in env or default.")
 
     to_encode = {"sub": user_email}
 
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
         to_encode.update({"exp": expire})
+
+    # Add token_type claim for consistency, though get_current_user doesn't check it anymore
+    to_encode.update({"token_type": "access"})
 
     return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=algorithm)
