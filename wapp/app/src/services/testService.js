@@ -106,17 +106,17 @@ export const triggerFeatureTestGeneration = async (featureId) => {
 
 /**
  * Check the status of a test generation task
- * @param {string} taskId - The task ID (UUID)
+ * @param {string} featureId - The feature ID (UUID)
  * @returns {Promise<object>} Promise with the task status data
  */
-export const getTestGenerationStatus = async (taskId) => {
+export const getTestGenerationStatus = async (featureId) => {
   try {
-    const response = await axios.get(`${API_URL}/tests/generate/status/${taskId}`, {
+    const response = await axios.get(`${API_URL}/tests/generate/status/${featureId}`, {
       withCredentials: true
     });
     return response.data;
   } catch (error) {
-    console.error(`Error checking test generation status for task ${taskId}:`, error);
+    console.error(`Error checking test generation status for feature ${featureId}:`, error);
     throw error;
   }
 };
