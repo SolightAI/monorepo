@@ -262,7 +262,9 @@ export const AuthProvider = ({ children }) => {
     }
 
     if (storedAuthState) {
-      checkAdminStatus();
+      // No need to await here; checkAuthStatus handles its own state updates
+      // and the useEffect doesn't need to perform actions after it completes.
+      checkAuthStatus();
     } else {
       setLoading(false);
     }
@@ -272,7 +274,7 @@ export const AuthProvider = ({ children }) => {
         clearTimeout(refreshTimerRef.current);
       }
     };
-  }, [checkAdminStatus, refreshAccessToken, setTokenData]);
+  }, [checkAuthStatus, refreshAccessToken, setTokenData]);
 
   // Login function
   const login = async (username, password) => {
@@ -303,7 +305,7 @@ export const AuthProvider = ({ children }) => {
         );
       }
 
-      checkAdminStatus();
+      await checkAuthStatus();
 
       return response.data;
     } catch (error) {

@@ -11,7 +11,6 @@ import Settings from './pages/user/Settings';
 import AdminInvitations from './pages/admin/AdminInvitations';
 import OrganizationCreate from './pages/organization/OrganizationCreate';
 import OrganizationDashboard from './pages/organization/OrganizationDashboard';
-import OrganizationMembers from './pages/organization/OrganizationMembers';
 import JoinOrganization from './pages/organization/JoinOrganization';
 import TestCredentials from './pages/product/TestCredentials';
 import TestsTable from './pages/product/TestsTable';
@@ -123,7 +122,6 @@ function AppContent() {
                   <Route path="/tests" element={<TestsTable />} />
                   {/* Organization routes */}
                   <Route path="/organizations/dashboard" element={<OrganizationDashboard />} />
-                  <Route path="/organizations/members" element={<OrganizationMembers />} />
                   {/* Other protected routes */}
                   <Route path="/settings" element={<Settings />} />
                 </Route>
