@@ -1,0 +1,61 @@
+name: Lambdas Tests
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'agent_jobs/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'agent_jobs/**'
+  # Manual trigger
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-url-lambda-tests:
+    runs-on: self-hosted
+    timeout-minutes: 60
+
+    defaults:
+      run:
+        working-directory: ./agent_jobs
+
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      TEST_IMAGE: lambda-test-${{ github.run_id }}-${{ github.run_attempt }}
+
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Lambda Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./agent_jobs
+        file: ./agent_jobs/Dockerfile
+        push: false
+        load: true
+        tags: ${{ env.TEST_IMAGE }}
+
+    - name: Run Lambda tests
+      run: |
+        # Run the Lambda tests
+        docker run \
+          --entrypoint pytest \
+          -v ./src/tests:/var/test/src/tests \
+          -v ./pytest.ini:/var/test/pytest.ini \
+          -e OPENAI_API_KEY=${OPENAI_API_KEY} \
+          -e HEADLESS=true \
+          ${{ env.TEST_IMAGE }}
+
+
+

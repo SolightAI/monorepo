@@ -457,36 +457,6 @@ async def test_generate_auth_session_farmzz(task_id: str) -> None:
     assert [cookie for cookie in session["cookies"] if cookie["name"] == "XSRF-TOKEN"][0]["value"] is not None
 
 
-# TODO(TomChv): Should we move that to the lambda directory?
-@pytest.mark.asyncio
-async def test_validate_url_login_farmzz(task_id: str) -> None:
-    """
-    Test validating the farmzz.com URL to find a login page,
-    then attempt login with credentials.
-
-    This test:
-    1. Validates the farmzz.com URL to find the login page
-    2. Uses the detected login page URL for authentication
-    3. Confirms successful authentication
-    """
-    # First, validate the URL
-    base_url = "https://farmzz.com"
-
-    # Run the validation task directly
-    validation_result = await validate_url({"job_id": task_id}, base_url, use_cache=False)
-
-    # Debug output to show full validation result
-    logger.info(f"[{task_id}] Validation result: {validation_result}")
-
-    # Verify that validation found a login page
-    assert validation_result["valid"] is True, f"Expected valid=True, got {validation_result.get('valid')}"
-    assert validation_result["login_url"] == "https://farmzz.com/#/auth/login", f"Expected login_url='https://farmzz.com/#/auth/login', got {validation_result.get('login_url')}"
-    assert validation_result["confidence"] in ["high", "medium"], f"Expected confidence in ['high', 'medium'], got {validation_result.get('confidence')}"
-    assert validation_result["source"] == "validation", f"Expected source='validation', got {validation_result.get('source')}"
-
-    logger.info(f"[{task_id}] ✅ Successfully validated URL and authenticated on: {validation_result['login_url']}")
-
-
 @pytest.mark.asyncio
 async def test_generate_auth_session_tecla_academy(task_id: str) -> None:
     """Test authentication with valid username/password on the simple login page."""
