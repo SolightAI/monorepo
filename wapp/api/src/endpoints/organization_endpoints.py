@@ -341,10 +341,7 @@ async def remove_member(
             organization_id, user_id
         )
         if not target_member:
-            # If target user doesn't exist, treat as success (already removed)
-            return
-            # Alternatively, could raise 404:
-            # raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target member not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target member not found")
 
         # Check if the requesting user's role is high enough to remove the target user
         requesting_user_level = role_hierarchy.get(requesting_member.role, 0)
