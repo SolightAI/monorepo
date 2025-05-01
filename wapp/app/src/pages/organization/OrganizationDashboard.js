@@ -7,13 +7,18 @@ import axios from 'axios';
 import { API_URL } from '@/constants/api';
 
 // --- Members Section Component ---
-const MembersSection = ({ organization, onMembersUpdate }) => {
-  const { fetchOrganizationMembers, updateMemberRole, removeOrganizationMember } = useOrganization();
+const MembersSection = ({
+  organization,
+  members,
+  loadingMembers,
+  membersError,
+  currentUserRole,
+  loadMembers,
+  onMembersUpdate
+}) => {
+  const { updateMemberRole, removeOrganizationMember } = useOrganization();
   const { user } = useAuth();
 
-  const [members, setMembers] = useState([]);
-  const [loadingMembers, setLoadingMembers] = useState(true);
-  const [membersError, setMembersError] = useState('');
   const [inviteData, setInviteData] = useState({ email: '', role: 'member' });
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
@@ -24,16 +29,13 @@ const MembersSection = ({ organization, onMembersUpdate }) => {
   const [selectedRole, setSelectedRole] = useState('');
   const [confirmingDelete, setConfirmingDelete] = useState(null);
 
-  // Find the current user's membership details, comparing IDs as strings
-  const currentUserMembership = members.find(member => String(member.user?.id) === user?.id);
-  const currentUserRole = currentUserMembership?.role;
   const roleHierarchy = { owner: 4, admin: 3, member: 2, guest: 1 };
 
   const canPerformAnyAction = members.some(member => {
     const canChangeRole = currentUserRole === 'admin' || currentUserRole === 'owner';
     const canRemove = (
-      (currentUserRole === 'admin' || currentUserRole === 'owner' || member.user?.id === user?.id) &&
-      (roleHierarchy[member.role] <= roleHierarchy[currentUserRole] || member.user?.id === user?.id)
+      (currentUserRole === 'admin' || currentUserRole === 'owner' || String(member.user?.id) === user?.id) &&
+      (roleHierarchy[member.role] <= roleHierarchy[currentUserRole] || String(member.user?.id) === user?.id)
     );
     return canChangeRole || canRemove;
   });
@@ -57,24 +59,10 @@ const MembersSection = ({ organization, onMembersUpdate }) => {
   };
 
   useEffect(() => {
-    loadMembers();
-  }, [organization.id]); // Reload members when the selected organization changes
-
-  const loadMembers = async () => {
-    if (!organization) return;
-    setLoadingMembers(true);
-    setMembersError('');
-    try {
-      const data = await fetchOrganizationMembers(organization.id);
-      setMembers(data);
-      onMembersUpdate(data.length); // Notify parent about member count
-    } catch (err) {
-      setMembersError('Failed to load organization members');
-      console.error(err);
-    } finally {
-      setLoadingMembers(false);
+    if (members) {
+      onMembersUpdate(members.length);
     }
-  };
+  }, [members, onMembersUpdate]);
 
   const handleInviteChange = (e) => {
     const { name, value } = e.target;
@@ -99,7 +87,7 @@ const MembersSection = ({ organization, onMembersUpdate }) => {
       setInvitationCode(response.data.code);
       setInviteData({ email: '', role: 'member' });
       setInviteSuccess(`Invitation created for ${inviteData.email}. Please share the link below:`);
-      loadMembers(); // Reload members list after invite
+      await loadMembers();
     } catch (err) {
       setInviteError(err.response?.data?.detail || 'Failed to create invitation. Please try again.');
     } finally {
@@ -108,14 +96,12 @@ const MembersSection = ({ organization, onMembersUpdate }) => {
   };
 
   const handleRoleChange = async (memberId, role) => {
-    setMembersError('');
     try {
       await updateMemberRole(organization.id, memberId, { role });
       await loadMembers();
       setEditingMemberId(null);
     } catch (err) {
-      setMembersError('Failed to update member role');
-      console.error(err);
+      console.error('Failed to update member role', err);
     }
   };
 
@@ -125,14 +111,12 @@ const MembersSection = ({ organization, onMembersUpdate }) => {
       return;
     }
 
-    setMembersError('');
     try {
       await removeOrganizationMember(organization.id, memberId);
       await loadMembers();
       setConfirmingDelete(null);
     } catch (err) {
-      setMembersError('Failed to remove member');
-      console.error(err);
+      console.error('Failed to remove member', err);
     }
   };
 
@@ -324,18 +308,18 @@ const MembersSection = ({ organization, onMembersUpdate }) => {
                                     <button
                                       onClick={() => { setEditingMemberId(member.user?.id); setSelectedRole(member.role); }}
                                       className="text-indigo-600 hover:text-indigo-900 text-xs"
-                                      disabled={roleHierarchy[member.role] >= roleHierarchy[currentUserRole]} // Disable if target is same/higher role
+                                      disabled={roleHierarchy[member.role] >= roleHierarchy[currentUserRole]}
                                     >
                                       Change Role
                                     </button>
                                   )}
-                                  {(currentUserRole === 'admin' || currentUserRole === 'owner' || member.user?.id === user?.id) &&
-                                    (roleHierarchy[member.role] <= roleHierarchy[currentUserRole] || member.user?.id === user?.id) &&
+                                  {(currentUserRole === 'admin' || currentUserRole === 'owner' || String(member.user?.id) === user?.id) &&
+                                    (roleHierarchy[member.role] <= roleHierarchy[currentUserRole] || String(member.user?.id) === user?.id) &&
                                     (
                                       <button
                                         onClick={() => handleRemoveMember(member.user?.id)}
                                         className={`text-xs ${confirmingDelete === member.user?.id ? "text-red-600 hover:text-red-900" : "text-gray-600 hover:text-gray-900"}`}
-                                        disabled={roleHierarchy[member.role] >= roleHierarchy[currentUserRole] && member.user?.id !== user?.id} // Can't remove someone of same/higher role unless it's yourself
+                                        disabled={roleHierarchy[member.role] >= roleHierarchy[currentUserRole] && String(member.user?.id) !== user?.id}
                                       >
                                         {confirmingDelete === member.user?.id ? 'Confirm' : 'Remove'}
                                       </button>
@@ -368,10 +352,16 @@ const OrganizationDashboard = () => {
     selectOrganization,
     updateOrganization,
     deleteOrganization,
-    loading,
-    error
+    fetchOrganizationMembers,
+    loading: loadingOrgs,
+    error: orgError
   } = useOrganization();
   const { user } = useAuth();
+
+  const [members, setMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [membersError, setMembersError] = useState('');
+  const [currentUserRole, setCurrentUserRole] = useState(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
@@ -384,6 +374,26 @@ const OrganizationDashboard = () => {
   const [deleteError, setDeleteError] = useState('');
   const [memberCount, setMemberCount] = useState(0);
 
+  const loadMembers = async () => {
+    if (!selectedOrganization) return;
+    setLoadingMembers(true);
+    setMembersError('');
+    setCurrentUserRole(null);
+    try {
+      const data = await fetchOrganizationMembers(selectedOrganization.id);
+      setMembers(data);
+      const currentUserMembership = data.find(member => String(member.user?.id) === user?.id);
+      setCurrentUserRole(currentUserMembership?.role);
+      setMemberCount(data.length);
+    } catch (err) {
+      setMembersError('Failed to load organization members');
+      console.error(err);
+      setCurrentUserRole(null);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
   useEffect(() => {
     if (selectedOrganization) {
       setEditData({
@@ -392,8 +402,17 @@ const OrganizationDashboard = () => {
         type: selectedOrganization.type
       });
       setMemberCount(0);
+      setMembers([]);
+      loadMembers();
+      setIsEditing(false);
+      setIsDeleting(false);
+      setEditError('');
+      setDeleteError('');
+    } else {
+      setMembers([]);
+      setCurrentUserRole(null);
     }
-  }, [selectedOrganization]);
+  }, [selectedOrganization, user?.id]);
 
   const handleEditChange = (e) => {
     const { name, value } = e.target;
@@ -406,6 +425,11 @@ const OrganizationDashboard = () => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setEditError('');
+
+    if (!(currentUserRole === 'admin' || currentUserRole === 'owner')) {
+      setEditError('You do not have permission to edit this organization.');
+      return;
+    }
 
     try {
       await updateOrganization(selectedOrganization.id, editData);
@@ -421,6 +445,12 @@ const OrganizationDashboard = () => {
   const handleDelete = async () => {
     setDeleteError('');
 
+    if (currentUserRole !== 'owner') {
+      setDeleteError('Only the organization owner can delete the organization.');
+      setIsDeleting(false);
+      return;
+    }
+
     if (!isDeleting) {
       setIsDeleting(true);
       return;
@@ -434,10 +464,11 @@ const OrganizationDashboard = () => {
         err.response?.data?.detail ||
         'An error occurred while deleting the organization. Please try again.'
       );
+      setIsDeleting(false);
     }
   };
 
-  if (loading) {
+  if (loadingOrgs) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -445,10 +476,10 @@ const OrganizationDashboard = () => {
     );
   }
 
-  if (error) {
+  if (orgError) {
     return (
       <div className="bg-red-50 text-red-700 p-4 rounded-md my-4">
-        <p>Error: {error}</p>
+        <p>Error: {orgError}</p>
       </div>
     );
   }
@@ -583,20 +614,24 @@ const OrganizationDashboard = () => {
                       </span>
                     </div>
                     <div className="flex space-x-2">
-                      <button
-                        onClick={() => setIsEditing(true)}
-                        className="p-2 text-gray-600 hover:text-indigo-600 focus:outline-none"
-                        title="Edit"
-                      >
-                        <Edit className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={handleDelete}
-                        className={`p-2 ${isDeleting ? 'text-red-600' : 'text-gray-600 hover:text-red-600'} focus:outline-none`}
-                        title={isDeleting ? 'Click again to confirm deletion' : 'Delete'}
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      {(currentUserRole === 'admin' || currentUserRole === 'owner') && (
+                        <button
+                          onClick={() => setIsEditing(true)}
+                          className="p-2 text-gray-600 hover:text-indigo-600 focus:outline-none"
+                          title="Edit"
+                        >
+                          <Edit className="w-5 h-5" />
+                        </button>
+                      )}
+                      {currentUserRole === 'owner' && (
+                        <button
+                          onClick={handleDelete}
+                          className={`p-2 ${isDeleting ? 'text-red-600' : 'text-gray-600 hover:text-red-600'} focus:outline-none`}
+                          title={isDeleting ? 'Click again to confirm deletion' : 'Delete'}
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -621,6 +656,11 @@ const OrganizationDashboard = () => {
                   {/* Members Section Integration */}
                   <MembersSection
                     organization={selectedOrganization}
+                    members={members}
+                    loadingMembers={loadingMembers}
+                    membersError={membersError}
+                    currentUserRole={currentUserRole}
+                    loadMembers={loadMembers}
                     onMembersUpdate={setMemberCount}
                   />
                 </div>
