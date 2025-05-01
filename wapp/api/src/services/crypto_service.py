@@ -1,16 +1,11 @@
 import os
-import time
 import base64
 import logging
-import requests
 import threading
-from typing import Dict, Optional, Tuple
+from typing import Optional, Any
 
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.serialization import load_pem_public_key
-from cryptography.hazmat.backends import default_backend
-from cryptography.exceptions import UnsupportedAlgorithm
+from dto.models import SecretType
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 
 # Configure logging
@@ -19,175 +14,121 @@ logger = logging.getLogger(__name__)
 
 class CryptoService:
     """
-    Service for encrypting secrets for transmission to task-manager.
-    Uses the task-manager's public key for asymmetric encryption.
+    Service for symmetric encryption/decryption using AES-GCM.
+    Uses a shared key provided via environment variable.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the crypto service."""
-        self.public_key = None
-        self.public_key_pem = None
-        self.last_refresh_time = 0
-        self.refresh_interval = 0  # no interval, we refresh the key on every request
+        self.key: Optional[bytes] = None
+        self.key_loaded = False
         self.lock = threading.RLock()
-        self.initialization_attempted = False
 
-        # URL of the task manager
-        self.task_manager_url = os.getenv("TASK_MANAGER_URL")
-        if not self.task_manager_url:
-            logger.warning("TASK_MANAGER_URL is not set. Encryption to task-manager will not work.")
+        # Load the symmetric key from environment
+        self._load_key()
 
-        # We won't fetch the public key on initialization - we'll do it lazily
-        # This prevents crashes when task-manager is unavailable during startup
-
-    def refresh_public_key(self) -> bool:
-        """
-        Fetch the public key from the task-manager.
-
-        Returns:
-            bool: True if the key was refreshed successfully, False otherwise
-        """
+    def _load_key(self) -> None:
+        """Load the symmetric encryption key from the environment."""
         with self.lock:
-            if not self.task_manager_url:
-                logger.warning("TASK_MANAGER_URL is not set. Encryption to task-manager will not work.")
-                return False
+            if self.key_loaded:
+                return
 
-            # Skip if the key was refreshed recently
-            current_time = time.time()
-            if (current_time - self.last_refresh_time) < self.refresh_interval and self.public_key is not None:
-                return True
+            key_b64 = os.getenv("SYMMETRIC_ENCRYPTION_KEY")
+            if not key_b64:
+                logger.warning("SYMMETRIC_ENCRYPTION_KEY environment variable is not set. Encryption will not work.")
+                return
 
             try:
-                # Get the public key from the task-manager
-                response = requests.get(f"{self.task_manager_url}/crypto/public-key", timeout=10)
-
-                if response.status_code != 200:
-                    logger.warning(f"Failed to fetch task-manager public key: HTTP {response.status_code}")
-                    return False
-
-                data = response.json()
-
-                # Get the public key PEM
-                public_key_pem = data.get("public_key")
-                if not public_key_pem:
-                    logger.warning("Task-manager did not return a valid public key")
-                    return False
-
-                # Load the public key
-                try:
-                    self.public_key_pem = public_key_pem
-                    self.public_key = load_pem_public_key(
-                        public_key_pem.encode(),
-                        backend=default_backend()
-                    )
-                    self.last_refresh_time = current_time
-                    self.initialization_attempted = True
-                    logger.info("Successfully refreshed task-manager public key")
-                    return True
-                except (UnsupportedAlgorithm, ValueError, TypeError) as e:
-                    logger.warning(f"Failed to load task-manager public key: {str(e)}")
-                    return False
-
+                # Expecting a base64 encoded key
+                self.key = base64.urlsafe_b64decode(key_b64)
+                # AES-256 requires a 32-byte key
+                if len(self.key) != 32:
+                    logger.error(f"Invalid key length: {len(self.key)} bytes. Expected 32 bytes for AES-256.")
+                    self.key = None
+                    return
+                self.key_loaded = True
+                logger.info("Successfully loaded symmetric encryption key.")
             except Exception as e:
-                logger.warning(f"Error refreshing task-manager public key: {str(e)}")
-                return False
+                logger.error(f"Failed to decode SYMMETRIC_ENCRYPTION_KEY: {str(e)}")
+                self.key = None
 
     def ensure_initialized(self) -> bool:
         """
-        Ensure the service is initialized with a public key if possible.
+        Ensure the service is initialized with a symmetric key if possible.
 
         Returns:
             bool: True if initialized, False otherwise
         """
-        # If we've never attempted to initialize or don't have a key, try to get one
-        # if not self.initialization_attempted or self.public_key is None:
-        return self.refresh_public_key()  # NOTE: for now, we refresh the key on every request
-        # return self.public_key is not None
+        if not self.key_loaded:
+            self._load_key()  # Attempt to load if not already loaded
+        return self.key is not None
 
     def encrypt(self, value: str) -> Optional[str]:
         """
-        Encrypt a value using the task-manager's public key.
+        Encrypt a value using AES-GCM.
 
         Args:
             value: The value to encrypt
 
         Returns:
-            The encrypted value as a base64-encoded string, or None if encryption fails
+            The encrypted value as a base64-encoded string (nonce prepended), or None if encryption fails
         """
         if not value:
+            logger.debug("Cannot encrypt empty value.")  # Changed to debug as this might be expected
             return None
 
-        # Try to initialize if needed, but don't fail if it doesn't work
-        if not self.ensure_initialized():
-            logger.warning("Cannot encrypt value because task-manager public key is unavailable")
+        if not self.ensure_initialized() or self.key is None:
+            logger.error("Cannot encrypt value because symmetric key is unavailable.")  # Changed to error
             return None
 
         try:
-            # Encrypt the value with the public key
-            encrypted_data = self.public_key.encrypt(
-                value.encode(),
-                padding.OAEP(
-                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                    algorithm=hashes.SHA256(),
-                    label=None
-                )
-            )
-
-            # Return base64-encoded encrypted data
-            return base64.b64encode(encrypted_data).decode()
+            aesgcm = AESGCM(self.key)
+            # Generate a random 12-byte nonce
+            nonce = os.urandom(12)
+            # Encrypt the value (encode to bytes first)
+            encrypted_data = aesgcm.encrypt(nonce, value.encode('utf-8'), None)
+            # Prepend nonce to the ciphertext and encode in base64
+            return base64.urlsafe_b64encode(nonce + encrypted_data).decode('ascii')
         except Exception as e:
-            logger.warning(f"Error encrypting value: {type(e).__name__}")
+            logger.error(f"Error encrypting value: {type(e).__name__} - {e}")
             return None
 
-    def encrypt_secrets(self, secrets: Dict[str, Dict[str, str]]) -> Tuple[bool, Optional[Dict[str, Dict[str, str]]]]:
+    def encrypt_secrets(self, secrets: list[dict[str | SecretType, Any]]) -> Optional[list[dict[str | SecretType, Any]]]:
         """
-        Encrypt a dictionary of secrets.
+        Encrypt a list of secrets using AES-GCM.
 
         Args:
-            secrets: Dictionary mapping secret types to dictionaries of key-value pairs
+            secrets: List of secrets to encrypt
 
         Returns:
-            A tuple of (success, encrypted_secrets)
-            - success: True if encryption was successful or not needed, False otherwise
-            - encrypted_secrets: Dictionary of encrypted secrets, or None if encryption was not performed
+            List of encrypted secrets
         """
+
         if not secrets:
-            return True, None
+            return None  # No secrets to encrypt
 
-        # Try to ensure we have the public key, but continue even if we don't
         if not self.ensure_initialized():
-            logger.error("Cannot encrypt secrets because task-manager public key is unavailable")
-            return False, None
+            logger.error("Cannot encrypt secrets because symmetric key is unavailable.")
+            raise Exception("Cannot encrypt secrets because symmetric key is unavailable.")
 
-        encrypted_secrets: Dict[str, Dict[str, str]] = {}
+        for i, secret in enumerate(secrets):
+            for key, value in secret['values'].items():
+                encrypted_value = self.encrypt(value)
+                if encrypted_value is not None:
+                    secrets[i]['values'][key] = encrypted_value
+                else:
+                    logger.error(f"Failed to encrypt secret {secret.get('category')}.{key}")
+                    raise Exception(f"Failed to encrypt secret {secret.get('category')}.{key}")
 
-        try:
-            for secret_type, secret_values in secrets.items():
-                encrypted_secrets[secret_type] = {}
-
-                for key, value in secret_values.items():
-                    encrypted_value = self.encrypt(value)
-                    if encrypted_value is None:
-                        logger.warning(f"Failed to encrypt secret {secret_type}.{key}")
-                        return False, None
-
-                    encrypted_secrets[secret_type][key] = encrypted_value
-
-            return True, encrypted_secrets
-        except Exception as e:
-            logger.warning(f"Error encrypting secrets: {str(e)}")
-            return False, None
+        return secrets
 
     def can_encrypt(self) -> bool:
         """
-        Check if encryption to task-manager is available and configured.
+        Check if encryption is available and configured (i.e., key is loaded).
 
         Returns:
-            bool: True if encryption is enabled and working, False otherwise
+            bool: True if encryption is possible, False otherwise
         """
-        if not self.task_manager_url:
-            return False
-
         return self.ensure_initialized()
 
 

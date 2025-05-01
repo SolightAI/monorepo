@@ -2,17 +2,14 @@ import os
 import re
 import json
 import difflib
-import asyncio
 import base64
 
 from logging import getLogger
-from pydantic import SecretStr
 from tempfile import NamedTemporaryFile
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
-from utils.constants import AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY
 from utils.s3_utils import upload_file_to_s3
 
 
@@ -56,11 +53,8 @@ Expected output format
 )
 
 
-AGENT_CLIENT = AzureChatOpenAI(
-    model="gpt-4o",
-    api_version='2024-10-21',
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
-    api_key=SecretStr(AZURE_OPENAI_KEY),
+AGENT_CLIENT = ChatOpenAI(
+    model="gpt-4.1-mini",
     temperature=0.0,
 )
 
@@ -160,13 +154,13 @@ async def check_is_logged_in_using_html_diff(
     if len(html_diff) > max_length:
         html_diff = html_diff[-max_length:]
 
-    result = AGENT_CLIENT.invoke(
+    result: str = AGENT_CLIENT.invoke(
         [
             HumanMessage(
                 content=PROMPT.format(html_diff=html_diff)
             )
         ]
-    ).content
+    ).content  # type: ignore
 
     logger.info(f"[{task_id}] Login check result: {result}")
 
@@ -177,7 +171,6 @@ async def check_is_logged_in(
     task_id: str,
     url: str,
     existing_session: dict[str, dict[str, str]],
-    vote_count: int = 1,
 ) -> bool:
     """
     Check if the user is still logged in to the webapp
@@ -190,9 +183,6 @@ async def check_is_logged_in(
     Returns:
         True if logged in, False otherwise
     """
-
-    if vote_count < 1:
-        raise ValueError("vote_count must be at positive integer")
 
     logger.info(f"[{task_id}] Checking if the user is logged in to {url}")
 
@@ -228,7 +218,7 @@ async def check_is_logged_in(
                 temp_png.flush()
                 upload_file_to_s3(
                     file_path=temp_png.name,
-                    task_id=task_id,
+                    job_id=task_id,
                     task_type="auth_check",
                     task_name=f"{url}_before",
                     extension="png",
@@ -291,7 +281,7 @@ async def check_is_logged_in(
                     temp_png.flush()
                     upload_file_to_s3(
                         file_path=temp_png.name,
-                        task_id=task_id,
+                        job_id=task_id,
                         task_type="auth_check",
                         task_name=f"{url}_after",
                         extension="png",
@@ -300,20 +290,14 @@ async def check_is_logged_in(
             except Exception as e:
                 logger.error(f"[{task_id}] Failed to upload 'after login' screenshot: {e}")
 
-            coroutines = [
-                check_is_logged_in_using_html_diff(
-                    task_id=task_id,
-                    before_login_html=content_before_login,
-                    after_login_html=content_after_login,
-                )
-                for _ in range(vote_count)
-            ]
-
-            results = await asyncio.gather(*coroutines)
-            is_logged_in = sum(results) / len(results) > 0.5
-
             await context.close()
             await browser.close()
+
+        is_logged_in = await check_is_logged_in_using_html_diff(
+            task_id=task_id,
+            before_login_html=content_before_login,
+            after_login_html=content_after_login,
+        )
 
         logger.info(f"[{task_id}] Login check result: {'Logged in' if is_logged_in else 'Not logged in'}")
 

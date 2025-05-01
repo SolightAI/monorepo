@@ -8,9 +8,11 @@ services:
       - ./src/:/app/src
       - ./tests/:/app/tests
       - playwright_browsers:/tmp/playwright-browsers
-    ports:
-      - "8001:8001"
     environment:
+      - MAX_JOBS=${MAX_JOBS:-4}
+      - ANONYMIZED_TELEMETRY=false
+      - DEV_MODE=true
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - AZURE_OPENAI_KEY=${AZURE_OPENAI_KEY}
       - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
       - PRIVATE_KEY_PATH=${PRIVATE_KEY_PATH:-/app/keys/private.pem}
@@ -23,6 +25,7 @@ services:
       - S3_BUCKET_NAME=task-manager
       - AWS_ENDPOINT_URL=http://minio:9000
       - PLAYGROUND_URL=http://playground:3000
+      - SYMMETRIC_ENCRYPTION_KEY=${SYMMETRIC_ENCRYPTION_KEY:-S5ox-_h4p9NISVvQFPsAE5T-8K-SNp67GLQalO75rDI=}
     networks:
       - default
       - api-tm_shared_network

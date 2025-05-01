@@ -1,19 +1,21 @@
 from fastapi import APIRouter, Depends, status, BackgroundTasks
-from typing import List
+from typing import List, Dict
 from pydantic import UUID4
-
 from dto.schemas import (
     TestExecution as TestExecutionSchema,
     TestExecutionCreate as TestExecutionCreateSchema,
     TestExecutionUpdate as TestExecutionUpdateSchema,
     ExecutorType,
     TestExecutionElement,
+    LatestTestExecutionRequest,
+    LatestTestExecutionResponse
 )
 from services.test_execution_services import (
     create_test_execution,
     get_test_execution,
     get_test_executions_by_test,
-    update_test_execution
+    update_test_execution,
+    get_latest_test_executions_by_ids
 )
 from dependencies import get_current_user_dependency
 from dto.models import User
@@ -43,7 +45,7 @@ async def create_test_execution_endpoint(
 
 @router.get("/{test_execution_id}", response_model=TestExecutionSchema)
 async def get_test_execution_endpoint(
-    test_execution_id: UUID4,
+    test_execution_id: str,
 ) -> TestExecutionSchema:
     """
     Get a specific test execution by ID.
@@ -53,7 +55,7 @@ async def get_test_execution_endpoint(
 
 @router.get("/by-test/{test_id}", response_model=List[TestExecutionElement])
 async def get_test_executions_by_test_endpoint(
-    test_id: UUID4,
+    test_id: str,
 ) -> List[TestExecutionElement]:
     """
     Get all executions for a specific test.
@@ -65,10 +67,21 @@ async def get_test_executions_by_test_endpoint(
 
 @router.put("/{test_execution_id}", response_model=TestExecutionSchema)
 async def update_test_execution_endpoint(
-    test_execution_id: UUID4,
+    test_execution_id: str,
     test_execution_update: TestExecutionUpdateSchema,
 ) -> TestExecutionSchema:
     """
     Update a test execution with new information.
     """
-    return await update_test_execution(test_execution_id, test_execution_update)
+    test_execution = await get_test_execution(test_execution_id)
+    return await update_test_execution(test_execution, test_execution_update)
+
+
+@router.post("/latest/", response_model=Dict[UUID4, LatestTestExecutionResponse])
+async def get_latest_test_executions_endpoint(
+    request_body: LatestTestExecutionRequest
+) -> Dict[UUID4, LatestTestExecutionResponse]:
+    """
+    Get the latest execution details for a batch of test IDs.
+    """
+    return await get_latest_test_executions_by_ids(request_body.test_ids)

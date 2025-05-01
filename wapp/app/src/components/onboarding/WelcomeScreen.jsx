@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Check, Search, Lock } from 'lucide-react';
+import { ArrowRight, Check, Lock } from 'lucide-react';
 
 const WelcomeScreen = ({ onNext }) => {
   return (
@@ -13,11 +13,6 @@ const WelcomeScreen = ({ onNext }) => {
       </div>
 
       <div className="grid md:grid-cols-2 gap-6 mt-8">
-        <FeatureCard
-          icon={<Search className="h-8 w-8 text-blue-500" />}
-          title="Organized Testing Structure"
-          description="Manage your testing with our hierarchical structure: Products → Epics → Features → User Stories → Acceptance Criteria → Tests"
-        />
         <FeatureCard
           icon={<Check className="h-8 w-8 text-green-500" />}
           title="Comprehensive Test Management"

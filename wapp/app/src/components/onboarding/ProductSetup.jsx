@@ -5,7 +5,7 @@ import { useOrganization } from '@/context/OrganizationContext';
 import { isValidUrl } from '@/utils/urlUtils';
 import axios from 'axios';
 import { API_URL } from '@/constants/api';
-
+import { TEST_STATUS } from '@/utils/testExecutionUtils';
 const ProductSetup = ({ onNext, onPrev, onSkip }) => {
   const { products, refreshProducts } = useProduct();
   const { selectedOrganization } = useOrganization();
@@ -211,7 +211,7 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
       );
 
       // If validation is completed
-      if (response.data && response.data.status === 'completed') {
+      if (response.data && response.data.status === TEST_STATUS.PASSED) {
         // If login page was found
         if (response.data.results && response.data.results.valid) {
           setLoginPageFound(true);
@@ -495,68 +495,6 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                       placeholder="Describe what this product does"
                     />
                   </div>
-
-                  <div>
-                    <label htmlFor="documentation" className="block text-sm font-medium text-gray-700 mb-1">
-                      Documentation
-                    </label>
-                    <textarea
-                      id="documentation"
-                      name="documentation"
-                      rows="3"
-                      value={formData.documentation}
-                      onChange={handleChange}
-                      className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      placeholder="Add any documentation about the product (optional)"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Documentation Links
-                      </label>
-                      <button
-                        type="button"
-                        onClick={handleAddLink}
-                        className="text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        + Add Link
-                      </button>
-                    </div>
-
-                    {formData.links_to_documentation.length > 0 ? (
-                      <div className="space-y-3">
-                        {formData.links_to_documentation.map((link, index) => (
-                          <div key={index} className="flex items-center space-x-2">
-                            <input
-                              type="text"
-                              value={link.title}
-                              onChange={(e) => handleLinkChange(index, 'title', e.target.value)}
-                              placeholder="Link title"
-                              className="appearance-none rounded-md relative block flex-1 px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                            />
-                            <input
-                              type="url"
-                              value={link.url}
-                              onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
-                              placeholder="https://..."
-                              className="appearance-none rounded-md relative block flex-1 px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveLink(index)}
-                              className="text-red-500 hover:text-red-700 p-2"
-                            >
-                              &times;
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500 italic">No documentation links added yet.</p>
-                    )}
-                  </div>
                 </div>
 
                 <div className="flex justify-between mt-8">
@@ -756,68 +694,6 @@ const ProductSetup = ({ onNext, onPrev, onSkip }) => {
                 className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="Describe what this product does"
               />
-            </div>
-
-            <div>
-              <label htmlFor="documentation" className="block text-sm font-medium text-gray-700 mb-1">
-                Documentation
-              </label>
-              <textarea
-                id="documentation"
-                name="documentation"
-                rows="3"
-                value={formData.documentation}
-                onChange={handleChange}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Add any documentation about the product (optional)"
-              />
-            </div>
-
-            <div>
-              <div className="flex justify-between mb-1">
-                <label className="block text-sm font-medium text-gray-700">
-                  Documentation Links
-                </label>
-                <button
-                  type="button"
-                  onClick={handleAddLink}
-                  className="text-sm text-blue-600 hover:text-blue-800"
-                >
-                  + Add Link
-                </button>
-              </div>
-
-              {formData.links_to_documentation.length > 0 ? (
-                <div className="space-y-3">
-                  {formData.links_to_documentation.map((link, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <input
-                        type="text"
-                        value={link.title}
-                        onChange={(e) => handleLinkChange(index, 'title', e.target.value)}
-                        placeholder="Link title"
-                        className="appearance-none rounded-md relative block flex-1 px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      />
-                      <input
-                        type="url"
-                        value={link.url}
-                        onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
-                        placeholder="https://..."
-                        className="appearance-none rounded-md relative block flex-1 px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveLink(index)}
-                        className="text-red-500 hover:text-red-700 p-2"
-                      >
-                        &times;
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 italic">No documentation links added yet.</p>
-              )}
             </div>
           </div>
 

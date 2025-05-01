@@ -13,9 +13,10 @@ import {
   Trash2,
 } from 'lucide-react';
 import axios from 'axios';
-import { getTestsByFeature, getTestsByEpic, getTestsByProduct, triggerFeatureTestGeneration, getTestGenerationStatus, deleteTest } from '@/services/testService';
+import { getTestsByFeature, getTestsByEpic, getTestsByProduct, deleteTest } from '@/services/testService';
 import { getAllEpics, getFeaturesByEpic } from '@/services/productService';
-import { createTestExecution, getTestExecution } from '@/services/testExecutionService';
+import { createTestExecution, getTestExecution, getLatestTestExecutions } from '@/services/testExecutionService';
+import { handleFeatureTestGeneration } from '@/services/testGenerationService';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import { useSecret } from '@/context/SecretContext';
@@ -27,6 +28,7 @@ import ConfirmationModal from '@/components/modals/ConfirmationModal';
 import { getStatusIconLarge, formatStatus, getStatusColorClasses } from '@/utils/testExecutionUtils';
 import { formatDate } from '@/utils/dateUtils';
 import { API_URL } from '@/constants/api';
+import { TEST_STATUS } from '@/utils/testExecutionUtils';
 
 /**
  * Displays all tests in a tabular format with sorting and filtering capabilities
@@ -64,6 +66,9 @@ const TestsTable = () => {
   const [isConfirmFeatureDeleteModalOpen, setIsConfirmFeatureDeleteModalOpen] = useState(false); // State for feature delete confirmation
   const [featureToDeleteId, setFeatureToDeleteId] = useState(null); // ID of feature marked for deletion
 
+  // New state for latest execution data
+  const [latestExecutionsMap, setLatestExecutionsMap] = useState({});
+
   const { selectedProduct } = useProduct();
   const { selectedOrganization } = useOrganization();
   const { secrets, fetchSecrets } = useSecret();
@@ -81,8 +86,6 @@ const TestsTable = () => {
 
   useEffect(() => {
     if (selectedProduct && selectedOrganization) {
-      console.log('Selected product:', selectedProduct);
-      console.log('Selected organization:', selectedOrganization);
       fetchTestsByProduct(selectedProduct.id);
       fetchEpicsAndFeatures();
     }
@@ -90,20 +93,13 @@ const TestsTable = () => {
 
   // Add console logs for epics and features state changes
   useEffect(() => {
-    console.log('Epics updated:', epics);
-
     // When epics are loaded, select the first epic by default if available
     if (epics.length > 0 && selectedEpic === 'all') {
       const firstEpicId = epics[0].id;
-      console.log('Setting first epic as default:', firstEpicId);
       setSelectedEpic(firstEpicId);
       // Features will be fetched in the other useEffect when selectedEpic changes
     }
   }, [epics]);
-
-  useEffect(() => {
-    console.log('Features updated:', features);
-  }, [features]);
 
   // Fetch epic-specific features when an epic is selected
   useEffect(() => {
@@ -142,15 +138,8 @@ const TestsTable = () => {
         setLoadingFeatures(false);
         return;
       }
-
-      console.log('Fetching epics for:', {
-        productId: selectedProduct.id,
-        orgId: selectedOrganization.id
-      });
-
       // Fetch epics for the current product
       const epicsData = await getAllEpics(selectedProduct.id, selectedOrganization.id);
-      console.log('Fetched epics data:', epicsData);
 
       if (!Array.isArray(epicsData) || epicsData.length === 0) {
         console.warn('No epics data returned or empty array');
@@ -166,16 +155,13 @@ const TestsTable = () => {
           console.error('Epic missing ID:', epic);
           return [];
         }
-        console.log('Fetching features for epic:', epic.id);
         const epicFeatures = await getFeaturesByEpic(epic.id);
-        console.log('Features for epic', epic.id, ':', epicFeatures);
         featuresMap[epic.id] = epicFeatures;
         return epicFeatures;
       });
 
       const allFeaturesArrays = await Promise.all(fetchPromises);
       const allFeatures = allFeaturesArrays.flat();
-      console.log('All features:', allFeatures);
 
       setEpicFeaturesMap(featuresMap);
       setFeatures(allFeatures);
@@ -226,6 +212,7 @@ const TestsTable = () => {
       const testsData = await getTestsByProduct(productId);
       setTests(testsData);
       applyFilters(testsData, selectedStatus, searchQuery);
+      await fetchLatestExecutions(testsData);
     } catch (err) {
       handleFetchError('load tests data', err);
       setFilteredTests([]);
@@ -237,9 +224,29 @@ const TestsTable = () => {
   // Sort function that can be reused across the component
   const sortItems = (items, key, direction) => {
     return [...items].sort((a, b) => {
-      const aValue = a[key];
-      const bValue = b[key];
+      let aValue, bValue;
 
+      // Get value based on sort key, checking latestExecutionsMap if needed
+      if (key === 'latest_status' || key === 'latest_ended_at') {
+        const aExec = latestExecutionsMap[a.id];
+        const bExec = latestExecutionsMap[b.id];
+        // Map key to execution field
+        const execKey = key === 'latest_status' ? 'status' : 'ended_at';
+        aValue = aExec ? aExec[execKey] : null;
+        bValue = bExec ? bExec[execKey] : null;
+
+        // Handle nulls (e.g., tests never run) - sort them last
+        if (aValue === null && bValue !== null) return direction === 'asc' ? 1 : -1;
+        if (aValue !== null && bValue === null) return direction === 'asc' ? -1 : 1;
+        if (aValue === null && bValue === null) return 0;
+
+      } else {
+        // For other keys like 'name', 'category', 'feature_name'
+        aValue = a[key];
+        bValue = b[key];
+      }
+
+      // Standard comparison
       if (aValue < bValue) {
         return direction === 'asc' ? -1 : 1;
       }
@@ -250,7 +257,7 @@ const TestsTable = () => {
     });
   };
 
-  const applyFilters = (testsToFilter = tests, statusOverride = null, queryOverride = null) => {
+  const applyFilters = (testsToFilter = tests, statusOverride = null, queryOverride = null, executionsMap = latestExecutionsMap) => {
     let result = [...testsToFilter];
 
     // Use the status override if provided, otherwise use the state
@@ -259,13 +266,9 @@ const TestsTable = () => {
     // Apply status filter
     if (filterStatus !== 'all') {
       // Log test statuses to help with debugging
-      if (result.length > 0) {
-        console.log("Test statuses examples:", result.slice(0, 3).map(test => test.status));
-        console.log("Filtering by status:", filterStatus);
-      }
-
       result = result.filter(test => {
-        const testStatus = test.status?.toLowerCase();
+        const latestExecution = executionsMap[test.id];
+        const testStatus = latestExecution?.status?.toLowerCase();
         return testStatus === filterStatus;
       });
     }
@@ -281,6 +284,12 @@ const TestsTable = () => {
         test.description.toLowerCase().includes(lowercaseQuery)
       );
     }
+
+    // Add feature name to each test for easier sorting/display
+    result = result.map(test => ({
+      ...test,
+      feature_name: features.find(f => f.id === test.feature_id)?.name || 'N/A'
+    }));
 
     // Apply sorting using the reusable function
     result = sortItems(result, sortConfig.key, sortConfig.direction);
@@ -312,10 +321,12 @@ const TestsTable = () => {
         const testsData = await getTestsByFeature(selectedFeature);
         setTests(testsData);
         applyFilters(testsData, selectedStatus, searchQuery);
+        await fetchLatestExecutions(testsData);
       } else if (selectedEpic !== 'all') {
         const testsData = await getTestsByEpic(selectedEpic);
         setTests(testsData);
         applyFilters(testsData, selectedStatus, searchQuery);
+        await fetchLatestExecutions(testsData);
       } else {
         await fetchTestsByProduct(selectedProduct.id);
       }
@@ -340,10 +351,6 @@ const TestsTable = () => {
     return sortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />;
   };
 
-  const getStatusIcon = (status) => {
-    return getStatusIconLarge(status);
-  };
-
   const handleTestSelect = (test) => {
     setSelectedTest(test);
   };
@@ -361,17 +368,13 @@ const TestsTable = () => {
     setSuccessMessage(null);
     setIsDeleting(false); // Reset deleting state
 
-    // Clear any existing interval
+    // Stop test generation polling if it's running
     if (pollingIntervalRef.current) {
-      console.log('Stopping polling for test generation task:', testGenerationTaskId);
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
+        pollingIntervalRef.current(); // Call the cleanup function
+        pollingIntervalRef.current = null;
     }
-    if (testGenerationTaskId) {
-      console.log('Cleaning up test generation polling on unmount or feature change');
-      setIsGeneratingTests(false);
-      setTestGenerationTaskId(null);
-    }
+    setIsGeneratingTests(false);
+    setTestGenerationTaskId(null);
   };
 
   // Handle running a single test
@@ -395,7 +398,7 @@ const TestsTable = () => {
 
       const executionData = {
         test_id: testId,
-        status: 'PENDING',
+        status: TEST_STATUS.PENDING,
         environment: 'development',
         executor_type: 'MANUAL',
         notes: null
@@ -449,6 +452,17 @@ const TestsTable = () => {
         return;
       }
 
+      // Filter out tests that are already running
+      const testsToRun = filteredTests.filter(test => !runningTests[test.id]);
+
+      if (testsToRun.length === 0) {
+        setError('All selected tests are already running or starting.');
+        setSuccessMessage(null);
+        // Clear error after a delay
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+
       // Check if the project has test credentials
       if (!secrets || secrets.length === 0) {
         setError(
@@ -462,20 +476,23 @@ const TestsTable = () => {
 
       setError(null);
       setSuccessMessage(null);
-      setLoading(true);
+      setLoading(true); // Consider a more specific loading state like setIsRunningSelected
 
       let testCount = 0;
       const testExecutions = [];
 
-      // Run each filtered test
-      for (const test of filteredTests) {
+      // Run each filtered test that is NOT already running
+      for (const test of testsToRun) { // Iterate over testsToRun instead of filteredTests
+        // Skip if already running (double-check, though filtering should handle this)
+        if (runningTests[test.id]) continue;
+
         try {
           // Mark test as running
           setRunningTests(prev => ({ ...prev, [test.id]: true }));
 
           const executionData = {
             test_id: test.id,
-            status: 'PENDING',
+            status: TEST_STATUS.PENDING,
             environment: 'development',
             executor_type: 'MANUAL',
             notes: null
@@ -488,27 +505,24 @@ const TestsTable = () => {
           setTests(prevTests => prevTests.map(t =>
             t.id === test.id ? {
               ...t,
-              status: 'pending',
+              // Don't overwrite status if it's already running from a previous action
               last_execution_id: response.id,
-              started_at: new Date().toISOString()
             } : t
           ));
 
-          // Update filtered tests too
+          // Update filtered tests too - reflect running state immediately
           setFilteredTests(prevTests => prevTests.map(t =>
             t.id === test.id ? {
               ...t,
-              status: 'pending',
               last_execution_id: response.id,
-              started_at: new Date().toISOString()
             } : t
           ));
 
           testCount++;
         } catch (testErr) {
-          console.error(`Error running test ${test.id}:`, testErr);
+          console.error(`Error starting test ${test.id}:`, testErr);
 
-          // Remove from running tests
+          // Remove from running tests only if starting failed
           setRunningTests(prev => {
             const updated = { ...prev };
             delete updated[test.id];
@@ -521,29 +535,27 @@ const TestsTable = () => {
 
       // Show appropriate message based on results
       if (testCount > 0) {
-        setError(null);
-
-        // Start polling for each test execution
+        // Start polling for each test execution that was just started
         testExecutions.forEach(({ testId, executionId }) => {
           pollTestExecutionStatus(testId, executionId);
         });
       } else {
-        setError('Failed to start any tests. Please try again.');
+        // This case might happen if all attempts failed
+        setError('Failed to start any tests. Please check the console and try again.');
         setSuccessMessage(null);
+        setTimeout(() => setError(null), 5000);
       }
     } catch (err) {
       handleFetchError('run selected tests', err);
       setSuccessMessage(null);
     } finally {
-      setLoading(false);
+      setLoading(false); // Reset general loading or specific running state
     }
   };
 
   // Function to poll test execution status
   const pollTestExecutionStatus = async (testId, executionId) => {
     if (!executionId) return;
-
-    console.log(`Starting to poll execution status for test ${testId}, execution ${executionId}`);
 
     // Clear any existing interval for this test
     if (testPollingIntervalsRef.current[testId]) {
@@ -554,38 +566,22 @@ const TestsTable = () => {
     testPollingIntervalsRef.current[testId] = setInterval(async () => {
       try {
         const executionData = await getTestExecution(executionId);
-        console.log(`Polling execution ${executionId} status:`, executionData.status);
 
-        // Normalize status to uppercase for consistency
-        const normalizedStatus = executionData.status?.toUpperCase() || '';
-
-        // Update test status in state with the latest data
-        setTests(prevTests => prevTests.map(test =>
-          test.id === testId
-            ? {
-                ...test,
-                status: normalizedStatus,
-                started_at: executionData.started_at || test.started_at,
-                last_execution_id: executionId
-              }
-            : test
-        ));
-
-        // Also update filtered tests
-        setFilteredTests(prevTests => prevTests.map(test =>
-          test.id === testId
-            ? {
-                ...test,
-                status: normalizedStatus,
-                started_at: executionData.started_at || test.started_at,
-                last_execution_id: executionId
-              }
-            : test
-        ));
+        // Instead of updating the test object's status directly,
+        // update the latestExecutionsMap
+        setLatestExecutionsMap(prevMap => ({
+          ...prevMap,
+          [testId]: {
+            test_id: testId,
+            execution_id: executionId,
+            status: executionData.status,
+            started_at: executionData.started_at,
+            ended_at: executionData.ended_at
+          }
+        }));
 
         // If status is no longer pending, stop polling
-        if (normalizedStatus !== 'PENDING') {
-          console.log(`Test ${testId} execution completed with status: ${normalizedStatus}`);
+        if (executionData.status !== TEST_STATUS.PENDING) {
           clearInterval(testPollingIntervalsRef.current[testId]);
           delete testPollingIntervalsRef.current[testId];
 
@@ -609,7 +605,7 @@ const TestsTable = () => {
           return updated;
         });
       }
-    }, 2000); // Poll every 2 seconds
+    }, 5000); // Poll every 5 seconds
   };
 
   // Function to handle feature creation completion
@@ -641,72 +637,6 @@ const TestsTable = () => {
     }, 3000);
   };
 
-  // Function to handle test creation button click
-  const handleCreateTestClick = () => {
-    // Check if there are any features
-    if (features.length === 0) {
-      // Show a prompt to create features first
-      setError('Please create at least one feature before adding tests.');
-
-      // Open the dropdown to access the create feature button
-      setIsFeatureDropdownOpen(true);
-
-      // Highlight the feature dropdown
-      const featureDropdown = document.querySelector('[data-feature-dropdown]');
-      if (featureDropdown) {
-        // Add a pulse animation class
-        featureDropdown.classList.add('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-
-        // Remove the animation after 5 seconds
-        setTimeout(() => {
-          featureDropdown.classList.remove('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-        }, 5000);
-      }
-
-      // Automatically clear the error after 6 seconds
-      setTimeout(() => {
-        setError(null);
-      }, 6000);
-
-      // Scroll to top to make sure error is visible
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      return;
-    }
-    // Check if a feature is selected
-    else if (selectedFeature === 'all') {
-      // Show a prompt to select a feature first
-
-      // Highlight the feature dropdown
-      const featureDropdown = document.querySelector('[data-feature-dropdown]');
-      if (featureDropdown) {
-        // Add a pulse animation class
-        featureDropdown.classList.add('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-
-        // Remove the animation after 5 seconds
-        setTimeout(() => {
-          featureDropdown.classList.remove('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-        }, 5000);
-      }
-
-      // Open the dropdown to show options
-      setIsFeatureDropdownOpen(true);
-
-      // Automatically clear the error after 6 seconds
-      setTimeout(() => {
-        setError(null);
-      }, 6000);
-
-      // Scroll to top to make sure error is visible
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      return;
-    }
-
-    // If a feature is selected, open the test creation modal
-    setIsAddTestModalOpen(true);
-  };
-
   // Function to dismiss error message
   const dismissError = () => {
     setError(null);
@@ -725,9 +655,13 @@ const TestsTable = () => {
         testData.feature_id = selectedFeature;
     } else if (selectedEpic !== 'all') {
         testData.epic_id = selectedEpic;
-      } else if (selectedProduct) {
+      } else if (selectedProduct && epics.length > 0) {
         testData.epic_id = epics[0]?.id; // Use first epic as a fallback
       }
+      if (!testData.feature_id && !testData.epic_id) {
+            throw new Error("Cannot save test without associated Feature or Epic.");
+      }
+
 
       const response = await axios.post(
         `${API_URL}/tests/`,
@@ -753,153 +687,88 @@ const TestsTable = () => {
       fetchTestsWithCurrentFilters();
     } catch (err) {
       console.error('Error saving test:', err);
-      setError('Failed to create test. Please try again.');
+      setError(`Failed to create test: ${err.message || 'Please try again.'}`);
       setSuccessMessage(null);
+      // Clear error after 5 seconds
+        setTimeout(() => {
+          setError(null);
+        }, 5000);
     }
   };
 
   // Function to handle test generation for the selected feature
   const handleGenerateTests = async () => {
-    // Check if a feature is selected
-    if (selectedFeature === 'all') {
-      // Show error message
+    // Clear previous messages/state
+    setError(null);
+    setSuccessMessage(null);
 
-      // Highlight the feature dropdown
-      const featureDropdown = document.querySelector('[data-feature-dropdown]');
-      if (featureDropdown) {
-        // Add a pulse animation class
-        featureDropdown.classList.add('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-
-        // Remove the animation after 5 seconds
-        setTimeout(() => {
-          featureDropdown.classList.remove('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-        }, 5000);
-      }
-
-      // Open the dropdown to show options
-      setIsFeatureDropdownOpen(true);
-
-      // Automatically clear the error after 6 seconds
-      setTimeout(() => {
-        setError(null);
-      }, 6000);
-
-      // Scroll to top to make sure error is visible
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      return;
-    }
-
-    // Check if the project has test credentials
-    if (!secrets || secrets.length === 0) {
-      setError(
-        <span>
-          Cannot generate tests: No test credentials found. Please add credentials in the{' '}
-          <a href="/test-credentials" className="text-red-800 font-medium underline">
-            Test Credentials Management
-          </a>{' '}
-          section.
-        </span>
-      );
-      setSuccessMessage(null);
-      return;
-    }
-
-    try {
-      setIsGeneratingTests(true);
-      setError(null);
-      setSuccessMessage(`Starting test generation. Status: ${formatStatus('PENDING')}`);
-
-      // Call the API to generate tests
-      console.log('Triggering test generation for feature:', selectedFeature);
-      const taskId = await triggerFeatureTestGeneration(selectedFeature);
-      console.log('Test generation task ID received:', taskId);
-      setTestGenerationTaskId(taskId?.toString() || null); // Ensure taskId is a string or null
-
-      // Clear any existing interval
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-
-      // Poll for status
-      pollingIntervalRef.current = setInterval(async () => {
-        try {
-          console.log('Polling test generation status for task:', taskId);
-          const response = await getTestGenerationStatus(taskId);
-          console.log('Test generation status response:', response);
-
-          // Update success message with current status
-          setSuccessMessage(
-            `Test generation in progress. Status: ${response.status ? formatStatus(response.status) : formatStatus('PENDING')}${response.progress ? ` (${response.progress})` : ''}`
-          );
-
-          if (response.status === 'completed') {
-            console.log('Test generation completed successfully:', response);
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-            setIsGeneratingTests(false);
-            setTestGenerationTaskId(null);
-
-            // Refresh tests and show success
-            await fetchTestsWithCurrentFilters();
-
-            // Get the current number of tests after refresh
-            const currentTests = await getTestsByFeature(selectedFeature);
-
-            if (currentTests.length === 0) {
-              setError('Test generation completed but no tests were created. Please check the logs for more information.');
-              setSuccessMessage(null);
-            } else {
-              setSuccessMessage(
-                `Successfully generated ${currentTests.length} tests for the selected feature. Status: ${formatStatus('COMPLETED')}`
-              );
-            }
-
-            // Clear success message after 5 seconds
-            setTimeout(() => {
-              setSuccessMessage(null);
-            }, 5000);
-          }
-        } catch (err) {
-          console.error('Error polling test generation status:', err);
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-          setIsGeneratingTests(false);
-          setTestGenerationTaskId(null);
-          setError('Error checking test generation status. Please try again.');
+    // Call the new service function
+    pollingIntervalRef.current = await handleFeatureTestGeneration(
+      selectedFeature,
+      secrets,
+      (taskId) => { // onStart
+        setIsGeneratingTests(true);
+        if (taskId) { // Update task ID only when we receive it
+          setTestGenerationTaskId(taskId);
         }
-      }, 2000); // Poll every 2 seconds
+      },
+      (statusUpdate) => { // onStatusUpdate
+        setSuccessMessage(statusUpdate); // Use success message for progress
+      },
+      async (successMsg) => { // onSuccess
+        setIsGeneratingTests(false);
+        setTestGenerationTaskId(null);
+        pollingIntervalRef.current = null; // Clear the cleanup ref
 
-    } catch (err) {
-      console.error('Error generating tests:', err);
-      setIsGeneratingTests(false);
-      setTestGenerationTaskId(null);
-      setError('Failed to start test generation. Please try again.');
-      setSuccessMessage(null);
-    }
+        // Refresh tests and check results
+        await fetchTestsWithCurrentFilters(); // Ensure this completes before checking tests
+
+        // Re-fetch tests to check count - Note: This might be slightly delayed, consider alternative check
+        const currentTests = await getTestsByFeature(selectedFeature); // Maybe use state?
+        if (currentTests.length === 0) {
+          setError('Test generation completed but no tests were created. Please check the logs.');
+          setSuccessMessage(null); // Clear progress message
+          setTimeout(() => setError(null), 5000);
+        } else {
+          setSuccessMessage(successMsg); // Show final success message from service
+          setTimeout(() => setSuccessMessage(null), 5000);
+        }
+      },
+      (errorMsg) => { // onError
+        setIsGeneratingTests(false);
+        setTestGenerationTaskId(null);
+        setError(errorMsg);
+        setSuccessMessage(null); // Clear progress message
+        pollingIntervalRef.current = null; // Clear the cleanup ref
+        setTimeout(() => setError(null), 5000);
+
+        // Handle specific error case for missing feature selection
+        if (typeof errorMsg === 'string' && errorMsg.includes('select a specific feature')) {
+            const featureDropdown = document.querySelector('[data-feature-dropdown]');
+            if (featureDropdown) {
+                featureDropdown.classList.add('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
+                setTimeout(() => {
+                    featureDropdown.classList.remove('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
+                }, 5000);
+            }
+            setIsFeatureDropdownOpen(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
+    );
   };
 
   // Add useEffect for cleanup of polling interval
   useEffect(() => {
-    // Log when the polling is started/active
-    if (pollingIntervalRef.current) {
-      console.log('Polling is active for test generation task:', testGenerationTaskId);
-    }
-
     // Cleanup function to stop polling when component unmounts or feature changes
     return () => {
       if (pollingIntervalRef.current) {
-        console.log('Stopping polling for test generation task:', testGenerationTaskId);
-        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current(); // Call the cleanup function returned by the service
         pollingIntervalRef.current = null;
       }
-      if (testGenerationTaskId) {
-        console.log('Cleaning up test generation polling on unmount or feature change');
-        setIsGeneratingTests(false);
-        setTestGenerationTaskId(null);
-      }
+      // No need to reset state here, it's handled by the callbacks or unmount
     };
-  }, [selectedFeature]);
+  }, [selectedFeature]); // Keep dependency on selectedFeature
 
   // Function to handle feature editing
   const handleEditFeature = (feature) => {
@@ -1000,11 +869,17 @@ const TestsTable = () => {
   // Add useEffect for cleanup of test polling intervals
   useEffect(() => {
     return () => {
-      // Clean up all polling intervals when component unmounts
+      // Clean up all test execution polling intervals when component unmounts
       Object.values(testPollingIntervalsRef.current).forEach(interval => {
         clearInterval(interval);
       });
       testPollingIntervalsRef.current = {};
+
+      // Clean up test generation polling if active
+      if (pollingIntervalRef.current) {
+        pollingIntervalRef.current();
+        pollingIntervalRef.current = null;
+      }
     };
   }, []);
 
@@ -1079,6 +954,41 @@ const TestsTable = () => {
       setSuccessMessage(null);
       setError(null);
     }, 3000);
+  };
+
+  // New function to fetch latest executions for the current tests
+  const fetchLatestExecutions = async (testsToFetchFor) => {
+    if (!testsToFetchFor || testsToFetchFor.length === 0) {
+      setLatestExecutionsMap({});
+      return;
+    }
+    try {
+      const testIds = testsToFetchFor.map(t => t.id);
+      const latestExecutions = await getLatestTestExecutions(testIds);
+      setLatestExecutionsMap(latestExecutions);
+
+      // Start polling for any executions that are already pending
+      Object.values(latestExecutions).forEach(exec => {
+        if (exec.status === TEST_STATUS.PENDING) {
+          pollTestExecutionStatus(exec.test_id, exec.execution_id);
+          // Also mark the test as running visually
+          setRunningTests(prev => ({ ...prev, [exec.test_id]: true }));
+        }
+      });
+
+      // Re-apply filters after getting latest executions
+      applyFilters(testsToFetchFor, selectedStatus, searchQuery, latestExecutions);
+    } catch (err) {
+      console.error('Error fetching latest executions:', err);
+      // Optionally set an error state here
+      setLatestExecutionsMap({}); // Clear map on error
+    }
+  };
+
+  // Add a function to check if ALL filtered tests are running
+  const allFilteredTestsRunning = () => {
+    if (filteredTests.length === 0) return false; // Cannot run if no tests are filtered
+    return filteredTests.every(test => runningTests[test.id]);
   };
 
   if (loading) {
@@ -1230,7 +1140,12 @@ const TestsTable = () => {
             <div>
               <h3 className="text-sm font-medium">Test credentials required</h3>
               <p className="mt-1 text-sm">
-                {errorMessageNoCredentials}
+                {/* Update the message slightly for consistency */}
+                You need to add test credentials before running or generating tests. Go to the{' '}
+                <a href="/test-credentials" className="text-yellow-900 font-medium underline">
+                  Test Credentials Management
+                </a>{' '}
+                section.
               </p>
             </div>
           </div>
@@ -1274,11 +1189,12 @@ const TestsTable = () => {
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
               >
                 <option value="all">All Statuses</option>
-                <option value="passed">Passed</option>
-                <option value="failed">Failed</option>
-                <option value="pending">Pending</option>
-                <option value="not_started">Not Started</option>
-                <option value="blocked">Blocked</option>
+                {/* Dynamically generate status options */}
+                {Object.entries(TEST_STATUS).map(([key, value]) => (
+                  <option key={key} value={value}>
+                    {formatStatus(value)}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -1400,9 +1316,14 @@ const TestsTable = () => {
             {/* Generate Tests button */}
             <button
               onClick={handleGenerateTests}
-              disabled={isGeneratingTests || !secrets || secrets.length === 0}
+              disabled={isGeneratingTests || !secrets || secrets.length === 0 || selectedFeature === 'all'}
               className="flex items-center justify-center px-3 py-2 bg-purple-600 text-white rounded-md shadow hover:bg-purple-700 transition duration-150 disabled:bg-purple-300 disabled:cursor-not-allowed"
-              title={!secrets || secrets.length === 0 ? "Test credentials required to generate tests" : "Generate tests for selected feature using AI"}
+              title={
+                !secrets || secrets.length === 0 ? "Test credentials required to generate tests" :
+                selectedFeature === 'all' ? "Please select a specific feature first" :
+                isGeneratingTests ? "Generation in progress..." :
+                "Generate tests for selected feature using AI"
+              }
             >
               {isGeneratingTests ? (
                 <>
@@ -1413,20 +1334,26 @@ const TestsTable = () => {
                 <>
                   <Beaker size={18} className="mr-2" />
                   <span className="whitespace-nowrap">Generate Tests with AI</span>
-                  {secrets && secrets.length > 0 && (
-                    <span className="ml-1.5 flex items-center justify-center bg-purple-800 text-white text-xs rounded-full h-5 min-w-5 px-1">
-                      {secrets.length}
-                    </span>
-                  )}
                 </>
               )}
             </button>
 
             {/* Add Test button */}
             <button
-              onClick={handleCreateTestClick}
-              className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition duration-150"
-              title="Add new test to selected feature"
+              onClick={() => {
+                if (selectedFeature === 'all') {
+                  setError(
+                    <span>
+                      Please select a specific feature first
+                    </span>
+                  );
+                  return;
+                }
+                setIsAddTestModalOpen(true);
+              }}
+              disabled={selectedFeature === 'all'}
+              className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition duration-150 disabled:bg-blue-300 disabled:cursor-not-allowed"
+              title={selectedFeature === 'all' ? "Please select a specific feature first" : "Add new test to selected feature"}
             >
               <Plus size={18} className="mr-2" />
               <span className="whitespace-nowrap">Add Test To Feature</span>
@@ -1446,24 +1373,24 @@ const TestsTable = () => {
           <div className="flex gap-2">
             <button
               onClick={handleRunSelectedTests}
-              disabled={filteredTests.length === 0 || hasRunningTests() || !secrets || secrets.length === 0}
+              disabled={filteredTests.length === 0 || allFilteredTestsRunning() || !secrets || secrets.length === 0}
               className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150 disabled:bg-green-300 disabled:cursor-not-allowed"
-              title={!secrets || secrets.length === 0 ? "Test credentials required to run tests" : "Run selected tests"}
+              title={
+                !secrets || secrets.length === 0 ? "Test credentials required to run tests" :
+                filteredTests.length === 0 ? "No tests to run" :
+                allFilteredTestsRunning() ? "All visible tests are already running" :
+                "Run all non-running visible tests"
+              }
             >
-              {hasRunningTests() ? (
+              {allFilteredTestsRunning() ? ( // Show spinner and 'Running...' only if ALL are running
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {formatStatus(RUNNING_STATUS)} Tests
+                  Running...
                 </>
               ) : (
                 <>
                   <Play size={18} className="mr-2" />
                   Run Tests
-                  {secrets && secrets.length > 0 && (
-                    <span className="ml-1.5 flex items-center justify-center bg-green-800 text-white text-xs rounded-full h-5 min-w-5 px-1">
-                      {secrets.length}
-                    </span>
-                  )}
                 </>
               )}
             </button>
@@ -1471,9 +1398,9 @@ const TestsTable = () => {
             {selectedTestIds.size > 0 && (
               <button
                 onClick={handleDeleteSelectedTests} // This now opens the modal
-                disabled={isDeleting || hasRunningTests()}
+                disabled={isDeleting}
                 className={`flex items-center px-3 py-1.5 text-sm bg-red-600 text-white rounded-md shadow hover:bg-red-700 transition duration-150 disabled:bg-red-300 disabled:cursor-not-allowed ${isDeleting ? 'cursor-wait' : ''}`}
-                title={isDeleting ? "Deleting..." : hasRunningTests() ? "Cannot delete while tests are running" : "Delete selected tests"}
+                title={isDeleting ? "Deleting..." : "Delete selected tests"}
               >
                 {isDeleting ? (
                   <>
@@ -1507,16 +1434,16 @@ const TestsTable = () => {
                         />
                       </th>
                       <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                        onClick={() => handleSort('status')}
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        onClick={() => handleSort('latest_status')}
                       >
                         <div className="flex items-center">
                           Status
-                          {getSortIcon('status')}
+                          {getSortIcon('latest_status')}
                         </div>
                       </th>
                       <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSort('name')}
                       >
                         <div className="flex items-center">
@@ -1525,7 +1452,16 @@ const TestsTable = () => {
                         </div>
                       </th>
                       <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                        onClick={() => handleSort('feature_name')}
+                      >
+                        <div className="flex items-center">
+                          Feature
+                          {getSortIcon('feature_name')}
+                        </div>
+                      </th>
+                      <th
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hidden sm:table-cell"
                         onClick={() => handleSort('category')}
                       >
                         <div className="flex items-center">
@@ -1534,15 +1470,15 @@ const TestsTable = () => {
                         </div>
                       </th>
                       <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hidden md:table-cell"
-                        onClick={() => handleSort('started_at')}
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hidden md:table-cell"
+                        onClick={() => handleSort('latest_ended_at')}
                       >
                         <div className="flex items-center">
                           Last Run
-                          {getSortIcon('started_at')}
+                          {getSortIcon('latest_ended_at')}
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -1564,35 +1500,43 @@ const TestsTable = () => {
                               onClick={(e) => e.stopPropagation()} // Prevent row click handler
                             />
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                           {runningTests[test.id] ? (
                             <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
                           ) : (
-                            getStatusIcon(test.status)
+                            // Get status from the map
+                            getStatusIconLarge(latestExecutionsMap[test.id]?.status)
                           )}
-                          <span className={`ml-2 text-sm font-medium px-2 py-1 rounded-full ${runningTests[test.id] ? 'bg-blue-100 text-blue-800' : getStatusColorClasses(test.status)}`}>
-                            {runningTests[test.id] ? formatStatus(RUNNING_STATUS) : formatStatus(test.status)}
+                          <span className={`ml-2 text-sm font-medium px-2 py-1 rounded-full ${runningTests[test.id] ? 'bg-blue-100 text-blue-800' : getStatusColorClasses(latestExecutionsMap[test.id]?.status)}`}>
+                            {/* Get status from the map or show running */}
+                            {runningTests[test.id] ? formatStatus(RUNNING_STATUS) : formatStatus(latestExecutionsMap[test.id]?.status) ?? 'Not Run'}
                               </span>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4">
                             <div className="text-sm font-medium text-gray-900">{test.name}</div>
                             <div className="text-sm text-gray-500 truncate max-w-md">{test.description}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-600 truncate">
+                              {features.find(f => f.id === test.feature_id)?.name || 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap hidden sm:table-cell">
                             <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                               {test.category}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
+                          <td className="px-4 py-4 whitespace-nowrap hidden md:table-cell">
                             <div className="text-sm text-gray-500 flex items-center">
                               <Calendar size={14} className="mr-1" />
-                              {formatDate(test.started_at)}
+                              {/* Format ended_at from the map */}
+                              {formatDate(latestExecutionsMap[test.id]?.ended_at) ?? '--'}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end items-center space-x-2">
+                          <td className="px-4 py-4 whitespace-nowrap text-center text-sm font-medium">
+                        <div className="flex justify-center items-center space-x-2">
                           <button
                             className={`text-green-600 hover:text-green-900 flex items-center ${runningTests[test.id] || !secrets || secrets.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                             onClick={(e) => {
@@ -1616,12 +1560,17 @@ const TestsTable = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="6" className="px-6 py-12 text-center text-lg text-gray-500">
-                          {tests.length === 0 ? (
+                        <td colSpan="7" className="px-6 py-12 text-center text-lg text-gray-500">
+                          {tests.length === 0 && selectedFeature === 'all' ? (
                             <div className="flex flex-col items-center">
-                              <p>No tests found in the system.</p>
-                              <p className="text-sm mt-2">Start by creating a test for a feature or acceptance criteria.</p>
-                            </div>
+                              <p>No features or tests found for this product.</p>
+                              <p className="text-sm mt-2">Start by adding a Feature using the dropdown menu, then generate or add tests.</p>
+                          </div>
+                          ) : tests.length === 0 && selectedFeature !== 'all' ? (
+                              <div className="flex flex-col items-center">
+                                  <p>No tests found for the selected feature.</p>
+                                  <p className="text-sm mt-2">Use "Generate Tests with AI" or "Add Test" to create some.</p>
+                              </div>
                           ) : (
                             <div>
                               <p>No tests match the current filters.</p>
@@ -1649,6 +1598,8 @@ const TestsTable = () => {
             <div className="bg-gray-50 px-6 py-3 flex justify-between items-center border-t border-gray-200">
               <div className="text-gray-500 text-sm">
                 Showing {filteredTests.length} of {tests.length} tests
+                {/* Calculate total with executions for clarity (optional) */}
+                {` (${Object.values(latestExecutionsMap).filter(exec => exec.status).length} with runs)`}
                 {selectedTestIds.size > 0 && (
                   <span className="ml-2 text-gray-500 text-sm">({selectedTestIds.size} selected)</span>
                 )}

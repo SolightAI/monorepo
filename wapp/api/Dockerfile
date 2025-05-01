@@ -10,10 +10,15 @@ COPY src/ ./src/
 
 COPY migrations/ ./migrations/
 
-COPY *.py ./
+# Copy the entrypoint script
+COPY entrypoint.sh .
+
+# Make the entrypoint script executable
+RUN chmod +x ./entrypoint.sh
 
 ENV WORKERS=1
 
 EXPOSE 8000
 
-CMD fastapi run --workers ${WORKERS} src/main.py --host 0.0.0.0 --port 8000
+# Set the entrypoint
+CMD ["./entrypoint.sh"]

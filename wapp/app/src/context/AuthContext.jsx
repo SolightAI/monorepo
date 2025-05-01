@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
   });
   const refreshTimerRef = useRef(null);
 
-  const AUTH_ROUTES = ['/login', '/register', '/auth/google/callback'];
+  const AUTH_ROUTES = ['/login', '/register', '/auth/callback'];
 
   // Validate invitation code
   const validateInvitationCode = async (code, email) => {
@@ -148,16 +148,16 @@ export const AuthProvider = ({ children }) => {
 
       if (response.data && response.data.access_token) {
         const expiresAt = new Date(Date.now() + (response.data.expires_in || ACCESS_TOKEN_EXPIRE_MINUTES * 60) * 1000);
-        
+
         console.log(`Setting token data: expires in ${response.data.expires_in || ACCESS_TOKEN_EXPIRE_MINUTES * 60} seconds (${new Date(expiresAt).toLocaleTimeString()})`);
-        
+
         setTokens({
           accessToken: response.data.access_token,
           expiresAt
         });
 
         localStorage.setItem('tokenExpiresAt', expiresAt.toISOString());
-        
+
         setIsAuthenticated(true);
         console.log('Access token refreshed successfully');
         return true;
@@ -167,7 +167,7 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Failed to refresh token:', error.response?.status, error.response?.data);
-      
+
       // Don't clear auth state on refresh failures - just return false
       // We'll let the interceptor handle auth redirects when needed
       return false;
@@ -176,9 +176,9 @@ export const AuthProvider = ({ children }) => {
 
   const setTokenData = useCallback((accessToken, expiresInSeconds) => {
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
-    
+
     console.log(`Setting token data: expires in ${expiresInSeconds} seconds (${new Date(expiresAt).toLocaleTimeString()})`);
-    
+
     setTokens({
       accessToken,
       expiresAt
@@ -195,7 +195,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       const { expiresAt } = tokens;
-      
+
       if (!expiresAt) {
         console.log('Cannot schedule refresh: Missing expiry data');
         return;
@@ -203,9 +203,9 @@ export const AuthProvider = ({ children }) => {
 
       const now = new Date();
       const expiryTime = new Date(expiresAt);
-      
+
       const timeUntilRefresh = Math.max(0, expiryTime.getTime() - now.getTime() - TOKEN_REFRESH_THRESHOLD);
-            
+
       refreshTimerRef.current = setTimeout(() => {
         refreshAccessToken();
       }, timeUntilRefresh);
@@ -227,11 +227,11 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(storedAuthState);
 
     const storedExpiresAt = localStorage.getItem('tokenExpiresAt');
-    
+
     if (storedAuthState && storedExpiresAt) {
       const expiresAt = new Date(storedExpiresAt);
       const now = new Date();
-      
+
       if (expiresAt > now) {
         setTokens({
           expiresAt: expiresAt
@@ -328,7 +328,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('isAdmin');
       localStorage.removeItem('tokenExpiresAt');
-      
+
       // Clear refresh timer
       if (refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);
@@ -343,7 +343,7 @@ export const AuthProvider = ({ children }) => {
     let isCheckingAuth = false;
     let isRefreshing = false;
     let refreshQueue = [];
-    
+
     // Process all the requests in the queue with the new token
     const processQueue = (token = null, error = null) => {
       refreshQueue.forEach(({ resolve, reject }) => {
@@ -394,7 +394,7 @@ export const AuthProvider = ({ children }) => {
 
             try {
               isRefreshing = true;
-              
+
               const response = await axios.post(
                 `${API_URL}/auth/refresh`,
                 {},  // No need to send refresh token as it's in HTTP-only cookie
@@ -403,27 +403,27 @@ export const AuthProvider = ({ children }) => {
 
               if (response.data && response.data.access_token) {
                 const newAccessToken = response.data.access_token;
-                
+
                 // Update access token and expiry
                 const expiresAt = new Date(Date.now() + (response.data.expires_in || ACCESS_TOKEN_EXPIRE_MINUTES * 60) * 1000);
                 setTokens({
                   accessToken: newAccessToken,
                   expiresAt
                 });
-                
+
                 localStorage.setItem('tokenExpiresAt', expiresAt.toISOString());
-                
+
                 error.config.headers['Authorization'] = `Bearer ${newAccessToken}`;
                 error.config.__isRetryRequest = true;
-                
+
                 processQueue(newAccessToken);
                 isRefreshing = false;
-                
+
                 return axios(error.config);
               }
             } catch (refreshError) {
               console.error('Failed to refresh token on 401:', refreshError);
-              
+
               // Don't redirect on token refresh errors (422)
               if (refreshError.response?.status === 422) {
                 console.log('Token refresh returned 422 - continuing without redirect');
@@ -431,7 +431,7 @@ export const AuthProvider = ({ children }) => {
                 isRefreshing = false;
                 return Promise.reject(error);
               }
-              
+
               processQueue(null, refreshError);
             } finally {
               isRefreshing = false;
@@ -444,13 +444,11 @@ export const AuthProvider = ({ children }) => {
             const invitationCode = currentUrl.searchParams.get('invitation_code');
             const invitationType = currentUrl.searchParams.get('type');
 
-            let loginUrl = '/login';
-            if (invitationCode) {
-              loginUrl += `?invitation_code=${encodeURIComponent(invitationCode)}`;
-              if (invitationType) {
-                loginUrl += `&type=${encodeURIComponent(invitationType)}`;
-              }
-            }
+            // Construct login path with potential invitation params
+            const loginParams = new URLSearchParams();
+            if (invitationCode) loginParams.set('invitation_code', invitationCode);
+            if (invitationType) loginParams.set('type', invitationType);
+            const loginPath = `/login${loginParams.toString() ? '?' + loginParams.toString() : ''}`;
 
             isRedirecting = true;
             console.log('401 Authentication error detected, redirecting to login with invitation code');
@@ -462,7 +460,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('tokenExpiresAt');
 
             setTimeout(() => {
-              window.location.href = loginUrl;
+              window.location.href = loginPath;
               isRedirecting = false;
             }, 100);
           }
@@ -492,14 +490,11 @@ export const AuthProvider = ({ children }) => {
                 const invitationCode = currentUrl.searchParams.get('invitation_code');
                 const invitationType = currentUrl.searchParams.get('type');
 
-                // Construct the login URL with invitation code if present
-                let loginUrl = '/login';
-                if (invitationCode) {
-                  loginUrl += `?invitation_code=${encodeURIComponent(invitationCode)}`;
-                  if (invitationType) {
-                    loginUrl += `&type=${encodeURIComponent(invitationType)}`;
-                  }
-                }
+                // Construct login path with potential invitation params
+                const loginParams = new URLSearchParams();
+                if (invitationCode) loginParams.set('invitation_code', invitationCode);
+                if (invitationType) loginParams.set('type', invitationType);
+                const loginPath = `/login${loginParams.toString() ? '?' + loginParams.toString() : ''}`;
 
                 // Update authentication state
                 setIsAuthenticated(false);
@@ -509,7 +504,7 @@ export const AuthProvider = ({ children }) => {
 
                 // Use setTimeout to allow current execution to complete
                 setTimeout(() => {
-                  window.location.href = loginUrl;
+                  window.location.href = loginPath;
                   isRedirecting = false;
                   isCheckingAuth = false;
                 }, 100);
@@ -524,14 +519,11 @@ export const AuthProvider = ({ children }) => {
               const invitationCode = currentUrl.searchParams.get('invitation_code');
               const invitationType = currentUrl.searchParams.get('type');
 
-              // Construct the login URL with invitation code if present
-              let loginUrl = '/login';
-              if (invitationCode) {
-                loginUrl += `?invitation_code=${encodeURIComponent(invitationCode)}`;
-                if (invitationType) {
-                  loginUrl += `&type=${encodeURIComponent(invitationType)}`;
-                }
-              }
+              // Construct login path with potential invitation params
+              const loginParams = new URLSearchParams();
+              if (invitationCode) loginParams.set('invitation_code', invitationCode);
+              if (invitationType) loginParams.set('type', invitationType);
+              const loginPath = `/login${loginParams.toString() ? '?' + loginParams.toString() : ''}`;
 
               // Update authentication state
               setIsAuthenticated(false);
@@ -541,7 +533,7 @@ export const AuthProvider = ({ children }) => {
 
               // Use setTimeout to allow current execution to complete
               setTimeout(() => {
-                window.location.href = loginUrl;
+                window.location.href = loginPath;
                 isRedirecting = false;
                 isCheckingAuth = false;
               }, 100);
@@ -559,45 +551,73 @@ export const AuthProvider = ({ children }) => {
     };
   }, [isAuthenticated, tokens, setTokenData]);
 
-  // Google auth callback handler
-  const handleGoogleCallback = useCallback((tokenOrUserData) => {
-    if (tokenOrUserData) {
-      // Set authentication state
+  // Login with Google
+  const loginWithGoogle = async (invitationCode = null) => {
+    try {
+      const params = invitationCode ? `?invitation_code=${invitationCode}` : '';
+      const response = await axios.get(`${API_URL}/auth/login/google${params}`);
+      window.location.href = response.data.url; // Redirect to Google auth URL
+    } catch (error) {
+      console.error('Error initiating Google login:', error);
+      setError('Could not initiate Google login.');
+    }
+  };
+
+  // Login with Azure
+  const loginWithAzure = async (invitationCode = null) => {
+    try {
+      const params = invitationCode ? `?invitation_code=${invitationCode}` : '';
+      const response = await axios.get(`${API_URL}/auth/login/azure${params}`);
+      window.location.href = response.data.url; // Redirect to Azure auth URL
+    } catch (error) {
+      console.error('Error initiating Azure login:', error);
+      setError('Could not initiate Azure login.');
+    }
+  };
+
+  // Handle OAuth callback (Google, Azure, etc.)
+  const handleOAuthCallback = useCallback(async (searchParams) => {
+    setLoading(true);
+    const token = searchParams.get('token');
+    const errorParam = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+
+    if (errorParam) {
+      console.error(`OAuth Error: ${errorParam} - ${errorDescription}`);
+      setError(errorDescription || 'OAuth authentication failed.');
+      setIsAuthenticated(false);
+      localStorage.removeItem('isAuthenticated');
+      setLoading(false);
+      return; // Stop processing if there's an error
+    }
+
+    if (token) {
+      // In a real app, you might want to verify the token signature client-side
+      // or preferably, make a call to your backend to validate the token
+      // and get user info securely.
+      // For now, we assume the token received from our backend redirect is valid.
+      console.log('OAuth callback successful, received token.');
       setIsAuthenticated(true);
       localStorage.setItem('isAuthenticated', 'true');
 
-      // If we received user data (from direct API check), save it
-      if (typeof tokenOrUserData === 'object' && tokenOrUserData.user) {
-        setUser(tokenOrUserData.user);
-
-        // Set admin status if provided
-        if (tokenOrUserData.user.is_admin !== undefined) {
-          setIsAdmin(tokenOrUserData.user.is_admin);
-          localStorage.setItem('isAdmin', JSON.stringify({
-            isAdmin: tokenOrUserData.user.is_admin,
-            timestamp: Date.now()
-          }));
-        }
-
-        // Set onboarding status if provided
-        if (tokenOrUserData.user.onboarding_completed !== undefined) {
-          setOnboardingCompleted(tokenOrUserData.user.onboarding_completed);
-          localStorage.setItem('onboardingCompleted', tokenOrUserData.user.onboarding_completed.toString());
-        }
-      } else {
-        if (typeof tokenOrUserData === 'string') {
-          checkAuthStatus();
-        } else if (tokenOrUserData.access_token) {
-          setTokenData(
-            tokenOrUserData.access_token,
-            tokenOrUserData.expires_in || ACCESS_TOKEN_EXPIRE_MINUTES * 60
-          );
-        }
-        
-        checkAdminStatus();
+      // Fetch user details after successful auth
+      try {
+        await checkAuthStatus(); // This will fetch user details and set admin/onboarding status
+      } catch (authError) {
+        console.error('Error fetching user status after OAuth callback:', authError);
+        setError('Authentication successful, but failed to fetch user details.');
+        // Keep isAuthenticated true, but show an error
       }
+    } else {
+      // Handle cases where neither token nor error is present (unexpected)
+      console.warn('OAuth callback received without token or error.');
+      setError('OAuth callback completed with an unexpected state.');
+      setIsAuthenticated(false);
+      localStorage.removeItem('isAuthenticated');
     }
-  }, [checkAdminStatus, checkAuthStatus, setTokenData]);
+
+    setLoading(false);
+  }, [checkAuthStatus]);
 
   // Update onboarding status
   const updateOnboardingStatus = async (completed) => {
@@ -636,10 +656,12 @@ export const AuthProvider = ({ children }) => {
     error,
     onboardingCompleted,
     login,
+    loginWithGoogle,
+    loginWithAzure,
     register,
     logout,
     checkAdminStatus,
-    handleGoogleCallback,
+    handleOAuthCallback,
     checkAuthStatus,
     validateInvitationCode,
     updateOnboardingStatus,

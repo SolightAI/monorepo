@@ -8,11 +8,6 @@ class PageType(str, Enum):
     PRODUCT = "product"
 
 
-class TestStatus(str, Enum):
-    PASSED = "PASSED"
-    FAILED = "FAILED"
-
-
 class TestCategory(str, Enum):
     UNIT = "UNIT"  # testing basic functionalities of a feature
     SMOKE = "SMOKE"  # testing basic functionalities of a feature
@@ -64,6 +59,17 @@ class UserStory(BaseModel):
 class AcceptanceCriteria(BaseModel):
     name: str
     description: str
+
+
+class TestStatus(Enum):
+    PENDING = "pending"
+    PASSED = "passed"
+    FAILED = "failed"
+    ERROR = "error"
+    AGENT_LIMITATION = "agent_limitation"
+    UNEXISTING_FEATURE = "unexisting_feature"
+    BLOCKED_BY_CAPTCHA = "blocked_by_captcha"
+    UNKNOWN = "unknown"
 
 
 class Test(BaseModel):

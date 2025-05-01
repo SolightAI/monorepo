@@ -13,7 +13,7 @@ logger = getLogger(__name__)
 def generate_s3_key(
     task_type: Literal["test", "feature", "epic", "user_story", "acceptance_criteria", "auth_check"],
     task_name: str,
-    task_id: str,
+    job_id: str,
     extension: str,
 ) -> str:
     """
@@ -22,7 +22,7 @@ def generate_s3_key(
     Args:
         task_type: Type of task (test, feature, etc.)
         task_name: Name of the task
-        task_id: ID of the task
+        job_id: ID of the task
         extension: File extension (e.g., "gif", "png")
 
     Returns:
@@ -33,7 +33,7 @@ def generate_s3_key(
     clean_name = "".join(c if c.isalnum() else "_" for c in task_name).lower()
 
     # Base path
-    base_path = f"{task_id}/{task_type}_{clean_name}"
+    base_path = f"{job_id}/{task_type}_{clean_name}"
 
     return f"{base_path}.{extension}"
 
@@ -105,7 +105,7 @@ class S3Manager:
 
     def upload_file(
         self,
-        task_id: str,
+        job_id: str,
         file_path: str,
         task_type: Literal["test", "feature", "epic", "user_story", "acceptance_criteria", "auth_check"],
         task_name: str,
@@ -117,7 +117,7 @@ class S3Manager:
         Upload a file to S3 bucket with a task-specific key
 
         Args:
-            task_id: ID of the task
+            job_id: ID of the task
             file_path: Local path to the file
             task_type: Type of task (test, feature, etc.)
             task_name: Name of the task
@@ -138,7 +138,7 @@ class S3Manager:
             if not extension:
                 raise ValueError("Could not determine file extension and none was provided.")
 
-        s3_key = generate_s3_key(task_type, task_name, task_id, extension)
+        s3_key = generate_s3_key(task_type, task_name, job_id, extension)
 
         # Determine content type if not provided
         if content_type is None:
@@ -169,7 +169,7 @@ class S3Manager:
 
 def upload_file_to_s3(
     file_path: str,
-    task_id: str,
+    job_id: str,
     task_type: Literal["test", "feature", "epic", "user_story", "acceptance_criteria", "auth_check"],
     task_name: str,
     additional_params: Optional[dict] = None,
@@ -181,13 +181,13 @@ def upload_file_to_s3(
     """
 
     if os.getenv("TEST_MODE", "false").lower() == "true":
-        logger.info(f"[{task_id}] Skipping S3 upload in test mode")
+        logger.info(f"[{job_id}] Skipping S3 upload in test mode")
         return None
 
     try:
         s3_manager = S3Manager()
         return s3_manager.upload_file(
-            task_id=task_id,
+            job_id=job_id,
             file_path=file_path,
             task_type=task_type,
             task_name=task_name,
@@ -196,5 +196,5 @@ def upload_file_to_s3(
             extension=extension,
         )
     except Exception as e:
-        logger.error(f"[{task_id}] Failed to upload file to S3: {str(e)}")
+        logger.error(f"[{job_id}] Failed to upload file to S3: {str(e)}")
         return None

@@ -2,6 +2,43 @@
 
 A FastAPI server that generates automated tests based on acceptance criteria.
 
+```mermaid
+flowchart LR
+
+    Router:::gpt-4.1-mini --> SignupAgentCheck["is Agent able to run test"]:::gpt-4.1-mini
+    Router:::gpt-4.1-mini --> LoginAgentCheck["is Agent able to run test"]:::gpt-4.1-mini
+    Router:::gpt-4.1-mini --> GeneralAgentCheck["is Agent able to run test"]:::gpt-4.1-mini
+
+    subgraph SignupAgentRouting["Signup Agent"]
+      SignupAgentCheck --> SignupAgent["Agent"]:::gpt-4.1
+      SignupAgent --> SignupHealthCheck["HealthChecks"]:::gpt-4.1-mini
+    end
+
+    subgraph LoginAgentRouting["Login Agent"]
+      LoginAgentCheck --> LoginAgent["Agent"]:::gpt-4.1
+      LoginAgent --> LoginHealthCheck["HealthChecks"]:::gpt-4.1-mini
+    end
+
+    subgraph GeneralAgentRouting["General Agent"]
+      GeneralAgentCheck --> GeneralAgent["Agent"]:::gpt-4.1
+      GeneralAgent --> GeneralHealthCheck["HealthChecks"]:::gpt-4.1-mini
+    end
+
+    SignupHealthCheck --> CheckResult["Check Result"]:::gpt-4.1-mini
+    LoginHealthCheck --> CheckResult["Check Result"]:::gpt-4.1-mini
+    GeneralHealthCheck --> CheckResult["Check Result"]:::gpt-4.1-mini
+
+    %% Legend
+    subgraph Legend ["Models"]
+        l1["gpt-4.1-mini"]:::gpt-4.1-mini
+        l2["gpt-4.1"]:::gpt-4.1
+    end
+
+    %% Style definitions
+    classDef gpt-4.1-mini fill:#E6F7FF,stroke:#1890FF,color:#000;
+    classDef gpt-4.1 fill:#FFF1F0,stroke:#FF4D4F,color:#000;
+```
+
 ## Features
 
 - Generate automated tests from acceptance criteria

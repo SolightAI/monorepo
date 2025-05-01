@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_URL } from '@/constants/api';
 import { POLLING } from '@/constants/generations';
+import { TEST_STATUS } from '@/utils/testExecutionUtils';
 
 /**
  * Custom hook to validate a URL and find login page
@@ -10,7 +11,7 @@ import { POLLING } from '@/constants/generations';
  * @returns {Object} - Validation state: { status, result, error, isPolling }
  */
 export const useUrlValidation = (taskId) => {
-  const [status, setStatus] = useState('pending');  // pending, completed, error, unknown
+  const [status, setStatus] = useState(TEST_STATUS.PENDING);  // pending, completed, error, unknown
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [isPolling, setIsPolling] = useState(!!taskId);
@@ -18,53 +19,32 @@ export const useUrlValidation = (taskId) => {
   useEffect(() => {
     if (!taskId) {
       setIsPolling(false);
-      console.log("useUrlValidation: No taskId provided, not polling");
       return;
     }
 
-    console.log(`useUrlValidation: Starting to poll status for task ${taskId}`);
     setIsPolling(true);
 
     // Start polling for task status
     const intervalId = setInterval(async () => {
       try {
-        console.log(`useUrlValidation: Checking status for task ${taskId}`);
         const response = await axios.get(
           `${API_URL}/products/url-validation-status/${taskId}`,
           { withCredentials: true }
         );
 
         if (!response.data) {
-          console.log(`useUrlValidation: Received empty response for task ${taskId}`);
           return;
         }
 
         const data = response.data;
-
-        console.log(`useUrlValidation: Received status: ${data.status} for task ${taskId}`, data);
-
-        // Update status from response
         setStatus(data.status);
 
         // If the task has completed or errored, stop polling
-        if (data.status === 'completed') {
-          console.log(`useUrlValidation: Task ${taskId} completed, results:`, data.results);
+        if (data.status === TEST_STATUS.PASSED) {
           setResult(data.results);
           setIsPolling(false);
           clearInterval(intervalId);
-        } else if (data.status === 'error') {
-          console.log(`useUrlValidation: Task ${taskId} errored:`, data.error);
-          // Check if this is a timeout error
-          const errorMsg = data.error || '';
-          if (
-            errorMsg.includes('Timeout') ||
-            errorMsg.includes('timeout') ||
-            errorMsg.includes('timed out') ||
-            errorMsg.includes('ETIMEDOUT')
-          ) {
-            console.log(`useUrlValidation: Detected timeout error for task ${taskId}`);
-          }
-
+        } else if (data.status === TEST_STATUS.ERROR) {
           setError(data.error);
           setIsPolling(false);
           clearInterval(intervalId);
@@ -86,7 +66,6 @@ export const useUrlValidation = (taskId) => {
           errorMsg.includes('timed out') ||
           errorMsg.includes('ETIMEDOUT')
         ) {
-          console.log(`useUrlValidation: Detected timeout error from exception`);
           finalErrorMsg = 'Login page not found. The page took too long to respond.';
         }
 

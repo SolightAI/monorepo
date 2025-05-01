@@ -80,3 +80,24 @@ export const updateTestExecution = async (executionId, updateData) => {
     throw error;
   }
 };
+
+// New function to fetch latest executions for multiple tests
+export const getLatestTestExecutions = async (testIds) => {
+  if (!testIds || testIds.length === 0) {
+    return {}; // Return empty object if no IDs are provided
+  }
+  try {
+    const response = await axios.post(
+      `${API_URL}/test-executions/latest/`,
+      { test_ids: testIds },
+      {
+        withCredentials: true,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching latest test executions:', error);
+    throw error;
+  }
+};

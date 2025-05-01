@@ -34,8 +34,16 @@ jobs:
       GOOGLE_CLIENT_ID: "test_google_client_id"
       GOOGLE_CLIENT_SECRET: "test_google_client_secret"
       GOOGLE_REDIRECT_URI: "http://localhost:8000/auth/google/callback"
+      # Azure OAuth
+      AZURE_CLIENT_ID: "test_azure_client_id"
+      AZURE_CLIENT_SECRET: "test_azure_client_secret"
+      AZURE_TENANT_ID: "test_azure_tenant_id"
+      AZURE_REDIRECT_URI: "http://localhost:8000/auth/azure/callback"
       SECRET_ENCRYPTION_KEY: "test_encryption_key_for_testing_only"
       TASK_MANAGER_URL: "http://localhost:8001"
+      REDIS_HOST: "localhost"
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
 
     steps:
     - uses: actions/checkout@v3

@@ -27,6 +27,7 @@ jobs:
         working-directory: ./task-manager
 
     env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
       AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
       PLAYGROUND_URL: "http://playground:3000" # use container endpoint
@@ -43,7 +44,7 @@ jobs:
       TICKPICK_USERNAME: ${{ secrets.TICKPICK_USERNAME }}
       TICKPICK_PASSWORD: ${{ secrets.TICKPICK_PASSWORD }}
       S3_BUCKET_NAME: task-manager-github-actions
-      AWS_ENDPOINT_URL: https://minio.internal.solight.ai/browser/task-manager-github-actions
+      AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       # Create unique identifiers for this run
@@ -96,7 +97,7 @@ jobs:
         mkdir -p ~/.cache/ms-playwright
 
         # Check if Playwright browsers are already installed
-        if [ -d ~/.cache/ms-playwright/firefox* ] || [ -d ~/.cache/ms-playwright/webkit* ] || [ -d ~/.cache/ms-playwright/chromium* ]; then
+        if [ -d ~/.cache/ms-playwright/chromium* ]; then
           echo "Playwright browsers already installed, skipping installation"
           # Just create the container with the existing cache
           docker run --name ${{ env.PLAYWRIGHT_SETUP_IMAGE }} \
@@ -142,10 +143,9 @@ jobs:
       timeout-minutes: 30
       run: |
         cat > .env.test << EOF
+        OPENAI_API_KEY=$OPENAI_API_KEY
         AZURE_OPENAI_KEY=$AZURE_OPENAI_KEY
         AZURE_OPENAI_ENDPOINT=$AZURE_OPENAI_ENDPOINT
-        OPENAI_API_KEY=$AZURE_OPENAI_KEY
-        OPENAI_ENDPOINT=$AZURE_OPENAI_ENDPOINT
         PLAYGROUND_URL=$PLAYGROUND_URL
         TEST_MODE=$TEST_MODE
         FARMZZ_PASSWORD=$FARMZZ_PASSWORD

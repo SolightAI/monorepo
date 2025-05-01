@@ -119,8 +119,19 @@ async def test_get_product_details(client: AsyncClient, regular_user, organizati
 
 
 @pytest.mark.anyio
-async def test_create_product(client: AsyncClient, organization_admin_user, organization):
+async def test_create_product(
+    client: AsyncClient, 
+    organization_admin_user, 
+    organization,
+    mocker
+):
     """Test creating a new product as an admin user"""
+    # Patch the trigger_url_validation function
+    mocker.patch(
+        "endpoints.product_endpoints.trigger_url_validation",
+        return_value="mocked_task_id"  # Or return None if you prefer
+    )
+
     token = create_token(organization_admin_user.email)
     headers = {"Cookie": f"access_token=Bearer {token}"}
 

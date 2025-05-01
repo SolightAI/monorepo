@@ -5,7 +5,6 @@ import { useProduct } from '../../context/ProductContext';
 import {
   HiKey,
   HiPlusCircle,
-  HiRefresh,
   HiExclamationCircle,
   HiLockClosed
 } from 'react-icons/hi';

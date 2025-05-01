@@ -14,6 +14,7 @@ import EcommerceHybrid from './pages/page_category/EcommerceHybrid';
 import AnalyticsDashboard from './pages/page_category/AnalyticsDashboard';
 import BlogLanding from './pages/page_category/BlogLanding';
 
+
 function App() {
   return (
     <BrowserRouter>
@@ -35,6 +36,10 @@ function App() {
         <Route path="/auth/combined/classic_google/messy" element={<MessyLoginPage showEmailPassword={true} showGoogleAuth={true} />} />
         <Route path="/auth/combined/classic_instant/simple" element={<SimpleLoginPage showCombinedInstantLogin={true} showGoogleAuth={false} />} />
         <Route path="/auth/combined/classic_instant/messy" element={<MessyLoginPage showInstantLogin={true} showGoogleAuth={true} />} />
+
+        {/* Signup test routes */}
+        <Route path="/auth/signup/simple" element={<SimpleLoginPage showEmailPassword={true} showGoogleAuth={false} showSignUpForm={true} /> } />
+        <Route path="/auth/signup/messy" element={<MessyLoginPage showEmailPassword={true} showGoogleAuth={false} showSignUpForm={true} /> } />
 
         {/* Privacy test routes */}
         <Route path="/privacy/banner/auth_email_password_simple" element={<SimpleLoginPage showEmailPassword={true} showGoogleAuth={false} showPrivacyBanner={true} />} />

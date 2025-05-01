@@ -52,13 +52,11 @@ export const OnboardingProvider = ({ children }) => {
       }
 
       // Fallback to preferences API
-      console.log('Checking onboarding status from API');
       const response = await axios.get(`${API_URL}/users/preferences`, {
         withCredentials: true
       });
 
       const isCompleted = response.data.onboarding_completed;
-      console.log('API returned onboarding status:', isCompleted);
       setOnboardingCompleted(isCompleted);
 
       // Show onboarding if not completed
@@ -89,7 +87,6 @@ export const OnboardingProvider = ({ children }) => {
   // Check if onboarding is completed from local storage or API
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('User is authenticated, checking onboarding status');
       checkOnboardingStatus();
     } else {
       setLoading(false);

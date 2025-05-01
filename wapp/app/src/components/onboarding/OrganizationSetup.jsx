@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, ArrowLeft, Users, Building, Briefcase, GraduationCap, CheckCircle, AlertCircle } from 'lucide-react';
 import { useOrganization } from '@/context/OrganizationContext';
-import { useAuth } from '@/context/AuthContext';
 
 const OrganizationSetup = ({ onNext, onPrev, onSkip }) => {
   const { createOrganization, organizations } = useOrganization();

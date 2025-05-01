@@ -149,10 +149,6 @@ class Test(models.Model):
     assertions = fields.TextField()
 
     category = fields.CharEnumField(TestCategory, max_length=255)
-    status = fields.CharEnumField(TestStatus, default=TestStatus.NOT_STARTED, max_length=255)
-
-    started_at = fields.DatetimeField(null=True)
-    ended_at = fields.DatetimeField(null=True)
 
     feature = fields.ForeignKeyField("models.Feature", related_name="tests")
     test_secrets = fields.ReverseRelation["TestSecret"]

@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Body, Depends, HTTPException, status, BackgroundTasks
-from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestStatus, TestUpdate as TestUpdateSchema, TestSecretCreate, TestSecret, TestExecution as TestExecutionSchema
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestUpdate as TestUpdateSchema, TestSecretCreate, TestSecret, TestExecution as TestExecutionSchema
 from services.test_execution_services import get_test_executions_by_test
+import traceback
 from services.test_services import (
     get_test,
     create_test,
     get_all_tests,
-    update_test_status,
     get_tests_by_feature,
     delete_test,
     update_test,
@@ -87,14 +87,6 @@ async def create_test_endpoint(test: TestCreateSchema) -> TestSchema:
     return (await create_test(test)).to_schema()
 
 
-@router.put("/{test_id}/status")
-async def update_test_status_endpoint(
-    test_id: UUID4, status: TestStatus = Body(..., embed=True)
-) -> TestSchema:
-    await update_test_status(test_id, status)
-    return (await get_test(test_id)).to_schema()
-
-
 @router.put("/{test_id}")
 async def update_test_endpoint(test_id: UUID4, test_update: TestUpdateSchema) -> TestSchema:
     """Update a test with the provided data."""
@@ -140,6 +132,7 @@ async def generate_test(
 
         # Trigger test generation
         response_data = await trigger_test_generation(feature_id=feature_id)
+        logger.info(f"Triggering test generation for feature {feature_id}. Response data: {response_data}")
         background_tasks.add_task(
             poll_test_generation_status,
             task_id=response_data["task_id"],
@@ -150,11 +143,12 @@ async def generate_test(
         raise e
     except Exception as e:
         logger.error(f"Error generating tests: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error generating tests: {str(e)}")
 
 
 @router.get("/generate/status/{task_id}")
-async def get_generate_test_status_endpoint(task_id: UUID4) -> dict:
+async def get_generate_test_status_endpoint(task_id: str) -> dict:
     """
     Get the status of a test generation task.
 

@@ -1,28 +1,22 @@
-import os
-import requests
 import asyncio
 import logging
 import uuid
+import traceback
 
 from fastapi import HTTPException
 from dto.models import Test as TestModel, TestSecret as TestSecretModel, Secret as SecretModel
 from dto.schemas import TestCreate as TestCreateSchema, TestStatus, TestUpdate as TestUpdateSchema
-from typing import List, Dict
+from typing import List, Dict, Any
 from uuid import UUID
 from services.product_services import get_product_by_url_path
 from services.feature_services import get_feature
 from services.epic_services import get_epic
 from services.product_services import get_product
 from services.secret_services import get_secret_with_values
-from services.acceptance_criteria_services import get_acceptance_criteria_by_feature
-from services.secret_services import get_encrypted_secrets
 from pydantic import UUID4
-
-
-TASK_MANAGER_URL: str = os.getenv("TASK_MANAGER_URL")  # type: ignore
-
-if not TASK_MANAGER_URL:
-    raise ValueError("TASK_MANAGER_URL is not set")
+from arq.jobs import Job, JobStatus
+from services.secret_services import get_encrypted_secrets
+from utils.redis_manager import get_redis_pool
 
 
 logger = logging.getLogger(__name__)
@@ -102,17 +96,6 @@ async def create_test(test: TestCreateSchema) -> TestModel:
             )
 
     return await get_test(test_model.id)
-
-
-async def update_test_status(test_id: str | UUID, status: TestStatus) -> TestModel:
-    test = await TestModel.get_or_none(id=test_id)
-
-    if not test:
-        raise HTTPException(status_code=404, detail="Test not found")
-
-    test.status = status
-    await test.save()
-    return test
 
 
 async def delete_test(test_id: str | UUID) -> bool:
@@ -224,18 +207,17 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
     Returns:
         A dictionary containing the task ID and feature ID
     """
+
+    redis = await get_redis_pool()
+
     feature = await get_feature(feature_id)
     epic = await get_epic(feature.epic_id)
     product = await get_product(epic.product_id)
 
-    # Get acceptance criteria for this feature
-    acceptance_criteria_list = await get_acceptance_criteria_by_feature(feature_id)
-
     # Get user stories for this feature
     await feature.fetch_related("user_stories")
-    user_stories = feature.user_stories
 
-    payload = {
+    payload: dict[str, Any] = {
         'feature': {
             'id': str(feature.id),
             'name': feature.name,
@@ -243,20 +225,6 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
             'urls': feature.urls,
             'access_conditions': feature.access_conditions,
         },
-        'user_stories': [
-            {
-                'id': str(story.id),
-                'name': story.name,
-                'description': story.description,
-            } for story in user_stories
-        ],
-        'acceptance_criteria': [
-            {
-                'id': str(ac.id),
-                'name': ac.name,
-                'description': ac.description,
-            } for ac in acceptance_criteria_list
-        ],
         'epic': {
             'name': epic.name,
             'description': epic.description,
@@ -270,56 +238,74 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
         },
     }
 
-    # Get organization ID from the product (if available)
-    encrypted_secrets = await get_encrypted_secrets(organization_id=product.organization_id, product_id=product.id)
-
-    # Add the encrypted secrets to the payload if any were found
-    if encrypted_secrets:
-        payload['encrypted_secrets'] = encrypted_secrets
-        logger.info("Successfully included encrypted secrets for test generation")
-
-    response = requests.post(
-        TASK_MANAGER_URL + "/generate-tests/generate-tests-for-feature",
-        json=payload
+    encrypted_secrets = await get_encrypted_secrets(
+        organization_id=product.organization_id,
+        product_id=product.id
     )
 
-    if response.status_code != 200:
-        logger.error(f"Failed to trigger test generation ({response.status_code}): {response.text}")
-        raise HTTPException(status_code=500, detail=f"Failed to trigger test generation ({response.status_code}): {response.text}")
+    if encrypted_secrets:
+        payload['secrets'] = encrypted_secrets
 
-    # Parse the response and add the feature_id
-    response_data = response.json()
-    if isinstance(response_data, str):
-        response_data = {"task_id": response_data}
-    response_data["feature_id"] = str(feature_id)
-    return response_data
+    job = await redis.enqueue_job('generate_tests', **payload, _job_id=str(feature_id))
+    # Job already exists, retrieve it
+    if job is None:
+        job = Job(str(feature_id), redis=redis)
+
+    return {"task_id": job.job_id}
 
 
 async def get_test_generation_status(test_id: UUID4) -> dict:
-    response = requests.get(
-        TASK_MANAGER_URL + f"/generate-tests/get-test-generation-status/{test_id}"
-    )
+    """
+    Get the status of a test generation task using arq.
 
-    if response.status_code != 200:
-        raise HTTPException(status_code=500, detail=f"Failed to get test generation status ({response.status_code}): {response.text}")
+    Args:
+        test_id: The job ID of the test generation task
 
-    response_data = response.json()
+    Returns:
+        A dictionary containing the task status and potentially results/feature_id
+    """
+    redis = await get_redis_pool()
+    try:
+        job = Job(str(test_id), redis=redis)
+        job_status = await job.status()
+        job_info = await job.info()
+        response_data = {"task_id": str(test_id)}
 
-    # If this is a completed response, ensure it has a feature_id
-    if response_data.get("status") == "completed" and "feature_id" not in response_data:
-        # Get the feature_id from the original test generation request
-        original_response = requests.get(
-            TASK_MANAGER_URL + f"/generate-tests/get-test-generation-request/{test_id}"
-        )
-        if original_response.status_code == 200:
-            original_data = original_response.json()
-            if "feature_id" in original_data:
-                response_data["feature_id"] = original_data["feature_id"]
+        if job_status == JobStatus.complete:
 
-    return response_data
+            try:
+                job_result = await job.result()  # job.result() raise any exception the worker raises
+            except Exception:
+                return response_data | {"status": TestStatus.ERROR.value, "error": "An error occurred while generating tests"}
+
+            response_data |= job_result
+
+            # Attempt to get feature_id from the job's initial arguments
+            if job_info and 'feature' in job_info.kwargs and 'id' in job_info.kwargs['feature']:
+                response_data["feature_id"] = job_info.kwargs['feature']['id']
+            else:
+                logger.warning(f"Could not retrieve feature_id for completed job {test_id}")
+
+        elif job_status in [JobStatus.queued, JobStatus.deferred, JobStatus.in_progress]:
+            response_data["status"] = TestStatus.PENDING.value
+        elif job_status == JobStatus.not_found:
+            response_data["status"] = TestStatus.UNKNOWN.value
+        else:  # JobStatus.not_found or other unexpected statuses
+            logger.error(f"Unexpected job status: {job_status}")
+            response_data["status"] = TestStatus.UNKNOWN.value
+
+        return response_data
+
+    except ConnectionRefusedError:
+        logger.error("Could not connect to Redis.")
+        raise HTTPException(status_code=503, detail="Service unavailable: Could not connect to task queue.")
+    except Exception as e:
+        logger.error(f"Error getting test generation status for job {test_id}: {e}")
+        logger.error(traceback.format_exc())
+        return {"task_id": str(test_id), "status": TestStatus.ERROR.value}
 
 
-async def poll_test_generation_status(task_id: UUID4, timeout: int = 300, interval: float = 0.5) -> None:
+async def poll_test_generation_status(task_id: UUID4, timeout: int = 900, interval: float = 0.5) -> None:
     attempts = 0
 
     max_attempts = timeout / interval
@@ -330,21 +316,22 @@ async def poll_test_generation_status(task_id: UUID4, timeout: int = 300, interv
         response = await get_test_generation_status(task_id)
         status = response["status"]
 
-        if status in ["pending", "unknown"]:
+        if status in [TestStatus.PENDING.value, TestStatus.UNKNOWN.value]:
             await asyncio.sleep(interval)
             continue
 
-        elif status == "error":
+        elif status == TestStatus.ERROR.value:
             logger.error(f"Test generation failed for task {task_id}")
             return
 
-        elif status == "completed":
+        elif status == TestStatus.PASSED.value:
 
             if not response.get("results"):
                 logger.error(f"No test results found in response for task {task_id}")
                 return
 
             created_tests = []
+            logger.info(f"Creating tests for task {task_id}")
             for _test in response["results"]:
                 try:
                     test = await create_test(
@@ -363,7 +350,8 @@ async def poll_test_generation_status(task_id: UUID4, timeout: int = 300, interv
                     created_tests.append(test)
                     logger.info(f"Successfully created test {test.id} for feature {_test['feature_id']}")
                 except Exception as e:
-                    logger.error(f"Failed to create test: {str(e)}")
+                    logger.error(f"Failed to create test: {str(e)} {_test=}")
+                    logger.error(traceback.format_exc())
                     continue
 
             if not created_tests:
@@ -377,7 +365,8 @@ async def poll_test_generation_status(task_id: UUID4, timeout: int = 300, interv
             return
 
     # If we've exhausted attempts, log a timeout error
-    logger.error(f"Timed out waiting for test generation to complete for task {task_id}")
+    logger.error(f"Timed out waiting ({timeout} seconds) for test generation to complete for task {task_id}")
+
     return
 
 

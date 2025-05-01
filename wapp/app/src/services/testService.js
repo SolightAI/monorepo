@@ -174,3 +174,29 @@ export const updateTest = async (testId, testData) => {
     throw error;
   }
 };
+
+/**
+ * Create a new test by duplicating an existing one
+ * @param {object} testData - The test data to duplicate (excluding id, name should be modified)
+ * @returns {Promise<object>} Promise that resolves with the newly created test data
+ */
+export const duplicateTest = async (testData) => {
+  try {
+    // The name should already be modified (e.g., "Test Name (Copy)") before calling this
+    const response = await axios.post(
+      `${API_URL}/tests/`,
+      testData,
+      {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error duplicating test:', error);
+    // Re-throw the error to be caught by the calling component
+    throw error;
+  }
+};
