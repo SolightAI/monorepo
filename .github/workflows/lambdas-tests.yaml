@@ -51,11 +51,19 @@ jobs:
         # Run the Lambda tests
         docker run \
           --entrypoint pytest \
-          -v ./src/tests:/var/test/src/tests \
-          -v ./pytest.ini:/var/test/src/pytest.ini \
+          -v ./src/tests:/var/task/src/tests \
+          -v ./pytest.ini:/var/task/pytest.ini \
           -e OPENAI_API_KEY=${OPENAI_API_KEY} \
           -e HEADLESS=true \
           ${{ env.TEST_IMAGE }}
+
+    - name: Cleanup
+      if: always()
+      run: |
+        # Clean up Docker images
+        echo "Cleaning up Docker images"
+        docker rmi ${{ env.TEST_IMAGE }} || true
+
 
 
 
