@@ -274,6 +274,21 @@ async def update_member_role(
         return None
 
 
+async def get_organization_owner_count(organization_id: UUID) -> int:
+    """
+    Get the count of owners in an organization.
+
+    Args:
+        organization_id: The UUID of the organization
+
+    Returns:
+        The number of owners in the organization.
+    """
+    return await OrganizationMember.filter(
+        organization_id=organization_id, role=OrganizationRole.OWNER
+    ).count()
+
+
 async def remove_member_from_organization(
     organization_id: UUID, user_id: int
 ) -> bool:
@@ -400,7 +415,7 @@ async def verify_organization_access(organization_id: UUID, user_id: int) -> boo
         True if the user has access to the organization, False otherwise
     """
     try:
-        member = await OrganizationMember.get(
+        await OrganizationMember.get(
             user_id=user_id, organization_id=organization_id
         )
         return True

@@ -262,7 +262,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     if (storedAuthState) {
-      checkAdminStatus();
+      checkAuthStatus();
     } else {
       setLoading(false);
     }
@@ -272,7 +272,7 @@ export const AuthProvider = ({ children }) => {
         clearTimeout(refreshTimerRef.current);
       }
     };
-  }, [checkAdminStatus, refreshAccessToken, setTokenData]);
+  }, [checkAuthStatus, refreshAccessToken, setTokenData]);
 
   // Login function
   const login = async (username, password) => {
@@ -303,7 +303,7 @@ export const AuthProvider = ({ children }) => {
         );
       }
 
-      checkAdminStatus();
+      await checkAuthStatus();
 
       return response.data;
     } catch (error) {

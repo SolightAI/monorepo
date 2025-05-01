@@ -69,9 +69,27 @@ async def create_invitation_endpoint(
                 detail="You do not have permission to create invitations for this organization"
             )
 
-        # Set a default role if not provided
+        # Define role hierarchy for comparison
+        role_hierarchy = {
+            OrganizationRole.OWNER: 4,
+            OrganizationRole.ADMIN: 3,
+            OrganizationRole.MEMBER: 2,
+            OrganizationRole.GUEST: 1,
+        }
+
+        # Set a default role if not provided, otherwise validate the requested role
         if not invitation.role:
             invitation.role = OrganizationRole.MEMBER
+        else:
+            # Check if the invited role is higher than the inviter's role
+            inviter_level = role_hierarchy.get(member.role, 0)
+            invited_level = role_hierarchy.get(invitation.role, 0)
+
+            if invited_level > inviter_level:
+                raise HTTPException(
+                    status_code=403,
+                    detail="You cannot invite a member with a role higher than your own",
+                )
     else:
         # For global invitations, require admin privileges
         await check_is_admin(current_user)
