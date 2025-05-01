@@ -76,7 +76,7 @@ const FeatureForm = ({
               required
             />
           </div>
-          {touched.url && formData.url.trim() !== '' && !isUrlValid && (
+          {touched.url && !isUrlValid && (
             <div className="text-xs text-red-500 mt-1">Please enter a valid URL (e.g., https://example.com)</div>
           )}
         </div>
