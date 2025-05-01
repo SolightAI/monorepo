@@ -66,6 +66,9 @@ const TestsTable = () => {
   const [isConfirmFeatureDeleteModalOpen, setIsConfirmFeatureDeleteModalOpen] = useState(false); // State for feature delete confirmation
   const [featureToDeleteId, setFeatureToDeleteId] = useState(null); // ID of feature marked for deletion
 
+  // Add isBannerRelevant condition
+  const isBannerRelevant = selectedFeature === 'all' || generatingFeatures.some(f => f.id === selectedFeature);
+
   // New state for latest execution data
   const [latestExecutionsMap, setLatestExecutionsMap] = useState({});
 
@@ -1043,6 +1046,7 @@ const TestsTable = () => {
       // Start polling for any executions that are already pending
       Object.values(latestExecutions).forEach(exec => {
         if (exec.status === TEST_STATUS.PENDING) {
+          setSuccessMessage('Test Generation in Progress\n\nTest generation in progress. Status: pending');
           pollTestExecutionStatus(exec.test_id, exec.execution_id);
           // Also mark the test as running visually
           setRunningTests(prev => ({ ...prev, [exec.test_id]: true }));
@@ -1149,6 +1153,9 @@ const TestsTable = () => {
           setGeneratingFeatures([]);
           setSuccessMessage(null);
         } else {
+          setIsGeneratingTests(false);
+          setGeneratingFeatures([]);
+          setSuccessMessage(null);
           console.log('No ongoing test generation found in task-manager');
         }
       } catch (taskError) {
@@ -1156,11 +1163,14 @@ const TestsTable = () => {
         // If we get a 404, it means no task is running
         if (taskError.response && taskError.response.status === 404) {
           console.log('No task found in task-manager');
+          setIsGeneratingTests(false);
+          setGeneratingFeatures([]);
+          setSuccessMessage(null);
         } else {
           // For other errors, we'll assume there might be a task running
           console.log('Assuming task might be running due to error');
           setIsGeneratingTests(true);
-          setSuccessMessage('Test generation in progress. Checking status...');
+          // Don't set success message here - let the polling function handle it
           // Start polling with the feature ID
           startTestGenerationPolling(selectedFeature);
         }
@@ -1168,6 +1178,9 @@ const TestsTable = () => {
     } catch (error) {
       console.error('Error checking existing task ID:', error);
       setError('Error checking test generation status. Please try again.');
+      setIsGeneratingTests(false);
+      setGeneratingFeatures([]);
+      setSuccessMessage(null);
     }
   };
 
@@ -1185,58 +1198,102 @@ const TestsTable = () => {
       setIsGeneratingTests(true);
       setError(null);
       
-      // Start polling for status updates
-      pollingIntervalRef.current = setInterval(async () => {
+      // Add retry mechanism before starting polling
+      let retryCount = 0;
+      const maxRetries = 3;
+      const retryDelay = 1000; // 1 second between retries
+
+      const checkStatus = async () => {
         try {
           const statusData = await getTestGenerationStatus(featureId);
           
-          // If status is unknown, stop polling and reset all states
-          if (statusData.status === 'unknown') {
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
+          if (statusData.status === 'unknown' && retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(checkStatus, retryDelay);
+            return;
+          }
+
+          // If we've exhausted retries or got a valid status, start polling
+          if (statusData.status === TEST_STATUS.PENDING) {
+            setSuccessMessage('Test Generation in Progress.\n Status: pending');
+            
+            // Start the actual polling interval
+            pollingIntervalRef.current = setInterval(async () => {
+              try {
+                const pollStatusData = await getTestGenerationStatus(featureId);
+                
+                // If status is unknown, stop polling and reset all states
+                if (pollStatusData.status === 'unknown') {
+                  clearInterval(pollingIntervalRef.current);
+                  pollingIntervalRef.current = null;
+                  setIsGeneratingTests(false);
+                  setGeneratingFeatures([]);
+                  setSuccessMessage(null);
+                  return;
+                }
+                
+                // Update status message for other statuses
+                setSuccessMessage(`Test Generation In Progress. Status: ${pollStatusData.status}`);
+                
+                // If status is no longer pending, stop polling
+                if (pollStatusData.status !== TEST_STATUS.PENDING) {
+                  clearInterval(pollingIntervalRef.current);
+                  pollingIntervalRef.current = null;
+                  setIsGeneratingTests(false);
+                  setGeneratingFeatures([]);
+                  
+                  // Refresh tests list
+                  await fetchTestsWithCurrentFilters();
+                  
+                  // Show appropriate message
+                  if (pollStatusData.status === TEST_STATUS.PASSED) {
+                    setSuccessMessage('Test generation completed successfully.');
+                  } else if (pollStatusData.status === TEST_STATUS.FAILED || 
+                            pollStatusData.status === TEST_STATUS.ERROR || 
+                            pollStatusData.status === TEST_STATUS.BLOCKED_BY_CAPTCHA || 
+                            pollStatusData.status === TEST_STATUS.AGENT_LIMITATION || 
+                            pollStatusData.status === TEST_STATUS.UNEXISTING_FEATURE) {
+                    setError(`Test generation failed: ${pollStatusData.status}. Please try again.`);
+                    setSuccessMessage(null);
+                  } else {
+                    setSuccessMessage('Test generation status updated.');
+                  }
+                }
+              } catch (error) {
+                console.error('Error polling test generation status:', error);
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+                setIsGeneratingTests(false);
+                setGeneratingFeatures([]);
+                setSuccessMessage(null);
+                setError('Error checking test generation status. Please try again.');
+              }
+            }, 2000); // Poll every 2 seconds
+          } else {
+            // If we never get a PENDING status after retries, handle accordingly
             setIsGeneratingTests(false);
             setGeneratingFeatures([]);
             setSuccessMessage(null);
-            return;
-          }
-          
-          // Update status message for other statuses
-          setSuccessMessage(`Test generation in progress. Status: ${statusData.status}`);
-          
-          // If status is no longer pending, stop polling
-          if (statusData.status !== TEST_STATUS.PENDING) {
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-            setIsGeneratingTests(false);
-            setGeneratingFeatures([]);
-            
-            // Refresh tests list
-            await fetchTestsWithCurrentFilters();
-            
-            // Show appropriate message
-            if (statusData.status === TEST_STATUS.PASSED) {
-              setSuccessMessage('Test generation completed successfully.');
-            } else if (statusData.status === TEST_STATUS.FAILED || 
-                      statusData.status === TEST_STATUS.ERROR || 
-                      statusData.status === TEST_STATUS.BLOCKED_BY_CAPTCHA || 
-                      statusData.status === TEST_STATUS.AGENT_LIMITATION || 
-                      statusData.status === TEST_STATUS.UNEXISTING_FEATURE) {
+            if (statusData.status === 'error') {
               setError(`Test generation failed: ${statusData.status}. Please try again.`);
-              setSuccessMessage(null);
-            } else {
-              setSuccessMessage('Test generation status updated.');
             }
           }
         } catch (error) {
-          console.error('Error polling test generation status:', error);
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-          setIsGeneratingTests(false);
-          setGeneratingFeatures([]);
-          setSuccessMessage(null);
-          setError('Error checking test generation status. Please try again.');
+          console.error('Error checking initial status:', error);
+          if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(checkStatus, retryDelay);
+          } else {
+            setIsGeneratingTests(false);
+            setGeneratingFeatures([]);
+            setSuccessMessage(null);
+            setError('Error checking test generation status. Please try again.');
+          }
         }
-      }, 2000); // Poll every 2 seconds
+      };
+
+      // Start the initial status check
+      checkStatus();
     } catch (error) {
       console.error('Error starting test generation polling:', error);
       setIsGeneratingTests(false);
@@ -1480,7 +1537,7 @@ const TestsTable = () => {
       )}
 
       {/* Add success message display */}
-      {successMessage && (
+      {successMessage && isBannerRelevant && (
         <div className={`mb-6 p-4 ${isGeneratingTests ? 'bg-blue-100 border-blue-200 text-blue-700' : 'bg-green-100 border-green-200 text-green-700'} border rounded-lg flex items-start justify-between`}>
           <div className="flex-1 break-words overflow-hidden">
             {isGeneratingTests && (
