@@ -39,17 +39,10 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/tmp/playwright-browsers
 
 COPY requirements.txt ./
 
-# Add RIE (Lambda Runtime Interface Emulator)
-ADD https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/aws-lambda-rie /usr/local/bin/aws-lambda-rie
-RUN chmod +x /usr/local/bin/aws-lambda-rie
-
 # Install requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src src
 
 # Use AWS Lambda Runtime Interface Client as entrypoint
-ENTRYPOINT [ "/usr/local/bin/aws-lambda-rie", "/usr/local/bin/python3", "-m", "awslambdaric" ]
-
-# Command can be overwritten by providing a different command in the template directly.
-CMD ["src.app.lambda_handler"]
+ENTRYPOINT ["/usr/local/bin/python", "-m", "awslambdaric"]

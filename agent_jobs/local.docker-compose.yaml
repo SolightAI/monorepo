@@ -1,8 +1,9 @@
 services:
   validate_url_lambda:
     build:
-      context: validate_url/validate_url
-      dockerfile: Dockerfile-lambdaric
+      context: .
+      dockerfile: Dockerfile.local
+    command: src.validate_url.handler.lambda_handler
     ports:
       - "8081:8080"
     environment:

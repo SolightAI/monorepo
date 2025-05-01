@@ -3,7 +3,7 @@ import pytest
 import logging
 
 from typing import Any
-from src.validate_url.validate_url import validate_url
+from src.lambda_invoker.validate_url import validate_url
 from src.fixtures.authentification.get_auth_session import get_auth_session
 from src.fixtures.authentification.has_required_secrets import LoginMethod
 
@@ -457,6 +457,7 @@ async def test_generate_auth_session_farmzz(task_id: str) -> None:
     assert [cookie for cookie in session["cookies"] if cookie["name"] == "XSRF-TOKEN"][0]["value"] is not None
 
 
+# TODO(TomChv): Should we move that to the lambda directory?
 @pytest.mark.asyncio
 async def test_validate_url_login_farmzz(task_id: str) -> None:
     """

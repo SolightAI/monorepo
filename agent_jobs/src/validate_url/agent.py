@@ -6,62 +6,60 @@ from browser_use.browser.browser import Browser, BrowserConfig
 from browser_use.browser.context import BrowserContext, BrowserContextConfig
 from langchain_openai import ChatOpenAI
 
-from .dto import Result
-from .config import Config
-from .agent_config import CONFIDENCE_LOW, PROMPT
+from src.validate_url.dto import Result
+from src.validate_url.config import Config
 
 logger = logging.getLogger(__name__)
 
 
-def configure_browser(config: Config) -> tuple[Browser, BrowserContext]:
-    """ 
-    Configure and return a ready to use browser with its context.
-    
-    Args:
-        config (Config): The configuration object.
-    
-    Returns:
-        tuple: A tuple containing the browser and context.
-    """
-    browser = Browser(
-        config=BrowserConfig(
-            headless=config["headless"],
-        )
-    )
+"""
+Confidence levels for login page detection.
+"""
+CONFIDENCE_HIGH = "high"
+CONFIDENCE_MEDIUM = "medium"
+CONFIDENCE_LOW = "low"
 
-    context = BrowserContext(
-        browser=browser,
-        config=BrowserContextConfig(
-            minimum_wait_page_load_time=1,
-            viewport_expansion=0,
-            wait_between_actions=0,
-        ),
-    )
+PROMPT = """
+You are an AI assistant tasked with examining a website to find its login page.
 
-    return browser, context
+Your task is to:
+1. Look for login links, buttons, or forms on the current page
+2. If you find a login link or button, click on it to navigate to the login page
+3. If you're already on the login page, confirm that login elements (username/email field, password field) are present
+4. Report your findings
+
+Your goal is to determine if this website has a login page and if it can be found.
+
+After examining the site, provide a conclusion in the following format:
+<login_page_detection>
+<found>true/false</found>
+<login_url>URL of the login page if found</login_url>
+<confidence>'{CONFIDENCE_HIGH}'/'{CONFIDENCE_MEDIUM}'/'{CONFIDENCE_LOW}'</confidence>
+</login_page_detection>
+""".strip().format(
+    CONFIDENCE_HIGH=CONFIDENCE_HIGH,
+    CONFIDENCE_MEDIUM=CONFIDENCE_MEDIUM,
+    CONFIDENCE_LOW=CONFIDENCE_LOW,
+)
 
 
-async def run_agent(config: Config, url: str) -> Result:
+async def run(config: Config, url: str) -> Result:
     """
     Run the agent on the given URL and return the result.
-    
+
     Args:
         config (Config): The configuration object.
         url (str): The URL to run the agent on.
-    
+
     Returns:
         Result: The result of the agent's execution.
     """
-    
-    """
-AI Agent model for login page detection.
-"""
     agent_client = ChatOpenAI(
-      model="gpt-4.1",
-      temperature=0.0,
+        model="gpt-4.1",
+        temperature=0.0,
     )
 
-    browser, context = configure_browser(config)
+    browser, context = _configure_browser(config)
 
     agent = Agent(
         task=PROMPT,
@@ -88,7 +86,9 @@ AI Agent model for login page detection.
             valid=found,
             login_url=login_url if found else None,
             confidence=confidence,
-            message="Login page found successfully" if found else "Login page could not be found",
+            message="Login page found successfully"
+            if found
+            else "Login page could not be found",
             original_url=url,
             source="validation",
         )
@@ -111,6 +111,34 @@ AI Agent model for login page detection.
         await browser.close()
 
 
+def _configure_browser(config: Config) -> tuple[Browser, BrowserContext]:
+    """
+    Configure and return a ready to use browser with its context.
+
+    Args:
+        config (Config): The configuration object.
+
+    Returns:
+        tuple: A tuple containing the browser and context.
+    """
+    browser = Browser(
+        config=BrowserConfig(
+            headless=config["headless"],
+        )
+    )
+
+    context = BrowserContext(
+        browser=browser,
+        config=BrowserContextConfig(
+            minimum_wait_page_load_time=1,
+            viewport_expansion=0,
+            wait_between_actions=0,
+        ),
+    )
+
+    return browser, context
+
+
 def _extract_result(result: str) -> tuple[bool, str, str]:
     """
     Extract the result from the agent's final result.
@@ -126,7 +154,7 @@ def _extract_result(result: str) -> tuple[bool, str, str]:
     login_url = ""
 
     # Extract login URL if available
-    login_url_match = re.search(r"<login_url>(.*?)</login_url>", result, re.DOTALL)
+    login_url_match = re.search(r"<login_url>(.*?)</login_url>", result, re.DOTALL)  # noqa: F821
     if login_url_match:
         login_url = login_url_match.group(1).strip()
 
@@ -142,7 +170,7 @@ def _extract_result(result: str) -> tuple[bool, str, str]:
 def _page_not_found_tag() -> str:
     """
     Return the default tag for a page not found result.
-    
+
     Returns:
         str: The default tag for a page not found result.
     """

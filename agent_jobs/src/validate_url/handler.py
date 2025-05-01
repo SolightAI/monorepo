@@ -1,29 +1,21 @@
-import json
 import asyncio
 
-from pydantic import ValidationError
 from aws_lambda_typing import events, context as LambdaContext, responses
+from pydantic import ValidationError
 
-from .agent import run_agent
-from .dto import Body
-from .config import get_config
+from src.errors.errors import ErrInternalServerError, ErrInvalidRequest
+from src.validate_url.dto import Body
+from src.validate_url import agent, config
 
-
-errMissingBody = {
-    "statusCode": 400,
-    "body": json.dumps({
-        "message": "No body provided",
-    }),
-}
 
 def lambda_handler(
     event: events.APIGatewayProxyEventV2, 
     context: LambdaContext.Context,
 ) -> responses.APIGatewayProxyResponseV2:
-    return asyncio.run(validate_url_handler(event, context))
-
-async def validate_url_handler(
-    event: events.APIGatewayProxyEventV2, 
+  return asyncio.run(validate_url(event, context))
+  
+async def validate_url(
+      event: events.APIGatewayProxyEventV2, 
     context: LambdaContext.Context,
 ) -> responses.APIGatewayProxyResponseV2:
     """
@@ -50,38 +42,22 @@ async def validate_url_handler(
         Return doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html
         
         body: dto.Result
-    """
-    config = get_config()
-     
+    """ 
+    conf = config.get()
+    
     try:
         body_json = event.get("body")
-        print(body_json)
         if body_json is None:
-            return {
-                "statusCode": 400,
-                "body": json.dumps({
-                    "message": "No body provided",
-                }),
-            } 
-
+          return ErrInvalidRequest("No body provided")
+        
         body = Body.model_validate_json(body_json)
-        result = await run_agent(config, body.url)
-
+        result = await agent.run(conf, body.url)
+        
         return {
             "statusCode": 200,
             "body": result.model_dump_json(),
         }
-    except ValidationError as ve:
-        return {
-            "statusCode": 400,
-            "body": json.dumps({
-                "message": ve.errors(),
-            }),
-        }
+    except ValidationError as ve:      
+      return ErrInvalidRequest(ve.json())
     except Exception as e:
-        return {
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": str(e),
-            }),
-        }
+      return ErrInternalServerError(str(e))
