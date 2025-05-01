@@ -302,18 +302,12 @@ async def generate_tests(
     ]
 
     auth_session = dict()
-    try:
-        if feature.access_conditions is not None and feature.access_conditions.get("must_be_logged_in") is True:
-            auth_session = await get_auth_session(
-                task_id=ctx['job_id'],
-                url=product.url,
-                secrets=decrypted_secrets,  # Use decrypted secrets here
-            )
-    except Exception as e:
-        logger.error(f"[{ctx['job_id']}] Error getting auth session: {e}")
-        # Decide how to handle: maybe raise, maybe continue without auth session?
-        # For now, log and continue, which might cause downstream issues.
-        auth_session = {}
+    if feature.access_conditions is not None and feature.access_conditions.get("must_be_logged_in") is True:
+        auth_session = await get_auth_session(
+            task_id=ctx['job_id'],
+            url=product.url,
+            secrets=decrypted_secrets,  # Use decrypted secrets here
+        )
 
     tests = []
     with NamedTemporaryFile(suffix=".json", mode="w+") as cookies_file:
