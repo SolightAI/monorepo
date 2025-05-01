@@ -1,9 +1,13 @@
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
 const AuthContext = createContext(null);
+
+// Token refresh constants
+const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // 5 minutes before expiry
+const ACCESS_TOKEN_EXPIRE_MINUTES = 30; // Default expiry if not provided
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -20,6 +24,12 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+  const [tokens, setTokens] = useState({
+    accessToken: null,
+    refreshToken: null,
+    expiresAt: null
+  });
+  const refreshTimerRef = useRef(null);
 
   const AUTH_ROUTES = ['/login', '/register', '/auth/callback'];
 
@@ -35,20 +45,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Initialize auth state from localStorage on mount
-  useEffect(() => {
-    const storedAuthState = localStorage.getItem('isAuthenticated') === 'true';
-    setIsAuthenticated(storedAuthState);
-
-    // If authenticated, check admin status
-    if (storedAuthState) {
-      checkAdminStatus();
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  // Check admin status
+  // Check admin status - defined early since it's used in other functions
   const checkAdminStatus = useCallback(async () => {
     try {
       const cachedAdminStatus = localStorage.getItem('isAdmin');
@@ -71,11 +68,11 @@ export const AuthProvider = ({ children }) => {
 
       // Cache the admin status
       localStorage.setItem('isAdmin', JSON.stringify({
-        isAdmin: response.data,
+        isAdmin: response.data.is_admin,
         timestamp: Date.now()
       }));
 
-      setIsAdmin(response.data);
+      setIsAdmin(response.data.is_admin);
     } catch (error) {
       console.error('Error checking admin status:', error);
       setIsAdmin(false);
@@ -83,75 +80,6 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   }, []);
-
-  // Login function
-  const login = async (username, password) => {
-    setError(null);
-    try {
-      const formData = new URLSearchParams();
-      formData.append('username', username);
-      formData.append('password', password);
-
-      const response = await axios.post(
-        `${API_URL}/auth/login`,
-        formData,
-        {
-          withCredentials: true,
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        }
-      );
-
-      // Update authentication state
-      setIsAuthenticated(true);
-      localStorage.setItem('isAuthenticated', 'true');
-
-      // Check admin status after login
-      checkAdminStatus();
-
-      return response.data;
-    } catch (error) {
-      setError(error.response?.data?.detail || 'Login failed');
-      throw error;
-    }
-  };
-
-  // Register function
-  const register = async (username, email, password, invitation_code) => {
-    setError(null);
-    try {
-      const response = await axios.post(
-        `${API_URL}/auth/register`,
-        { username, email, password, invitation_code },
-        { withCredentials: true }
-      );
-
-      // Update authentication state
-      setIsAuthenticated(true);
-      localStorage.setItem('isAuthenticated', 'true');
-
-      return response.data;
-    } catch (error) {
-      setError(error.response?.data?.detail || 'Registration failed');
-      throw error;
-    }
-  };
-
-  // Logout function
-  const logout = async () => {
-    try {
-      await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
-    } catch (error) {
-      console.error('Logout failed:', error);
-    } finally {
-      // Update authentication state
-      setIsAuthenticated(false);
-      setIsAdmin(false);
-      localStorage.removeItem('isAuthenticated');
-      localStorage.removeItem('isAdmin');
-    }
-  };
 
   // Check authentication status from server
   const checkAuthStatus = useCallback(async () => {
@@ -207,10 +135,244 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const refreshAccessToken = useCallback(async () => {
+    try {
+      console.log('Refreshing access token using HTTP-only cookie');
+      const response = await axios.post(
+        `${API_URL}/auth/refresh`,
+        {},  // No need to send refresh token as it's in HTTP-only cookie
+        { withCredentials: true }
+      );
+
+      console.log('Refresh token response:', response.data);
+
+      if (response.data && response.data.access_token) {
+        const expiresAt = new Date(Date.now() + (response.data.expires_in || ACCESS_TOKEN_EXPIRE_MINUTES * 60) * 1000);
+
+        console.log(`Setting token data: expires in ${response.data.expires_in || ACCESS_TOKEN_EXPIRE_MINUTES * 60} seconds (${new Date(expiresAt).toLocaleTimeString()})`);
+
+        setTokens({
+          accessToken: response.data.access_token,
+          expiresAt
+        });
+
+        localStorage.setItem('tokenExpiresAt', expiresAt.toISOString());
+
+        setIsAuthenticated(true);
+        console.log('Access token refreshed successfully');
+        return true;
+      } else {
+        console.error('Refresh response missing access_token:', response.data);
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to refresh token:', error.response?.status, error.response?.data);
+
+      // Don't clear auth state on refresh failures - just return false
+      // We'll let the interceptor handle auth redirects when needed
+      return false;
+    }
+  }, []);
+
+  const setTokenData = useCallback((accessToken, expiresInSeconds) => {
+    const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
+
+    console.log(`Setting token data: expires in ${expiresInSeconds} seconds (${new Date(expiresAt).toLocaleTimeString()})`);
+
+    setTokens({
+      accessToken,
+      expiresAt
+    });
+
+    localStorage.setItem('tokenExpiresAt', expiresAt.toISOString());
+  }, []);
+
+  useEffect(() => {
+    const scheduleTokenRefresh = () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+        // console.log('Cleared existing refresh timer');
+      }
+
+      const { expiresAt } = tokens;
+
+      if (!expiresAt) {
+        // console.log('Cannot schedule refresh: Missing expiry data');
+        return;
+      }
+
+      const now = new Date();
+      const expiryTime = new Date(expiresAt);
+      const timeRemaining = expiryTime.getTime() - now.getTime();
+
+      if (timeRemaining <= 0) {
+        // Don't schedule if already expired, rely on interceptor or immediate refresh elsewhere
+        // console.log('Token already expired, not scheduling refresh.');
+        return;
+      }
+
+      // Calculate the ideal refresh time based on the threshold
+      let timeUntilRefresh = timeRemaining - TOKEN_REFRESH_THRESHOLD;
+
+      // If threshold > lifetime, schedule refresh just before actual expiry
+      if (timeUntilRefresh <= 0) {
+        const safeBuffer = 5 * 1000; // Refresh 5 seconds before expiry
+        timeUntilRefresh = Math.max(1000, timeRemaining - safeBuffer); // Ensure at least 1s delay
+        // console.warn(`Token lifetime (${timeRemaining/1000}s) is shorter than refresh threshold (${TOKEN_REFRESH_THRESHOLD/1000}s). Scheduling refresh ${safeBuffer/1000}s before expiry.`);
+      }
+
+      // console.log(`Scheduling refresh in ${timeUntilRefresh / 1000}s (Expires in ${timeRemaining / 1000}s)`);
+
+      refreshTimerRef.current = setTimeout(() => {
+        // console.log('Timer triggered: Refreshing access token');
+        refreshAccessToken();
+      }, timeUntilRefresh);
+    };
+
+    if (tokens.expiresAt) {
+      scheduleTokenRefresh();
+    }
+
+    return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+    };
+  }, [tokens, refreshAccessToken]);
+
+  useEffect(() => {
+    const storedAuthState = localStorage.getItem('isAuthenticated') === 'true';
+    setIsAuthenticated(storedAuthState);
+
+    const storedExpiresAt = localStorage.getItem('tokenExpiresAt');
+
+    if (storedAuthState && storedExpiresAt) {
+      const expiresAt = new Date(storedExpiresAt);
+      const now = new Date();
+
+      if (expiresAt > now) {
+        setTokens({
+          expiresAt: expiresAt
+        });
+      } else {
+        refreshAccessToken();
+      }
+    } else {
+      console.log('Missing auth data, not scheduling token refresh');
+    }
+
+    if (storedAuthState) {
+      checkAdminStatus();
+    } else {
+      setLoading(false);
+    }
+
+    return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+    };
+  }, [checkAdminStatus, refreshAccessToken, setTokenData]);
+
+  // Login function
+  const login = async (username, password) => {
+    setError(null);
+    try {
+      const formData = new URLSearchParams();
+      formData.append('username', username);
+      formData.append('password', password);
+
+      const response = await axios.post(
+        `${API_URL}/auth/login`,
+        formData,
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        }
+      );
+
+      setIsAuthenticated(true);
+      localStorage.setItem('isAuthenticated', 'true');
+
+      if (response.data.access_token) {
+        setTokenData(
+          response.data.access_token,
+          response.data.expires_in || ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        );
+      }
+
+      checkAdminStatus();
+
+      return response.data;
+    } catch (error) {
+      setError(error.response?.data?.detail || 'Login failed');
+      throw error;
+    }
+  };
+
+  // Register function
+  const register = async (username, email, password, invitation_code) => {
+    setError(null);
+    try {
+      const response = await axios.post(
+        `${API_URL}/auth/register`,
+        { username, email, password, invitation_code },
+        { withCredentials: true }
+      );
+
+      // Update authentication state
+      setIsAuthenticated(true);
+      localStorage.setItem('isAuthenticated', 'true');
+
+      return response.data;
+    } catch (error) {
+      setError(error.response?.data?.detail || 'Registration failed');
+      throw error;
+    }
+  };
+
+  // Logout function
+  const logout = async () => {
+    try {
+      await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      // Update authentication state
+      setIsAuthenticated(false);
+      setIsAdmin(false);
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('isAdmin');
+      localStorage.removeItem('tokenExpiresAt');
+
+      // Clear refresh timer
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+    }
+  };
+
   // Setup axios interceptors within AuthContext
   useEffect(() => {
     let isRedirecting = false;
     let isCheckingAuth = false;
+    let isRefreshing = false;
+    let refreshQueue = [];
+
+    // Process all the requests in the queue with the new token
+    const processQueue = (token = null, error = null) => {
+      refreshQueue.forEach(({ resolve, reject }) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(token);
+        }
+      });
+      refreshQueue = [];
+    };
 
     const requestInterceptor = axios.interceptors.request.use(
       (config) => {
@@ -226,25 +388,76 @@ export const AuthProvider = ({ children }) => {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       async (error) => {
-        console.log('Axios error intercepted:', error.response?.status, error.config?.url);
-
         if (error.response && !isRedirecting && !isCheckingAuth) {
           const status = error.response.status;
           const currentPath = window.location.pathname;
 
-          // Don't redirect if we're already on the login page
-          if (currentPath === '/login') {
+          if (AUTH_ROUTES.some(route => currentPath.includes(route))) {
             return Promise.reject(error);
           }
 
-          // Handle 401 errors directly and immediately, regardless of authentication state
-          if (status === 401 && error.config && !error.config.__isRetryRequest) {
-            // Avoid redirect loops
-            if (AUTH_ROUTES.some(route => currentPath.includes(route))) {
-              return Promise.reject(error);
+          if (status === 401 && error.config && !error.config.__isRetryRequest && isAuthenticated) {
+            if (isRefreshing) {
+              return new Promise((resolve, reject) => {
+                refreshQueue.push({ resolve, reject });
+              })
+                .then(token => {
+                  error.config.headers['Authorization'] = `Bearer ${token}`;
+                  return axios(error.config);
+                })
+                .catch(err => {
+                  return Promise.reject(err);
+                });
             }
 
-            // Get the current URL parameters
+            try {
+              isRefreshing = true;
+
+              const response = await axios.post(
+                `${API_URL}/auth/refresh`,
+                {},  // No need to send refresh token as it's in HTTP-only cookie
+                { withCredentials: true }
+              );
+
+              if (response.data && response.data.access_token) {
+                const newAccessToken = response.data.access_token;
+
+                // Update access token and expiry
+                const expiresAt = new Date(Date.now() + (response.data.expires_in || ACCESS_TOKEN_EXPIRE_MINUTES * 60) * 1000);
+                setTokens({
+                  accessToken: newAccessToken,
+                  expiresAt
+                });
+
+                localStorage.setItem('tokenExpiresAt', expiresAt.toISOString());
+
+                error.config.headers['Authorization'] = `Bearer ${newAccessToken}`;
+                error.config.__isRetryRequest = true;
+
+                processQueue(newAccessToken);
+                isRefreshing = false;
+
+                return axios(error.config);
+              }
+            } catch (refreshError) {
+              console.error('Failed to refresh token on 401:', refreshError);
+
+              // Don't redirect on token refresh errors (422)
+              if (refreshError.response?.status === 422) {
+                console.log('Token refresh returned 422 - continuing without redirect');
+                processQueue(null, refreshError);
+                isRefreshing = false;
+                return Promise.reject(error);
+              }
+
+              processQueue(null, refreshError);
+            } finally {
+              isRefreshing = false;
+            }
+          }
+
+          // Only redirect to login for true authentication failures (not refresh failures)
+          if (status === 401 && error.config && !error.config.__isRetryRequest && !isAuthenticated) {
             const currentUrl = new URL(window.location.href);
             const invitationCode = currentUrl.searchParams.get('invitation_code');
             const invitationType = currentUrl.searchParams.get('type');
@@ -258,50 +471,39 @@ export const AuthProvider = ({ children }) => {
             isRedirecting = true;
             console.log('401 Authentication error detected, redirecting to login with invitation code');
 
-            // Update authentication state
             setIsAuthenticated(false);
             setIsAdmin(false);
             localStorage.removeItem('isAuthenticated');
             localStorage.removeItem('isAdmin');
+            localStorage.removeItem('tokenExpiresAt');
 
-            // Use setTimeout to allow current execution to complete
             setTimeout(() => {
               window.location.href = loginPath;
               isRedirecting = false;
             }, 100);
           }
 
-          // For other 4xx errors, verify authentication status if user is supposedly logged in
           else if (status >= 400 && status < 500 && isAuthenticated && error.config && !error.config.__isRetryRequest) {
-            // Avoid redirect loops
             const currentPath = window.location.pathname;
             if (AUTH_ROUTES.some(route => currentPath.includes(route))) {
               return Promise.reject(error);
             }
 
             try {
-              // Set flag to prevent recursive auth checks
               isCheckingAuth = true;
 
-              console.log(`${status} error detected, performing hard-check on authentication status`);
-
-              // Hard-check auth status with the server
               const authCheckResponse = await axios.get(`${API_URL}/auth/check-auth`, {
                 withCredentials: true,
                 timeout: 5000
               });
 
-              // If server confirms authentication, just pass through the original error
               if (authCheckResponse.data.authenticated) {
-                console.log('Authentication confirmed, original error is not auth-related');
                 isCheckingAuth = false;
                 return Promise.reject(error);
               } else {
-                // User is not authenticated according to server
                 console.log('Authentication failed during hard-check, logging out');
                 isRedirecting = true;
 
-                // Get the current URL parameters
                 const currentUrl = new URL(window.location.href);
                 const invitationCode = currentUrl.searchParams.get('invitation_code');
                 const invitationType = currentUrl.searchParams.get('type');
@@ -365,7 +567,7 @@ export const AuthProvider = ({ children }) => {
       axios.interceptors.response.eject(interceptor);
       axios.interceptors.request.eject(requestInterceptor);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, tokens, setTokenData]);
 
   // Login with Google
   const loginWithGoogle = async (invitationCode = null) => {
@@ -395,6 +597,7 @@ export const AuthProvider = ({ children }) => {
   const handleOAuthCallback = useCallback(async (searchParams) => {
     setLoading(true);
     const token = searchParams.get('token');
+    const expiresIn = searchParams.get('expires_in');
     const errorParam = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
@@ -407,7 +610,7 @@ export const AuthProvider = ({ children }) => {
       return; // Stop processing if there's an error
     }
 
-    if (token) {
+    if (token && expiresIn) {
       // In a real app, you might want to verify the token signature client-side
       // or preferably, make a call to your backend to validate the token
       // and get user info securely.
@@ -415,6 +618,8 @@ export const AuthProvider = ({ children }) => {
       console.log('OAuth callback successful, received token.');
       setIsAuthenticated(true);
       localStorage.setItem('isAuthenticated', 'true');
+
+      setTokenData(token, expiresIn);
 
       // Fetch user details after successful auth
       try {
@@ -433,7 +638,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     setLoading(false);
-  }, [checkAuthStatus]);
+  }, [checkAuthStatus, setTokenData]);
 
   // Update onboarding status
   const updateOnboardingStatus = async (completed) => {
@@ -481,6 +686,7 @@ export const AuthProvider = ({ children }) => {
     checkAuthStatus,
     validateInvitationCode,
     updateOnboardingStatus,
+    refreshAccessToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
