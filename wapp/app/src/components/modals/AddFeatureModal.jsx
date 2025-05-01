@@ -42,7 +42,7 @@ const AddFeatureModal = ({ onClose, epicId, epicName, onFeatureAdded }) => {
           name: formData.name,
           description: formData.description,
           epic_id: epicId,
-          url: formData.url,
+          urls: [formData.url],
           access_conditions: formData.access_conditions,
         },
         { withCredentials: true }
