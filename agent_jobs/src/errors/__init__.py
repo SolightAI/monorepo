@@ -1,4 +1,4 @@
 """
-Errors module contains all custom errors used in the 
+Errors module contains all custom HTTP errors used in the 
 application.
 """

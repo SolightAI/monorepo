@@ -3,7 +3,6 @@ import pytest
 import logging
 
 from typing import Any
-from src.lambda_invoker.validate_url import validate_url
 from src.fixtures.authentification.get_auth_session import get_auth_session
 from src.fixtures.authentification.has_required_secrets import LoginMethod
 
