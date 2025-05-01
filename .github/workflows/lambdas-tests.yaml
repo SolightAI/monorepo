@@ -52,7 +52,7 @@ jobs:
         docker run \
           --entrypoint pytest \
           -v ./src/tests:/var/test/src/tests \
-          -v ./pytest.ini:/var/test/pytest.ini \
+          -v ./pytest.ini:/var/test/src/pytest.ini \
           -e OPENAI_API_KEY=${OPENAI_API_KEY} \
           -e HEADLESS=true \
           ${{ env.TEST_IMAGE }}
