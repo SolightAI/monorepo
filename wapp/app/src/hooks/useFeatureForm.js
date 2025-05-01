@@ -4,14 +4,14 @@ import { MAX_NAME_LENGTH } from '@/constants/validation';
 
 /**
  * Custom hook for handling feature form state and validation
- * @param {Object} initialData - Initial form data
+ * @param {Object} [initialData={}] - Initial form data (optional)
  * @returns {Object} Form state and handlers
  */
 export const useFeatureForm = (initialData = {}) => {
   const [formData, setFormData] = useState({
     name: initialData.name || '',
     description: initialData.description || '',
-    urls: initialData.urls && initialData.urls.length > 0 ? [...initialData.urls] : [''],
+    url: (initialData.urls && initialData.urls.length > 0) ? initialData.urls[0] : (initialData.url || ''),
     access_conditions: initialData.access_conditions || { must_be_logged_in: true }
   });
 
@@ -19,20 +19,20 @@ export const useFeatureForm = (initialData = {}) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [touched, setTouched] = useState({
     name: false,
-    urls: false
+    url: false
   });
-  const [urlErrors, setUrlErrors] = useState([]);
 
-  // Calculate if form is valid for submit button
+  // Calculate if the name part of the form is valid
+  const isNameValid = formData.name.trim() !== '' && formData.name.length <= MAX_NAME_LENGTH;
+
+  // Calculate if the URL part of the form is valid (allows empty string initially)
+  const isUrlValid = formData.url.trim() === '' || isValidUrl(formData.url);
+
+  // Calculate if the entire form is valid for submission
   const isFormValid = () => {
-    const nameValid = formData.name.trim() !== '' && formData.name.length <= MAX_NAME_LENGTH;
-    const urlsValid = formData.urls.some(url => url.trim() !== '' && isValidUrl(url));
-    return nameValid && urlsValid && urlErrors.every(error => !error);
+    // Use the individual validity checks and ensure URL is not empty and is valid
+    return isNameValid && formData.url.trim() !== '' && isValidUrl(formData.url);
   };
-
-  // Check individual field validity for UI feedback
-  const isNameValid = formData.name.trim() !== '';
-  const isUrlsValid = formData.urls.some(url => url.trim() !== '');
 
   // Handle input change for name and description
   const handleInputChange = (e) => {
@@ -51,49 +51,21 @@ export const useFeatureForm = (initialData = {}) => {
     }
   };
 
-  // Handle URL input changes
-  const handleUrlChange = (index, value) => {
-    const updatedUrls = [...formData.urls];
-    updatedUrls[index] = value;
-
+  // Handle URL input change
+  const handleUrlChange = (e) => {
+    const { value } = e.target;
     setFormData({
       ...formData,
-      urls: updatedUrls
+      url: value
     });
 
-    // Validate URL
-    const newUrlErrors = [...urlErrors];
-    if (value.trim() !== '' && !isValidUrl(value)) {
-      newUrlErrors[index] = 'Please enter a valid URL (e.g., https://example.com)';
-    } else {
-      newUrlErrors[index] = '';
-    }
-    setUrlErrors(newUrlErrors);
-
-    // Mark URLs as touched
-    if (!touched.urls) {
+    // Mark url field as touched
+    if (!touched.url) {
       setTouched({
         ...touched,
-        urls: true
+        url: true
       });
     }
-  };
-
-  // Add a new URL field
-  const handleAddUrl = () => {
-    setFormData({
-      ...formData,
-      urls: [...formData.urls, '']
-    });
-  };
-
-  // Remove a URL field
-  const handleRemoveUrl = (index) => {
-    const updatedUrls = formData.urls.filter((_, i) => i !== index);
-    setFormData({
-      ...formData,
-      urls: updatedUrls
-    });
   };
 
   // Handle checkbox change for login requirement
@@ -107,37 +79,35 @@ export const useFeatureForm = (initialData = {}) => {
     });
   };
 
-  // Validate form data
+  // Validate form data before submission
   const validateForm = () => {
-    // Validate form
+    setError(''); // Clear previous errors
+
+    // Validate name
     if (!formData.name.trim()) {
       setError('Feature name is required');
+      setTouched(prev => ({ ...prev, name: true }));
       return false;
     }
-
     if (formData.name.length > MAX_NAME_LENGTH) {
       setError(`Feature name cannot exceed ${MAX_NAME_LENGTH} characters.`);
+      setTouched(prev => ({ ...prev, name: true }));
       return false;
     }
 
-    // Filter out empty URLs
-    const filteredUrls = formData.urls.filter(url => url.trim() !== '');
-
-    // Simple validation: require at least one URL
-    if (filteredUrls.length === 0) {
-      setError('At least one URL is required');
+    // Validate URL
+    if (!formData.url.trim()) {
+      setError('URL is required');
+      setTouched(prev => ({ ...prev, url: true }));
+      return false;
+    }
+    if (!isValidUrl(formData.url)) {
+      setError('Please enter a valid URL (e.g., https://example.com)');
+      setTouched(prev => ({ ...prev, url: true }));
       return false;
     }
 
-    // Validate all URLs
-    const invalidUrls = filteredUrls.filter(url => !isValidUrl(url));
-    if (invalidUrls.length > 0) {
-      // Update touched state to show all URL field errors
-      setTouched(prev => ({...prev, urls: true}));
-      return false;
-    }
-
-    return true;
+    return true; // Form is valid
   };
 
   return {
@@ -149,14 +119,11 @@ export const useFeatureForm = (initialData = {}) => {
     setIsSubmitting,
     touched,
     setTouched,
-    urlErrors,
     isFormValid,
     isNameValid,
-    isUrlsValid,
+    isUrlValid,
     handleInputChange,
     handleUrlChange,
-    handleAddUrl,
-    handleRemoveUrl,
     handleLoginRequirementChange,
     validateForm
   };

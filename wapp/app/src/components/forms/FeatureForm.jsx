@@ -6,6 +6,19 @@ import { isValidUrl } from '@/utils/urlUtils';
 /**
  * Reusable feature form component
  * @param {Object} props - Component props
+ * @param {Object} props.formData - Form data containing name, description, url, access_conditions
+ * @param {Object} props.error - Submission error object
+ * @param {boolean} props.isSubmitting - Flag indicating if the form is currently submitting
+ * @param {Object} props.touched - Object indicating which fields have been touched
+ * @param {boolean} props.isNameValid - Flag indicating if the name field is valid
+ * @param {boolean} props.isUrlValid - Flag indicating if the url field is valid
+ * @param {function} props.isFormValid - Function to check if the entire form is valid
+ * @param {function} props.handleInputChange - Handler for general input changes
+ * @param {function} props.handleUrlChange - Handler for the URL input change
+ * @param {function} props.handleLoginRequirementChange - Handler for the login requirement checkbox change
+ * @param {function} props.onSubmit - Form submission handler
+ * @param {function} props.onCancel - Form cancellation handler
+ * @param {string} [props.submitButtonText='Submit'] - Text for the submit button
  * @returns {JSX.Element} Feature form component
  */
 const FeatureForm = ({
@@ -13,14 +26,11 @@ const FeatureForm = ({
   error,
   isSubmitting,
   touched,
-  urlErrors,
   isNameValid,
-  isUrlsValid,
+  isUrlValid,
   isFormValid,
   handleInputChange,
   handleUrlChange,
-  handleAddUrl,
-  handleRemoveUrl,
   handleLoginRequirementChange,
   onSubmit,
   onCancel,
@@ -28,6 +38,7 @@ const FeatureForm = ({
 }) => {
   return (
     <form onSubmit={onSubmit}>
+
       <div className="mb-2">
         <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
           Feature Name *
@@ -47,22 +58,46 @@ const FeatureForm = ({
         </div>
       </div>
 
-        <div className="mb-4">
-          <label htmlFor="access_conditions" className="block text-sm font-medium text-gray-700 mb-1">
-            Access Conditions
-          </label>
-          <label className="flex items-center space-x-2">
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          URL *
+        </label>
+
+        <div className="flex flex-col w-full">
+          <div className="flex items-center space-x-2">
             <input
-              type="checkbox"
-              checked={formData.access_conditions.must_be_logged_in}
-              onChange={handleLoginRequirementChange}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-5 h-5"
+              type="url"
+              id="url"
+              name="url"
+              placeholder="https://..."
+              value={formData.url}
+              onChange={handleUrlChange}
+              className={`flex-1 p-2 border ${touched.url && !isUrlValid ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm`}
+              required
             />
-            <span className="text-sm font-medium text-gray-700">
-              User must be logged in to access this feature
-            </span>
-          </label>
+          </div>
+          {touched.url && !isUrlValid && (
+            <div className="text-xs text-red-500 mt-1">Please enter a valid URL (e.g., https://example.com)</div>
+          )}
         </div>
+      </div>
+
+      <div className="mb-4">
+        <label htmlFor="access_conditions" className="block text-sm font-medium text-gray-700 mb-1">
+          Access Conditions
+        </label>
+        <label className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            checked={formData.access_conditions.must_be_logged_in}
+            onChange={handleLoginRequirementChange}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-5 h-5"
+          />
+          <span className="text-sm font-medium text-gray-700">
+            User must be logged in to access this feature
+          </span>
+        </label>
+      </div>
 
       <div className="mb-4">
         <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
@@ -76,46 +111,6 @@ const FeatureForm = ({
           rows="3"
           className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
         ></textarea>
-      </div>
-
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Related URLs *
-        </label>
-
-        {formData.urls.map((url, index) => (
-          <div key={index} className="flex flex-col w-full mb-4">
-            <div className="flex items-center space-x-2">
-              <input
-                type="url"
-                placeholder="https://..."
-                value={url}
-                onChange={(e) => handleUrlChange(index, e.target.value)}
-                className={`flex-1 p-2 border ${touched.urls && url.trim() !== '' && !isValidUrl(url) ? 'border-red-300 bg-red-50' : touched.urls && !isUrlsValid ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm`}
-                required={index === 0}
-              />
-              <button
-                type="button"
-                onClick={() => handleRemoveUrl(index)}
-                className="p-2 text-red-500 hover:text-red-700 transition-colors"
-                disabled={formData.urls.length === 1}
-              >
-                <X size={16} />
-              </button>
-            </div>
-            {touched.urls && url.trim() !== '' && !isValidUrl(url) && (
-              <div className="text-xs text-red-500 mt-1">Please enter a valid URL (e.g., https://example.com)</div>
-            )}
-          </div>
-        ))}
-
-        <button
-          type="button"
-          onClick={handleAddUrl}
-          className="w-full mt-2 flex justify-center items-center py-2 px-4 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md border border-blue-200 transition-colors"
-        >
-          + Add URL
-        </button>
       </div>
 
       <div className="flex justify-end space-x-3">

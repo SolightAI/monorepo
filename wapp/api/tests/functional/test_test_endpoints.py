@@ -70,7 +70,6 @@ async def test_create_test(client: AsyncClient, admin_user, test_feature, accept
         "name": "New Test Case",
         "description": "A test created through the API",
         "feature_id": str(test_feature.id),
-        "url": "https://example.com/new-test",
         "category": TestCategory.SMOKE,
         "preconditions": "System is in a stable state",
         "steps": "1. Navigate to the page\n2. Click the button",
@@ -88,7 +87,6 @@ async def test_create_test(client: AsyncClient, admin_user, test_feature, accept
     assert result["name"] == data["name"]
     assert result["description"] == data["description"]
     assert result["feature_id"] == data["feature_id"]
-    assert result["url"] == data["url"]
     assert result["category"] == data["category"]
     assert result["preconditions"] == data["preconditions"]
     assert result["steps"] == data["steps"]
@@ -205,7 +203,6 @@ async def test_update_test(client: AsyncClient, admin_user, test_case):
     data = {
         "name": "Updated Test Name",
         "description": "Updated test description",
-        "url": "https://example.com/updated-test",
         "category": TestCategory.SMOKE.value
     }
 
@@ -220,7 +217,6 @@ async def test_update_test(client: AsyncClient, admin_user, test_case):
     assert result["id"] == str(test_case.id)
     assert result["name"] == data["name"]
     assert result["description"] == data["description"]
-    assert result["url"] == data["url"]
     assert result["category"] == data["category"]
 
 
