@@ -1448,7 +1448,7 @@ const TestsTable = () => {
               <p className="mt-1 text-sm">
                 {/* Update the message slightly for consistency */}
                 You need to add test credentials before running or generating tests. Go to the{' '}
-                <a href="/test-credentials" className="text-yellow-900 font-medium underline">
+                <a href="/secrets" className="text-yellow-900 font-medium underline">
                   Test Credentials Management
                 </a>{' '}
                 section.
