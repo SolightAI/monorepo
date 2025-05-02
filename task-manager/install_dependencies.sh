@@ -17,7 +17,7 @@ mkdir -p $PLAYWRIGHT_BROWSERS_PATH
 pip install playwright
 
 # Install Playwright if browsers are not already installed
-if [ -d "$PLAYWRIGHT_BROWSERS_PATH/chromium_headless_shell-*" ]; then
+if [ -d "$PLAYWRIGHT_BROWSERS_PATH/chromium_headless_shell-1169" ]; then
   echo "==== Playwright browsers already installed in $PLAYWRIGHT_BROWSERS_PATH ==== "
 else
   echo "==== Installing Playwright browsers to $PLAYWRIGHT_BROWSERS_PATH ===="
