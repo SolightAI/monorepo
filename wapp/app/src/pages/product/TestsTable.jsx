@@ -1205,44 +1205,6 @@ const TestsTable = () => {
     };
   }, [selectedFeature]); // Keep selectedFeature dependency
 
-  // Add a new useEffect for initial mount check
-  useEffect(() => {
-    let isMounted = true;
-    let checkTimeout = null;
-    let retryCount = 0;
-
-    const initialize = async () => {
-      if (!isMounted) return;
-
-      // Wait for features to be loaded
-      if (features.length === 0) {
-        if (retryCount >= MAX_RETRIES_FEATURE_LOADING) {
-          console.error('Failed to load features after maximum retries');
-          setError('Failed to load features. Please refresh the page or try again later.');
-          return;
-        }
-
-        retryCount++;
-        // Try again in 500ms
-        checkTimeout = setTimeout(initialize, 500);
-        return;
-      }
-
-      // Run initial check regardless of feature selection
-      await checkExistingTaskId();
-    };
-
-    // Start the initialization process
-    initialize();
-
-    return () => {
-      isMounted = false;
-      if (checkTimeout) {
-        clearTimeout(checkTimeout);
-      }
-    };
-  }, [features]); // Add features as a dependency
-
   // Add a separate useEffect for handling visibility changes
   useEffect(() => {
     let visibilityTimeout;
@@ -1287,6 +1249,37 @@ const TestsTable = () => {
       }
     };
   }, [isGeneratingTests, generatingFeatures]); // Keep these dependencies as they're needed for the visibility handler
+
+  // This useEffect runs when features/loading state changes, or selected feature changes.
+  // It ensures checkExistingTaskId runs only after features have finished loading.
+  useEffect(() => {
+    let isMounted = true;
+
+    const runCheck = async () => {
+      if (!isMounted) return;
+
+      // If features are still loading, wait for the next run when loading completes.
+      if (loadingFeatures) {
+        return;
+      }
+
+      // Features have finished loading (or failed), now run the check.
+      // checkExistingTaskId handles cases where features might be empty.
+      await checkExistingTaskId();
+    };
+
+    runCheck();
+
+    return () => {
+      isMounted = false;
+    };
+
+    // Depend on loadingFeatures, features, and selectedFeature
+    // - loadingFeatures: Trigger when loading finishes.
+    // - features: Trigger if features array updates after initial load (e.g., add/delete).
+    // - selectedFeature: Trigger when the user selects a different feature.
+  }, [loadingFeatures, features, selectedFeature]);
+
 
   if (loading) {
     return (
