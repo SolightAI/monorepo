@@ -76,7 +76,6 @@ const TestsTable = () => {
 
   // Add a constant for the running status display
   const RUNNING_STATUS = 'Running';
-  const MAX_RETRIES_FEATURE_LOADING = 10; // Maximum number of retries (5 seconds total)
 
   // Fetch secrets when component loads or when product/organization changes
   useEffect(() => {
