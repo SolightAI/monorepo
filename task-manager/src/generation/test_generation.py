@@ -1,8 +1,6 @@
 import os
 import re
 import json
-import asyncio
-import functools
 
 from typing import Optional, Any
 from logging import getLogger
@@ -89,7 +87,9 @@ Make sure to close each XML tag you open.
 
 LLM_CLIENT = ChatOpenAI(
     model="gpt-4.1",
-    temperature=0.0,
+    timeout=120,
+    temperature=0,
+    frequency_penalty=0.5,
 )
 
 logger = getLogger(__name__)
@@ -247,12 +247,6 @@ async def _generate_test_category_for_feature(
         tests.append(test)
 
     return tests
-
-
-async def generate_tests_entrypoint(ctx, product, epic, feature, secrets):
-    blocking = functools.partial(generate_tests, ctx, product, epic, feature, secrets)
-    loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(ctx['pool'], blocking)
 
 
 async def generate_tests(
