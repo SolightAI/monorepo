@@ -144,8 +144,6 @@ export const AuthProvider = ({ children }) => {
         { withCredentials: true }
       );
 
-      console.log('Refresh token response:', response.data);
-
       if (response.data && response.data.access_token) {
         const expiresAt = new Date(Date.now() + (response.data.expires_in || ACCESS_TOKEN_EXPIRE_MINUTES * 60) * 1000);
 
