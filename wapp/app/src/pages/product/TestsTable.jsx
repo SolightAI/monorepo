@@ -1172,7 +1172,6 @@ const TestsTable = () => {
           // For other errors, we'll assume there might be a task running
           console.log('Assuming task might be running due to error');
           setIsGeneratingTests(true);
-          // Don't set success message here - let the polling function handle it
           // Start polling with the feature ID
           startTestGenerationPolling(selectedFeature);
         }
@@ -1231,7 +1230,7 @@ const TestsTable = () => {
                 }
                 
                 // Update status message for other statuses
-                setSuccessMessage(`Test Generation In Progress. Status: ${pollStatusData.status}`);
+                setSuccessMessage(`Test Generation in Progress. Status: ${pollStatusData.status}`);
                 
                 // If status is no longer pending, stop polling
                 if (pollStatusData.status !== TEST_STATUS.PENDING) {
