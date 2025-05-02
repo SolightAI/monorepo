@@ -77,9 +77,11 @@ const TestsTable = () => {
   const { secrets, fetchSecrets } = useSecret();
   const errorMessageNoCredentials = "You need to add test credentials before running or generating tests. Go to 'Test Credentials' to add credentials.";
 
-  // Add a constant for the running status display
-  const RUNNING_STATUS = 'Running';
+  const RUNNING_STATUS = 'Running';   // Add a constant for the running status display
   const MAX_RETRIES_FEATURE_LOADING = 10; // Maximum number of retries (5 seconds total)
+  const MAX_RETRIES_TEST_GENERATION_STATUS = 3; // Maximum number of retries for checking test generation status (3 seconds total)
+  let testGenerationStatusRetryCount = 0;   // Add retry mechanism before starting polling
+  const TEST_GENERATION_STATUS_RETRY_DELAY = 1000; // 1 second between retries
 
   // Fetch secrets when component loads or when product/organization changes
   useEffect(() => {
@@ -1198,18 +1200,14 @@ const TestsTable = () => {
       setIsGeneratingTests(true);
       setError(null);
       
-      // Add retry mechanism before starting polling
-      let retryCount = 0;
-      const maxRetries = 3;
-      const retryDelay = 1000; // 1 second between retries
 
       const checkStatus = async () => {
         try {
           const statusData = await getTestGenerationStatus(featureId);
           
-          if (statusData.status === 'unknown' && retryCount < maxRetries) {
-            retryCount++;
-            setTimeout(checkStatus, retryDelay);
+          if (statusData.status === 'unknown' && testGenerationStatusRetryCount < MAX_RETRIES_TEST_GENERATION_STATUS) {
+            testGenerationStatusRetryCount++;
+            setTimeout(checkStatus, TEST_GENERATION_STATUS_RETRY_DELAY);
             return;
           }
 
@@ -1280,9 +1278,9 @@ const TestsTable = () => {
           }
         } catch (error) {
           console.error('Error checking initial status:', error);
-          if (retryCount < maxRetries) {
-            retryCount++;
-            setTimeout(checkStatus, retryDelay);
+          if (testGenerationStatusRetryCount < MAX_RETRIES_TEST_GENERATION_STATUS) {
+            testGenerationStatusRetryCount++;
+            setTimeout(checkStatus, TEST_GENERATION_STATUS_RETRY_DELAY);
           } else {
             setIsGeneratingTests(false);
             setGeneratingFeatures([]);
