@@ -2,8 +2,9 @@ import os
 import base64
 import logging
 import threading
-from typing import Dict, Optional, Tuple
+from typing import Optional, Any
 
+from dto.models import SecretType
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 
@@ -92,50 +93,34 @@ class CryptoService:
             logger.error(f"Error encrypting value: {type(e).__name__} - {e}")
             return None
 
-    def encrypt_secrets(self, secrets: Dict[str, Dict[str, str]]) -> Tuple[bool, Optional[Dict[str, Dict[str, str]]]]:
+    def encrypt_secrets(self, secrets: list[dict[str | SecretType, Any]]) -> Optional[list[dict[str | SecretType, Any]]]:
         """
-        Encrypt a dictionary of secrets using AES-GCM.
+        Encrypt a list of secrets using AES-GCM.
 
         Args:
-            secrets: Dictionary mapping secret types to dictionaries of key-value pairs
+            secrets: List of secrets to encrypt
 
         Returns:
-            A tuple of (success, encrypted_secrets)
-            - success: True if encryption was successful or not needed, False otherwise
-            - encrypted_secrets: Dictionary of encrypted secrets, or None if encryption was not performed or failed
+            List of encrypted secrets
         """
+
         if not secrets:
-            return True, None  # No secrets to encrypt
+            return None  # No secrets to encrypt
 
         if not self.ensure_initialized():
             logger.error("Cannot encrypt secrets because symmetric key is unavailable.")
-            return False, None
+            raise Exception("Cannot encrypt secrets because symmetric key is unavailable.")
 
-        encrypted_secrets: Dict[str, Dict[str, str]] = {}
-        all_successful = True
+        for i, secret in enumerate(secrets):
+            for key, value in secret['values'].items():
+                encrypted_value = self.encrypt(value)
+                if encrypted_value is not None:
+                    secrets[i]['values'][key] = encrypted_value
+                else:
+                    logger.error(f"Failed to encrypt secret {secret.get('category')}.{key}")
+                    raise Exception(f"Failed to encrypt secret {secret.get('category')}.{key}")
 
-        try:
-            for secret_type, secret_values in secrets.items():
-                encrypted_secrets[secret_type] = {}
-
-                for key, value in secret_values.items():
-                    encrypted_value = self.encrypt(value)
-                    if encrypted_value is None:
-                        logger.error(f"Failed to encrypt secret {secret_type}.{key}")
-                        all_successful = False
-                        # Continue encrypting others, but mark the overall operation as failed
-                        encrypted_secrets[secret_type][key] = "ENCRYPTION_FAILED"  # Placeholder or handle as needed
-                    else:
-                        encrypted_secrets[secret_type][key] = encrypted_value
-
-            if not all_successful:
-                logger.error("Encryption failed for one or more secrets.")
-                return False, None  # Return None as the dict contains placeholders/errors
-
-            return True, encrypted_secrets
-        except Exception as e:
-            logger.error(f"Error encrypting secrets dictionary: {str(e)}")
-            return False, None
+        return secrets
 
     def can_encrypt(self) -> bool:
         """

@@ -97,11 +97,6 @@ const useTestForm = (initialData = {}) => {
       return false;
     }
 
-    if (!formData.url.trim()) {
-      setError('URL is required');
-      return false;
-    }
-
     if (!formData.description.trim()) {
       setError('Description is required');
       return false;

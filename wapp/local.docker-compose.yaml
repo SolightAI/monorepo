@@ -62,7 +62,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - /tmp/db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     networks:
       - default
     environment:
@@ -92,3 +92,6 @@ networks:
   default:
   api-tm_shared_network: # docker network create api-tm_shared_network
     external: true
+
+volumes:
+  db_data:

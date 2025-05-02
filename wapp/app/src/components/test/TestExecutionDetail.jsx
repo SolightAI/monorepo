@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Server, Calendar, Clock, File, Image, Link2, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Server, Calendar, Clock, File, Image, Link2, ArrowLeft, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { getTestExecution } from '@/services/testExecutionService';
 import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatExecutionDuration, formatStatus, getStatusColorClasses } from '@/utils/testExecutionUtils';
 import PropTypes from 'prop-types';
@@ -14,6 +14,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [fullScreenSrc, setFullScreenSrc] = useState('');
   const [currentEvidenceIndex, setCurrentEvidenceIndex] = useState(0);
+  const [expandedSteps, setExpandedSteps] = useState({});
 
   useEffect(() => {
     if (execution?.id) {
@@ -31,6 +32,19 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
   useEffect(() => {
     setExecution(initialExecution);
   }, [initialExecution]);
+
+  // Effect to initialize expanded steps when execution data is available
+  useEffect(() => {
+    if (execution?.metadata?.agent_thoughts) {
+      const initialExpanded = Object.keys(execution.metadata.agent_thoughts).reduce((acc, key) => {
+        acc[key] = true; // Set all steps to expanded by default
+        return acc;
+      }, {});
+      setExpandedSteps(initialExpanded);
+    } else {
+      setExpandedSteps({}); // Reset if no agent thoughts
+    }
+  }, [execution?.metadata?.agent_thoughts]); // Dependency on agent_thoughts
 
   const refreshExecution = async () => {
     // Prevent concurrent refresh calls
@@ -69,6 +83,14 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
   const handleCloseFullScreen = () => {
     setIsFullScreen(false);
     setFullScreenSrc('');
+  };
+
+  // Function to toggle the expanded state of a step
+  const toggleStep = (index) => {
+    setExpandedSteps(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
   };
 
   // Function to render a single evidence item
@@ -394,34 +416,46 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 overflow-x-auto">
             <pre className="whitespace-pre-wrap text-sm font-mono">
               {Object.entries(execution.metadata.agent_thoughts || {}).map(([stepIndex, step], index) => {
+                const stepNum = parseInt(stepIndex);
+                const isExpanded = expandedSteps[stepNum];
                 // Get the corresponding action
-                const action = execution.metadata.agent_actions?.[parseInt(stepIndex)] || {};
+                const action = execution.metadata.agent_actions?.[stepNum] || {};
 
                 // Format the output
                 return (
-                  <div key={index} className="mb-4 pb-4 border-b border-gray-200">
-                    <div className="font-bold">📍 Step {parseInt(stepIndex) + 1}</div>
-                    {step.evaluation_previous_goal && (
-                      <div className="mt-2">
-                        <div className="bg-blue-50 p-2 rounded mt-1">🤷 Eval: {step.evaluation_previous_goal}</div>
-                      </div>
-                    )}
-                    {step.memory && (
-                      <div className="mt-2">
-                        <div className="bg-purple-50 p-2 rounded mt-1">🧠 Memory: {step.memory}</div>
-                      </div>
-                    )}
-                    {step.next_goal && (
-                      <div className="mt-2">
-                        <div className="bg-green-50 p-2 rounded mt-1">🎯 Next Goal: {step.next_goal}</div>
-                      </div>
-                    )}
-                    {action && Object.keys(action).length > 0 && (
-                      <div className="mt-2">
-                        <div className="bg-yellow-50 p-2 rounded mt-1">
-                          🛠️  Action: {JSON.stringify(action, null, 2)}
-                        </div>
-                      </div>
+                  <div key={index} className="mb-4 pb-4 border-b border-gray-200 last:border-b-0">
+                    <div
+                      className="font-bold flex items-center cursor-pointer hover:text-blue-600"
+                      onClick={() => toggleStep(stepNum)}
+                    >
+                      {isExpanded ? <ChevronDown size={16} className="mr-1" /> : <ChevronRight size={16} className="mr-1" />}
+                      📍 Step {stepNum + 1}
+                    </div>
+                    {isExpanded && (
+                      <>
+                        {step.evaluation_previous_goal && (
+                          <div className="mt-2">
+                            <div className="bg-blue-50 p-2 rounded mt-1">🤷 Eval: {step.evaluation_previous_goal}</div>
+                          </div>
+                        )}
+                        {step.memory && (
+                          <div className="mt-2">
+                            <div className="bg-purple-50 p-2 rounded mt-1">🧠 Memory: {step.memory}</div>
+                          </div>
+                        )}
+                        {step.next_goal && (
+                          <div className="mt-2">
+                            <div className="bg-green-50 p-2 rounded mt-1">🎯 Next Goal: {step.next_goal}</div>
+                          </div>
+                        )}
+                        {action && Object.keys(action).length > 0 && (
+                          <div className="mt-2">
+                            <div className="bg-yellow-50 p-2 rounded mt-1">
+                              🛠️ Action: {JSON.stringify(action, null, 2)}
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 );

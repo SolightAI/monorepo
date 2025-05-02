@@ -1,7 +1,8 @@
 import os
 import base64
 import logging
-from typing import Dict, Optional
+
+from typing import Optional, Any
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 
@@ -97,7 +98,7 @@ class CryptoService:
             # Re-raise as ValueError to signal decryption failure
             raise ValueError(f"Decryption failed: {e}") from e
 
-    def decrypt_secrets(self, encrypted_secrets: Dict[str, Dict[str, str]]) -> Dict[str, Dict[str, str]]:
+    def decrypt_secrets(self, encrypted_secrets: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Decrypt a dictionary of encrypted secrets using AES-GCM.
 
@@ -110,29 +111,23 @@ class CryptoService:
         Raises:
              ValueError: If decryption fails for any secret value
         """
+
         if not encrypted_secrets:
-            return {}
+            return list()
 
         if not self.ensure_initialized():
             raise ValueError("Cannot decrypt secrets because symmetric key is unavailable.")
 
-        decrypted_secrets: Dict[str, Dict[str, str]] = {}
-        failed_keys: list[str] = []
+        decrypted_secrets: list[dict[str, Any]] = list()
 
-        for secret_type, secrets in encrypted_secrets.items():
-            decrypted_secrets[secret_type] = {}
-
-            for key, value in secrets.items():
-                try:
-                    decrypted_value = self.decrypt(value)
-                    decrypted_secrets[secret_type][key] = decrypted_value
-                except ValueError as e:
-                    failed_keys.append(f"{secret_type}.{key}")
-                    logger.error(f"Failed to decrypt secret {secret_type}.{key}: {e}")
-                    # Continue processing other secrets, but will raise an error at the end
-
-        if failed_keys:
-            raise ValueError(f"Decryption failed for the following secrets: {', '.join(failed_keys)}")
+        for secret in encrypted_secrets:
+            decrypted_secrets.append({
+                'category': secret['category'],
+                'name': secret['name'],
+                'values': {
+                    key: self.decrypt(value) for key, value in secret['values'].items()
+                }
+            })
 
         return decrypted_secrets
 

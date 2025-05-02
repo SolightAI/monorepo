@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, XCircle, Clock, SkipForward, Server, User, RefreshCw, Info, Search } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Server, User, RefreshCw, Info, Search } from 'lucide-react';
 import { formatDuration } from './dateUtils';
 
 /**

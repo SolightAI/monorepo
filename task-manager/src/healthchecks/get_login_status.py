@@ -2,7 +2,7 @@ from fixtures.authentification.check_if_is_logged_in import check_is_logged_in
 from utils.dto import Test
 
 
-def get_login_status(
+async def get_login_status(
     task_id: str,
     test: Test,
     existing_session: dict[str, dict[str, str]],
@@ -18,7 +18,7 @@ def get_login_status(
         bool: True if the agent is logged in, False otherwise
     """
 
-    return check_is_logged_in(
+    return await check_is_logged_in(
         task_id=task_id,
         url=test.url,
         existing_session=existing_session,

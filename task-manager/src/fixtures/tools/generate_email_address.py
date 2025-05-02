@@ -1,5 +1,7 @@
 import uuid
 
+from faker import Faker
+
 
 def generate_plus_addressing_email_address(email: str) -> str:
     """
@@ -32,4 +34,11 @@ def generate_random_email_address() -> str:
         str: The new email address. (i.e uuid@solight-email.com)
     """
 
-    return f"{str(uuid.uuid4())}@solight-email.com"
+    fake = Faker()
+
+    return fake.email(domain="solight-email.com")
+
+
+if __name__ == "__main__":
+    print(generate_plus_addressing_email_address("test@solight-email.com"))
+    print(generate_random_email_address())

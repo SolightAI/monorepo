@@ -9,6 +9,7 @@ services:
     expose:
       - "8001"
     environment:
+      - MAX_JOBS=${MAX_JOBS:-4}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - AZURE_OPENAI_KEY=${AZURE_OPENAI_KEY}
       - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}

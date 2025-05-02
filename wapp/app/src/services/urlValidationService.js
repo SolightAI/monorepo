@@ -86,29 +86,6 @@ export const useUrlValidation = (taskId) => {
 };
 
 /**
- * Trigger URL validation for a product
- *
- * @param {string} url - The URL to validate
- * @returns {Promise<string>} - Promise resolving to the task ID
- */
-export const triggerUrlValidation = async (url) => {
-  try {
-    // Note: This function is provided for direct validation testing
-    // Normally the task_id comes from product creation/update responses
-    const response = await axios.post(
-      `${API_URL}/validate-url/`,
-      { url },
-      { withCredentials: true }
-    );
-
-    return response.data.task_id;
-  } catch (error) {
-    console.error('Error triggering URL validation:', error);
-    throw error;
-  }
-};
-
-/**
  * Format a validation result for display
  *
  * @param {Object} result - The validation result from the API

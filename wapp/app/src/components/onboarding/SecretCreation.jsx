@@ -93,16 +93,7 @@ const SecretCreation = ({ onNext, onPrev, onSkip }) => {
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-3">Create Your First Test Credential</h2>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Test Credentials are a secure way to store sensitive information like login credentials.
-        </p>
-      </div>
-
-      <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 max-w-3xl mx-auto mb-6">
-        <h3 className="text-lg font-medium text-amber-800 mb-2">Why Test Credentials Matter</h3>
-        <p className="text-amber-700">
-          Using the Test Credentials Manager keeps your sensitive information encrypted and secure.
-          These secrets will be used by the AI agents to generate and run the tests
-          Without them, the AI agents will not be able to login to the application.
+          Test Credentials are a secure way to store sensitive information
         </p>
       </div>
 
@@ -120,7 +111,7 @@ const SecretCreation = ({ onNext, onPrev, onSkip }) => {
         <FeatureCard
           icon={<Lock className="h-6 w-6 text-green-500" />}
           title="Credential Management"
-          description="Store usernames, passwords, tokens, and more"
+          description="Store credentials, credit cards, and more"
         />
       </div>
 
@@ -130,14 +121,14 @@ const SecretCreation = ({ onNext, onPrev, onSkip }) => {
           className="px-5 py-2 border border-gray-300 rounded-md flex items-center hover:bg-gray-50 transition-colors"
         >
           <ArrowLeft className="mr-2 h-5 w-5" />
-          Back to Product Setup
+          Back
         </button>
 
         <button
           onClick={() => setStep('form')}
           className="px-5 py-2 bg-blue-600 text-white rounded-md flex items-center hover:bg-blue-700 transition-colors"
         >
-          Create Your First Test Credential
+          Create First Test Credential
           <ArrowRight className="ml-2 h-5 w-5" />
         </button>
 
@@ -145,7 +136,7 @@ const SecretCreation = ({ onNext, onPrev, onSkip }) => {
           onClick={onSkip}
           className="px-5 py-2 border border-gray-300 rounded-md flex items-center hover:bg-gray-50 transition-colors"
         >
-          Skip this step
+          Skip
           <ArrowRight className="ml-2 h-5 w-5" />
         </button>
       </div>

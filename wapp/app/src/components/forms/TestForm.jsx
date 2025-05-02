@@ -75,7 +75,7 @@ const TestForm = ({
           </div>
         </div>
 
-        {/* <div>
+        <div>
           <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
             Description *
           </label>
@@ -88,22 +88,6 @@ const TestForm = ({
             value={formData.description}
             onChange={handleChange}
             placeholder="One-liner on the purpose of this test"
-          />
-        </div> */}
-
-        <div>
-          <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
-            Start URL *
-          </label>
-          <input
-            type="url"
-            id="url"
-            name="url"
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            value={formData.url}
-            onChange={handleChange}
-            placeholder="https://example.com/page-to-test"
           />
         </div>
 
@@ -157,9 +141,6 @@ const TestForm = ({
             onChange={handleChange}
             placeholder="List what should be verified during the test, one assertion per line (e.g. 'Error message appears when submitting invalid form'). Use 'None' if not applicable."
           />
-          <p className="mt-1 text-xs text-gray-500">
-            Enter verification points that confirm the test is working as expected. Required field.
-          </p>
         </div>
       </div>
 

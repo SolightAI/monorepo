@@ -1,7 +1,7 @@
 import uuid
 import logging
 
-from typing import Dict, List, Optional, Any
+from typing import List, Optional, Any
 from fastapi import HTTPException, status
 from pydantic import UUID4
 from dto.models import Secret as SecretModel
@@ -10,9 +10,9 @@ from dto.models import SecretAccess as SecretAccessModel
 from dto.schemas import SecretCreate, SecretUpdate, Secret, SecretWithValues
 from utils.encryption import encryption_service
 from services.crypto_service import crypto_service
+from dto.models import SecretType
 
 
-# Configure logging for get_encrypted_secrets
 logger = logging.getLogger(__name__)
 
 
@@ -108,8 +108,8 @@ async def get_secret_with_values(secret_id: UUID4) -> SecretWithValues:
             decrypted_value = encryption_service.decrypt(value.encrypted_value)
             values[value.key] = decrypted_value
         except ValueError:
-            # Log this but continue with empty value
-            values[value.key] = ""
+            logger.error("Failed to decrypt secret value.")
+            raise HTTPException(status_code=500, detail="Failed to decrypt secret value")
 
     # Construct the response
     secret_dict = Secret.model_validate(secret).model_dump()
@@ -172,7 +172,7 @@ async def update_secret(secret_id: UUID4, data: SecretUpdate, user_id: int) -> S
     return await get_secret(secret_id)
 
 
-async def update_secret_values(secret_id: UUID4, values: Dict[str, str], user_id: int) -> SecretWithValues:
+async def update_secret_values(secret_id: UUID4, values: dict[str, str], user_id: int) -> SecretWithValues:
     """
     Update a secret's values.
 
@@ -308,7 +308,7 @@ async def get_secret_access_logs(secret_id: UUID4) -> List[SecretAccessModel]:
 async def get_encrypted_secrets(
     organization_id: Optional[UUID4],
     product_id: Optional[UUID4] = None
-) -> Optional[Dict[str, Any]]:
+) -> Optional[list[dict[str | SecretType, Any]]]:
     """
     Retrieve and encrypt secrets for a given organization and product.
 
@@ -317,16 +317,17 @@ async def get_encrypted_secrets(
         product_id: Optional UUID of the product to get secrets for
 
     Returns:
-        Optional encrypted_secrets dictionary
+        Optional list of encrypted secrets
 
     Raises:
         HTTPException: If encryption fails
     """
+
     if not organization_id:
         return None
 
     # Build dictionary of all secrets with their decrypted values
-    all_secrets: Dict[str, Dict[str, str]] = {}
+    all_secrets: list[dict[str | SecretType, Any]] = list()
 
     # Get secrets for this organization, filtered by product if specified
     org_secrets = await get_organization_secrets(organization_id, product_id)
@@ -345,14 +346,12 @@ async def get_encrypted_secrets(
             if not secret_with_values or not hasattr(secret_with_values, 'values'):
                 continue
 
-            # If this is the first secret of this type, create a new entry
-            if secret_with_values.type not in all_secrets:
-                all_secrets[secret_with_values.type] = {}
+            all_secrets.append({
+                'category': secret_with_values.type.value,
+                'name': secret_with_values.name,
+                'values': secret_with_values.values
+            })
 
-            # Add values to the result
-            for key, value in secret_with_values.values.items():
-                # For username_password type, store directly
-                all_secrets[secret_with_values.type][key] = value
         except Exception as e:
             logger.warning(f"Failed to get secret {secret.id}: {str(e)}")
 
@@ -361,12 +360,10 @@ async def get_encrypted_secrets(
         return None
 
     # Encrypt the secrets using the task-manager's public key
-    encryption_success, encrypted_secrets = crypto_service.encrypt_secrets(all_secrets)
+    try:
+        encrypted_secrets = crypto_service.encrypt_secrets(all_secrets)
+    except Exception as e:
+        logger.error(f"Encryption failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Encryption failed, aborting for security reasons")
 
-    if not (encryption_success and encrypted_secrets):
-        error_msg = "Encryption failed, aborting for security reasons"
-        logger.error(error_msg)
-        raise HTTPException(status_code=500, detail=error_msg)
-
-    logger.info("Successfully encrypted secrets.")
     return encrypted_secrets

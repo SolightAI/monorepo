@@ -154,13 +154,13 @@ async def check_is_logged_in_using_html_diff(
     if len(html_diff) > max_length:
         html_diff = html_diff[-max_length:]
 
-    result = AGENT_CLIENT.invoke(
+    result: str = AGENT_CLIENT.invoke(
         [
             HumanMessage(
                 content=PROMPT.format(html_diff=html_diff)
             )
         ]
-    ).content
+    ).content  # type: ignore
 
     logger.info(f"[{task_id}] Login check result: {result}")
 

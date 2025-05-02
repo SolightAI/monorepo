@@ -293,7 +293,6 @@ class TestCreate(BaseModel):
     feature_id: UUID4
     name: str
     description: str
-    url: str
     category: TestCategory
     preconditions: str
     steps: str
@@ -304,7 +303,6 @@ class TestCreate(BaseModel):
 class TestUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
-    url: Optional[str] = None
     category: Optional[TestCategory] = None
     preconditions: Optional[str] = None
     steps: Optional[str] = None
@@ -484,6 +482,7 @@ class TestExecutionElement(BaseModel):
     test_id: UUID4
     status: TestStatus
     started_at: datetime
+    ended_at: datetime | None = None
     environment: str
     executor_type: ExecutorType
 

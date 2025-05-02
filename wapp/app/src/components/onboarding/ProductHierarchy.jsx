@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, ArrowLeft, Package, Layout, Layers, User, CheckSquare, Beaker } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Package, Layout, Layers, Beaker } from 'lucide-react';
 
 const ProductHierarchy = ({ onNext, onPrev, onSkip }) => {
   return (
@@ -9,16 +9,6 @@ const ProductHierarchy = ({ onNext, onPrev, onSkip }) => {
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
           Solight uses a hierarchical structure to organize your testing workflow.
           This helps you maintain a clear relationship between product features and their tests.
-        </p>
-      </div>
-
-
-      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 max-w-3xl mx-auto">
-        <h3 className="text-lg font-medium text-blue-800 mb-2">Why This Structure Matters</h3>
-        <p className="text-blue-700">
-          This ensures that all tests are tied to specific features and requirements.
-          It makes tracking test coverage easier and helps identify which features need more testing.
-          During onboarding, we'll help you set up your first organization and product to get started.
         </p>
       </div>
 
@@ -46,20 +36,6 @@ const ProductHierarchy = ({ onNext, onPrev, onSkip }) => {
               title="Feature"
               description="Specific functionality within an epic"
               color="purple"
-            />
-            <HierarchyConnector />
-            <HierarchyNode
-              icon={<User className="h-6 w-6" />}
-              title="User Story"
-              description="User-centric description of feature behavior"
-              color="pink"
-            />
-            <HierarchyConnector />
-            <HierarchyNode
-              icon={<CheckSquare className="h-6 w-6" />}
-              title="Acceptance Criteria"
-              description="Requirements for feature completion"
-              color="red"
             />
             <HierarchyConnector />
             <HierarchyNode

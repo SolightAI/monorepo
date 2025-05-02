@@ -83,6 +83,7 @@ const TestsTable = () => {
   let testGenerationStatusRetryCount = 0;   // Add retry mechanism before starting polling
   const TEST_GENERATION_STATUS_RETRY_DELAY = 1000; // 1 second between retries
 
+
   // Fetch secrets when component loads or when product/organization changes
   useEffect(() => {
     if (selectedProduct && selectedOrganization) {
@@ -541,10 +542,6 @@ const TestsTable = () => {
 
       // Show appropriate message based on results
       if (testCount > 0) {
-        setError(null);
-        setSuccessMessage(`Started ${testCount} test(s).`);
-        setTimeout(() => setSuccessMessage(null), 3000);
-
         // Start polling for each test execution that was just started
         testExecutions.forEach(({ testId, executionId }) => {
           pollTestExecutionStatus(testId, executionId);
@@ -615,7 +612,7 @@ const TestsTable = () => {
           return updated;
         });
       }
-    }, 2000); // Poll every 2 seconds
+    }, 5000); // Poll every 5 seconds
   };
 
   // Function to handle feature creation completion
@@ -647,82 +644,6 @@ const TestsTable = () => {
     }, 3000);
   };
 
-  // Function to handle test creation button click
-  const handleCreateTestClick = () => {
-    // Check if there are any features
-    if (features.length === 0) {
-      // Show a prompt to create features first
-      setError(
-        <span>
-          Please create at least one feature before adding tests. You can add one using the {' '}
-          <code className="bg-gray-100 p-1 rounded text-sm">Feature</code> dropdown menu.
-        </span>
-      );
-
-      // Open the dropdown to access the create feature button
-      setIsFeatureDropdownOpen(true);
-
-      // Highlight the feature dropdown
-      const featureDropdown = document.querySelector('[data-feature-dropdown]');
-      if (featureDropdown) {
-        // Add a pulse animation class
-        featureDropdown.classList.add('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-
-        // Remove the animation after 5 seconds
-        setTimeout(() => {
-          featureDropdown.classList.remove('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-        }, 5000);
-      }
-
-      // Automatically clear the error after 6 seconds
-      setTimeout(() => {
-        setError(null);
-      }, 6000);
-
-      // Scroll to top to make sure error is visible
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      return;
-    }
-    // Check if a feature is selected
-    else if (selectedFeature === 'all') {
-      // Show a prompt to select a feature first
-      setError(
-        <span>
-          Please select a specific feature from the <code className="bg-gray-100 p-1 rounded text-sm">Feature</code> dropdown before adding a test.
-        </span>
-      );
-
-      // Highlight the feature dropdown
-      const featureDropdown = document.querySelector('[data-feature-dropdown]');
-      if (featureDropdown) {
-        // Add a pulse animation class
-        featureDropdown.classList.add('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-
-        // Remove the animation after 5 seconds
-        setTimeout(() => {
-          featureDropdown.classList.remove('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-        }, 5000);
-      }
-
-      // Open the dropdown to show options
-      setIsFeatureDropdownOpen(true);
-
-      // Automatically clear the error after 6 seconds
-      setTimeout(() => {
-        setError(null);
-      }, 6000);
-
-      // Scroll to top to make sure error is visible
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      return;
-    }
-
-    // If a feature is selected, open the test creation modal
-    setIsAddTestModalOpen(true);
-  };
-
   // Function to dismiss error message
   const dismissError = () => {
     setError(null);
@@ -741,9 +662,13 @@ const TestsTable = () => {
         testData.feature_id = selectedFeature;
     } else if (selectedEpic !== 'all') {
         testData.epic_id = selectedEpic;
-      } else if (selectedProduct) {
+      } else if (selectedProduct && epics.length > 0) {
         testData.epic_id = epics[0]?.id; // Use first epic as a fallback
       }
+      if (!testData.feature_id && !testData.epic_id) {
+            throw new Error("Cannot save test without associated Feature or Epic.");
+      }
+
 
       const response = await axios.post(
         `${API_URL}/tests/`,
@@ -769,8 +694,12 @@ const TestsTable = () => {
       fetchTestsWithCurrentFilters();
     } catch (err) {
       console.error('Error saving test:', err);
-      setError('Failed to create test. Please try again.');
+      setError(`Failed to create test: ${err.message || 'Please try again.'}`);
       setSuccessMessage(null);
+      // Clear error after 5 seconds
+        setTimeout(() => {
+          setError(null);
+        }, 5000);
     }
   };
 
@@ -1073,22 +1002,22 @@ const TestsTable = () => {
   // Add the checkExistingTaskId function
   const checkExistingTaskId = async () => {
     if (!selectedFeature) return;
-    
+
     try {
       // If "all features" is selected, check all features for ongoing generation
       if (selectedFeature === 'all') {
-        
+
         // Get all features
         const allFeatures = features;
-        
+
         const ongoingGenerations = [];
-        
+
         // Check each feature for ongoing generation
         for (const feature of allFeatures) {
           try {
             // Use feature ID to check task-manager status
             const statusData = await getTestGenerationStatus(feature.id);
-            
+
             if (statusData && statusData.status === TEST_STATUS.PENDING) {
               ongoingGenerations.push({
                 id: feature.id,
@@ -1127,7 +1056,7 @@ const TestsTable = () => {
       try {
         // Use feature ID to check task-manager status
         const statusData = await getTestGenerationStatus(selectedFeature);
-        
+
         if (statusData && statusData.status === TEST_STATUS.PENDING) {
           setIsGeneratingTests(true);
           setGeneratingFeatures([{
@@ -1198,7 +1127,6 @@ const TestsTable = () => {
       // Set initial states
       setIsGeneratingTests(true);
       setError(null);
-      
 
       const checkStatus = async () => {
         try {
@@ -1307,7 +1235,7 @@ const TestsTable = () => {
 
     const initialize = async () => {
       if (!isMounted) return;
-      
+
       // Check for existing task ID when component mounts or feature changes
       await checkExistingTaskId();
     };
@@ -1331,44 +1259,6 @@ const TestsTable = () => {
     };
   }, [selectedFeature]); // Keep selectedFeature dependency
 
-  // Add a new useEffect for initial mount check
-  useEffect(() => {
-    let isMounted = true;
-    let checkTimeout = null;
-    let retryCount = 0;
-
-    const initialize = async () => {
-      if (!isMounted) return;
-      
-      // Wait for features to be loaded
-      if (features.length === 0) {
-        if (retryCount >= MAX_RETRIES_FEATURE_LOADING) {
-          console.error('Failed to load features after maximum retries');
-          setError('Failed to load features. Please refresh the page or try again later.');
-          return;
-        }
-        
-        retryCount++;
-        // Try again in 500ms
-        checkTimeout = setTimeout(initialize, 500);
-        return;
-      }
-      
-      // Run initial check regardless of feature selection
-      await checkExistingTaskId();
-    };
-
-    // Start the initialization process
-    initialize();
-
-    return () => {
-      isMounted = false;
-      if (checkTimeout) {
-        clearTimeout(checkTimeout);
-      }
-    };
-  }, [features]); // Add features as a dependency
-
   // Add a separate useEffect for handling visibility changes
   useEffect(() => {
     let visibilityTimeout;
@@ -1383,7 +1273,7 @@ const TestsTable = () => {
         if (visibilityTimeout) {
           clearTimeout(visibilityTimeout);
         }
-        
+
         // Only restart polling if we were previously generating tests and have a task ID
         if (!document.hidden && isGeneratingTests && generatingFeatures.length > 0 && !pollingIntervalRef.current) {
           // Add a small delay before restarting polling to prevent rapid restarts
@@ -1405,7 +1295,7 @@ const TestsTable = () => {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (visibilityTimeout) {
@@ -1413,6 +1303,37 @@ const TestsTable = () => {
       }
     };
   }, [isGeneratingTests, generatingFeatures]); // Keep these dependencies as they're needed for the visibility handler
+
+  // This useEffect runs when features/loading state changes, or selected feature changes.
+  // It ensures checkExistingTaskId runs only after features have finished loading.
+  useEffect(() => {
+    let isMounted = true;
+
+    const runCheck = async () => {
+      if (!isMounted) return;
+
+      // If features are still loading, wait for the next run when loading completes.
+      if (loadingFeatures) {
+        return;
+      }
+
+      // Features have finished loading (or failed), now run the check.
+      // checkExistingTaskId handles cases where features might be empty.
+      await checkExistingTaskId();
+    };
+
+    runCheck();
+
+    return () => {
+      isMounted = false;
+    };
+
+    // Depend on loadingFeatures, features, and selectedFeature
+    // - loadingFeatures: Trigger when loading finishes.
+    // - features: Trigger if features array updates after initial load (e.g., add/delete).
+    // - selectedFeature: Trigger when the user selects a different feature.
+  }, [loadingFeatures, features, selectedFeature]);
+
 
   if (loading) {
     return (
@@ -1445,6 +1366,8 @@ const TestsTable = () => {
       {selectedTest && (
         <TestDetailsModal
           test={selectedTest}
+          // Find the feature and pass its first URL
+          featureUrl={features.find(f => f.id === selectedTest.feature_id)?.urls?.[0]}
           onClose={handleTestClose}
           onTestUpdated={handleTestUpdated}
         />
@@ -1572,7 +1495,7 @@ const TestsTable = () => {
               <p className="mt-1 text-sm">
                 {/* Update the message slightly for consistency */}
                 You need to add test credentials before running or generating tests. Go to the{' '}
-                <a href="/test-credentials" className="text-yellow-900 font-medium underline">
+                <a href="/secrets" className="text-yellow-900 font-medium underline">
                   Test Credentials Management
                 </a>{' '}
                 section.
@@ -1770,7 +1693,17 @@ const TestsTable = () => {
 
             {/* Add Test button */}
             <button
-              onClick={handleCreateTestClick}
+              onClick={() => {
+                if (selectedFeature === 'all') {
+                  setError(
+                    <span>
+                      Please select a specific feature first
+                    </span>
+                  );
+                  return;
+                }
+                setIsAddTestModalOpen(true);
+              }}
               disabled={selectedFeature === 'all'}
               className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition duration-150 disabled:bg-blue-300 disabled:cursor-not-allowed"
               title={selectedFeature === 'all' ? "Please select a specific feature first" : "Add new test to selected feature"}
@@ -1818,9 +1751,9 @@ const TestsTable = () => {
             {selectedTestIds.size > 0 && (
               <button
                 onClick={handleDeleteSelectedTests} // This now opens the modal
-                disabled={isDeleting || hasRunningTests()}
+                disabled={isDeleting}
                 className={`flex items-center px-3 py-1.5 text-sm bg-red-600 text-white rounded-md shadow hover:bg-red-700 transition duration-150 disabled:bg-red-300 disabled:cursor-not-allowed ${isDeleting ? 'cursor-wait' : ''}`}
-                title={isDeleting ? "Deleting..." : hasRunningTests() ? "Cannot delete while tests are running" : "Delete selected tests"}
+                title={isDeleting ? "Deleting..." : "Delete selected tests"}
               >
                 {isDeleting ? (
                   <>

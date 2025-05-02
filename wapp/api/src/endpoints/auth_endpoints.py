@@ -7,10 +7,14 @@ from services import auth_services
 from services.invitation_services import get_invitation_by_code
 from dependencies import get_current_user_dependency
 from dto.models import User
-from fastapi import APIRouter, Depends, Response, HTTPException
+from fastapi import APIRouter, Depends, Response, HTTPException, status, Cookie
 from pydantic import BaseModel
 from typing import Optional
 from fastapi.responses import RedirectResponse
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: Optional[str] = None
 
 
 router = APIRouter(prefix="/auth")
@@ -26,8 +30,8 @@ async def login_google(invitation_code: Optional[str] = None) -> dict:
             invitation = await get_invitation_by_code(invitation_code)
             state["invitation_code"] = invitation_code
 
-            # Determine the invitation type based on the invitation data
-            if invitation.organization_id:
+            # Determine the invitation type based on the invitation data (safe access)
+            if getattr(invitation, 'organization_id', None):
                 state["type"] = "organization"
             elif invitation.email:
                 state["type"] = "individual"
@@ -46,17 +50,8 @@ async def login_google(invitation_code: Optional[str] = None) -> dict:
     }
 
 
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str
-
-
-@router.post("/refresh-google-token")
-async def refresh_google_token(params: RefreshTokenRequest) -> dict:
-    return await auth_services.refresh_google_token(refresh_token=params.refresh_token)
-
-
 @router.get("/google/callback")
-async def auth_google(code: str, state: Optional[str] = None, response: Response = None) -> dict:
+async def auth_google(response: Response, code: str, state: Optional[str] = None) -> RedirectResponse:
     invitation_code = None
     if state:
         try:
@@ -69,6 +64,29 @@ async def auth_google(code: str, state: Optional[str] = None, response: Response
     return await auth_services.auth_google_callback(code=code, response=response, invitation_code=invitation_code)
 
 
+@router.post("/refresh")
+async def refresh_token(request: RefreshTokenRequest, response: Response, refresh_token_cookie: Optional[str] = Cookie(None, alias="refresh_token")) -> dict:
+    """Generate a new access token using a refresh token"""
+    # First try to get the refresh token from the cookie
+    refresh_token = refresh_token_cookie
+
+    # If not in cookie, try the request body
+    if not refresh_token and request.refresh_token:
+        refresh_token = request.refresh_token
+
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Refresh token not found in cookie or request body"
+        )
+
+    try:
+        result = await auth_services.refresh_access_token(refresh_token, response)
+        return result
+    except HTTPException as e:
+        raise e
+
+
 @router.get("/login/azure")
 async def login_azure(invitation_code: Optional[str] = None) -> dict:
     """Generates the Azure AD login URL."""
@@ -78,7 +96,8 @@ async def login_azure(invitation_code: Optional[str] = None) -> dict:
         try:
             invitation = await get_invitation_by_code(invitation_code)
             state["invitation_code"] = invitation_code
-            if invitation.organization_id:
+            # Safe access for organization_id
+            if getattr(invitation, 'organization_id', None):
                 state["type"] = "organization"
             elif invitation.email:
                 state["type"] = "individual"
@@ -109,7 +128,7 @@ async def login_azure(invitation_code: Optional[str] = None) -> dict:
 
 
 @router.get("/azure/callback")
-async def auth_azure(code: str, state: Optional[str] = None, response: Response = None, error: Optional[str] = None, error_description: Optional[str] = None) -> dict:
+async def auth_azure(response: Response, code: str, state: Optional[str] = None, error: Optional[str] = None, error_description: Optional[str] = None) -> RedirectResponse:
     """Handles the callback from Azure AD after user authentication."""
     # Handle potential errors from Azure AD
     if error:

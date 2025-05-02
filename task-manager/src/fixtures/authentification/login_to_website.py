@@ -3,7 +3,7 @@ from logging import getLogger
 from browser_use import AgentHistoryList
 from fixtures.authentification.check_if_is_logged_in import check_is_logged_in
 from fixtures.authentification.has_required_secrets import has_required_secrets, LoginMethod, SUPPORTED_LOGIN_METHODS
-from agents._base_agent import run_agent
+from agents._base_agent import run_agent, format_secrets
 
 
 PROMPT = """
@@ -56,12 +56,13 @@ Provide your final output in the following format:
 logger = getLogger(__name__)
 
 
-def _select_login_method(login_method: LoginMethod, secrets: dict[str, dict[str, str]]) -> LoginMethod:
+def _select_login_method(login_method: LoginMethod, secrets: list[dict[str, dict[str, str]]]) -> LoginMethod:
+
     if login_method != LoginMethod.ANY:
         return login_method
 
     for method in LoginMethod:
-        if method.value in secrets:
+        if method.value in [_secret.get('category') for _secret in secrets]:
             return method
 
     raise ValueError("No matching login method found in secrets")
@@ -71,7 +72,7 @@ async def login_to_website(
     task_id: str,
     url: str,
     login_method: LoginMethod,
-    secrets: dict[str, dict[str, str]],
+    secrets: list[dict[str, Any]],
     **kwargs: Any,
 ) -> tuple[dict[str, dict[str, str]] | None, AgentHistoryList, list[str]]:
     """
@@ -89,12 +90,12 @@ async def login_to_website(
     if not success:
         raise ValueError(error_message)
 
-    sensitive_data = {f"{_sec_category}:{_sec_name}": _sec_value for _sec_category, _secrets in secrets.items() for _sec_name, _sec_value in _secrets.items()}
+    sensitive_data = format_secrets(secrets)
 
     login_methods = []
-    if any(LoginMethod.EMAIL.value in k for k in secrets.keys()):
+    if any(LoginMethod.EMAIL.value in _secret['category'] for _secret in secrets):
         login_methods.append(f"- {LoginMethod.EMAIL.value}")
-    if any(LoginMethod.GOOGLE.value in k for k in secrets.keys()):
+    if any(LoginMethod.GOOGLE.value in _secret['category'] for _secret in secrets):
         login_methods.append(f"- {LoginMethod.GOOGLE.value}")
 
     session_data, history, evidences = await run_agent(

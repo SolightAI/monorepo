@@ -141,7 +141,6 @@ class AcceptanceCriteria(models.Model):
 
 class Test(models.Model):
     id = fields.UUIDField(primary_key=True)
-    url = fields.CharField(max_length=255)  # where to start the test
     name = fields.CharField(max_length=255)
     description = fields.TextField()
     preconditions = fields.TextField()

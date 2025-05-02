@@ -14,14 +14,14 @@ fi
 # Create the directory if it doesn't exist
 mkdir -p $PLAYWRIGHT_BROWSERS_PATH
 
+pip install playwright
+
 # Install Playwright if browsers are not already installed
-if [ ! -d "$PLAYWRIGHT_BROWSERS_PATH/chromium_headless_shell-1161" ]; then
-  echo "==== Installing Playwright browsers to $PLAYWRIGHT_BROWSERS_PATH ===="
-  pip install playwright
-  playwright install --with-deps
-else
+if [ -d "$PLAYWRIGHT_BROWSERS_PATH/chromium_headless_shell-*" ]; then
   echo "==== Playwright browsers already installed in $PLAYWRIGHT_BROWSERS_PATH ==== "
-  pip install playwright
+else
+  echo "==== Installing Playwright browsers to $PLAYWRIGHT_BROWSERS_PATH ===="
+  playwright install --with-deps
 fi
 
 # Give rights to the user to use the all Playwright binary
