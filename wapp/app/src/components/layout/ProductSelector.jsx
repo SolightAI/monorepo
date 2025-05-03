@@ -69,13 +69,6 @@ const ProductSelector = ({ isMobile = false }) => {
     };
   }, [isModalOpen]);
 
-  // Update products when organization changes
-  useEffect(() => {
-    if (selectedOrganization) {
-      refreshProducts(selectedOrganization.id);
-    }
-  }, [selectedOrganization?.id, refreshProducts]);
-
   // Handle product selection
   const handleSelectProduct = (product) => {
     selectProduct(product);

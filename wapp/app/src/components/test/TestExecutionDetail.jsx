@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Server, Calendar, Clock, File, Image, Link2, ArrowLeft, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { getTestExecution } from '@/services/testExecutionService';
-import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatExecutionDuration, formatStatus, getStatusColorClasses } from '@/utils/testExecutionUtils';
+import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatExecutionDuration, formatStatus, TEST_STATUS } from '@/utils/testExecutionUtils';
 import PropTypes from 'prop-types';
-import { TEST_STATUS } from '@/utils/testExecutionUtils';
 
 /**
  * Component to display detailed information about a test execution
@@ -66,13 +65,6 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
     } finally {
       refreshingRef.current = false;
     }
-  };
-
-  // Get status icon based on execution status
-  const getStatusIcon = (status) => {
-    const { icon } = getStatusInfo(status);
-    // Make the icon bigger for the header
-    return React.cloneElement(icon, { size: 20 });
   };
 
   const handleImageClick = (src) => {
@@ -216,6 +208,9 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
   const hasPrevImage = findAdjacentImageIndex('prev') !== -1;
   const hasNextImage = findAdjacentImageIndex('next') !== -1;
 
+  // Determine if the test is currently running
+  const isRunning = execution.status === TEST_STATUS.PENDING;
+
   return (
     <div className="bg-white rounded-lg">
       {/* Back button */}
@@ -230,15 +225,21 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
       </div>
 
       {/* Header with status */}
-      <div className={`p-4 rounded-lg mb-4 ${getStatusColorClasses(execution.status)}`}>
+      <div className={`p-4 rounded-lg mb-4 ${isRunning ? 'bg-blue-100 text-blue-600' : getStatusInfo(execution.status).color}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            {getStatusIcon(execution.status)}
+            {/* Use spinner if running, otherwise use status icon */}
+            {isRunning ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent mr-2"></div>
+            ) : (
+              getStatusInfo(execution.status).icon
+            )}
             <h2 className="text-xl font-semibold ml-2">
-              {formatStatus(execution.status)}
+              {/* Display "Running" if running, otherwise format status */}
+              {isRunning ? 'Running' : formatStatus(execution.status)}
             </h2>
           </div>
-          <div className="text-sm text-gray-600">
+          <div className={`text-sm ${isRunning ? 'text-blue-600' : 'text-gray-600'}`}>
             ID: {execution.id}
           </div>
         </div>
@@ -334,9 +335,10 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
             {/* Display console logs */}
             {(() => {
-              if (execution.status === TEST_STATUS.PENDING) {
+              // Use the isRunning variable here as well
+              if (isRunning) {
                 return (
-                  <div className="p-3 text-yellow-600">
+                  <div className="p-3 text-blue-600"> {/* Changed from yellow to blue for consistency */}
                     Execution in progress. Logs will be available when completed.
                   </div>
                 );

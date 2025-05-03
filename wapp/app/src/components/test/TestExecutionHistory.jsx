@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Server, Calendar } from 'lucide-react';
-import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus } from '@/utils/testExecutionUtils';
+import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus, TEST_STATUS } from '@/utils/testExecutionUtils';
 
 /**
  * Component to display a history of test executions
@@ -102,7 +102,11 @@ const TestExecutionHistory = ({ executions = [], isLoading = false, error = null
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredExecutions.map((execution) => {
-              const { icon, color } = getStatusInfo(execution.status);
+              // Determine if the execution is running
+              const isRunning = execution.status === TEST_STATUS.PENDING;
+              // Get status info only if not running
+              const { icon: statusIcon, color: statusColor } = !isRunning ? getStatusInfo(execution.status) : { icon: null, color: null };
+
               return (
                 <tr
                   key={execution.id}
@@ -110,9 +114,16 @@ const TestExecutionHistory = ({ executions = [], isLoading = false, error = null
                   className="hover:bg-gray-50 cursor-pointer"
                 >
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full ${color}`}>
-                      {icon}
-                      <span className="ml-1.5 text-xs">{formatStatus(execution.status)}</span>
+                    {/* Conditional rendering for status/running state */}
+                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full ${isRunning ? 'bg-blue-100 text-blue-600' : statusColor}`}>
+                      {isRunning ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent mr-1.5"></div>
+                      ) : (
+                        statusIcon
+                      )}
+                      <span className="ml-1.5 text-xs">
+                        {isRunning ? 'Running' : formatStatus(execution.status)}
+                      </span>
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">

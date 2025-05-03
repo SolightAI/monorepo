@@ -7,8 +7,7 @@ import { deleteTest, duplicateTest } from '@/services/testService';
 import { useSecret } from '@/context/SecretContext';
 import EditTestModal from './EditTestModal';
 import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
-import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus } from '@/utils/testExecutionUtils';
-import { TEST_STATUS } from '@/utils/testExecutionUtils';
+import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus, TEST_STATUS } from '@/utils/testExecutionUtils';
 
 /**
  * Component to display the last test execution in a table format
@@ -22,7 +21,11 @@ const LastTestExecution = ({ execution, onExecutionSelect }) => {
     );
   }
 
-  const { icon, color } = getStatusInfo(execution.status);
+  // Determine if the execution is currently running
+  const isRunning = execution.status === TEST_STATUS.PENDING;
+
+  // Determine icon and color based on running status
+  const { icon: statusIcon, color: statusColor } = !isRunning ? getStatusInfo(execution.status) : { icon: null, color: null };
 
   return (
     <div className="mb-8 mt-2">
@@ -37,9 +40,16 @@ const LastTestExecution = ({ execution, onExecutionSelect }) => {
               onClick={() => onExecutionSelect && onExecutionSelect(execution)}
             >
               <td className="px-5 py-4 whitespace-nowrap">
-                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full ${color}`}>
-                  {icon}
-                  <span className="ml-1.5 text-xs">{formatStatus(execution.status)}</span>
+                {/* Conditional rendering for status/running state */}
+                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full ${isRunning ? 'bg-blue-100 text-blue-600' : statusColor}`}>
+                  {isRunning ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent mr-1.5"></div>
+                  ) : (
+                    statusIcon // Use the determined status icon
+                  )}
+                  <span className="ml-1.5 text-xs">
+                    {isRunning ? 'Running' : formatStatus(execution.status)}
+                  </span>
                 </div>
               </td>
               <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700">
@@ -60,11 +70,14 @@ const LastTestExecution = ({ execution, onExecutionSelect }) => {
                 </div>
               </td>
               <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700">
-                {execution.duration_ms
-                  ? `${(execution.duration_ms / 1000).toFixed(1)}s`
-                  : execution.ended_at
-                    ? 'Completed'
-                    : 'In progress'
+                {/* Display 'Running' or duration */}
+                {isRunning
+                  ? <span className="text-blue-600 font-medium">Running</span>
+                  : execution.duration_ms
+                    ? `${(execution.duration_ms / 1000).toFixed(1)}s`
+                    : execution.ended_at
+                      ? 'Completed'
+                      : '--' // Fallback if not running, no duration, not ended
                 }
               </td>
             </tr>
