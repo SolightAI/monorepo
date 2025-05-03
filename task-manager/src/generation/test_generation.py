@@ -89,7 +89,7 @@ LLM_CLIENT = ChatOpenAI(
     model="gpt-4.1",
     timeout=120,
     temperature=0,
-    frequency_penalty=0.5,
+    frequency_penalty=0.3,
 )
 
 logger = getLogger(__name__)

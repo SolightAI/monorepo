@@ -57,7 +57,7 @@ AGENT_CLIENT = ChatOpenAI(
     model="gpt-4.1-mini",
     temperature=0.0,
     timeout=120,
-    frequency_penalty=0.5,
+    frequency_penalty=0.3,
 )
 
 
