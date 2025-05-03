@@ -19,8 +19,8 @@ class TestTickPick():
             url=self.url,
             description="Test the ability of a user to sign up using the Email method.",
             steps="1. Locate and select the 'Sign Up with Email' option.\n2. Enter a valid email address in the 'Email' field.\n3. Re-enter the same email address in the 'Confirm Email' field.\n4. Enter a valid password (minimum 7 characters) in the 'Password' field.\n5. Submit the form.",
-            preconditions="User is on the Sign Up page.",
-            assertions="1. Verify that the user is successfully signed up",
+            preconditions="",
+            assertions="The user is successfully signed up",
             feature_id=task_id,
         )
 

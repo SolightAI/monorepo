@@ -1379,13 +1379,6 @@ const TestsTable = () => {
         confirmButtonVariant="danger"
       />
 
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-800 flex items-center">
-              <Beaker className="mr-2" size={24} />
-              All Tests
-            </h1>
-          </div>
-
       {/* Error message display */}
       {error && (
         <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start justify-between">
