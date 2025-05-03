@@ -1767,7 +1767,7 @@ const TestsTable = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {loading ? ( // ADDED: Check loading state here
+                    {loading ? (
                       <tr>
                         <td colSpan="7" className="px-6 py-12 text-center">
                           <div className="flex justify-center items-center">
@@ -1775,7 +1775,7 @@ const TestsTable = () => {
                           </div>
                         </td>
                       </tr>
-                    ) : filteredTests.length > 0 ? ( // Original logic if not loading
+                    ) : filteredTests.length > 0 ? (
                       filteredTests.map((test) => (
                         <tr
                           key={test.id}
@@ -1793,11 +1793,9 @@ const TestsTable = () => {
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                              {/* Wrap the status display with the Tooltip component */}
                               <Tooltip content={runningTests[test.id] ? 'Test is currently running' : getStatusDescription(latestExecutionsMap[test.id]?.status)}>
                                 <div
                                   className={`inline-flex items-center px-2.5 py-1 rounded-full ${runningTests[test.id] ? 'bg-blue-100 text-blue-800' : getStatusInfo(latestExecutionsMap[test.id]?.status).color}`}
-                                  // title removed
                                 >
                                   <div className="mr-2">
                                     {runningTests[test.id] ? (
