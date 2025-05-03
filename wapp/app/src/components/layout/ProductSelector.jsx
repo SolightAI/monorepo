@@ -69,20 +69,8 @@ const ProductSelector = ({ isMobile = false }) => {
     };
   }, [isModalOpen]);
 
-  // Update products when organization changes
-  useEffect(() => {
-    if (selectedOrganization) {
-      console.log("[ProductSelector] Organization changed, refreshing products. Org ID:", selectedOrganization.id);
-      // NOTE: ProductContext already handles this, this might be redundant
-      refreshProducts(selectedOrganization.id);
-    } else {
-      console.log("[ProductSelector] Organization changed, but no selected organization.");
-    }
-  }, [selectedOrganization?.id, refreshProducts]);
-
   // Handle product selection
   const handleSelectProduct = (product) => {
-    console.log(`[ProductSelector] handleSelectProduct called for product ID: ${product.id}, Name: ${product.name}`);
     selectProduct(product);
     setIsOpen(false);
     navigate('/');
