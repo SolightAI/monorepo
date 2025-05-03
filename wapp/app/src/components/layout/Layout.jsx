@@ -105,7 +105,7 @@ export default function Layout() {
       return (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center relative">
-            <div className="absolute -top-32 md:-top-40 lg:-top-48 left-1/2 md:left-[60%] lg:left-[70%] transform rotate-45">
+            <div className="absolute -top-32 md:-top-40 lg:-top-48 -rotate-90">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 shapeRendering="geometricPrecision"
