@@ -47,7 +47,7 @@ def valid_google_credentials() -> list[dict[str, Any]]:
     return [
         {
             "category": LoginMethod.GOOGLE.value,
-            "name": "testuser@gmail.com",
+            "name": "Credentials",
             "values": {
                 "username": "testuser@gmail.com",
                 "password": "password123"
