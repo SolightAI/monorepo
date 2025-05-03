@@ -93,7 +93,7 @@ export const OrganizationProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [location.pathname, navigate, user]);
+  }, [location.pathname, navigate, user?.id]);
 
   // Fetch organizations on component mount
   useEffect(() => {

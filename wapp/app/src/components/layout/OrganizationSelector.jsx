@@ -56,13 +56,14 @@ const OrganizationSelector = ({ isMobile = false }) => {
   };
 
   // Calculate display name
-  const displayName = loading
+  // Only show 'Loading...' on initial load when organizations array is empty
+  const displayName = loading && (!organizations || organizations.length === 0)
     ? 'Loading organizations...'
     : error
     ? 'Error loading organizations'
     : selectedOrganization
     ? selectedOrganization.name
-    : 'Select an organization';
+    : (organizations && organizations.length > 0 ? 'Select an organization' : 'No organizations found'); // Handle case where loading is false but no orgs
 
   return (
     <div ref={dropdownRef} className="relative">

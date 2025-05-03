@@ -17,6 +17,8 @@ export const ProductProvider = ({ children }) => {
   // Memoize fetchProducts to avoid unnecessary re-renders
   const fetchProducts = useCallback(async (organizationId) => {
     if (!organizationId) {
+      setProducts([]); // Clear products if no org
+      setSelectedProduct(null);
       setError('Organization ID is required to fetch products');
       setLoading(false);
       return;
@@ -34,24 +36,30 @@ export const ProductProvider = ({ children }) => {
       setProducts(response.data);
 
       // Handle product selection after a small delay to ensure state is updated
+      // Using setTimeout might contribute to flickering if UI relies on intermediate states
       setTimeout(() => {
         const storedProductId = localStorage.getItem('selectedProductId');
+        let productToSelect = null;
+
         if (storedProductId && response.data.length > 0) {
           const foundProduct = response.data.find(p => p.id === storedProductId);
           if (foundProduct) {
-            setSelectedProduct(foundProduct);
+            productToSelect = foundProduct;
           } else if (response.data.length > 0) {
-            // If stored product not found, select first product
-            setSelectedProduct(response.data[0]);
-            localStorage.setItem('selectedProductId', response.data[0].id);
+            productToSelect = response.data[0];
           }
         } else if (response.data.length > 0) {
-          // If no stored product, select first product
-          setSelectedProduct(response.data[0]);
-          localStorage.setItem('selectedProductId', response.data[0].id);
+          productToSelect = response.data[0];
         } else {
-          setSelectedProduct(null);
-          localStorage.removeItem('selectedProductId');
+            productToSelect = null;
+        }
+
+        if (productToSelect) {
+            setSelectedProduct(productToSelect);
+            localStorage.setItem('selectedProductId', productToSelect.id);
+        } else {
+            setSelectedProduct(null);
+            localStorage.removeItem('selectedProductId');
         }
       }, 100); // Small delay to ensure state updates are processed
     } catch (err) {
@@ -62,7 +70,8 @@ export const ProductProvider = ({ children }) => {
       } else {
         setError('Failed to fetch products');
       }
-      console.error('Error fetching products:', err);
+      setProducts([]); // Clear products on error
+      setSelectedProduct(null); // Clear selection on error
     } finally {
       setLoading(false);
     }
@@ -71,10 +80,10 @@ export const ProductProvider = ({ children }) => {
   // Listen for organization changes
   useEffect(() => {
     const handleOrganizationChange = (event) => {
-      console.log("Organization changed, refreshing products");
 
-      // Clear current product selection
+      // Clear current product selection immediately
       setSelectedProduct(null);
+      localStorage.removeItem('selectedProductId'); // Ensure local storage is cleared too
 
       // Clear products while we're loading
       setProducts([]);
@@ -83,6 +92,8 @@ export const ProductProvider = ({ children }) => {
       const { organization } = event.detail;
       if (organization && organization.id) {
         fetchProducts(organization.id);
+      } else {
+        setLoading(false); // Ensure loading is false if we can't fetch
       }
     };
 
@@ -95,14 +106,25 @@ export const ProductProvider = ({ children }) => {
     };
   }, [fetchProducts]);
 
-  // Update products when selectedOrganization changes
+  // Initial fetch or fetch when selectedOrganization context value changes directly
+  // Depend on the ID, not the object, to prevent unnecessary fetches if the object reference changes but ID remains the same.
   useEffect(() => {
     if (selectedOrganization && selectedOrganization.id) {
       fetchProducts(selectedOrganization.id);
+    } else if (!selectedOrganization) {
+        // Handle explicit null/undefined case (e.g., after logout or org deletion)
+        setProducts([]);
+        setSelectedProduct(null);
+        setLoading(false); // Ensure loading is false if there's no org
+        setError(null);
     }
-  }, [selectedOrganization, fetchProducts]);
+     else {
+        // This might happen during initial load before organization context is ready
+        // Don't set loading to false here if organization context itself might still be loading
+    }
+  }, [selectedOrganization?.id, fetchProducts]); // <-- Dependency changed to selectedOrganization?.id
 
-  // Function to select a product
+  // Function to select a product (called by ProductSelector)
   const selectProduct = useCallback((product) => {
     if (product) {
       setSelectedProduct(product);
@@ -114,11 +136,14 @@ export const ProductProvider = ({ children }) => {
   }, []);
 
   // Force refresh of products data - memoized to maintain stable reference
+  // NOTE: This duplicates the logic from fetchProducts. Consider refactoring.
   const refreshProducts = useCallback(async (organizationId) => {
     if (!organizationId) {
-      setError('Organization ID is required to fetch products');
-      setLoading(false);
-      return;
+       setProducts([]);
+       setSelectedProduct(null);
+       setError('Organization ID is required to fetch products');
+       setLoading(false);
+       return;
     }
 
     setLoading(true);
@@ -135,25 +160,31 @@ export const ProductProvider = ({ children }) => {
       // Handle product selection after a small delay to ensure state is updated
       setTimeout(() => {
         const storedProductId = localStorage.getItem('selectedProductId');
+        let productToSelect = null;
+
         if (storedProductId && response.data.length > 0) {
-          const foundProduct = response.data.find(p => p.id === storedProductId);
-          if (foundProduct) {
-            setSelectedProduct(foundProduct);
-          } else if (response.data.length > 0) {
-            // If stored product not found, select first product
-            setSelectedProduct(response.data[0]);
-            localStorage.setItem('selectedProductId', response.data[0].id);
-          }
+            const foundProduct = response.data.find(p => p.id === storedProductId);
+            if (foundProduct) {
+                productToSelect = foundProduct;
+            } else if (response.data.length > 0) {
+                productToSelect = response.data[0];
+            }
         } else if (response.data.length > 0) {
-          // If no stored product, select first product
-          setSelectedProduct(response.data[0]);
-          localStorage.setItem('selectedProductId', response.data[0].id);
+            productToSelect = response.data[0];
         } else {
-          setSelectedProduct(null);
-          localStorage.removeItem('selectedProductId');
+            productToSelect = null;
         }
-      }, 100); // Small delay to ensure state updates are processed
+
+        if (productToSelect) {
+            setSelectedProduct(productToSelect);
+            localStorage.setItem('selectedProductId', productToSelect.id);
+        } else {
+            setSelectedProduct(null);
+            localStorage.removeItem('selectedProductId');
+        }
+      }, 100); // Small delay
     } catch (err) {
+      console.error('[ProductContext] refreshProducts: Error fetching products:', err);
       if (err.response?.status === 403) {
         setError('You do not have permission to access products in this organization');
       } else if (err.response?.status === 401) {
@@ -161,11 +192,12 @@ export const ProductProvider = ({ children }) => {
       } else {
         setError('Failed to fetch products');
       }
-      console.error('Error fetching products:', err);
+      setProducts([]); // Clear products on error
+      setSelectedProduct(null); // Clear selection on error
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []); // No dependencies, relies on passed organizationId
 
   return (
     <ProductContext.Provider
