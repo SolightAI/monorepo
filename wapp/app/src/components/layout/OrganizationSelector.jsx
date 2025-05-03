@@ -68,9 +68,7 @@ const OrganizationSelector = ({ isMobile = false }) => {
     <div ref={dropdownRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium ${
-          isMobile ? 'w-full' : 'w-48'
-        } ${
+        className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium w-full ${
           selectedOrganization
             ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'

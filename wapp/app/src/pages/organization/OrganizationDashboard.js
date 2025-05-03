@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/context/OrganizationContext';
-import { Building2, Users, Edit, Trash2, Plus, Mail, CheckCircle2, XCircle, UserPlus, Copy } from 'lucide-react';
+import { Building2, Users, Edit, Trash2, Plus, Mail, CheckCircle2, XCircle, UserPlus, Copy, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import axios from 'axios';
 import { API_URL } from '@/constants/api';
@@ -181,12 +181,12 @@ const MembersSection = ({
                         <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
                           <Mail className="h-4 w-4 text-gray-400" />
                         </div>
-                        <input type="email" name="email" id="email" required value={inviteData.email} onChange={handleInviteChange} className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-8 sm:text-sm text-xs border-gray-300 rounded-md py-1.5" placeholder="colleague@example.com" />
+                        <input type="email" name="email" id="email" required value={inviteData.email} onChange={handleInviteChange} className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-8 sm:text-sm text-xs border-gray-300 rounded-md py-1.5" placeholder="colleague@example.com" />
                       </div>
                     </div>
                     <div>
                       <label htmlFor="role" className="block text-xs font-medium text-gray-700 mb-1">Role</label>
-                      <select id="role" name="role" value={inviteData.role} onChange={handleInviteChange} className="mt-1 block w-full pl-2 pr-8 py-1.5 text-xs border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-md">
+                      <select id="role" name="role" value={inviteData.role} onChange={handleInviteChange} className="mt-1 w-full pl-2 pr-8 py-1.5 text-sm focus:outline-none">
                         {Object.entries(roleHierarchy)
                           .filter(([roleName, level]) => level <= (roleHierarchy[currentUserRole] || 0))
                           .map(([roleName]) => (
@@ -198,7 +198,7 @@ const MembersSection = ({
                       </select>
                     </div>
                     <div>
-                      <button type="submit" disabled={isInviting} className={`w-full flex justify-center py-1.5 px-3 border border-transparent rounded-md shadow-sm text-xs font-medium text-white ${isInviting ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}>
+                      <button type="submit" disabled={isInviting} className={`w-full flex justify-center py-1.5 px-3 border border-transparent rounded-md shadow-sm text-xs font-medium text-white ${isInviting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}>
                         {isInviting ? (
                           <><svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Sending...</>
                         ) : 'Create Invitation'}
@@ -271,7 +271,7 @@ const MembersSection = ({
                               <select
                                 value={selectedRole}
                                 onChange={(e) => setSelectedRole(e.target.value)}
-                                className="block w-full pl-2 pr-8 py-1 text-xs border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-md"
+                                className="block w-full pl-2 pr-8 py-1 text-xs border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md"
                               >
                                 {Object.entries(roleHierarchy)
                                   .filter(([roleName, level]) => level <= (roleHierarchy[currentUserRole] || 0))
@@ -299,7 +299,7 @@ const MembersSection = ({
                             <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                               {editingMemberId === member.user.id ? (
                                 <div className="flex justify-end space-x-2">
-                                  <button onClick={() => handleRoleChange(member.user.id, selectedRole)} className="text-indigo-600 hover:text-indigo-900 text-xs">Save</button>
+                                  <button onClick={() => handleRoleChange(member.user.id, selectedRole)} className="text-blue-600 hover:text-blue-800 text-xs">Save</button>
                                   <button onClick={() => setEditingMemberId(null)} className="text-gray-600 hover:text-gray-900 text-xs">Cancel</button>
                                 </div>
                               ) : (
@@ -307,7 +307,7 @@ const MembersSection = ({
                                   {(currentUserRole === 'admin' || currentUserRole === 'owner') && roleHierarchy[member.role] < roleHierarchy[currentUserRole] && (
                                     <button
                                       onClick={() => { setEditingMemberId(member.user?.id); setSelectedRole(member.role); }}
-                                      className="text-indigo-600 hover:text-indigo-900 text-xs"
+                                      className="text-blue-600 hover:text-blue-800 text-xs"
                                       disabled={roleHierarchy[member.role] >= roleHierarchy[currentUserRole]}
                                     >
                                       Change Role
@@ -487,7 +487,16 @@ const OrganizationDashboard = () => {
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Organization Dashboard</h1>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => navigate('/')}
+            className="p-2 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+            title="Go back"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900">Organization Dashboard</h1>
+        </div>
       </div>
 
       {organizations.length === 0 ? (
@@ -497,7 +506,7 @@ const OrganizationDashboard = () => {
           <p className="text-gray-500 mb-4">You don't have any organizations yet. Create your first organization to get started.</p>
           <button
             onClick={() => navigate('/organization/create')}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             Create Organization
           </button>
@@ -514,7 +523,7 @@ const OrganizationDashboard = () => {
                     onClick={() => selectOrganization(org)}
                     className={`w-full text-left px-4 py-3 rounded-md transition-colors ${
                       selectedOrganization?.id === org.id
-                        ? 'bg-indigo-100 text-indigo-900'
+                        ? 'bg-blue-100 text-blue-900'
                         : 'hover:bg-gray-100'
                     }`}
                   >
@@ -528,7 +537,7 @@ const OrganizationDashboard = () => {
             </ul>
             <button
               onClick={() => navigate('/organization/create')}
-              className="w-full mt-4 flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+              className="w-full mt-4 flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               <Plus className="w-4 h-4 mr-2" />
               Create New Organization
@@ -562,7 +571,7 @@ const OrganizationDashboard = () => {
                           required
                           value={editData.name}
                           onChange={handleEditChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
 
@@ -576,7 +585,7 @@ const OrganizationDashboard = () => {
                           required
                           value={editData.type}
                           onChange={handleEditChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         >
                           <option value="individual">Individual</option>
                           <option value="startup">Startup</option>
@@ -596,7 +605,7 @@ const OrganizationDashboard = () => {
                       </button>
                       <button
                         type="submit"
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                       >
                         Save Changes
                       </button>
@@ -617,7 +626,7 @@ const OrganizationDashboard = () => {
                       {(currentUserRole === 'admin' || currentUserRole === 'owner') && (
                         <button
                           onClick={() => setIsEditing(true)}
-                          className="p-2 text-gray-600 hover:text-indigo-600 focus:outline-none"
+                          className="p-2 text-gray-500 hover:text-blue-600 focus:outline-none"
                           title="Edit"
                         >
                           <Edit className="w-5 h-5" />

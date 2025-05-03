@@ -287,18 +287,18 @@ const ProductSelector = ({ isMobile = false }) => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 px-3 py-2 bg-white rounded-md border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors w-full"
+        className="flex items-center px-3 py-2 bg-white rounded-md border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors w-full"
       >
         {loading ? (
           <div className="animate-pulse h-5 w-32 bg-gray-200 rounded"></div>
         ) : (
           <>
             {selectedProduct ? (
-              <span className="font-medium text-gray-800 truncate max-w-[180px]">
+              <span className="font-medium text-gray-800 truncate max-w-[180px] mr-2">
                 {selectedProduct.name}
               </span>
             ) : (
-              <span className="text-gray-500">Select a product</span>
+              <span className="text-gray-500 mr-2">Select a product</span>
             )}
             <ChevronDown size={18} className="text-gray-500 ml-auto" />
           </>
