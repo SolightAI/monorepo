@@ -13,11 +13,11 @@ def generate_password(
     Generate a random password with the given criteria.
 
     Args:
-        length (int): The length of the password.
-        small_letters (bool): Whether to include at least one small letter.
-        capital_letters (bool): Whether to include at least one capital letter.
-        numbers (bool): Whether to include at least one number.
-        special_characters (bool): Whether to include at least one special character.
+        length (int): The length of the password. 10 by default.
+        small_letters (bool): Whether to include at least one small letter. True by default.
+        capital_letters (bool): Whether to include at least one capital letter. True by default.
+        numbers (bool): Whether to include at least one number. True by default.
+        special_characters (bool): Whether to include at least one special character. True by default.
 
     Returns:
         str: The generated password.
@@ -26,8 +26,8 @@ def generate_password(
     if not small_letters and not capital_letters and not numbers and not special_characters:
         raise ValueError("At least one character type must be included")
 
-    if length < 8:
-        raise ValueError("Password length must be at least 8 characters")
+    if length < 1:
+        raise ValueError("Password length must be at least 1 character")
 
     password = ""
     characters = ""
