@@ -3,9 +3,9 @@
 # exit if error
 set -e
 
-# Set PLAYWRIGHT_BROWSERS_PATH to /tmp/playwright-browsers only if not already set
+# Set PLAYWRIGHT_BROWSERS_PATH to /opt/bin/playwright-browsers only if not already set
 if [ -z "$PLAYWRIGHT_BROWSERS_PATH" ]; then
-  export PLAYWRIGHT_BROWSERS_PATH="/tmp/playwright-browsers"
+  export PLAYWRIGHT_BROWSERS_PATH="/opt/bin/playwright-browsers"
   echo "Setting PLAYWRIGHT_BROWSERS_PATH to $PLAYWRIGHT_BROWSERS_PATH"
 else
   echo "Using existing PLAYWRIGHT_BROWSERS_PATH: $PLAYWRIGHT_BROWSERS_PATH"

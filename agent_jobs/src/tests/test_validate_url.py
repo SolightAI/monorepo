@@ -25,6 +25,7 @@ async def test_validate_url_login_farmzz(task_id: str) -> None:
     config: Config = {
         "headless": True,
         "openai_api_key": env.get_string("OPENAI_API_KEY"),
+        "scheduler_webhook_url": ""
     }
 
     # Run the validation task directly

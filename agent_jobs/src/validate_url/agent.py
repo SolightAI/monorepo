@@ -54,6 +54,8 @@ async def run(config: Config, url: str) -> Result:
     Returns:
         Result: The result of the agent's execution.
     """
+    logger.info(f"Setting up agent to run on {url}")
+    
     agent_client = ChatOpenAI(
         model="gpt-4.1",
         temperature=0.0,
@@ -71,16 +73,21 @@ async def run(config: Config, url: str) -> Result:
     )
 
     try:
+        logger.info(f"Running agent on {url}")
         # Run the agent and retrieve its history
         history = await agent.run(max_steps=10)
+        
+        logger.info(f"Agent finished running on {url}")
 
         # Retrieve the result from the agent.
         result = history.final_result()
         if result is None:
+            logger.info(f"Agent did not find a login page on {url}")
             result = _page_not_found_tag()
 
         # Extract the result from the agent's final step.
         found, login_url, confidence = _extract_result(result)
+        logger.info(f"Agent found login page on {login_url}: {found}")
 
         return Result(
             valid=found,
@@ -124,6 +131,14 @@ def _configure_browser(config: Config) -> tuple[Browser, BrowserContext]:
     browser = Browser(
         config=BrowserConfig(
             headless=config["headless"],
+            extra_browser_args=[
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+                "--single-process",
+                "--no-zygote",
+                "--disable-setuid-sandbox",   
+            ]
         )
     )
 

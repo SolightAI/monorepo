@@ -5,3 +5,4 @@ include:
   - path: ./wapp/local.docker-compose.yaml
   - path: ./task-manager/local.docker-compose.yaml
   - path: ./agent_jobs/local.docker-compose.yaml
+  - path: ./lambda_webhook/local.docker-compose.yaml

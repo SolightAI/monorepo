@@ -35,7 +35,7 @@ RUN chmod +x install_dependencies.sh
 RUN ./install_dependencies.sh
 
 # Set environment variable for Playwright browsers path
-ENV PLAYWRIGHT_BROWSERS_PATH=/tmp/playwright-browsers
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/bin/playwright-browsers
 
 COPY requirements.txt ./
 

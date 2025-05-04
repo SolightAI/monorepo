@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Script to start all services from the root docker-compose.yaml
 
 # Create the shared network if it doesn't exist yet

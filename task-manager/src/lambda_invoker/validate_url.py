@@ -1,12 +1,13 @@
 import json
 import logging
+import requests
 from typing import Any, TypedDict
 from urllib.parse import urlparse
 
-import requests
 
 from config import env
 from utils.session_manager import get_redis
+from lambda_invoker import lambda_waiter
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ CONFIDENCE_LOW = "low"
 
 
 class Config(TypedDict):
-    aws_lambda_validate_url_endpoint: str
+    test_aws_lambda_validate_url_endpoint: str | None
     dev_mode: bool
 
 
@@ -33,10 +34,15 @@ class Result(TypedDict):
 
 
 def _get_config() -> Config:
-  return {
-    "aws_lambda_validate_url_endpoint": env.get_string("AWS_LAMBDA_VALIDATE_URL_ENDPOINT"),
-    "dev_mode": env.get_bool("DEV_MODE", False),
-  }
+    dev_mode = env.get_bool("DEV_MODE", False)
+    test_aws_lambda_validate_url_endpoint = env.get_string(
+        "TEST_AWS_LAMBDA_VALIDATE_URL_ENDPOINT", None, dev_mode
+    )
+
+    return {
+        "dev_mode": dev_mode,
+        "test_aws_lambda_validate_url_endpoint": test_aws_lambda_validate_url_endpoint,
+    }
 
 
 async def validate_url(
@@ -63,21 +69,34 @@ async def validate_url(
 
     try:
         if use_cache and (cached_result := await get_login_page_from_cache(url)):
-            logger.info(f"[{ctx['job_id']}] Login page found in cache for {url}: {cached_result.get('login_url')}")
+            logger.info(
+                f"[{ctx['job_id']}] Login page found in cache for {url}: {cached_result.get('login_url')}"
+            )
             return cached_result
     except Exception as e:
         # Continue execution - cache lookup is non-critical
         logger.error(f"[{ctx['job_id']}] Error checking cache for {url}: {str(e)}")
 
-    logger.info(f"[{ctx['job_id']}] No cached login page found for {url}, running validation")
-    
+    logger.info(
+        f"[{ctx['job_id']}] No cached login page found for {url}, running validation"
+    )
+
     try:
-      result = await _trigger_lambda(config, ctx['job_id'], url)
-      if result["valid"] is True and result["login_url"] is not None:
-        logger.info(f"[{ctx['job_id']}] Login page saved to cache for {url}: {result['login_url']}")
-        await _save_login_page_to_cache(url, result["login_url"], result["confidence"])
-          
-      return result
+        await lambda_waiter.create_lambda_waiter_job(ctx["job_id"])
+        await _trigger_lambda(config, ctx["job_id"], url)
+
+        result_payload = await lambda_waiter.wait_for_lambda_result(ctx["job_id"])
+
+        result = json.loads(result_payload)
+        if result["valid"] is True and result["login_url"] is not None:
+            logger.info(
+                f"[{ctx['job_id']}] Login page saved to cache for {url}: {result['login_url']}"
+            )
+            await _save_login_page_to_cache(
+                url, result["login_url"], result["confidence"]
+            )
+
+        return result
     except Exception as e:
         logger.error(f"[{ctx['job_id']}] Error validating URL: {url} - {str(e)}")
 
@@ -90,32 +109,33 @@ async def validate_url(
             "original_url": url,
             "source": "validation",
         }
+    finally:
+        await lambda_waiter.delete_waiter_job(ctx["job_id"])
 
 
-async def _trigger_lambda(config: Config, job_id: str, url: str) -> Result:
+async def _trigger_lambda(config: Config, job_id: str, url: str) -> None:
     payload = {
         "job_id": job_id,
         "url": url,
     }
-    
+
     if config["dev_mode"]:
         # When we send a request to the dev endpoint, we need to wrap the payload
         # in a field body.
-        payload = {
-            "body": json.dumps(payload)
-        }
-        
-    response = requests.post(
-      config["aws_lambda_validate_url_endpoint"],
-      json=payload,
-    )
-    
-    response_body = response.json()
-    if response_body.get("statusCode") != 200:
-      raise Exception(f"Unexpected response from lambda: {response_body}")
-        
-    return json.loads(response_body["body"])
-    
+        payload = {"Records": [{"body": json.dumps(payload)}]}
+
+        logger.debug(
+            f"Sending request {payload} to {config['test_aws_lambda_validate_url_endpoint']}"
+        )
+
+        requests.post(
+            config["test_aws_lambda_validate_url_endpoint"] or "",
+            json=payload,
+        )
+
+        return
+
+    # Trigger through SQS topic
 
 
 def _extract_domain(url: str) -> str:

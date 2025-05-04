@@ -1,0 +1,41 @@
+name: Lambdas Webhook CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'lambda_webhook/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'lambda_webhook/**'
+  # Manual trigger
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lambda-webhook-tests:
+    runs-on: self-hosted
+    timeout-minutes: 60
+
+    defaults:
+      run:
+        working-directory: ./lambda_webhook
+
+    env:
+      TEST_IMAGE: lambda-webhook-test-${{ github.run_id }}-${{ github.run_attempt }}
+
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Run Lambda tests
+      run: |
+        ./run-test.sh
