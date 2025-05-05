@@ -42,10 +42,10 @@ def _format_lambda_webhook_url():
 
   # Preview URL
   if preview and pr_number:
-    return f"{pr_number}.agent-webhook.laneo.io/lambda-webhook"
+    return f"{pr_number}.agent-webhook.solight.ai/lambda-webhook"
 
   # Production URL
-  return "https://agent-webhook.laneo.io/lambda-webhook"
+  return "https://agent-webhook.solight.ai/lambda-webhook"
 
 # Create ECR Repository.
 lambda_ecr_repo = ecr.Repository(
