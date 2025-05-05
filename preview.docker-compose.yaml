@@ -20,7 +20,6 @@ services:
       - "8000:8000"
     networks:
       - default
-      - api-tm_shared_network
     environment:
       - APP_URL=${APP_URL:-http://localhost:3000}
       - POSTGRES_DB=${POSTGRES_DB:-postgres}
@@ -97,7 +96,6 @@ services:
       - PROD_AWS_LAMBDA_QUEUE_URL=${AWS_SQS_LAMBDA_URL:-}
     networks:
       - default
-      - api-tm_shared_network
     depends_on:
       - redis
       - minio
@@ -115,7 +113,6 @@ services:
       - DEV_MODE=true
     networks:
       - default
-      - api-tm_shared_network
     depends_on:
       - redis
 
@@ -148,5 +145,3 @@ volumes:
 
 networks:
   default:
-  api-tm_shared_network: # api and task manager shared network
-    external: true
