@@ -16,6 +16,8 @@ env:
   # AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   # AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.PULUMI_AWS_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.PULUMI_AWS_SECRET_KEY }}
   PULUMI_STACK_NAME: solight_ai/aws-infra/prod
   PULUMI_WORKING_DIRECTORY: agent_jobs/deployment
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
