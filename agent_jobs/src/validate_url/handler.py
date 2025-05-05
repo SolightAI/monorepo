@@ -10,6 +10,7 @@ from src.webhook_sender.client import WebhookSender
 
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO) 
 
 
 def lambda_handler(

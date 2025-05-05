@@ -3,6 +3,7 @@ import logging
 import requests
 from typing import Any, TypedDict
 from urllib.parse import urlparse
+import boto3
 
 
 from config import env
@@ -22,6 +23,9 @@ CONFIDENCE_LOW = "low"
 class Config(TypedDict):
     test_aws_lambda_validate_url_endpoint: str | None
     dev_mode: bool
+    prod_aws_lambda_queue_trigger_access_key: str | None
+    prod_aws_lambda_queue_trigger_secret_key: str | None
+    prod_aws_lambda_queue_url: str | None
 
 
 class Result(TypedDict):
@@ -35,13 +39,29 @@ class Result(TypedDict):
 
 def _get_config() -> Config:
     dev_mode = env.get_bool("DEV_MODE", False)
+    
+    # If dev, we're triggering the lambda through a local HTTP endpoint
     test_aws_lambda_validate_url_endpoint = env.get_string(
         "TEST_AWS_LAMBDA_VALIDATE_URL_ENDPOINT", None, dev_mode
+    )
+    
+    # If production, we're triggering the lambda through SQS
+    prod_aws_lambda_queue_trigger_access_key = env.get_string(
+        "PROD_AWS_LAMBDA_QUEUE_TRIGGER_ACCESS_KEY", None, not dev_mode
+    )
+    prod_aws_lambda_queue_trigger_secret_key = env.get_string(
+        "PROD_AWS_SQS_LAMBDA_QUEUE_TRIGGER_SECRET_ACCESS_KEY", None, not dev_mode
+    )
+    prod_aws_lambda_queue_url = env.get_string(
+        "PROD_AWS_LAMBDA_QUEUE_URL", None, not dev_mode
     )
 
     return {
         "dev_mode": dev_mode,
         "test_aws_lambda_validate_url_endpoint": test_aws_lambda_validate_url_endpoint,
+        "prod_aws_lambda_queue_trigger_access_key": prod_aws_lambda_queue_trigger_access_key,
+        "prod_aws_lambda_queue_trigger_secret_key": prod_aws_lambda_queue_trigger_secret_key,
+        "prod_aws_lambda_queue_url": prod_aws_lambda_queue_url,
     }
 
 
@@ -119,6 +139,8 @@ async def _trigger_lambda(config: Config, job_id: str, url: str) -> None:
         "url": url,
     }
 
+    # Comment this block and expose the webhook with ngrok to test locally the complete
+    # flow by calling the SQS lambda.
     if config["dev_mode"]:
         # When we send a request to the dev endpoint, we need to wrap the payload
         # in a field body.
@@ -136,6 +158,20 @@ async def _trigger_lambda(config: Config, job_id: str, url: str) -> None:
         return
 
     # Trigger through SQS topic
+    sqs = boto3.client(
+        "sqs",
+        # Force endpoint URL since we have already AWS_ENDPOINT_URL configured for minio that mess up boto config
+        endpoint_url="https://sqs.us-west-1.amazonaws.com",
+        aws_access_key_id=config["prod_aws_lambda_queue_trigger_access_key"],
+        aws_secret_access_key=config["prod_aws_lambda_queue_trigger_secret_key"],
+        region_name="us-west-1",
+    )
+
+    queue_url = config["prod_aws_lambda_queue_url"]
+    if not queue_url:
+        raise ValueError("No queue URL provided")
+
+    sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(payload))
 
 
 def _extract_domain(url: str) -> str:
