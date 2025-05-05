@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import time
@@ -68,7 +69,7 @@ async def wait_for_lambda_result(job_id: str, timeout = 900) -> str:
         raise Exception(f"Timeout waiting for job {job_id} to complete")
       
       logger.info(f"Waiting for job {job_id} to complete... polling again in 10 seconds")
-      time.sleep(10)
+      await asyncio.sleep(10)
       continue
   
   

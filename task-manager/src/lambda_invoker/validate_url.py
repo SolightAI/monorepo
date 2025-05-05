@@ -146,7 +146,7 @@ async def _trigger_lambda(config: Config, job_id: str, url: str) -> None:
         # in a field body.
         payload = {"Records": [{"body": json.dumps(payload)}]}
 
-        logger.debug(
+        logger.info(
             f"Sending request {payload} to {config['test_aws_lambda_validate_url_endpoint']}"
         )
 
@@ -172,6 +172,7 @@ async def _trigger_lambda(config: Config, job_id: str, url: str) -> None:
         raise ValueError("No queue URL provided")
 
     sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(payload))
+    logger.info("Successfully sent message to SQS queue")
 
 
 def _extract_domain(url: str) -> str:
