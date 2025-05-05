@@ -47,7 +47,7 @@ export const getStatusInfo = (status, size = 16) => {
     case TEST_STATUS.NOT_FOUND:
       return { icon: <Search size={size} />, color: 'text-amber-500 bg-amber-50' };
     case TEST_STATUS.BLOCKED_BY_CAPTCHA:
-      return { icon: <Lock size={size} />, color: 'text-red-500 bg-red-50' };
+      return { icon: <Lock size={size} />, color: 'text-purple-500 bg-purple-50' };
     case null:
       return { icon: <Clock size={size} />, color: 'text-gray-500 bg-gray-50' };
     default:
