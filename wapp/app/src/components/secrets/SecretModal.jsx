@@ -11,7 +11,6 @@ const SecretTypes = {
   ENVIRONMENT_VARIABLE: 'environment_variable',
   CONNECTION_STRING: 'connection_string',
   OAUTH_CREDENTIAL: 'oauth_credential',
-  OTHER: 'other',
 };
 
 // Constants for standard secret value keys
@@ -101,7 +100,7 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
 
   // Use useCallback for setDefaultFieldsForType to stabilize its reference
   const setDefaultFieldsForType = useCallback((type) => {
-    const defaultFields = SecretTypeFields[type] || SecretTypeFields[SecretTypes.OTHER]; // Default to OTHER if type not found
+    const defaultFields = SecretTypeFields[type] || []; // Default to empty array if type not found
 
     const initialValues = defaultFields.map(field => ({
       id: uuidv4(),
@@ -425,15 +424,6 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
                   <label className="block text-sm font-medium text-gray-700">
                     Test Credential Values *
                   </label>
-                  {formData.type === SecretTypes.OTHER && (
-                    <button
-                      type="button"
-                      onClick={addKeyValuePair}
-                      className="text-sm text-blue-600 hover:text-blue-800"
-                    >
-                      + Add Value
-                    </button>
-                  )}
                 </div>
 
                 {loadingValues ? (
@@ -451,8 +441,8 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
                           value={item.key}
                           onChange={(e) => handleValueChange(item.id, 'key', e.target.value)}
                           className="w-1/3 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                          readOnly={formData.type !== SecretTypes.OTHER}
-                          disabled={formData.type !== SecretTypes.OTHER}
+                          readOnly={false}
+                          disabled={false}
                         />
                         <div className="relative flex-1">
                           {/* Conditional rendering for OAuth provider */}
@@ -502,15 +492,6 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
                             </>
                           )}
                         </div>
-                        {formData.type === SecretTypes.OTHER && (
-                          <button
-                            type="button"
-                            onClick={() => removeKeyValuePair(item.id)}
-                            className="text-red-500 hover:text-red-700 focus:outline-none"
-                          >
-                            <HiX className="h-5 w-5" />
-                          </button>
-                        )}
                       </div>
                     ))}
                   </div>
