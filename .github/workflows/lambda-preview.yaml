@@ -52,15 +52,16 @@ jobs:
         working-directory: ${{ env.PULUMI_WORKING_DIRECTORY }}
 
       - name: PR previews
-        if: ${{ github.event_name == 'pull_request' }}
         uses: pulumi/actions@v3
         with:
           command: preview
           stack-name: ${{ env.PULUMI_STACK_NAME }}
           work-dir: ${{ env.PULUMI_WORKING_DIRECTORY }}
-
+        env:
+          PREVIEW: 1
+          CURRENT_PR_NUMBER: ${{ github.event.number }}
+  
       - name: Apply infrastructure update
-        if: ${{ github.event_name == 'push' }}
         uses: pulumi/actions@v3
         with:
           command: up
