@@ -9,12 +9,12 @@ import { TEST_STATUS, formatStatus } from '@/utils/testExecutionUtils';
  * @param {Function} onError - Callback for errors.
  * @returns {number} - The interval ID for clearing.
  */
-const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, onError) => {
+export const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, onError) => {
     const intervalId = setInterval(async () => {
         try {
             const response = await getTestGenerationStatus(featureId);
 
-            const statusMessage = `Test generation in progress. Status: ${response.status ? formatStatus(response.status) : formatStatus(TEST_STATUS.PENDING)}${response.progress ? ` (${response.progress})` : ''}`;
+            const statusMessage = `Test Generation in Progress. Status: ${response.status ? formatStatus(response.status) : formatStatus(TEST_STATUS.PENDING)}${response.progress ? ` (${response.progress})` : ''}`;
             onStatusUpdate(statusMessage);
 
             if (response.status === TEST_STATUS.PASSED) {

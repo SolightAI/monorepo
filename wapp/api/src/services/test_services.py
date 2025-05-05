@@ -246,10 +246,18 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
     if encrypted_secrets:
         payload['secrets'] = encrypted_secrets
 
+    # Always delete previous job keys for this feature before enqueuing a new job
+    job = Job(str(feature_id), redis=redis)
+    default_queue_name = 'arq:queue:'
+    in_progress_key_prefix = 'arq:in-progress:'
+    job_key_prefix = 'arq:job:'
+    result_key_prefix = 'arq:result:'
+    keys = [k + job.job_id for k in [default_queue_name, in_progress_key_prefix, job_key_prefix, result_key_prefix]]
+    await redis.delete(*keys)
+
     job = await redis.enqueue_job('generate_tests', **payload, _job_id=str(feature_id))
-    # Job already exists, retrieve it
     if job is None:
-        job = Job(str(feature_id), redis=redis)
+        raise HTTPException(status_code=503, detail="Tried to force test generation but failed")
 
     return {"task_id": job.job_id}
 
