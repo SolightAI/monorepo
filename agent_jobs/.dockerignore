@@ -6,3 +6,21 @@
 
 # Ignore test files
 **/tests
+
+# Ignore Pulumi directory
+deployment/
+
+# Ignore pytest cache
+.pytest_cache/
+
+# Ignore envrc
+.envrc
+
+# Ignore docker compose
+**docker-compose.yaml
+
+# Ignore markdown files
+**/*.md
+
+# Ignore run-test.sh
+run-test.sh

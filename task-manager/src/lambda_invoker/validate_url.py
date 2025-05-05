@@ -141,7 +141,7 @@ async def _trigger_lambda(config: Config, job_id: str, url: str) -> None:
 
     # Comment this block and expose the webhook with ngrok to test locally the complete
     # flow by calling the SQS lambda.
-    if config["dev_mode"]:
+    if config["dev_mode"] is True:
         # When we send a request to the dev endpoint, we need to wrap the payload
         # in a field body.
         payload = {"Records": [{"body": json.dumps(payload)}]}
