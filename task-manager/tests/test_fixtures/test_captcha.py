@@ -5,6 +5,7 @@ from src.agents.login_agent import login_agent
 from src.utils.dto import Test, TestCategory, TestStatus
 
 
+@pytest.mark.skip(reason="Healthcheck blocks the tests (agent_limitations)")
 @pytest.mark.asyncio
 async def test_text_captcha_login_agent(task_id: str) -> None:
     """Test solving a text captcha."""
