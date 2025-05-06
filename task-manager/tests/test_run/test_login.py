@@ -172,7 +172,8 @@ class TestSolight():
             "values": {
                 "provider": "google",
                 "username": username,
-                "password": password
+                "password": password,
+                "recovery_phone_number": "+447548432778"
             }
         }]
 

@@ -39,7 +39,7 @@ async def on_step_start_hook(agent: Agent) -> None:
 
     _update_step_counter(agent)
 
-    if await check_for_google_mfa(agent):
-        return
+    # if await check_for_google_mfa(agent):
+    #     return
 
     await check_for_captcha(agent)
