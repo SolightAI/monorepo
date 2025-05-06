@@ -55,7 +55,7 @@ Expected output format
 
 
 AGENT_CLIENT = ChatOpenAI(
-    model="gpt-4.1-mini",
+    model="gpt-4.1",  # gpt-4.1-mini is too stupid to handle the task (leads to false positives)
     temperature=0.0,
     timeout=120,
     frequency_penalty=0.3,
@@ -107,8 +107,8 @@ def compare_html_files(file1_content: str, file2_content: str) -> str:
     cleaned_file2_content = clean_html_content(file2_content)
 
     # Split content into lines for difflib
-    file1_lines = cleaned_file1_content.splitlines()
-    file2_lines = cleaned_file2_content.splitlines()
+    file1_lines = [line for line in cleaned_file1_content.splitlines() if line.strip()]  # remove empty lines
+    file2_lines = [line for line in cleaned_file2_content.splitlines() if line.strip()]  # remove empty lines
 
     # Compare the cleaned files using unified_diff
     diff_generator = difflib.unified_diff(
@@ -154,6 +154,8 @@ async def check_is_logged_in_using_html_diff(
 
     if len(html_diff) == 0:
         return False  # no changes, so the user is not logged in
+
+    logger.info(f"[{task_id}] Length of HTML diff: {len(html_diff)}")
 
     if len(html_diff) > max_length:
         html_diff = html_diff[-max_length:]

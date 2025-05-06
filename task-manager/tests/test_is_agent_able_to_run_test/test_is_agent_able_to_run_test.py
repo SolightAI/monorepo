@@ -107,19 +107,25 @@ class TestSolight():
 
     url = "https://app.solight.ai/"
 
-    def test_login_with_google(self, task_id: str) -> None:
+    @pytest.mark.parametrize("repeat", [i for i in range(3)])  # reduce chances of flaky test
+    def test_login_with_google(self, task_id: str, repeat: int) -> None:
 
         test = Test(
             category=TestCategory.SMOKE,
             name="Verify Google Authentication Option",
             url=self.url,
-            description="Test the ability of a user to login using the Email method.",
+            description="Ensure that the 'Continue with Google' button is present and initiates the Google authentication flow when clicked.",
             steps=dedent("""
-                1. Locate and click on the 'Continue with Google' button.
+                1. Locate the 'Continue with Google' button
+                2. Click on the button
                 3. Login
             """),
-            preconditions="User is on the Solight login page (https://app.solight.ai/login).",
-            assertions="1. Verify that the user is successfully logged in",
+            preconditions="None.",
+            assertions=dedent("""
+                1. The button labeled 'Continue with Google' is visible
+                2. Clicking the button redirects or opens a new window/tab for Google authentication (e.g., accounts.google.com)
+                3. The user is logged in
+            """),
             feature_id=task_id,
         )
 

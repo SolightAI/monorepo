@@ -6,7 +6,7 @@ from src.utils.dto import Test, TestCategory, TestStatus
 
 
 @pytest.mark.asyncio
-async def test_text_captcha_login_agent(task_id: str, repeat: int) -> None:
+async def test_text_captcha_login_agent(task_id: str) -> None:
     """Test solving a text captcha."""
 
     test = Test(
