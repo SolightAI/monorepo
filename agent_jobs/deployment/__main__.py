@@ -42,7 +42,7 @@ def _format_lambda_webhook_url():
 
   # Preview URL
   if preview and pr_number:
-    return f"{pr_number}.agent-webhook.solight.ai/lambda-webhook"
+    return "https://preview.agent-webhook.solight.ai/lambda-webhook"
 
   # Production URL
   return "https://agent-webhook.solight.ai/lambda-webhook"
