@@ -139,14 +139,36 @@ class TestTickPick():
             feature_id=task_id,
         )
 
+        username = os.getenv("SOLIGHT_USERNAME")  # we use the same google account for all tests
+        if not username:
+            raise ValueError("SOLIGHT_USERNAME is not set")
+
+        password = os.getenv("SOLIGHT_PASSWORD")
+        if not password:
+            raise ValueError("SOLIGHT_PASSWORD is not set")
+
+        recovery_phone_number = os.getenv("SOLIGHT_RECOVERY_PHONE_NUMBER")
+        if not recovery_phone_number:
+            raise ValueError("SOLIGHT_RECOVERY_PHONE_NUMBER is not set")
+
+        secrets = [{
+            "name": "Google OAuth Credentials",
+            "category": LoginMethod.GOOGLE_OAUTH.value,
+            "values": {
+                "username": username,
+                "password": password,
+                "recovery_phone_number": recovery_phone_number
+            }
+        }]
+
         result = await login_agent(
             task_id=task_id,
             test=test,
-            secrets=[],
+            secrets=secrets,
             auth_session={},
         )
 
-        assert result["status"] == TestStatus.AGENT_LIMITATION.value
+        assert result["status"] == TestStatus.PASSED.value
 
 
 class TestSolight():
