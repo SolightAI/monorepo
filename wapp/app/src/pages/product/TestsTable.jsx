@@ -67,9 +67,6 @@ const TestsTable = () => {
   const [isConfirmFeatureDeleteModalOpen, setIsConfirmFeatureDeleteModalOpen] = useState(false); // State for feature delete confirmation
   const [featureToDeleteId, setFeatureToDeleteId] = useState(null); // ID of feature marked for deletion
 
-  // Add isBannerRelevant condition
-  const isBannerRelevant = selectedFeature === 'all' || generatingFeatures.some(f => f.id === selectedFeature);
-
   // New state for latest execution data
   const [latestExecutionsMap, setLatestExecutionsMap] = useState({});
 
