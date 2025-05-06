@@ -7,24 +7,27 @@ import { TEST_STATUS, formatStatus } from '@/utils/testExecutionUtils';
  * @param {Function} onStatusUpdate - Callback for status updates.
  * @param {Function} onSuccess - Callback for successful completion.
  * @param {Function} onError - Callback for errors.
+ * @param {string} featureName - The name of the feature.
  * @returns {number} - The interval ID for clearing.
  */
-const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, onError) => {
+export const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, onError, featureName) => {
     const intervalId = setInterval(async () => {
         try {
             const response = await getTestGenerationStatus(featureId);
 
-            const statusMessage = `Test generation in progress. Status: ${response.status ? formatStatus(response.status) : formatStatus(TEST_STATUS.PENDING)}${response.progress ? ` (${response.progress})` : ''}`;
+            const statusMessage = `Test Generation in Progress. Status: ${response.status ? formatStatus(response.status) : formatStatus(TEST_STATUS.PENDING)}${response.progress ? ` (${response.progress})` : ''}`;
             onStatusUpdate(statusMessage);
 
             if (response.status === TEST_STATUS.PASSED) {
                 clearInterval(intervalId);
                 onSuccess(
-                    `Successfully generated tests for the selected feature. Status: ${formatStatus(TEST_STATUS.PASSED)}`
+                    `Successfully generated tests for feature "${featureName || featureId}". Status: ${formatStatus(TEST_STATUS.PASSED)}`
                 );
+                setTimeout(() => window.location.reload(), 2000);
             } else if (response.status === TEST_STATUS.ERROR || response.status === TEST_STATUS.FAILED) {
                 clearInterval(intervalId);
-                onError(response.status === TEST_STATUS.ERROR ? 'Error generating tests. Please try again.' : 'Test generation failed. Please try again.');
+                onError(response.status === TEST_STATUS.ERROR ? `Error generating tests for feature "${featureName || featureId}". Please try again.` : `Test generation failed for feature "${featureName || featureId}". Please try again.`);
+                setTimeout(() => window.location.reload(), 2000);
             }
         } catch (pollErr) {
             console.error(`Error polling test generation status for Feature ${featureId}:`, pollErr);
@@ -95,7 +98,8 @@ export const handleFeatureTestGeneration = async (
             (errorMsg) => {
                 pollingIntervalId = null; // Mark interval as cleared
                 onError(errorMsg);
-            }
+            },
+            featureId
         );
 
     } catch (err) {
