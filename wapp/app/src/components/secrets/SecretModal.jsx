@@ -7,9 +7,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 const SecretTypes = {
   USERNAME_PASSWORD: 'username_password',
-  API_KEY: 'api_key',
-  ENVIRONMENT_VARIABLE: 'environment_variable',
-  CONNECTION_STRING: 'connection_string',
   OAUTH_CREDENTIAL: 'oauth_credential',
 };
 
@@ -32,7 +29,7 @@ const SecretTypeFields = {
     { key: SecretFieldKeys.PASSWORD, value: '', placeholder: 'Enter password' }
   ],
   [SecretTypes.OAUTH_CREDENTIAL]: [
-    { key: SecretFieldKeys.PROVIDER, value: '', placeholder: 'Select Provider' },
+    { key: SecretFieldKeys.PROVIDER, value: '', placeholder: OAuthProviders.GOOGLE },
     { key: SecretFieldKeys.USERNAME, value: '', placeholder: 'Enter username' },
     { key: SecretFieldKeys.PASSWORD, value: '', placeholder: 'Enter password' },
   ],
@@ -71,12 +68,19 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
   const [error, setError] = useState(null);
   const [valuesToUpdate, setValuesToUpdate] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
+  const [isNameManuallySet, setIsNameManuallySet] = useState(false); // Track manual name changes
 
   // Set initial form data when editing starts or selected product/org changes
   useEffect(() => {
     if (isEditing && secret) {
+      const initialName = secret.name;
+      const isInitialNameDefault = initialName === 'My Credentials';
+      const derivedDefaultNames = Object.values(OAuthProviders).map(p => `${p} OAuth Credentials`);
+      const isInitialNameDerived = derivedDefaultNames.includes(initialName);
+      setIsNameManuallySet(!isInitialNameDefault && !isInitialNameDerived); // Set true if name is custom
+
       setFormData({
-        name: secret.name,
+        name: initialName,
         description: secret.description || '',
         type: secret.type,
         expires_at: secret.expires_at ? new Date(secret.expires_at).toISOString().split('T')[0] : '',
@@ -85,6 +89,7 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
       });
     } else if (!isEditing) {
       // Reset form for new secret, keeping org/product context
+      setIsNameManuallySet(false); // Reset flag for new secret
       setFormData({
         name: 'My Credentials', // Default name
         description: '',
@@ -185,6 +190,11 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
       [name]: value
     }));
 
+    // If user explicitly changes the name, mark it as manually set
+    if (name === 'name') {
+      setIsNameManuallySet(true);
+    }
+
     // If the type is changed *while editing*, reset the fields to match the new type
     if (name === 'type' && isEditing) {
         setDefaultFieldsForType(value);
@@ -193,57 +203,38 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
 
   // Handle changes to secret value fields
   const handleValueChange = (id, field, value) => {
-    setSecretValues(prev => prev.map(item =>
+    // Update the specific key/value pair
+    const updatedSecretValues = secretValues.map(item =>
       item.id === id ? { ...item, [field]: value } : item
-    ));
+    );
+    setSecretValues(updatedSecretValues);
 
-    // Update the values to be sent to the API
-    if (field === 'key' || field === 'value') {
-      setSecretValues(prev => {
-        const updatedValues = prev.map(item => item.id === id ? { ...item, [field]: value } : item);
+    // Update the valuesToUpdate object (key-value pairs for API)
+    const valuesObj = {};
+    updatedSecretValues.forEach(item => {
+      if (item.key) {
+        valuesObj[item.key] = item.value;
+      }
+    });
+    setValuesToUpdate(valuesObj);
 
-        // Create an object of key-value pairs
-        const valuesObj = {};
-        updatedValues.forEach(item => {
-          if (item.key) {
-            valuesObj[item.key] = item.value;
-          }
-        });
-
-        setValuesToUpdate(valuesObj);
-        return updatedValues;
-      });
+    // Auto-update name if provider changes and name hasn't been manually set
+    if (
+      formData.type === SecretTypes.OAUTH_CREDENTIAL &&
+      field === 'value' && // Ensure we are updating the value field
+      secretValues.find(item => item.id === id)?.key === SecretFieldKeys.PROVIDER && // Check if it's the provider field
+      !isNameManuallySet && // Check if the name hasn't been manually set
+      value // Ensure a provider is selected (value is not empty)
+    ) {
+      // Set the new derived default name
+      setFormData(prev => ({
+        ...prev,
+        name: `${value} OAuth Credentials`
+      }));
+      // Keep isNameManuallySet as false since this is an automatic update
     }
   };
 
-  // Add a new key-value pair
-  const addKeyValuePair = () => {
-    setSecretValues(prev => [
-      ...prev,
-      { id: uuidv4(), key: '', value: '', revealed: false }
-    ]);
-  };
-
-  // Remove a key-value pair
-  const removeKeyValuePair = (id) => {
-    setSecretValues(prev => {
-      const filtered = prev.filter(item => item.id !== id);
-
-      // Update valuesToUpdate
-      const valuesObj = {};
-      filtered.forEach(item => {
-        if (item.key) {
-          valuesObj[item.key] = item.value;
-        }
-      });
-      setValuesToUpdate(valuesObj);
-
-      // If all rows removed, add an empty one
-      return filtered.length ? filtered : [{
-        id: uuidv4(), key: '', value: '', revealed: false
-      }];
-    });
-  };
 
   // Toggle password visibility
   const toggleReveal = (id) => {
@@ -281,6 +272,15 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
     if (!hasValidValue) {
       setError('At least one secret key-value pair is required');
       return;
+    }
+
+    // Validate OAuth provider selection if type is OAuth
+    if (formData.type === SecretTypes.OAUTH_CREDENTIAL) {
+      const providerValue = valuesToUpdate[SecretFieldKeys.PROVIDER];
+      if (!providerValue) { // Check if providerValue is empty or undefined
+        setError('Please select an OAuth provider.');
+        return;
+      }
     }
 
     try {
