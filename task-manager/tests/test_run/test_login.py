@@ -170,6 +170,7 @@ class TestSolight():
             "name": "Credentials",
             "category": LoginMethod.OAUTH_CREDENTIAL.value,
             "values": {
+                "provider": "google",
                 "username": username,
                 "password": password
             }

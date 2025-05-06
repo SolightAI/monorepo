@@ -49,6 +49,7 @@ def valid_google_credentials() -> list[dict[str, Any]]:
             "category": LoginMethod.OAUTH_CREDENTIAL.value,
             "name": "Credentials",
             "values": {
+                "provider": "google",
                 "username": "testuser@gmail.com",
                 "password": "password123"
             }
@@ -79,6 +80,7 @@ def invalid_google_credentials() -> list[dict[str, Any]]:
             "category": LoginMethod.OAUTH_CREDENTIAL.value,
             "name": "this-is-not-a-valid-email@fake-domain.com",
             "values": {
+                "provider": "google",
                 "username": "this-is-not-a-valid-email@fake-domain.com",
                 "password": "this-is-not-a-valid-password"
             }
