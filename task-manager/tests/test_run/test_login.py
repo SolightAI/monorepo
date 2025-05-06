@@ -166,14 +166,17 @@ class TestSolight():
         if not password:
             raise ValueError("SOLIGHT_PASSWORD is not set")
 
+        recovery_phone_number = os.getenv("SOLIGHT_RECOVERY_PHONE_NUMBER")
+        if not recovery_phone_number:
+            raise ValueError("SOLIGHT_RECOVERY_PHONE_NUMBER is not set")
+
         secrets = [{
-            "name": "Credentials",
-            "category": LoginMethod.OAUTH_CREDENTIAL.value,
+            "name": "Google OAuth Credentials",
+            "category": LoginMethod.GOOGLE_OAUTH.value,
             "values": {
-                "provider": "google",
                 "username": username,
                 "password": password,
-                "recovery_phone_number": "+447548432778"
+                "recovery_phone_number": recovery_phone_number
             }
         }]
 

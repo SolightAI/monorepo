@@ -16,7 +16,7 @@ def get_user_id(secrets: list[dict[str, Any]]) -> str | None:
         if secret["category"] == LoginMethod.EMAIL.value and "username" in secret["values"]:
             return secret["values"]["username"]
 
-        elif secret["category"] == LoginMethod.OAUTH_CREDENTIAL.value and "username" in secret["values"]:
+        elif secret["category"] == LoginMethod.GOOGLE_OAUTH.value and "username" in secret["values"]:
             return secret["values"]["username"]
 
     return None

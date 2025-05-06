@@ -8,15 +8,15 @@ class LoginMethod(str, Enum):
     """
     ANY = "any"
     EMAIL = "username_password"
-    OAUTH_CREDENTIAL = "oauth_credential"
+    GOOGLE_OAUTH = "google_oauth"
 
 
-SUPPORTED_LOGIN_METHODS = [LoginMethod.ANY, LoginMethod.EMAIL, LoginMethod.OAUTH_CREDENTIAL]
+SUPPORTED_LOGIN_METHODS = [LoginMethod.ANY, LoginMethod.EMAIL, LoginMethod.GOOGLE_OAUTH]
 
 
 REQUIRED_FIELDS = {
     LoginMethod.EMAIL.value: ["username", "password"],
-    LoginMethod.OAUTH_CREDENTIAL.value: ["provider", "username", "password"],
+    LoginMethod.GOOGLE_OAUTH.value: ["username", "password", "recovery_phone_number"],
 }
 
 
