@@ -79,18 +79,6 @@ const TestsTable = () => {
   const errorMessageNoCredentials = "You need to add test credentials before running or generating tests. Go to 'Test Credentials' to add credentials.";
 
   const RUNNING_STATUS = 'Running';   // Add a constant for the running status display
-  const MAX_RETRIES_FEATURE_LOADING = 10; // Maximum number of retries (5 seconds total)
-  const MAX_RETRIES_TEST_GENERATION_STATUS = 3; // Maximum number of retries for checking test generation status (3 seconds total)
-  let testGenerationStatusRetryCount = 0;   // Add retry mechanism before starting polling
-  const TEST_GENERATION_STATUS_RETRY_DELAY = 1000; // 1 second between retries
-
-  // Add debounce for status updates
-  const debouncedSetSuccessMessage = useCallback(
-    debounce((message) => {
-      setSuccessMessage(message);
-    }, 500),
-    []
-  );
 
   // Fetch secrets when component loads or when product/organization changes
   useEffect(() => {
@@ -735,14 +723,12 @@ const TestsTable = () => {
         setIsGeneratingTests(false);
         setGeneratingFeatures([]);
         pollingIntervalRef.current = null;
-        setSuccessMessage(successMsg);
-        // Refresh tests list
-        await fetchTestsWithCurrentFilters();
+        setSuccessMessage(`Test generation completed successfully. ${successMsg}`);
       },
       (errorMsg) => { // onError
         setIsGeneratingTests(false);
         setGeneratingFeatures([]);
-        setError(errorMsg);
+        setError(`Test generation failed. ${errorMsg}`);
         setSuccessMessage(null);
         pollingIntervalRef.current = null;
       }
@@ -1119,15 +1105,13 @@ const TestsTable = () => {
           setIsGeneratingTests(false);
           setGeneratingFeatures([]);
           pollingIntervalRef.current = null;
-          setSuccessMessage(successMsg);
-          // Refresh tests list
-          await fetchTestsWithCurrentFilters();
+          setSuccessMessage(`Test generation completed successfully. ${successMsg}`);
         },
         (errorMsg) => {
           setIsGeneratingTests(false);
           setGeneratingFeatures([]);
           pollingIntervalRef.current = null;
-          setError(errorMsg);
+          setError(`Test generation failed. ${errorMsg}`);
           setSuccessMessage(null);
         }
       );
@@ -1254,6 +1238,13 @@ const TestsTable = () => {
     };
   }, [loadingFeatures, features, selectedFeature]);
 
+  // Auto-hide success banner after 5 s
+  useEffect(() => {
+    if (!isGeneratingTests && successMessage) {
+      const t = setTimeout(() => setSuccessMessage(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [isGeneratingTests, successMessage]);
 
   if (loading) {
     return (
@@ -1368,6 +1359,24 @@ const TestsTable = () => {
           <button
             onClick={dismissError}
             className="ml-4 text-red-500 hover:text-red-700"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* ✅ NEW — success / completion banner */}
+      {!isGeneratingTests && successMessage &&
+        !successMessage.includes('Test Generation in Progress') &&
+        !successMessage.includes('Status: PENDING') && (
+        <div className="mb-6 p-4 bg-green-100 border border-green-200 text-green-700 rounded-lg flex items-start justify-between">
+          <p className="break-words">{successMessage}</p>
+          <button
+            onClick={() => setSuccessMessage(null)}
+            className="ml-4 text-green-500 hover:text-green-700"
+            title="Dismiss"
           >
             <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
