@@ -706,8 +706,10 @@ const TestsTable = () => {
     setSuccessMessage(null);
 
     // Set generating state immediately
+    const featureObj = features.find(f => f.id === selectedFeature);
+    const featureName = featureObj ? featureObj.name : 'Selected Feature';
     setIsGeneratingTests(true);
-    setGeneratingFeatures([{ id: selectedFeature, name: features.find(f => f.id === selectedFeature)?.name || 'Selected Feature' }]);
+    setGeneratingFeatures([{ id: selectedFeature, name: featureName }]);
 
     // Call the new service function
     pollingIntervalRef.current = await handleFeatureTestGeneration(
@@ -731,7 +733,8 @@ const TestsTable = () => {
         setError(`Test generation failed. ${errorMsg}`);
         setSuccessMessage(null);
         pollingIntervalRef.current = null;
-      }
+      },
+      featureName
     );
   };
 
@@ -1086,6 +1089,9 @@ const TestsTable = () => {
   const startTestGenerationPolling = async (featureId) => {
     if (!featureId) return;
 
+    const featureObj = features.find(f => f.id === featureId);
+    const featureName = featureObj ? featureObj.name : featureId;
+
     try {
       // Clear any existing polling interval
       if (pollingIntervalRef.current) {
@@ -1113,7 +1119,8 @@ const TestsTable = () => {
           pollingIntervalRef.current = null;
           setError(`Test generation failed. ${errorMsg}`);
           setSuccessMessage(null);
-        }
+        },
+        featureName
       );
     } catch (error) {
       console.error('Error starting test generation polling:', error);
