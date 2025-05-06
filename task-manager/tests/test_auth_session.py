@@ -46,7 +46,7 @@ def valid_google_credentials() -> list[dict[str, Any]]:
     """Fixture for valid Google OAuth credentials."""
     return [
         {
-            "category": LoginMethod.GOOGLE.value,
+            "category": LoginMethod.OAUTH_CREDENTIAL.value,
             "name": "Credentials",
             "values": {
                 "username": "testuser@gmail.com",
@@ -76,7 +76,7 @@ def invalid_google_credentials() -> list[dict[str, Any]]:
     """Fixture for invalid Google OAuth credentials."""
     return [
         {
-            "category": LoginMethod.GOOGLE.value,
+            "category": LoginMethod.OAUTH_CREDENTIAL.value,
             "name": "this-is-not-a-valid-email@fake-domain.com",
             "values": {
                 "username": "this-is-not-a-valid-email@fake-domain.com",

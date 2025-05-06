@@ -1,6 +1,7 @@
 import os
 import pytest
 
+from textwrap import dedent
 from src.agents.login_agent import login_agent
 from src.utils.dto import Test, TestCategory, TestStatus
 from src.fixtures.authentification.has_required_secrets import LoginMethod
@@ -146,3 +147,58 @@ class TestTickPick():
         )
 
         assert result["status"] == TestStatus.AGENT_LIMITATION.value
+
+
+class TestSolight():
+
+    url = "https://app.solight.ai/"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("repeat", [i for i in range(5)])  # reduce chances of flaky test
+    async def test_login_with_google_secret_format(self, task_id: str, repeat: int) -> None:
+        """Test authentication with valid Google OAuth credentials."""
+
+        username = os.getenv("SOLIGHT_USERNAME")
+        if not username:
+            raise ValueError("SOLIGHT_USERNAME is not set")
+
+        password = os.getenv("SOLIGHT_PASSWORD")
+        if not password:
+            raise ValueError("SOLIGHT_PASSWORD is not set")
+
+        secrets = [{
+            "name": "Credentials",
+            "category": LoginMethod.OAUTH_CREDENTIAL.value,
+            "values": {
+                "username": username,
+                "password": password
+            }
+        }]
+
+        test = Test(
+            category=TestCategory.SMOKE,
+            name="Verify Google Authentication Option",
+            url=self.url,
+            description="Ensure that the 'Continue with Google' button is present and initiates the Google authentication flow when clicked.",
+            steps=dedent("""
+                1. Locate the 'Continue with Google' button
+                2. Click on the button
+                3. Login using a real google account (creds provided at runtime)",
+            """),
+            preconditions="None.",
+            assertions=dedent("""
+                1. The button labeled 'Continue with Google' is visible
+                2. Clicking the button redirects or opens a new window/tab for Google authentication (e.g., accounts.google.com)
+                3. The user is login using a real google
+            """),
+            feature_id=task_id,
+        )
+
+        result = await login_agent(
+            task_id=task_id,
+            test=test,
+            secrets=secrets,
+            auth_session={},
+        )
+
+        assert result["status"] == TestStatus.PASSED.value

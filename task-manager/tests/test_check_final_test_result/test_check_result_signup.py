@@ -1,8 +1,8 @@
 import pytest
 
+from textwrap import dedent
 from src.agents._base_agent import check_final_test_result
 from src.healthchecks import get_login_status
-
 from src.utils.dto import Test, TestCategory, TestStatus
 
 
@@ -69,6 +69,59 @@ class TestTickPick():
         status, message = check_final_test_result(
             task_id=task_id,
             test=Test(**self.test_params, feature_id=task_id),
+            agent_output=agent_output,
+            healthcheck_results=healthcheck_results,
+        )
+
+        assert status.value == TestStatus.FAILED.value, f"Expected status {TestStatus.FAILED.value}, but got {status}: {message}"
+
+
+class TestSolight():
+
+    url = "https://app.solight.ai/"
+
+    @pytest.mark.asyncio
+    async def test_agent_positivz_healthcheck_negative(self, task_id: str) -> None:
+        """Test authentication with valid Google OAuth credentials."""
+
+        test_params = {
+            "category": TestCategory.SMOKE,
+            "name": "Verify Google Authentication Option",
+            "url": self.url,
+            "description": "Ensure that the 'Continue with Google' button is present and initiates the Google authentication flow when clicked.",
+            "steps": dedent("""
+                1. Locate the 'Continue with Google' button
+                2. Click on the button
+                3. Login using a real google account (creds provided at runtime)",
+            """),
+            "preconditions": "None.",
+            "assertions": dedent("""
+                1. The button labeled 'Continue with Google' is visible
+                2. Clicking the button redirects or opens a new window/tab for Google authentication (e.g., accounts.google.com)
+                3. The user is login using a real google
+            """),
+        }
+
+        agent_output = dedent("""
+            Test Case: Verify Google Authentication Option
+
+            Results:
+            1. The 'Continue with Google' button was visible on the Solight login page (Assertion 1: PASSED).
+            2. Clicking the button redirected to the Google authentication flow at accounts.google.com (Assertion 2: PASSED).
+            3. Login using real Google credentials was successful; after entering username and password (and handling CAPTCHA), the flow reached the consent screen and then redirected back to Solight (Assertion 3: PASSED).
+
+            No error messages were encountered during login, except for a temporary CAPTCHA challenge which was resolved by retrying password entry.
+
+            Conclusion: All test steps and assertions for verifying the Google Authentication option have been successfully completed.
+        """)
+
+        healthcheck_results = {
+            get_login_status: False,
+        }
+
+        status, message = check_final_test_result(
+            task_id=task_id,
+            test=Test(**test_params, feature_id=task_id),
             agent_output=agent_output,
             healthcheck_results=healthcheck_results,
         )
