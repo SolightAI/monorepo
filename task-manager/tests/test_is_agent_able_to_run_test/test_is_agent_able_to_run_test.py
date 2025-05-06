@@ -140,9 +140,9 @@ class TestSolight():
             name=f"Verify {social_media} Authentication Option",
             url=self.url,
             description=f"Test the ability of a user to login using the {social_media} method.",
-            steps=dedent("""
-                1. Locate and click on the 'Continue with Microsoft' button.
-                3. Login
+            steps=dedent(f"""
+                1. Locate and click on the 'Continue with {social_media}' button.
+                2. Login
             """),
             preconditions="User is on the Solight login page (https://app.solight.ai/login).",
             assertions="1. Verify that the user is successfully logged in",

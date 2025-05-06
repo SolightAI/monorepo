@@ -18,7 +18,7 @@ First, you will be provided with the available login methods:
 Determine which authentication method to use based on the type of credentials provided in the login_methods:
 
 1. If '{USERNAME_PASSWORD}' credentials are available, use the email/password login flow.
-2. If '{GOOGLE_OAUTH}' credentials are available, use the Google OAuth login flow.
+2. If '{OAUTH_CREDENTIAL}' credentials are available, use the appropriate OAuth login flow.
 3. If both types of credentials are available, prioritize using the '{USERNAME_PASSWORD}' credentials.
 4. Do not use any other authentication method than the ones provided. Do never use the "Instant Log In" method, never click on it.
 
@@ -50,7 +50,7 @@ Provide your final output in the following format:
 <login_result>Specify if the login was successful or if an error occurred</login_result>
 <error_message>Include the error message here if an error occurred, otherwise omit this tag</error_message>
 </login_attempt>
-""".strip().format(USERNAME_PASSWORD=LoginMethod.EMAIL.value, GOOGLE_OAUTH=LoginMethod.GOOGLE.value)
+""".strip().format(USERNAME_PASSWORD=LoginMethod.EMAIL.value, OAUTH_CREDENTIAL=LoginMethod.OAUTH_CREDENTIAL.value)
 
 
 logger = getLogger(__name__)
@@ -65,7 +65,7 @@ def _select_login_method(login_method: LoginMethod, secrets: list[dict[str, dict
         if method.value in [_secret.get('category') for _secret in secrets]:
             return method
 
-    raise ValueError("No matching login method found in secrets")
+    raise ValueError(f"No matching login method found in secrets: {secrets}")
 
 
 async def login_to_website(
@@ -95,8 +95,8 @@ async def login_to_website(
     login_methods = []
     if any(LoginMethod.EMAIL.value in _secret['category'] for _secret in secrets):
         login_methods.append(f"- {LoginMethod.EMAIL.value}")
-    if any(LoginMethod.GOOGLE.value in _secret['category'] for _secret in secrets):
-        login_methods.append(f"- {LoginMethod.GOOGLE.value}")
+    if any(LoginMethod.OAUTH_CREDENTIAL.value in _secret['category'] for _secret in secrets):
+        login_methods.append(f"- {LoginMethod.OAUTH_CREDENTIAL.value}")
 
     session_data, history, evidences = await run_agent(
         task_id=task_id,
@@ -104,7 +104,7 @@ async def login_to_website(
         prompt=PROMPT.format(login_methods="\n".join(login_methods)),
         sensitive_data=sensitive_data,
         auth_session=None,
-        tools=None,
+        tools=[],
     )
 
     logger.info(f"[{task_id}] Checking if agent is logged in")

@@ -10,13 +10,14 @@ from langchain_openai import ChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig, AgentHistoryList, Controller
 from browser_use.browser.context import BrowserContextConfig, BrowserContext, BrowserContextWindowSize
 from utils.s3_utils import upload_file_to_s3
-# from test_run.tracing import initialize, extend_agent_history
+from utils.constants import SEED
 from fixtures.tools import TOOLS, get_prompt_list_of_tools
 from typing import Callable
 from healthchecks import get_prompt_list_of_healthchecks, HEALTHCHECKS
 from utils.dto import Test
 from langchain_core.messages import HumanMessage
 from utils.dto import TestStatus
+from fixtures.tools.captcha import check_for_captcha
 
 
 SHARED_AGENT_LIMITATIONS = [
@@ -153,6 +154,8 @@ Finally, review any additional healthcheck results (if available):
 <healthcheck_results>
 {{healthcheck_results}}
 </healthcheck_results>
+
+If there's a conflict between the agent's output and the healthchecks, the healthcheck result is authoritative.
 
 Your task is to carefully analyze this information and determine the final result of the test. The possible outcomes are:
 
@@ -322,12 +325,14 @@ DESCRIPTION_HEALTHCHECK_RESULT = """
 OUTPUT_VALIDATION_LLM = ChatOpenAI(
     model="gpt-4.1-mini",
     temperature=0.0,
+    seed=SEED,
 )
 
 
 LLM_CLIENT = ChatOpenAI(
     model="gpt-4.1",
     temperature=0.0,
+    seed=SEED,
 )
 
 
@@ -336,11 +341,13 @@ AGENT_CLIENT = ChatOpenAI(
     temperature=0.0,
     timeout=120,
     frequency_penalty=0.3,
+    seed=SEED,
 )
 
 PLANNER_CLIENT = ChatOpenAI(
     model="gpt-4.1",
     temperature=0.0,
+    seed=SEED,
 )
 
 
@@ -675,6 +682,8 @@ async def run_agent(
         for tool in (tools or []):
             controller.action(tool.__doc__ or "")(tool)
 
+        logger.info(f"[{task_id}] Sensitive data: {sensitive_data}")
+
         agent = Agent(
             task=prompt,
 
@@ -685,14 +694,19 @@ async def run_agent(
             # planner_llm=PLANNER_CLIENT,
             # use_vision_for_planner=True,
 
-            initial_actions=[{'go_to_url': {'url': url}}, {'go_to_url': {'url': url}}],  # twice cause it some case we have a redirect at the first try
+            initial_actions=[{'go_to_url': {'url': url}}],
             sensitive_data=sensitive_data,
             browser_context=context,
             controller=controller,
             max_actions_per_step=1,
         )
 
-        history = await agent.run(max_steps=50)
+        agent._task_id = task_id
+
+        history = await agent.run(
+            max_steps=50,
+            on_step_start=check_for_captcha,
+        )
 
         logger.info(f"[{task_id}] Finished running agent")
 

@@ -5,6 +5,7 @@ import logging
 
 from typing import Any
 from urllib.parse import urlparse
+from utils.constants import SEED
 from langchain_openai import ChatOpenAI
 from utils.session_manager import get_redis
 from browser_use import Agent, Browser, BrowserConfig
@@ -28,6 +29,7 @@ AGENT_CLIENT = ChatOpenAI(
     temperature=0.0,
     timeout=120,
     frequency_penalty=0.3,
+    seed=SEED,
 )
 
 

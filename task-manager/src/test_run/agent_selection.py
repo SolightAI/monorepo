@@ -13,6 +13,7 @@ from agents.login_agent import login_agent, get_parameters_for_login_agent
 from agents.signup_agent import signup_agent, get_parameters_for_signup_agent
 from inspect import getfullargspec, isclass
 from logging import getLogger
+from utils.constants import SEED
 
 
 logger = getLogger(__name__)
@@ -28,6 +29,7 @@ AGENTS: dict[Callable, Callable] = {
 LLM_CLIENT = ChatOpenAI(
     model="gpt-4.1-mini",
     temperature=0.0,
+    seed=SEED,
 )
 
 

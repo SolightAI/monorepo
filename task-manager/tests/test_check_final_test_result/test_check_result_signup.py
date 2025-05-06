@@ -81,8 +81,8 @@ class TestSolight():
     url = "https://app.solight.ai/"
 
     @pytest.mark.asyncio
-    async def test_agent_positivz_healthcheck_negative(self, task_id: str) -> None:
-        """Test authentication with valid Google OAuth credentials."""
+    async def test_agent_positive_healthcheck_negative(self, task_id: str) -> None:
+        """Test agent thinking that he is logged in when he is not."""
 
         test_params = {
             "category": TestCategory.SMOKE,
@@ -92,7 +92,7 @@ class TestSolight():
             "steps": dedent("""
                 1. Locate the 'Continue with Google' button
                 2. Click on the button
-                3. Login using a real google account (creds provided at runtime)",
+                3. Login using a real google account (creds provided at runtime),
             """),
             "preconditions": "None.",
             "assertions": dedent("""

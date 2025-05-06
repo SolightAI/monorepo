@@ -155,7 +155,7 @@ class TestSolight():
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("repeat", [i for i in range(5)])  # reduce chances of flaky test
-    async def test_login_with_google_secret_format(self, task_id: str, repeat: int) -> None:
+    async def test_login_with_google(self, task_id: str, repeat: int) -> None:
         """Test authentication with valid Google OAuth credentials."""
 
         username = os.getenv("SOLIGHT_USERNAME")
@@ -183,7 +183,7 @@ class TestSolight():
             steps=dedent("""
                 1. Locate the 'Continue with Google' button
                 2. Click on the button
-                3. Login using a real google account (creds provided at runtime)",
+                3. Login using a real google account (creds provided at runtime),
             """),
             preconditions="None.",
             assertions=dedent("""

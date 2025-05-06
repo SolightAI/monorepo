@@ -16,8 +16,8 @@ from fixtures.tools import TOOLS, get_prompt_list_of_tools
 
 
 AGENT_LIMITATIONS = [
-    "The agent cannot login using a social media account (Google, Facebook, Twitter, etc.)",
-    "The agent cannot login using \"Instant Login\"",
+    "The agent cannot login using a social media account outside of Google (GitHub, Facebook, Twitter, etc.)",
+    "The agent cannot use the \"Instant Login\" feature (that sends a link to the user's email to login)",
 ]
 
 PROMPT = """

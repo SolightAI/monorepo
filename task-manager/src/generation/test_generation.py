@@ -13,6 +13,7 @@ from crypto.crypto import crypto_service
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_file_to_s3
 from fixtures.authentification.get_auth_session import get_auth_session
+from utils.constants import SEED
 
 
 PROMPT = """
@@ -90,6 +91,7 @@ LLM_CLIENT = ChatOpenAI(
     timeout=120,
     temperature=0,
     frequency_penalty=0.3,
+    seed=SEED,
 )
 
 logger = getLogger(__name__)

@@ -8,20 +8,15 @@ class LoginMethod(str, Enum):
     """
     ANY = "any"
     EMAIL = "username_password"
-    INSTANT_LOGIN = "instant_login"
-    GOOGLE = "oauth_credential_google"
-    FACEBOOK = "oauth_credential_facebook"
-    APPLE = "oauth_credential_apple"
-    TWITTER = "oauth_credential_twitter"
-    OTHER = "other"
+    OAUTH_CREDENTIAL = "oauth_credential"
 
 
-SUPPORTED_LOGIN_METHODS = [LoginMethod.ANY, LoginMethod.EMAIL]
+SUPPORTED_LOGIN_METHODS = [LoginMethod.ANY, LoginMethod.EMAIL, LoginMethod.OAUTH_CREDENTIAL]
 
 
 REQUIRED_FIELDS = {
     LoginMethod.EMAIL.value: ["username", "password"],
-    LoginMethod.GOOGLE.value: ["username", "password"],
+    LoginMethod.OAUTH_CREDENTIAL.value: ["provider", "username", "password"],
 }
 
 

@@ -11,6 +11,7 @@ from langchain_core.messages import HumanMessage
 from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from utils.s3_utils import upload_file_to_s3
+from utils.constants import SEED
 
 
 USER_AUTHENTICATED = "USER_AUTHENTICATED"
@@ -58,6 +59,7 @@ AGENT_CLIENT = ChatOpenAI(
     temperature=0.0,
     timeout=120,
     frequency_penalty=0.3,
+    seed=SEED,
 )
 
 
