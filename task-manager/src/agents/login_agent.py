@@ -39,6 +39,7 @@ Assertions: {test.assertions}
 
 Additional instructions:
 - When using the login method, take the time to read the form's error messages if any.
+- If you encounter a MFA google verification, select "Confirm your recovery phone number" and enter the phone number provided in the secrets.
 
 Be aware that you have the ability to:
 {tools}

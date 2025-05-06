@@ -43,6 +43,7 @@ If you need help locating the signup feature, follow these steps:
 - If you're on another page, first find the “Sign In / Sign Up” control, then choose “Sign Up.”
 - The signup link often sits inside or immediately beside the login form.
 - If you complete the signup fields, carefully read any error messages before proceeding.
+- If you encounter a MFA google verification, select "Confirm your recovery phone number" and enter the phone number provided in the secrets.
 
 Be aware that you have the ability to:
 {tools}
