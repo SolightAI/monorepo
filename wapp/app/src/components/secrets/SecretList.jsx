@@ -80,7 +80,7 @@ const SecretList = () => {
       // 'api_key': 'API Key',
       // 'environment_variable': 'Environment Variable',
       // 'connection_string': 'Connection String',
-      // 'oauth_credential': 'OAuth Credentials',
+      'oauth_credential': 'OAuth Credentials',
       // 'other': 'Other'
     };
     return typeMap[type] || type;
@@ -144,14 +144,6 @@ const SecretList = () => {
           )}
         </h2>
         <div className="flex space-x-2">
-          {/* <button
-            onClick={fetchSecrets}
-            disabled={loading}
-            className="p-2 text-gray-500 hover:text-gray-700"
-            title="Refresh secrets"
-          >
-            <HiRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-          </button> */}
           <button
             onClick={handleAddSecret}
             className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"

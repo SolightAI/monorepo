@@ -182,7 +182,7 @@ Common causes:
 
 Note: In all of these cases, the website may be perfectly fine—this status flags a gap in your automation layer.
 
-{UNEXISTING_FEATURE}: The agent ran the script up to the point of looking for a site feature, but that feature really isn't there.
+{NOT_FOUND}: The agent ran the script up to the point of looking for a site feature, but that feature wasn't found.
 
 Criteria:
 * Locator lookups (by selector, text, etc.) return zero matches repeatedly.
@@ -228,7 +228,7 @@ Don't forget to close any open tags.
     TEST_SUCCESSFUL=TestStatus.PASSED.name,
     TEST_FAILED=TestStatus.FAILED.name,
     AGENT_LIMITATION=TestStatus.AGENT_LIMITATION.name,
-    UNEXISTING_FEATURE=TestStatus.UNEXISTING_FEATURE.name,
+    NOT_FOUND=TestStatus.NOT_FOUND.name,
     BLOCKED_BY_CAPTCHA=TestStatus.BLOCKED_BY_CAPTCHA.name,
 )
 
@@ -334,6 +334,8 @@ LLM_CLIENT = ChatOpenAI(
 AGENT_CLIENT = ChatOpenAI(
     model="gpt-4.1",
     temperature=0.0,
+    timeout=120,
+    frequency_penalty=0.3,
 )
 
 PLANNER_CLIENT = ChatOpenAI(

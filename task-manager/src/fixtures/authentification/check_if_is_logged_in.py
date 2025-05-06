@@ -56,6 +56,8 @@ Expected output format
 AGENT_CLIENT = ChatOpenAI(
     model="gpt-4.1-mini",
     temperature=0.0,
+    timeout=120,
+    frequency_penalty=0.3,
 )
 
 
@@ -200,8 +202,8 @@ async def check_is_logged_in(
 
         logger.info(f"[{task_id}] Creating temporary browser context without cookies")
         context = BrowserContext(browser=browser, config=BrowserContextConfig(
-            minimum_wait_page_load_time=1,
-            wait_for_network_idle_page_load_time=2,
+            minimum_wait_page_load_time=3,
+            wait_for_network_idle_page_load_time=3,
         ))
 
         await context.navigate_to(url)

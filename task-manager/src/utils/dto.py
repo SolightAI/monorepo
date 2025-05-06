@@ -67,7 +67,7 @@ class TestStatus(Enum):
     FAILED = "failed"
     ERROR = "error"
     AGENT_LIMITATION = "agent_limitation"
-    UNEXISTING_FEATURE = "unexisting_feature"
+    NOT_FOUND = "not_found"
     BLOCKED_BY_CAPTCHA = "blocked_by_captcha"
     UNKNOWN = "unknown"
 

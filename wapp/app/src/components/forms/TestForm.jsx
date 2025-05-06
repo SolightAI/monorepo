@@ -128,6 +128,21 @@ const TestForm = ({
         </div>
 
         <div>
+          <label htmlFor="preconditions" className="block text-sm font-medium text-gray-700 mb-1">
+            Preconditions
+          </label>
+          <textarea
+            id="preconditions"
+            name="preconditions"
+            rows={3}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            value={formData.preconditions}
+            onChange={handleChange}
+            placeholder="List any preconditions required for the test (e.g., 'User must be logged in'). Use 'None' if not applicable."
+          />
+        </div>
+
+        <div>
           <label htmlFor="assertions" className="block text-sm font-medium text-gray-700 mb-1">
             Assertions *
           </label>

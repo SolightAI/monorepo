@@ -30,7 +30,6 @@ export const OnboardingProvider = ({ children }) => {
 
       // First check if we can get the status from the user object
       if (user && user.onboarding_completed !== undefined) {
-        console.log('Getting onboarding status from user object:', user.onboarding_completed);
         const isCompleted = user.onboarding_completed;
         setOnboardingCompleted(isCompleted);
 

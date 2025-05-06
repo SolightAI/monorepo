@@ -140,7 +140,7 @@ class TestStatus(str, Enum):
     ERROR = "error"
     BLOCKED_BY_CAPTCHA = "blocked_by_captcha"
     AGENT_LIMITATION = "agent_limitation"
-    UNEXISTING_FEATURE = "unexisting_feature"
+    NOT_FOUND = "not_found"
     UNKNOWN = "unknown"
 
 

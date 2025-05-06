@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, XCircle, Clock, Server, User, RefreshCw, Info, Search } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Server, User, RefreshCw, Info, Search, Lock } from 'lucide-react';
 import { formatDuration } from './dateUtils';
 
 /**
@@ -12,7 +12,7 @@ export const TEST_STATUS = {
   ERROR: "error",
   BLOCKED_BY_CAPTCHA: "blocked_by_captcha",
   AGENT_LIMITATION: "agent_limitation",
-  UNEXISTING_FEATURE: "unexisting_feature",
+  NOT_FOUND: "not_found",
 };
 
 /**
@@ -29,106 +29,60 @@ export const EXECUTOR_TYPE = {
  * Get icon and color based on execution status
  *
  * @param {string} status - The status of the test execution
+ * @param {number} [size=16] - The desired icon size
  * @returns {Object} Object with icon and color for the status
  */
-export const getStatusInfo = (status) => {
+export const getStatusInfo = (status, size = 16) => {
   switch (status) {
     case TEST_STATUS.PASSED:
-      return { icon: <CheckCircle size={16} />, color: 'text-green-500 bg-green-50' };
+      return { icon: <CheckCircle size={size} />, color: 'text-green-500 bg-green-50' };
     case TEST_STATUS.FAILED:
-      return { icon: <XCircle size={16} />, color: 'text-red-500 bg-red-50' };
+      return { icon: <XCircle size={size} />, color: 'text-red-500 bg-red-50' };
     case TEST_STATUS.PENDING:
-      return { icon: <Clock size={16} />, color: 'text-yellow-500 bg-yellow-50' };
+      return { icon: <Clock size={size} />, color: 'text-yellow-500 bg-yellow-50' };
     case TEST_STATUS.ERROR:
-      return { icon: <XCircle size={16} />, color: 'text-red-500 bg-red-50' };
+      return { icon: <XCircle size={size} />, color: 'text-red-500 bg-red-50' };
     case TEST_STATUS.AGENT_LIMITATION:
-      return { icon: <Info size={16} />, color: 'text-purple-500 bg-purple-50' };
-    case TEST_STATUS.UNEXISTING_FEATURE:
-      return { icon: <Search size={16} />, color: 'text-amber-500 bg-amber-50' };
+      return { icon: <Info size={size} />, color: 'text-purple-500 bg-purple-50' };
+    case TEST_STATUS.NOT_FOUND:
+      return { icon: <Search size={size} />, color: 'text-amber-500 bg-amber-50' };
+    case TEST_STATUS.BLOCKED_BY_CAPTCHA:
+      return { icon: <Lock size={size} />, color: 'text-purple-500 bg-purple-50' };
+    case null:
+      return { icon: <Clock size={size} />, color: 'text-gray-500 bg-gray-50' };
     default:
       console.log('getStatusInfo', status);
-      return { icon: <Clock size={16} />, color: 'text-gray-500 bg-gray-50' };
+      return { icon: <Clock size={size} />, color: 'text-gray-500 bg-gray-50' };
   }
 };
 
 /**
- * Get larger icon for test status (for headers, etc.)
+ * Get a human-readable description for a test status.
  *
- * @param {string} status - The status of the test
- * @returns {JSX.Element} The icon component for the status
+ * @param {string} status - The status of the test execution
+ * @returns {string} Description of the status
  */
-export const getStatusIconLarge = (status) => {
-  if (!status) return <Clock size={20} className="text-gray-400" />;
-  
+export const getStatusDescription = (status) => {
   switch (status) {
     case TEST_STATUS.PASSED:
-      return <CheckCircle size={20} className="text-green-500" />;
+      return 'The test completed successfully.';
     case TEST_STATUS.FAILED:
-      return <XCircle size={20} className="text-red-500" />;
-    case TEST_STATUS.ERROR:
-      return <XCircle size={20} className="text-red-500" />;
+      return 'The test execution failed assertions or checks.';
     case TEST_STATUS.PENDING:
-      return <Clock size={20} className="text-yellow-500 animate-spin" />;
-    case TEST_STATUS.IN_PROGRESS:
-      return <Clock size={20} className="text-blue-500 animate-spin" />;
-    case TEST_STATUS.AGENT_LIMITATION:
-      return <Info size={20} className="text-purple-500" />;
-    case TEST_STATUS.UNEXISTING_FEATURE:
-      return <Search size={20} className="text-amber-500" />;
-    default:
-      return <Clock size={20} className="text-gray-400" />;
-  }
-};
-
-/**
- * Get CSS classes for status backgrounds and text colors
- *
- * @param {string} status - The status of the test
- * @returns {string} CSS classes for the status
- */
-export const getStatusColorClasses = (status) => {
-  switch (status) {
-    case TEST_STATUS.PASSED:
-      return 'bg-green-100 text-green-800';
-    case TEST_STATUS.FAILED:
-      return 'bg-red-100 text-red-800';
+      return 'The test execution is currently running or queued.';
     case TEST_STATUS.ERROR:
-      return 'bg-red-100 text-red-800';
-    case TEST_STATUS.PENDING:
-      return 'bg-yellow-100 text-yellow-800';
-    case TEST_STATUS.IN_PROGRESS:
-      return 'bg-blue-100 text-blue-800';
+      return 'An unexpected error occurred during test execution.';
+    case TEST_STATUS.BLOCKED_BY_CAPTCHA:
+      return 'The test execution was blocked by a CAPTCHA.';
     case TEST_STATUS.AGENT_LIMITATION:
-      return 'bg-purple-100 text-purple-800';
-    case TEST_STATUS.UNEXISTING_FEATURE:
-      return 'bg-amber-100 text-amber-800';
+      return 'The test could not be completed due to limitations of the AI agent.';
+    case TEST_STATUS.NOT_FOUND:
+      return 'The test execution target (e.g., element) was not found.';
+    case null:
+      return 'The test has not been run yet';
     default:
-      return 'bg-gray-100 text-gray-600';
-  }
-};
-
-/**
- * Get CSS classes for status in summary metrics component
- *
- * @param {string} status - The status of the test
- * @returns {string} CSS classes for the status
- */
-export const getStatusMetricClasses = (status) => {
-  switch (status) {
-    case TEST_STATUS.PASSED:
-      return 'text-green-600 bg-green-50 border-green-100';
-    case TEST_STATUS.FAILED:
-      return 'text-red-600 bg-red-50 border-red-100';
-    case TEST_STATUS.ERROR:
-      return 'text-red-600 bg-red-50 border-red-100';
-    case TEST_STATUS.PENDING:
-      return 'text-orange-600 bg-orange-50 border-orange-100';
-    case TEST_STATUS.AGENT_LIMITATION:
-      return 'text-purple-600 bg-purple-50 border-purple-100';
-    case TEST_STATUS.UNEXISTING_FEATURE:
-      return 'text-amber-600 bg-amber-50 border-amber-100';
-    default:
-      return 'text-gray-600 bg-gray-50 border-gray-100';
+      console.log('getStatusDescription', status);
+      return 'The status is unknown.';
   }
 };
 

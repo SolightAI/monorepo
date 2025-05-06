@@ -1,11 +1,12 @@
-import React, { useEffect } from 'react';
-import { X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useOnboarding } from '@/context/OnboardingContext';
+import { useSecret } from '@/context/SecretContext';
 import WelcomeScreen from './WelcomeScreen';
 import ProductHierarchy from './ProductHierarchy';
 import OrganizationSetup from './OrganizationSetup';
 import ProductSetup from './ProductSetup';
-import SecretCreation from './SecretCreation';
+import SecretModal from '@/components/secrets/SecretModal';
 import FeaturesOverview from './FeaturesOverview';
 
 const OnboardingModal = () => {
@@ -18,6 +19,10 @@ const OnboardingModal = () => {
     skipOnboarding,
     setTotalSteps
   } = useOnboarding();
+  const { fetchSecrets } = useSecret();
+
+  // State for Secret Modal
+  const [isSecretModalOpen, setIsSecretModalOpen] = useState(false);
 
   // Set total steps on mount
   useEffect(() => {
@@ -41,7 +46,38 @@ const OnboardingModal = () => {
       case 3:
         return <ProductSetup onNext={nextStep} onPrev={prevStep} onSkip={skipOnboarding} />;
       case 4:
-        return <SecretCreation onNext={nextStep} onPrev={prevStep} onSkip={skipOnboarding} />;
+        return (
+          <div className="p-6 space-y-6">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">Create Your First Test Credential</h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Test Credentials securely store sensitive information like usernames, passwords, or API keys needed for your tests.
+              </p>
+            </div>
+            <div className="flex justify-between items-center">
+              <button
+                onClick={prevStep}
+                className="px-5 py-2 border border-gray-300 rounded-md flex items-center hover:bg-gray-50 transition-colors"
+              >
+                <ArrowLeft className="mr-2 h-5 w-5" />
+                Back
+              </button>
+              <button
+                onClick={() => setIsSecretModalOpen(true)}
+                className="px-5 py-2 bg-blue-600 text-white rounded-md flex items-center hover:bg-blue-700 transition-colors"
+              >
+                Create Test Credential
+              </button>
+              <button
+                onClick={nextStep}
+                className="px-5 py-2 border border-gray-300 rounded-md flex items-center hover:bg-gray-50 transition-colors"
+              >
+                Skip for now
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        );
       case 5:
         return <FeaturesOverview onNext={nextStep} onPrev={prevStep} onSkip={skipOnboarding} />;
       default:
@@ -68,6 +104,20 @@ const OnboardingModal = () => {
         <div className="flex-1 overflow-y-auto">
           {renderStepContent()}
         </div>
+
+        {/* Render SecretModal when isSecretModalOpen is true */}
+        {isSecretModalOpen && (
+          <SecretModal
+            isOpen={isSecretModalOpen}
+            onClose={() => setIsSecretModalOpen(false)}
+            secret={null}
+            onRefresh={() => {
+              fetchSecrets();
+              setIsSecretModalOpen(false);
+              nextStep();
+            }}
+          />
+        )}
 
         {/* Progress indicator */}
         <div className="border-t border-gray-200 p-4">

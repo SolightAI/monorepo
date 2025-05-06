@@ -1,9 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSecret } from '../../context/SecretContext';
 import { useOrganization } from '../../context/OrganizationContext';
 import { useProduct } from '../../context/ProductContext';
 import { HiX, HiEye, HiEyeOff, HiClipboardCopy, HiExclamationCircle } from 'react-icons/hi';
 import { v4 as uuidv4 } from 'uuid';
+
+const SecretTypes = {
+  USERNAME_PASSWORD: 'username_password',
+  API_KEY: 'api_key',
+  ENVIRONMENT_VARIABLE: 'environment_variable',
+  CONNECTION_STRING: 'connection_string',
+  OAUTH_CREDENTIAL: 'oauth_credential',
+};
+
+// Constants for standard secret value keys
+const SecretFieldKeys = {
+  USERNAME: 'username',
+  PASSWORD: 'password',
+  PROVIDER: 'provider',
+};
+
+// Add constant for OAuth Providers
+const OAuthProviders = {
+  GOOGLE: 'Google',
+};
+
+// Mapping from SecretTypes to their default fields and initial values
+const SecretTypeFields = {
+  [SecretTypes.USERNAME_PASSWORD]: [
+    { key: SecretFieldKeys.USERNAME, value: '', placeholder: 'Enter username' },
+    { key: SecretFieldKeys.PASSWORD, value: '', placeholder: 'Enter password' }
+  ],
+  [SecretTypes.OAUTH_CREDENTIAL]: [
+    { key: SecretFieldKeys.PROVIDER, value: '', placeholder: 'Select Provider' },
+    { key: SecretFieldKeys.USERNAME, value: '', placeholder: 'Enter username' },
+    { key: SecretFieldKeys.PASSWORD, value: '', placeholder: 'Enter password' },
+  ],
+};
 
 const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
   const { selectedOrganization } = useOrganization();
@@ -18,11 +51,11 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
 
   const isEditing = !!secret;
 
-  // Form state
+  // Initial form state structure (will be populated by effects)
   const [formData, setFormData] = useState({
-    name: 'Username/Password Credentials', // Default name for the default type
+    name: '',
     description: '',
-    type: 'username_password', // Default type
+    type: SecretTypes.USERNAME_PASSWORD, // Default type for initial render
     expires_at: '',
     organization_id: selectedOrganization?.id,
     product_id: selectedProduct?.id,
@@ -39,210 +72,122 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
   const [valuesToUpdate, setValuesToUpdate] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Load existing secret data when editing
+  // Set initial form data when editing starts or selected product/org changes
   useEffect(() => {
-    const loadSecretData = async () => {
-      if (isEditing && secret) {
-        // Set basic secret data
-        setFormData({
-          name: secret.name,
-          description: secret.description || '',
-          type: secret.type,
-          expires_at: secret.expires_at ? new Date(secret.expires_at).toISOString().split('T')[0] : '',
-          organization_id: secret.organization_id,
-          product_id: secret.product_id || selectedProduct?.id,
-        });
+    if (isEditing && secret) {
+      setFormData({
+        name: secret.name,
+        description: secret.description || '',
+        type: secret.type,
+        expires_at: secret.expires_at ? new Date(secret.expires_at).toISOString().split('T')[0] : '',
+        organization_id: secret.organization_id,
+        product_id: secret.product_id || selectedProduct?.id, // Prioritize secret's product ID
+      });
+    } else if (!isEditing) {
+      // Reset form for new secret, keeping org/product context
+      setFormData({
+        name: 'My Credentials', // Default name
+        description: '',
+        type: SecretTypes.USERNAME_PASSWORD, // Default type
+        expires_at: '',
+        organization_id: selectedOrganization?.id,
+        product_id: selectedProduct?.id,
+      });
+       // Set default fields for the initial type when creating
+       // This is handled by Effect 3 now
+    }
+  }, [isEditing, secret, selectedOrganization, selectedProduct]); // Rerun if switching between edit/create or context changes
 
-        // Fetch secret values
+  // Use useCallback for setDefaultFieldsForType to stabilize its reference
+  const setDefaultFieldsForType = useCallback((type) => {
+    const defaultFields = SecretTypeFields[type] || []; // Default to empty array if type not found
+
+    const initialValues = defaultFields.map(field => ({
+      id: uuidv4(),
+      key: field.key,
+      value: field.value || '', // Ensure value is always a string
+      revealed: false,
+      placeholder: field.placeholder || 'Enter value' // Add placeholder info
+    }));
+
+    setSecretValues(initialValues);
+
+    // Update valuesToUpdate based on the default fields
+    const initialValuesToUpdate = {};
+    defaultFields.forEach(field => {
+      initialValuesToUpdate[field.key] = field.value || '';
+    });
+    setValuesToUpdate(initialValuesToUpdate);
+  }, [setSecretValues, setValuesToUpdate]); // Dependencies are stable setters
+
+  // Fetch values when editing starts
+  useEffect(() => {
+    const loadSecretValues = async () => {
+      if (isEditing && secret?.id) {
         setLoadingValues(true);
+        setError(null); // Clear previous errors
         try {
           const secretWithValues = await getSecretWithValues(secret.id);
           if (secretWithValues && secretWithValues.values) {
-            // Create an array of key-value pairs from the values object
             const valueArray = Object.entries(secretWithValues.values).map(([key, value]) => ({
               id: uuidv4(),
               key,
               value,
-              revealed: false
+              revealed: false,
+              // Find placeholder from definitions based on the *initial* secret type
+              placeholder: (SecretTypeFields[secret.type] || []).find(f => f.key === key)?.placeholder || 'Enter value'
             }));
 
-            // Ensure proper order for credentials fields
+            // Sort based on the *initial* secret type defined order
             valueArray.sort((a, b) => {
-              if (formData.type === 'oauth_credential') {
-                // For OAuth credentials: provider -> username -> password
-                if (a.key === 'provider') return -1;
-                if (b.key === 'provider') return 1;
-                if (a.key === 'username' && b.key === 'password') return -1;
-                if (a.key === 'password' && b.key === 'username') return 1;
-              } else {
-                // For all other types: username -> password
-                if (a.key === 'username' && b.key === 'password') return -1;
-                if (a.key === 'password' && b.key === 'username') return 1;
-              }
-              return 0; // Keep original order for other keys
+              const orderedFields = SecretTypeFields[secret.type] || []; // Use initial type for sorting fetched values
+              const orderedKeys = orderedFields.map(field => field.key);
+              const indexA = orderedKeys.indexOf(a.key);
+              const indexB = orderedKeys.indexOf(b.key);
+              if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+              if (indexA !== -1) return -1;
+              if (indexB !== -1) return 1;
+              return a.key.localeCompare(b.key);
             });
 
-            // If no values, add an empty row
-            setSecretValues(valueArray.length ? valueArray : [{
-              id: uuidv4(), key: '', value: '', revealed: false
-            }]);
+            setSecretValues(valueArray.length ? valueArray : [{ id: uuidv4(), key: '', value: '', revealed: false, placeholder: 'Enter value'}]);
 
-            // Initialize values to update
-            const initialValues = {};
-            Object.entries(secretWithValues.values).forEach(([key, value]) => {
-              initialValues[key] = value;
-            });
-            setValuesToUpdate(initialValues);
+            // Initialize values to update with fetched values
+            setValuesToUpdate(secretWithValues.values || {});
+          } else {
+             // If fetch returns no values, set default fields for the secret's type
+             setDefaultFieldsForType(secret.type);
           }
         } catch (err) {
           setError('Failed to load secret values. Please try again.');
+           // Optionally set default fields on error too
+           setDefaultFieldsForType(secret.type);
         } finally {
           setLoadingValues(false);
         }
-      } else if (!isEditing) {
-        // For new secrets, set default fields based on the selected type
-        setDefaultFieldsForType(formData.type);
       }
     };
 
-    loadSecretData();
-  }, [isEditing, secret, getSecretWithValues, selectedProduct, formData.type]);
+    loadSecretValues();
+  }, [isEditing, secret?.id, secret?.type, getSecretWithValues, setDefaultFieldsForType]); // Fetch when secret ID/type changes
 
-  // Handle input changes for basic form fields
+  // Set default fields when type changes during *creation*
+  useEffect(() => {
+    if (!isEditing) {
+      setDefaultFieldsForType(formData.type);
+    }
+  }, [isEditing, formData.type, setDefaultFieldsForType]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
 
-    // If changing secret type, update the name with a default suggestion
-    // and set the appropriate default fields
-    if (name === 'type') {
-      const typeToNameMap = {
-        'username_password': 'Username/Password Credentials',
-        // 'api_key': 'API Key',
-        // 'environment_variable': 'Environment Variables',
-        // 'connection_string': 'Connection String',
-        // 'oauth_credential': 'OAuth Credentials',
-        // 'other': 'Custom Test Credential'
-      };
-
-      // Always update the type
-      setFormData(prev => {
-        // If the user has not manually changed the name from a default,
-        // or if the name is empty, suggest a new name based on the type
-        if (!prev.name ||
-            prev.name === 'Username/Password Credentials' ||
-            prev.name === 'API Key' ||
-            prev.name === 'Environment Variables' ||
-            prev.name === 'Connection String' ||
-            prev.name === 'OAuth Credentials' ||
-            prev.name === 'Custom Test Credential') {
-          // Update type and suggest appropriate name
-          return {
-            ...prev,
-            [name]: value,
-            name: typeToNameMap[value]
-          };
-        } else {
-          // Just update the type, keep the custom name
-          return {
-            ...prev,
-            [name]: value
-          };
-        }
-      });
-
-      // Set default fields for the selected type
-      setDefaultFieldsForType(value);
-    } else {
-      // For other field changes, just update normally
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
-  };
-
-  // Set default fields based on secret type
-  const setDefaultFieldsForType = (type) => {
-    if (type === 'username_password') {
-      // Set username and password fields only
-      setSecretValues([
-        { id: uuidv4(), key: 'username', value: '', revealed: false },
-        { id: uuidv4(), key: 'password', value: '', revealed: false }
-      ]);
-
-      // Update valuesToUpdate
-      setValuesToUpdate({
-        username: '',
-        password: ''
-      });
-    } else if (type === 'api_key') {
-      // Set API key fields with more context
-      setSecretValues([
-        { id: uuidv4(), key: 'api_key', value: '', revealed: false },
-        { id: uuidv4(), key: 'api_url', value: '', revealed: false },
-        { id: uuidv4(), key: 'header_name', value: 'Authorization', revealed: false }
-      ]);
-
-      // Update valuesToUpdate
-      setValuesToUpdate({
-        api_key: '',
-        api_url: '',
-        header_name: 'Authorization'
-      });
-    } else if (type === 'environment_variable') {
-      // Set environment variable fields with descriptive names
-      setSecretValues([
-        { id: uuidv4(), key: 'DATABASE_URL', value: '', revealed: false },
-        { id: uuidv4(), key: 'API_TOKEN', value: '', revealed: false },
-        { id: uuidv4(), key: 'DEBUG_MODE', value: 'false', revealed: false }
-      ]);
-
-      // Update valuesToUpdate
-      setValuesToUpdate({
-        DATABASE_URL: '',
-        API_TOKEN: '',
-        DEBUG_MODE: 'false'
-      });
-    } else if (type === 'connection_string') {
-      // Set connection string fields with different typical types
-      setSecretValues([
-        { id: uuidv4(), key: 'database_url', value: '', revealed: false },
-        { id: uuidv4(), key: 'database_type', value: 'postgresql', revealed: false },
-        { id: uuidv4(), key: 'ssl_mode', value: 'require', revealed: false }
-      ]);
-
-      // Update valuesToUpdate
-      setValuesToUpdate({
-        database_url: '',
-        database_type: 'postgresql',
-        ssl_mode: 'require'
-      });
-    } else if (type === 'oauth_credential') {
-      // Set OAuth credential fields with additional useful fields
-      setSecretValues([
-        { id: uuidv4(), key: 'provider', value: '', revealed: false },
-        { id: uuidv4(), key: 'username', value: '', revealed: false },
-        { id: uuidv4(), key: 'password', value: '', revealed: false },
-      ]);
-
-      // Update valuesToUpdate
-      setValuesToUpdate({
-        provider: '',
-        username: '',
-        password: ''
-      });
-    } else {
-      // For 'other' type, set a more useful example
-      setSecretValues([
-        { id: uuidv4(), key: 'service_name', value: '', revealed: false },
-        { id: uuidv4(), key: 'credential_value', value: '', revealed: false }
-      ]);
-
-      // Update valuesToUpdate
-      setValuesToUpdate({
-        service_name: '',
-        credential_value: ''
-      });
+    // If the type is changed *while editing*, reset the fields to match the new type
+    if (name === 'type' && isEditing) {
+        setDefaultFieldsForType(value);
     }
   };
 
@@ -455,12 +400,8 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
                   className="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   required
                 >
-                  <option value="username_password">Username/Password</option>
-                  {/* <option value="api_key">API Key</option> */}
-                  {/* <option value="environment_variable">Environment Variable</option> */}
-                  {/* <option value="connection_string">Connection String</option> */}
-                  {/* <option value="oauth_credential">OAuth Credentials</option> */}
-                  {/* <option value="other">Other</option> */}
+                  <option value={SecretTypes.USERNAME_PASSWORD}>Username/Password</option>
+                  <option value={SecretTypes.OAUTH_CREDENTIAL}>OAuth Credentials</option>
                 </select>
               </div>
 
@@ -483,15 +424,6 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
                   <label className="block text-sm font-medium text-gray-700">
                     Test Credential Values *
                   </label>
-                  {formData.type === 'other' && (
-                    <button
-                      type="button"
-                      onClick={addKeyValuePair}
-                      className="text-sm text-blue-600 hover:text-blue-800"
-                    >
-                      + Add Value
-                    </button>
-                  )}
                 </div>
 
                 {loadingValues ? (
@@ -509,61 +441,29 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
                           value={item.key}
                           onChange={(e) => handleValueChange(item.id, 'key', e.target.value)}
                           className="w-1/3 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                          readOnly={formData.type !== 'other'}
-                          disabled={formData.type !== 'other'}
+                          readOnly={false}
+                          disabled={false}
                         />
                         <div className="relative flex-1">
                           {/* Conditional rendering for OAuth provider */}
-                          {formData.type === 'oauth_credential' && item.key === 'provider' ? (
+                          {formData.type === SecretTypes.OAUTH_CREDENTIAL && item.key === SecretFieldKeys.PROVIDER ? (
                             <select
                               value={item.value}
                               onChange={(e) => handleValueChange(item.id, 'value', e.target.value)}
                               className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 pr-10 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             >
                               <option value="">Select Provider</option>
-                              <option value="Google">Google</option>
-                              <option value="GitHub">GitHub</option>
-                              <option value="GitLab">GitLab</option>
-                              <option value="Microsoft">Microsoft</option>
-                              <option value="Apple">Apple</option>
-                              <option value="Other">Other</option>
+                              {/* Map over OAuthProviders to generate options */}
+                              {Object.entries(OAuthProviders).map(([key, providerName]) => (
+                                <option key={key} value={providerName}>{providerName}</option>
+                              ))}
                             </select>
                           ) : (
                             // Original input for other fields or types
                             <>
                               <input
                                 type={item.revealed ? 'text' : 'password'}
-                                placeholder={
-                                  // Username/Password fields
-                                  item.key === 'username' ? 'Enter username' :
-                                  item.key === 'password' ? 'Enter password' :
-
-                                  // API Key fields
-                                  item.key === 'api_key' ? 'Enter API key value' :
-                                  item.key === 'api_url' ? 'https://api.example.com/v1' :
-                                  item.key === 'header_name' ? 'Name of header (e.g., Authorization)' :
-
-                                  // Environment Variable fields
-                                  item.key === 'DATABASE_URL' ? 'postgresql://user:pass@localhost:5432/db' :
-                                  item.key === 'API_TOKEN' ? 'Enter API token value' :
-                                  item.key === 'DEBUG_MODE' ? 'true or false' :
-
-                                  // Connection String fields
-                                  item.key === 'database_url' ? 'postgresql://user:pass@localhost:5432/db' :
-                                  item.key === 'database_type' ? 'postgresql, mysql, mongodb, etc.' :
-                                  item.key === 'ssl_mode' ? 'require, prefer, disable, etc.' :
-
-                                  // OAuth credential fields (username/password handled here)
-                                  item.key === 'username' ? 'Enter username' :
-                                  item.key === 'password' ? 'Enter password' :
-
-                                  // Other type
-                                  item.key === 'service_name' ? 'Name of the service' :
-                                  item.key === 'credential_value' ? 'Enter credential value' :
-
-                                  // Default
-                                  'Enter value'
-                                }
+                                placeholder={item.placeholder || 'Enter value'}
                                 value={item.value}
                                 onChange={(e) => handleValueChange(item.id, 'value', e.target.value)}
                                 className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 pr-16 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -592,15 +492,6 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
                             </>
                           )}
                         </div>
-                        {formData.type === 'other' && (
-                          <button
-                            type="button"
-                            onClick={() => removeKeyValuePair(item.id)}
-                            className="text-red-500 hover:text-red-700 focus:outline-none"
-                          >
-                            <HiX className="h-5 w-5" />
-                          </button>
-                        )}
                       </div>
                     ))}
                   </div>

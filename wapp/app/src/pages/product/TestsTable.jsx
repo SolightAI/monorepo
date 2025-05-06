@@ -25,11 +25,11 @@ import AddFeatureModal from '@/components/modals/AddFeatureModal';
 import EditFeatureModal from '@/components/modals/EditFeatureModal';
 import AddTestModal from '@/components/modals/AddTestModal';
 import ConfirmationModal from '@/components/modals/ConfirmationModal';
-import { getStatusIconLarge, formatStatus, getStatusColorClasses } from '@/utils/testExecutionUtils';
+import { getStatusInfo, formatStatus, getStatusDescription } from '@/utils/testExecutionUtils';
 import { formatDate } from '@/utils/dateUtils';
 import { API_URL } from '@/constants/api';
 import { TEST_STATUS } from '@/utils/testExecutionUtils';
-import debounce from 'lodash/debounce';
+import Tooltip from '@/components/common/Tooltip'; // Import the new component
 
 /**
  * Displays all tests in a tabular format with sorting and filtering capabilities
@@ -1253,17 +1253,8 @@ const TestsTable = () => {
     }
   }, [isGeneratingTests, successMessage]);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center p-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <span className="ml-3 text-lg">Loading tests...</span>
-      </div>
-    );
-  }
-
   // Only show error page for critical/loading errors that prevent displaying the main UI
-  if (error && loading) {
+  if (error && tests.length === 0 && !loading) {
     return (
       <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-red-700 max-w-4xl mx-auto">
         <h2 className="text-xl font-semibold mb-2">Error</h2>
@@ -1351,13 +1342,6 @@ const TestsTable = () => {
         confirmButtonText="Delete Feature"
         confirmButtonVariant="danger"
       />
-
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-800 flex items-center">
-              <Beaker className="mr-2" size={24} />
-              All Tests
-            </h1>
-          </div>
 
       {/* Error message display */}
       {error && (
@@ -1771,7 +1755,15 @@ const TestsTable = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredTests.length > 0 ? (
+                    {loading ? (
+                      <tr>
+                        <td colSpan="7" className="px-6 py-12 text-center">
+                          <div className="flex justify-center items-center">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : filteredTests.length > 0 ? (
                       filteredTests.map((test) => (
                         <tr
                           key={test.id}
@@ -1789,16 +1781,22 @@ const TestsTable = () => {
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                          {runningTests[test.id] ? (
-                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
-                          ) : (
-                            // Get status from the map
-                            getStatusIconLarge(latestExecutionsMap[test.id]?.status)
-                          )}
-                          <span className={`ml-2 text-sm font-medium px-2 py-1 rounded-full ${runningTests[test.id] ? 'bg-blue-100 text-blue-800' : getStatusColorClasses(latestExecutionsMap[test.id]?.status)}`}>
-                            {/* Get status from the map or show running */}
-                            {runningTests[test.id] ? formatStatus(RUNNING_STATUS) : formatStatus(latestExecutionsMap[test.id]?.status) ?? 'Not Run'}
-                              </span>
+                              <Tooltip content={runningTests[test.id] ? 'Test is currently running' : getStatusDescription(latestExecutionsMap[test.id]?.status)}>
+                                <div
+                                  className={`inline-flex items-center px-2.5 py-1 rounded-full ${runningTests[test.id] ? 'bg-blue-100 text-blue-800' : getStatusInfo(latestExecutionsMap[test.id]?.status).color}`}
+                                >
+                                  <div className="mr-2">
+                                    {runningTests[test.id] ? (
+                                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
+                                    ) : (
+                                      getStatusInfo(latestExecutionsMap[test.id]?.status, 20).icon
+                                    )}
+                                  </div>
+                                  <div>
+                                    {runningTests[test.id] ? formatStatus(RUNNING_STATUS) : formatStatus(latestExecutionsMap[test.id]?.status) ?? 'Not Run'}
+                                  </div>
+                                </div>
+                              </Tooltip>
                             </div>
                           </td>
                           <td className="px-4 py-4">

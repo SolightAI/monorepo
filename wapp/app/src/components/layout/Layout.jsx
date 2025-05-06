@@ -28,13 +28,6 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Fetch products when organization changes
-  useEffect(() => {
-    if (selectedOrganization?.id) {
-      refreshProducts(selectedOrganization.id);
-    }
-  }, [selectedOrganization?.id, refreshProducts]);
-
   // Fetch secrets when organization and product are selected
   useEffect(() => {
     if (selectedOrganization?.id && selectedProduct?.id) {
@@ -112,7 +105,7 @@ export default function Layout() {
       return (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center relative">
-            <div className="absolute -top-32 md:-top-40 lg:-top-48 left-1/2 md:left-[60%] lg:left-[70%] transform -translate-x-1/2">
+            <div className="absolute -top-32 md:-top-40 lg:-top-48 -rotate-90">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 shapeRendering="geometricPrecision"
@@ -255,25 +248,35 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Top navigation */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="px-3 mx-auto pr-4 sm:pr-6 lg:pr-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              {/* Organization selector at leftmost position */}
-              <div className="hidden md:block">
+      <nav className="bg-white border-b border-gray-200 relative">
+
+        <div className="mx-auto pr-4 sm:pr-6 lg:pr-8">
+
+          {/* Modified flex container for nav content */}
+          <div className="flex h-16 items-center justify-between">
+
+            {/* Desktop Organization and Product Selectors */}
+            <div className="hidden md:flex items-center">
+              <div className="w-64 px-2">
                 <OrganizationSelector />
               </div>
-              <div className="flex-shrink-0 flex items-center ml-4">
-                <Link to="/" className="font-bold text-xl text-gray-800">
-                  Solight
-                </Link>
-              </div>
-            </div>
-            <div className="flex items-center space-x-12">
-              <div className="hidden md:block">
+              <div className="w-56 px-2">
                 <ProductSelector />
               </div>
-              <div className="ml-2 p-2">
+            </div>
+
+            {/* Mobile Logo Area */}
+            <div className="flex items-center md:hidden flex-1 justify-center"> {/* Centered on mobile */}
+              <Link to="/" className="font-bold text-xl text-gray-800">
+                Solight
+              </Link>
+            </div>
+
+            {/* Right Side Content */}
+            <div className="hidden md:flex items-center justify-end space-x-4">
+
+              {/* Logout Button */}
+              <div className="p-2">
                 <button
                   onClick={handleLogout}
                   className="text-gray-500 hover:text-gray-700"
@@ -281,6 +284,8 @@ export default function Layout() {
                   Logout
                 </button>
               </div>
+
+              {/* Mobile Menu Button */}
               <div className="md:hidden flex items-center">
                 <button
                   onClick={toggleSidebar}
@@ -290,7 +295,14 @@ export default function Layout() {
                 </button>
               </div>
             </div>
+
           </div>
+        </div>
+        {/* Absolute Centered Logo (Desktop) - Relative to NAV */}
+        <div className="hidden md:absolute md:inset-y-0 md:left-1/2 md:transform md:-translate-x-1/2 md:flex md:items-center">
+          <Link to="/" className="font-bold text-xl text-gray-800">
+            Solight
+          </Link>
         </div>
       </nav>
       <div className="flex-grow flex">{renderMainContent()}</div>

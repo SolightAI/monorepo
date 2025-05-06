@@ -85,7 +85,6 @@ export const AuthProvider = ({ children }) => {
   const checkAuthStatus = useCallback(async () => {
     setError(null);
     try {
-      console.log('Checking auth status');
       const response = await axios.get(`${API_URL}/auth/check-auth`, {
         withCredentials: true,
         timeout: 5000
@@ -108,7 +107,6 @@ export const AuthProvider = ({ children }) => {
 
         // Check onboarding status if it exists in the response
         if (response.data.user.onboarding_completed !== undefined) {
-          console.log('Setting onboarding status from auth check:', response.data.user.onboarding_completed);
           setOnboardingCompleted(response.data.user.onboarding_completed);
           localStorage.setItem('onboardingCompleted', response.data.user.onboarding_completed.toString());
         }
