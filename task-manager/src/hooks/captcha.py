@@ -163,11 +163,6 @@ async def check_for_captcha(agent: Agent) -> None:
 
     task_id = agent._task_id if hasattr(agent, "_task_id") else "?"
 
-    if not hasattr(agent, "_current_step"):
-        agent._current_step = 0
-
-    agent._current_step += 1
-
     # We don't try to use locator before the browser context is created
     if agent._current_step == 1:
         logger.info(f"[{task_id}] Captcha check skipped (first step)")

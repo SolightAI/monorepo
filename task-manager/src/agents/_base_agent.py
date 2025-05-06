@@ -17,7 +17,7 @@ from healthchecks import get_prompt_list_of_healthchecks, HEALTHCHECKS
 from utils.dto import Test
 from langchain_core.messages import HumanMessage
 from utils.dto import TestStatus
-from fixtures.tools.captcha import check_for_captcha
+from hooks.on_step_start_hook import on_step_start_hook
 
 
 SHARED_AGENT_LIMITATIONS = [
@@ -705,7 +705,7 @@ async def run_agent(
 
         history = await agent.run(
             max_steps=50,
-            on_step_start=check_for_captcha,
+            on_step_start=on_step_start_hook,
         )
 
         logger.info(f"[{task_id}] Finished running agent")
