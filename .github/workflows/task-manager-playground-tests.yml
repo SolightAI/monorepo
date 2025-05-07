@@ -57,10 +57,10 @@ jobs:
       # Create unique identifiers for this run
       RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
       NETWORK_NAME: test-network-${{ github.event.pull_request.number || 'main' }} 
-      TEST_IMAGE: task-manager-test-${{ github.event.pull_request.number || 'main' }} 
-      PLAYWRIGHT_IMAGE: task-manager-playwright-${{ github.event.pull_request.number || 'main' }} 
-      PLAYGROUND_IMAGE: playground-test-${{ github.event.pull_request.number || 'main' }} 
-      PLAYWRIGHT_SETUP_IMAGE: playwright-setup-${{ github.event.pull_request.number || 'main' }} 
+      TEST_IMAGE: task-manager-test:${{ github.event.pull_request.number || 'main' }} 
+      PLAYWRIGHT_IMAGE: task-manager-playwright:${{ github.event.pull_request.number || 'main' }} 
+      PLAYGROUND_IMAGE: playground-test:${{ github.event.pull_request.number || 'main' }} 
+      PLAYWRIGHT_SETUP_IMAGE: playwright-setup:${{ github.event.pull_request.number || 'main' }} 
 
     steps:
     - name: Checkout code
