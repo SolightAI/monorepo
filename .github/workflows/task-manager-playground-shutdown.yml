@@ -26,9 +26,9 @@ jobs:
         working-directory: ./task-manager
 
     env:
-      TEST_IMAGE: task-manager-test:${{ github.event.number }}
-      PLAYWRIGHT_IMAGE: task-manager-playwright:${{ github.event.number }}
-      PLAYGROUND_IMAGE: playground-test:${{ github.event.number }}
+      TEST_IMAGE: task-manager-test:${{ github.event.pull_request.number }}
+      PLAYWRIGHT_IMAGE: task-manager-playwright:${{ github.event.pull_request.number }}
+      PLAYGROUND_IMAGE: playground-test:${{ github.event.pull_request.number }}
 
     steps:
     - name: Checkout code
