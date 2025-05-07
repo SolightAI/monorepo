@@ -40,6 +40,6 @@ jobs:
       run: |
         ./run-test.sh
       env:
-        IMAGE_NAME: validate-url:unit-test-${{ github.event.pull_request.number || 'main' }}
+        IMAGE_NAME: validate-url-test:${{ github.event.pull_request.number || 'main' }}
 
 

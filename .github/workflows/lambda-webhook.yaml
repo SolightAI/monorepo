@@ -25,9 +25,6 @@ jobs:
       run:
         working-directory: ./lambda_webhook
 
-    env:
-      TEST_IMAGE: lambda-webhook-test-${{ github.run_id }}-${{ github.run_attempt }}
-
 
     steps:
     - name: Checkout code
@@ -39,6 +36,8 @@ jobs:
     - name: Run Lambda tests
       run: |
         ./run-test.sh
+      env:
+        IMAGE_NAME: lambda-webhook-test:${{ github.event.pull_request.number || 'main' }}
 
   lambda-webhook-lint:
     runs-on: self-hosted
