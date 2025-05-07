@@ -209,7 +209,7 @@ def get_type_description(_type: type) -> str:
     return description
 
 
-def select_agent_to_use(test: Test) -> Callable:
+async def select_agent_to_use(test: Test) -> Callable:
 
     query = HumanMessage(
         content=PROMPT_AGENT_SELECTOR.format(
@@ -220,7 +220,7 @@ def select_agent_to_use(test: Test) -> Callable:
         )
     )
 
-    response: str = LLM_CLIENT.invoke([query]).content  # type: ignore
+    response: str = (await LLM_CLIENT.ainvoke([query])).content  # type: ignore
 
     agent_name = parse_agent_selection(response)
 
@@ -240,7 +240,7 @@ async def select_and_call_agent(
 
     logger.info(f"[{task_id}] Selecting agent for test {test.name}")
 
-    agent = select_agent_to_use(test)
+    agent = await select_agent_to_use(test)
 
     logger.info(f"[{task_id}] Calling agent {agent.__name__}")
 

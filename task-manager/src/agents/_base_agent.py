@@ -404,7 +404,7 @@ async def run_additional_healthcheck(
 
     logger.info(f"[{task_id}] Selecting additional healthcheck for {test.name}")
 
-    result: str = LLM_CLIENT.invoke(
+    result: str = (await LLM_CLIENT.ainvoke(
         [
             HumanMessage(
                 content=SELECT_ADDITIONAL_TEST_PROMPT.format(
@@ -413,7 +413,7 @@ async def run_additional_healthcheck(
                 )
             )
         ]
-    ).content  # type: ignore
+    )).content  # type: ignore
 
     healthcheck_evaluation, selected_healthchecks = _parse_select_additional_healthcheck_result(result)
 
@@ -449,13 +449,13 @@ def _parse_check_final_test_result(result: str) -> tuple[TestStatus, str]:
 
     try:
         status = TestStatus[status]
-    except ValueError:
+    except KeyError:
         raise ValueError(f"Invalid status: {status}")
 
     return status, explanation
 
 
-def check_final_test_result(
+async def check_final_test_result(
     task_id: str,
     test: Test,
     agent_output: str,
@@ -479,7 +479,7 @@ def check_final_test_result(
 
     logger.info(f"[{task_id}] Agent prompt: {CHECK_FINAL_TEST_RESULT_PROMPT.format(test=test, agent_output=agent_output, healthcheck_results=healthcheck_results_str).strip()}")
 
-    result: str = OUTPUT_VALIDATION_LLM.invoke(
+    result: str = (await OUTPUT_VALIDATION_LLM.ainvoke(
         [
             HumanMessage(
                 content=CHECK_FINAL_TEST_RESULT_PROMPT.format(
@@ -489,7 +489,7 @@ def check_final_test_result(
                 ).strip()
             )
         ]
-    ).content  # type: ignore
+    )).content  # type: ignore
 
     status, explanation = _parse_check_final_test_result(result)
 
@@ -515,7 +515,7 @@ def _parse_is_agent_able_to_run_test_result(result: str) -> tuple[bool, str]:
     return decision == "AGENT ABLE", explanation
 
 
-def is_agent_able_to_run_test(
+async def is_agent_able_to_run_test(
     task_id: str,
     test: Test,
     agent_tools: list[Callable] | None = None,
@@ -525,7 +525,7 @@ def is_agent_able_to_run_test(
 
     logger.info(f"[{task_id}] Running agent health check for {test.name}")
 
-    result: str = LLM_CLIENT.invoke(
+    result: str = (await LLM_CLIENT.ainvoke(
         [
             HumanMessage(
                 content=ABILITY_TO_RUN_TEST_PROMPT.format(
@@ -536,7 +536,7 @@ def is_agent_able_to_run_test(
                 )
             )
         ]
-    ).content  # type: ignore
+    )).content  # type: ignore
 
     is_able, explanation = _parse_is_agent_able_to_run_test_result(result)
 

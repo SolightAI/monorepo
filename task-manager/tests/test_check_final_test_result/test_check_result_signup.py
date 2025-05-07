@@ -29,7 +29,7 @@ class TestTickPick():
             get_login_status: True,
         }
 
-        status, message = check_final_test_result(
+        status, message = await check_final_test_result(
             task_id=task_id,
             test=Test(**self.test_params, feature_id=task_id),
             agent_output=agent_output,
@@ -47,7 +47,7 @@ class TestTickPick():
             get_login_status: False,
         }
 
-        status, message = check_final_test_result(
+        status, message = await check_final_test_result(
             task_id=task_id,
             test=Test(**self.test_params, feature_id=task_id),
             agent_output=agent_output,
@@ -66,7 +66,7 @@ class TestTickPick():
             get_login_status: False,
         }
 
-        status, message = check_final_test_result(
+        status, message = await check_final_test_result(
             task_id=task_id,
             test=Test(**self.test_params, feature_id=task_id),
             agent_output=agent_output,
@@ -119,7 +119,7 @@ class TestSolight():
             get_login_status: False,
         }
 
-        status, message = check_final_test_result(
+        status, message = await check_final_test_result(
             task_id=task_id,
             test=Test(**test_params, feature_id=task_id),
             agent_output=agent_output,

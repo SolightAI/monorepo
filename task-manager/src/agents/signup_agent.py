@@ -93,7 +93,7 @@ async def signup_agent(
 
     del auth_session  # making sure we don't use the auth session
 
-    is_able, explanation = is_agent_able_to_run_test(
+    is_able, explanation = await is_agent_able_to_run_test(
         task_id=task_id,
         test=test,
         agent_tools=TOOLS,
@@ -126,7 +126,7 @@ async def signup_agent(
         existing_session=session_data,
     )
 
-    status, explanation = check_final_test_result(
+    status, explanation = await check_final_test_result(
         task_id=task_id,
         test=test,
         agent_output=history.final_result(),

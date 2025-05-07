@@ -19,7 +19,7 @@ class TestTickPick():
 
     url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/"
 
-    def signup_wo_email_verification(self, task_id: str) -> None:
+    async def test_signup_wo_email_verification(self, task_id: str) -> None:
 
         test = Test(
             category=TestCategory.SMOKE,
@@ -38,7 +38,7 @@ class TestTickPick():
             feature_id=task_id,
         )
 
-        is_able, explanation = is_agent_able_to_run_test(
+        is_able, explanation = await is_agent_able_to_run_test(
             task_id=task_id,
             test=test,
             agent_tools=TOOLS,
@@ -47,7 +47,7 @@ class TestTickPick():
 
         assert is_able is True, ERROR_MESSAGE.format(expected_result=True, result=is_able, explanation=explanation)
 
-    def signup_w_email_verification(self, task_id: str) -> None:
+    async def test_signup_w_email_verification(self, task_id: str) -> None:
 
         test = Test(
             category=TestCategory.SMOKE,
@@ -67,7 +67,7 @@ class TestTickPick():
             feature_id=task_id,
         )
 
-        is_able, explanation = is_agent_able_to_run_test(
+        is_able, explanation = await is_agent_able_to_run_test(
             task_id=task_id,
             test=test,
             agent_tools=TOOLS,
@@ -76,7 +76,7 @@ class TestTickPick():
 
         assert is_able is False, ERROR_MESSAGE.format(expected_result=False, result=is_able, explanation=explanation)
 
-    def test_validate_email_field_input(self, task_id: str) -> None:
+    async def test_validate_email_field_input(self, task_id: str) -> None:
 
         test = Test(
             category=TestCategory.SMOKE,
@@ -93,7 +93,7 @@ class TestTickPick():
             feature_id=task_id,
         )
 
-        is_able, explanation = is_agent_able_to_run_test(
+        is_able, explanation = await is_agent_able_to_run_test(
             task_id=task_id,
             test=test,
             agent_tools=TOOLS,
@@ -103,7 +103,7 @@ class TestTickPick():
         assert is_able is True, ERROR_MESSAGE.format(expected_result=True, result=is_able, explanation=explanation)
 
     @pytest.mark.parametrize("repeat", [i for i in range(3)])  # reduce chances of flaky test
-    def test_login_with_google(self, task_id: str, repeat: int) -> None:
+    async def test_login_with_google(self, task_id: str, repeat: int) -> None:
 
         test = Test(
             category=TestCategory.SMOKE,
@@ -116,7 +116,7 @@ class TestTickPick():
             feature_id=task_id,
         )
 
-        is_able, explanation = is_agent_able_to_run_test(
+        is_able, explanation = await is_agent_able_to_run_test(
             task_id=task_id,
             test=test,
             agent_tools=TOOLS,
@@ -127,7 +127,7 @@ class TestTickPick():
         assert is_able is True, ERROR_MESSAGE.format(expected_result=True, result=is_able, explanation=explanation)
 
     @pytest.mark.parametrize("repeat", [i for i in range(3)])  # reduce chances of flaky test
-    def test_login_with_google_no_secrets(self, task_id: str, repeat: int) -> None:
+    async def test_login_with_google_no_secrets(self, task_id: str, repeat: int) -> None:
 
         test = Test(
             category=TestCategory.SMOKE,
@@ -148,7 +148,7 @@ class TestTickPick():
             feature_id=task_id,
         )
 
-        is_able, explanation = is_agent_able_to_run_test(
+        is_able, explanation = await is_agent_able_to_run_test(
             task_id=task_id,
             test=test,
             agent_tools=TOOLS,
@@ -163,7 +163,7 @@ class TestSolight():
     url = "https://app.solight.ai/"
 
     @pytest.mark.parametrize("repeat", [i for i in range(3)])  # reduce chances of flaky test
-    def test_login_with_google(self, task_id: str, repeat: int) -> None:
+    async def test_login_with_google(self, task_id: str, repeat: int) -> None:
 
         test = Test(
             category=TestCategory.SMOKE,
@@ -184,7 +184,7 @@ class TestSolight():
             feature_id=task_id,
         )
 
-        is_able, explanation = is_agent_able_to_run_test(
+        is_able, explanation = await is_agent_able_to_run_test(
             task_id=task_id,
             test=test,
             agent_tools=TOOLS,
@@ -195,7 +195,7 @@ class TestSolight():
         assert is_able is True, ERROR_MESSAGE.format(expected_result=True, result=is_able, explanation=explanation)
 
     @pytest.mark.parametrize("repeat", [i for i in range(3)])  # reduce chances of flaky test
-    def test_login_with_google_no_secrets(self, task_id: str, repeat: int) -> None:
+    async def test_login_with_google_no_secrets(self, task_id: str, repeat: int) -> None:
 
         test = Test(
             category=TestCategory.SMOKE,
@@ -216,7 +216,7 @@ class TestSolight():
             feature_id=task_id,
         )
 
-        is_able, explanation = is_agent_able_to_run_test(
+        is_able, explanation = await is_agent_able_to_run_test(
             task_id=task_id,
             test=test,
             agent_tools=TOOLS,
@@ -226,7 +226,7 @@ class TestSolight():
         assert is_able is False, ERROR_MESSAGE.format(expected_result=False, result=is_able, explanation=explanation)
 
     @pytest.mark.parametrize("social_media", ["GitHub", "Facebook", "Twitter", "Microsoft"])
-    def test_login_with_invalid_social_media(self, task_id: str, social_media: str) -> None:
+    async def test_login_with_invalid_social_media(self, task_id: str, social_media: str) -> None:
 
         test = Test(
             category=TestCategory.SMOKE,
@@ -242,7 +242,7 @@ class TestSolight():
             feature_id=task_id,
         )
 
-        is_able, explanation = is_agent_able_to_run_test(
+        is_able, explanation = await is_agent_able_to_run_test(
             task_id=task_id,
             test=test,
             agent_tools=TOOLS,
