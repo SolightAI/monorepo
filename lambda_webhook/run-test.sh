@@ -25,7 +25,7 @@ docker run \
   --rm \
   --entrypoint pytest \
   --network $UNIT_TEST_NETWORK_NAME \
-  -v ./src/tests:/app/src/tests \
+  -v ./tests:/app/tests \
   -e REDIS_HOST=lambda_webhook_test_redis \
   -e REDIS_PORT=6379 \
   -e REDIS_DB=0 \

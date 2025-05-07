@@ -10,7 +10,7 @@ fi
 docker run \
   --rm \
   --entrypoint pytest \
-  -v ./src/tests:/var/task/src/tests \
+  -v ./tests:/var/task/tests \
   -v ./pytest.ini:/var/task/pytest.ini \
   -e OPENAI_API_KEY=${OPENAI_API_KEY} \
   -e HEADLESS=true \
