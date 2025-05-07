@@ -6,8 +6,11 @@ on:
     paths:
       - 'task-manager/**'
   pull_request:
+    types: [opened, synchronize, reopened]
     branches: [ main ]
     paths:
+      - '.github/workflows/task-manager-playground-tests.yml'
+      - '.github/workflows/task-manager-playground-shutdown.yml'
       - 'task-manager/**'
   # Manual trigger
   workflow_dispatch:
@@ -53,11 +56,11 @@ jobs:
       TWOCAPTCHA_API_KEY: ${{ secrets.TWOCAPTCHA_API_KEY }}
       # Create unique identifiers for this run
       RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
-      NETWORK_NAME: test-network-${{ github.run_id }}-${{ github.run_attempt }}
-      TEST_IMAGE: task-manager-test-${{ github.run_id }}-${{ github.run_attempt }}
-      PLAYWRIGHT_IMAGE: task-manager-playwright-${{ github.run_id }}-${{ github.run_attempt }}
-      PLAYGROUND_IMAGE: playground-test-${{ github.run_id }}-${{ github.run_attempt }}
-      PLAYWRIGHT_SETUP_IMAGE: playwright-setup-${{ github.run_id }}-${{ github.run_attempt }}
+      NETWORK_NAME: test-network-${{ github.event.pull_request.number || 'main' }} 
+      TEST_IMAGE: task-manager-test-${{ github.event.pull_request.number || 'main' }} 
+      PLAYWRIGHT_IMAGE: task-manager-playwright-${{ github.event.pull_request.number || 'main' }} 
+      PLAYGROUND_IMAGE: playground-test-${{ github.event.pull_request.number || 'main' }} 
+      PLAYWRIGHT_SETUP_IMAGE: playwright-setup-${{ github.event.pull_request.number || 'main' }} 
 
     steps:
     - name: Checkout code
@@ -202,7 +205,3 @@ jobs:
 
         echo "Cleaning up network: ${{ env.NETWORK_NAME }}"
         docker network rm ${{ env.NETWORK_NAME }} || true
-
-        # Clean up Docker images
-        echo "Cleaning up Docker images"
-        docker rmi ${{ env.TEST_IMAGE }} ${{ env.PLAYWRIGHT_IMAGE }} ${{ env.PLAYGROUND_IMAGE }} || true
