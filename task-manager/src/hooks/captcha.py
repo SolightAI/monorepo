@@ -151,7 +151,7 @@ async def get_text_from_captcha(browser: BrowserContext) -> str:
         ],
     }
 
-    result: str = LLM_CLIENT.invoke([message]).content  # type: ignore
+    result: str = (await LLM_CLIENT.ainvoke([message])).content  # type: ignore
 
     logger.info(f"Result from LLM: {result}")
 
