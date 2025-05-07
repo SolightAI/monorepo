@@ -60,7 +60,6 @@ jobs:
       TEST_IMAGE: task-manager-test:${{ github.event.pull_request.number || 'main' }} 
       PLAYWRIGHT_IMAGE: task-manager-playwright:${{ github.event.pull_request.number || 'main' }} 
       PLAYGROUND_IMAGE: playground-test:${{ github.event.pull_request.number || 'main' }} 
-      PLAYWRIGHT_SETUP_IMAGE: playwright-setup:${{ github.event.pull_request.number || 'main' }} 
 
     steps:
     - name: Checkout code
@@ -99,6 +98,8 @@ jobs:
         tags: ${{ env.PLAYGROUND_IMAGE }}
 
     - name: Install Playwright in Docker
+      env:
+        PLAYWRIGHT_SETUP_CONTAINER: playwright-setup-${{ env.RUN_ID }}
       run: |
         # Create directories for cache with correct permissions
         mkdir -p ~/.cache/ms-playwright
@@ -107,24 +108,24 @@ jobs:
         if [ -d ~/.cache/ms-playwright/chromium* ]; then
           echo "Playwright browsers already installed, skipping installation"
           # Just create the container with the existing cache
-          docker run --name ${{ env.PLAYWRIGHT_SETUP_IMAGE }} \
+          docker run --name ${{ env.PLAYWRIGHT_SETUP_CONTAINER }} \
             -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
             ${{ env.TEST_IMAGE }} \
             bash -c "cd /app && pip install playwright && ls -la /root/.cache/ms-playwright"
         else
           echo "Installing Playwright and browsers..."
           # Create a container to install Playwright and save its state
-          docker run --name ${{ env.PLAYWRIGHT_SETUP_IMAGE }} \
+          docker run --name ${{ env.PLAYWRIGHT_SETUP_CONTAINER }} \
             -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
             ${{ env.TEST_IMAGE }} \
             bash -c "cd /app && pip install playwright && PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright install --with-deps"
         fi
 
         # Commit the container with installed Playwright to a new image
-        docker commit ${{ env.PLAYWRIGHT_SETUP_IMAGE }} ${{ env.PLAYWRIGHT_IMAGE }}
+        docker commit ${{ env.PLAYWRIGHT_SETUP_CONTAINER }} ${{ env.PLAYWRIGHT_IMAGE }}
 
         # Remove the temporary container
-        docker rm ${{ env.PLAYWRIGHT_SETUP_IMAGE }}
+        docker rm ${{ env.PLAYWRIGHT_SETUP_CONTAINER }}
 
     - name: Create Docker network
       run: |
