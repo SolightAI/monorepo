@@ -1,0 +1,20 @@
+services:
+  lambda_webhook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - DEV_MODE=true
+    networks:
+      - default
+      - api-tm_shared_network
+
+networks:
+  default:
+  api-tm_shared_network: # api and task manager shared network
+    external: true
