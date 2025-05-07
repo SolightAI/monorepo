@@ -8,7 +8,7 @@ from arq.worker import run_worker, func
 from arq.connections import RedisSettings
 from generation.test_generation import generate_tests
 from test_run.test_endpoint import run_test
-from validate_url.validate_url import validate_url
+from lambda_invoker.validate_url import validate_url
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,6 @@ async def startup(ctx: dict[str, Any]) -> None:
         max_workers=MAX_JOBS,  # one per job
         max_tasks_per_child=1
     )
-
 
 class WorkerSettings:
     functions = [
