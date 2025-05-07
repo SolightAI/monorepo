@@ -150,9 +150,6 @@ const GoogleOAuth = ({ onSuccess, onFailure }) => {
               {step === 'email' && (
                 <>
                   <div className="mb-4">
-                    {/* <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="email">
-                      Email or phone
-                    </label> */}
                     <input
                       type="email"
                       id="email"
@@ -181,9 +178,6 @@ const GoogleOAuth = ({ onSuccess, onFailure }) => {
               {step === 'password' && (
                 <>
                   <div className="mb-4">
-                    {/* <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="password">
-                      Enter your password
-                    </label> */}
                     <input
                       type="password"
                       id="password"

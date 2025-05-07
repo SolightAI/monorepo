@@ -173,7 +173,6 @@ async def check_for_captcha(agent: Agent) -> None:
     try:
         content = await page.content()
     except:  # noqa: E722
-        # one more short wait then retry
         logger.warning(f"[{task_id}] page.content failed cause page was loading, retrying...")
         await page.wait_for_load_state("networkidle")
         content = await page.content()

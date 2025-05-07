@@ -688,8 +688,6 @@ async def run_agent(
         for tool in (tools or []):
             controller.action(tool.__doc__ or "")(tool)
 
-        logger.info(f"[{task_id}] Sensitive data: {sensitive_data}")
-
         agent = Agent(
             task=prompt,
 

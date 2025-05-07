@@ -1,7 +1,7 @@
 import os
 
 
-SEED = 20250102
+SEED = None  # 20250102 (unused for now as don't make things really more deterministic)
 
 
 AZURE_OPENAI_ENDPOINT = os.getenv('AZURE_OPENAI_ENDPOINT')
