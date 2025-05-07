@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Filter,
   Search,
@@ -16,7 +16,7 @@ import axios from 'axios';
 import { getTestsByFeature, getTestsByEpic, getTestsByProduct, deleteTest, getTestGenerationStatus } from '@/services/testService';
 import { getAllEpics, getFeaturesByEpic } from '@/services/productService';
 import { createTestExecution, getTestExecution, getLatestTestExecutions } from '@/services/testExecutionService';
-import { handleFeatureTestGeneration } from '@/services/testGenerationService';
+import { handleFeatureTestGeneration, pollTestGenerationStatus } from '@/services/testGenerationService';
 import { useProduct } from '@/context/ProductContext';
 import { useOrganization } from '@/context/OrganizationContext';
 import { useSecret } from '@/context/SecretContext';
@@ -75,8 +75,7 @@ const TestsTable = () => {
   const { secrets, fetchSecrets } = useSecret();
   const errorMessageNoCredentials = "You need to add test credentials before running or generating tests. Go to 'Test Credentials' to add credentials.";
 
-  // Add a constant for the running status display
-  const RUNNING_STATUS = 'Running';
+  const RUNNING_STATUS = 'Running';   // Add a constant for the running status display
 
   // Fetch secrets when component loads or when product/organization changes
   useEffect(() => {
@@ -703,59 +702,36 @@ const TestsTable = () => {
     setError(null);
     setSuccessMessage(null);
 
+    // Set generating state immediately
+    const featureObj = features.find(f => f.id === selectedFeature);
+    const featureName = featureObj ? featureObj.name : 'Selected Feature';
+    setIsGeneratingTests(true);
+    setGeneratingFeatures([{ id: selectedFeature, name: featureName }]);
+
     // Call the new service function
     pollingIntervalRef.current = await handleFeatureTestGeneration(
       selectedFeature,
       secrets,
       (taskId) => { // onStart
-        setIsGeneratingTests(true);
-        if (taskId) { // Update task ID only when we receive it
-          setGeneratingFeatures([{ id: selectedFeature, name: features.find(f => f.id === selectedFeature)?.name || 'Selected Feature' }]);
-        }
+        // State already set, no need to set again
       },
       (statusUpdate) => { // onStatusUpdate
-        setSuccessMessage(statusUpdate); // Use success message for progress
+        setSuccessMessage(statusUpdate);
       },
       async (successMsg) => { // onSuccess
         setIsGeneratingTests(false);
         setGeneratingFeatures([]);
-        pollingIntervalRef.current = null; // Clear the cleanup ref
-
-        // Refresh tests and check results
-        await fetchTestsWithCurrentFilters(); // Ensure this completes before checking tests
-
-        // Re-fetch tests to check count - Note: This might be slightly delayed, consider alternative check
-        const currentTests = await getTestsByFeature(selectedFeature); // Maybe use state?
-        if (currentTests.length === 0) {
-          setError('Test generation completed but no tests were created. Please check the logs.');
-          setSuccessMessage(null); // Clear progress message
-          setTimeout(() => setError(null), 5000);
-        } else {
-          setSuccessMessage(successMsg); // Show final success message from service
-          setTimeout(() => setSuccessMessage(null), 5000);
-        }
+        pollingIntervalRef.current = null;
+        setSuccessMessage(`Test generation completed successfully. ${successMsg}`);
       },
       (errorMsg) => { // onError
         setIsGeneratingTests(false);
         setGeneratingFeatures([]);
-        setError(errorMsg);
-        setSuccessMessage(null); // Clear progress message
-        pollingIntervalRef.current = null; // Clear the cleanup ref
-        setTimeout(() => setError(null), 5000);
-
-        // Handle specific error case for missing feature selection
-        if (typeof errorMsg === 'string' && errorMsg.includes('select a specific feature')) {
-            const featureDropdown = document.querySelector('[data-feature-dropdown]');
-            if (featureDropdown) {
-                featureDropdown.classList.add('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-                setTimeout(() => {
-                    featureDropdown.classList.remove('ring-4', 'ring-red-300', 'ring-opacity-50', 'animate-pulse');
-                }, 5000);
-            }
-            setIsFeatureDropdownOpen(true);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      }
+        setError(`Test generation failed. ${errorMsg}`);
+        setSuccessMessage(null);
+        pollingIntervalRef.current = null;
+      },
+      featureName
     );
   };
 
@@ -971,6 +947,7 @@ const TestsTable = () => {
       // Start polling for any executions that are already pending
       Object.values(latestExecutions).forEach(exec => {
         if (exec.status === TEST_STATUS.PENDING) {
+          setSuccessMessage('Test Generation in Progress\n\nTest generation in progress. Status: pending');
           pollTestExecutionStatus(exec.test_id, exec.execution_id);
           // Also mark the test as running visually
           setRunningTests(prev => ({ ...prev, [exec.test_id]: true }));
@@ -999,10 +976,8 @@ const TestsTable = () => {
     try {
       // If "all features" is selected, check all features for ongoing generation
       if (selectedFeature === 'all') {
-
         // Get all features
         const allFeatures = features;
-
         const ongoingGenerations = [];
 
         // Check each feature for ongoing generation
@@ -1077,6 +1052,9 @@ const TestsTable = () => {
           setGeneratingFeatures([]);
           setSuccessMessage(null);
         } else {
+          setIsGeneratingTests(false);
+          setGeneratingFeatures([]);
+          setSuccessMessage(null);
           console.log('No ongoing test generation found in task-manager');
         }
       } catch (taskError) {
@@ -1084,11 +1062,13 @@ const TestsTable = () => {
         // If we get a 404, it means no task is running
         if (taskError.response && taskError.response.status === 404) {
           console.log('No task found in task-manager');
+          setIsGeneratingTests(false);
+          setGeneratingFeatures([]);
+          setSuccessMessage(null);
         } else {
           // For other errors, we'll assume there might be a task running
           console.log('Assuming task might be running due to error');
           setIsGeneratingTests(true);
-          setSuccessMessage('Test generation in progress. Checking status...');
           // Start polling with the feature ID
           startTestGenerationPolling(selectedFeature);
         }
@@ -1096,12 +1076,18 @@ const TestsTable = () => {
     } catch (error) {
       console.error('Error checking existing task ID:', error);
       setError('Error checking test generation status. Please try again.');
+      setIsGeneratingTests(false);
+      setGeneratingFeatures([]);
+      setSuccessMessage(null);
     }
   };
 
   // Update the startTestGenerationPolling function
   const startTestGenerationPolling = async (featureId) => {
     if (!featureId) return;
+
+    const featureObj = features.find(f => f.id === featureId);
+    const featureName = featureObj ? featureObj.name : featureId;
 
     try {
       // Clear any existing polling interval
@@ -1110,67 +1096,34 @@ const TestsTable = () => {
       }
 
       // Set initial states
-      setIsGeneratingTests(true);
       setError(null);
 
-      // Start polling for status updates
-      pollingIntervalRef.current = setInterval(async () => {
-        try {
-          const statusData = await getTestGenerationStatus(featureId);
-
-          // If status is unknown, stop polling and reset all states
-          if (statusData.status === 'unknown') {
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-            setIsGeneratingTests(false);
-            setGeneratingFeatures([]);
-            setSuccessMessage(null);
-            return;
-          }
-
-          // Update status message for other statuses
-          setSuccessMessage(`Test generation in progress. Status: ${statusData.status}`);
-
-          // If status is no longer pending, stop polling
-          if (statusData.status !== TEST_STATUS.PENDING) {
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-            setIsGeneratingTests(false);
-            setGeneratingFeatures([]);
-
-            // Refresh tests list
-            await fetchTestsWithCurrentFilters();
-
-            // Show appropriate message
-            if (statusData.status === TEST_STATUS.PASSED) {
-              setSuccessMessage('Test generation completed successfully.');
-            } else if (statusData.status === TEST_STATUS.FAILED ||
-                      statusData.status === TEST_STATUS.ERROR ||
-                      statusData.status === TEST_STATUS.BLOCKED_BY_CAPTCHA ||
-                      statusData.status === TEST_STATUS.AGENT_LIMITATION ||
-                      statusData.status === TEST_STATUS.NOT_FOUND) {
-              setError(`Test generation failed: ${statusData.status}. Please try again.`);
-              setSuccessMessage(null);
-            } else {
-              setSuccessMessage('Test generation status updated.');
-            }
-          }
-        } catch (error) {
-          console.error('Error polling test generation status:', error);
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
+      // Use the pollTestGenerationStatus function from the service
+      pollingIntervalRef.current = pollTestGenerationStatus(
+        featureId,
+        (statusMessage) => {
+          setSuccessMessage(statusMessage);
+        },
+        async (successMsg) => {
           setIsGeneratingTests(false);
           setGeneratingFeatures([]);
+          pollingIntervalRef.current = null;
+          setSuccessMessage(`Test generation completed successfully. ${successMsg}`);
+        },
+        (errorMsg) => {
+          setIsGeneratingTests(false);
+          setGeneratingFeatures([]);
+          pollingIntervalRef.current = null;
+          setError(`Test generation failed. ${errorMsg}`);
           setSuccessMessage(null);
-          setError('Error checking test generation status. Please try again.');
-        }
-      }, 2000); // Poll every 2 seconds
+        },
+        featureName
+      );
     } catch (error) {
       console.error('Error starting test generation polling:', error);
       setIsGeneratingTests(false);
       setGeneratingFeatures([]);
-      setSuccessMessage(null);
-      setError('Error starting test generation status check. Please try again.');
+      setError('Error starting test generation. Please try again.');
     }
   };
 
@@ -1182,14 +1135,22 @@ const TestsTable = () => {
     const initialize = async () => {
       if (!isMounted) return;
 
-      // Check for existing task ID when component mounts or feature changes
+      // First, check if we have any generating features in state
+      if (generatingFeatures.length > 0) {
+        // Start polling for each feature immediately
+        generatingFeatures.forEach(feature => {
+          startTestGenerationPolling(feature.id);
+        });
+      }
+
+      // Then check for existing task ID in the background
       await checkExistingTaskId();
     };
 
-    // Use a small timeout to ensure the component is fully mounted
+    // Use a smaller timeout to ensure the component is fully mounted
     checkTimeout = setTimeout(() => {
       initialize();
-    }, 100);
+    }, 50);
 
     // Cleanup function
     return () => {
@@ -1197,13 +1158,12 @@ const TestsTable = () => {
       if (checkTimeout) {
         clearTimeout(checkTimeout);
       }
-      // Only clear polling interval if component is unmounting
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
       }
     };
-  }, [selectedFeature]); // Keep selectedFeature dependency
+  }, [selectedFeature]);
 
   // Add a separate useEffect for handling visibility changes
   useEffect(() => {
@@ -1229,7 +1189,7 @@ const TestsTable = () => {
             } finally {
               isHandlingVisibility = false;
             }
-          }, 500);
+          }, 100); // Reduced from 500ms to 100ms
         }
       } catch (error) {
         console.error('Error handling visibility change:', error);
@@ -1263,8 +1223,15 @@ const TestsTable = () => {
         return;
       }
 
-      // Features have finished loading (or failed), now run the check.
-      // checkExistingTaskId handles cases where features might be empty.
+      // First, check if we have any generating features in state
+      if (generatingFeatures.length > 0) {
+        // Start polling for each feature immediately
+        generatingFeatures.forEach(feature => {
+          startTestGenerationPolling(feature.id);
+        });
+      }
+
+      // Then check for existing task ID in the background
       await checkExistingTaskId();
     };
 
@@ -1273,13 +1240,15 @@ const TestsTable = () => {
     return () => {
       isMounted = false;
     };
-
-    // Depend on loadingFeatures, features, and selectedFeature
-    // - loadingFeatures: Trigger when loading finishes.
-    // - features: Trigger if features array updates after initial load (e.g., add/delete).
-    // - selectedFeature: Trigger when the user selects a different feature.
   }, [loadingFeatures, features, selectedFeature]);
 
+  // Auto-hide success banner after 5 s
+  useEffect(() => {
+    if (!isGeneratingTests && successMessage) {
+      const t = setTimeout(() => setSuccessMessage(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [isGeneratingTests, successMessage]);
 
   // Only show error page for critical/loading errors that prevent displaying the main UI
   if (error && tests.length === 0 && !loading) {
@@ -1386,26 +1355,42 @@ const TestsTable = () => {
         </div>
       )}
 
+      {/* ✅ NEW — success / completion banner */}
+      {!isGeneratingTests && successMessage &&
+        !successMessage.includes('Test Generation in Progress') &&
+        !successMessage.includes('Status: PENDING') && (
+        <div className="mb-6 p-4 bg-green-100 border border-green-200 text-green-700 rounded-lg flex items-start justify-between">
+          <p className="break-words">{successMessage}</p>
+          <button
+            onClick={() => setSuccessMessage(null)}
+            className="ml-4 text-green-500 hover:text-green-700"
+            title="Dismiss"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Add success message display */}
-      {successMessage && (
-        <div className={`mb-6 p-4 ${isGeneratingTests ? 'bg-blue-100 border-blue-200 text-blue-700' : 'bg-green-100 border-green-200 text-green-700'} border rounded-lg flex items-start justify-between`}>
+      {isGeneratingTests && (
+        <div className="mb-6 p-4 bg-blue-100 border-blue-200 text-blue-700 border rounded-lg flex items-start justify-between">
           <div className="flex-1 break-words overflow-hidden">
-            {isGeneratingTests && (
-              <div className="flex items-center mb-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
-                <p className="font-medium">
-                  Test Generation in Progress
-                  {generatingFeatures.length > 0 && selectedFeature === 'all' && (
-                    <span className="ml-2 text-blue-600">
-                      for features: {generatingFeatures.map(f => `"${f.name}"`).join(', ')}
-                    </span>
-                  )}
-                </p>
-              </div>
-            )}
-            <p>{successMessage}</p>
+            <div className="flex items-center mb-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+              <p className="font-medium">
+                Test Generation in Progress
+                {generatingFeatures.length > 0 && selectedFeature === 'all' && (
+                  <span className="ml-2 text-blue-600">
+                    for features: {generatingFeatures.map(f => `"${f.name}"`).join(', ')}
+                  </span>
+                )}
+              </p>
+            </div>
+            <p>{successMessage || 'Test Generation in Progress. Status: PENDING'}</p>
           </div>
-          {isGeneratingTests && generatingFeatures.length > 0 && (
+          {generatingFeatures.length > 0 && (
             <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded ml-2 whitespace-nowrap">
               {generatingFeatures.length} feature{generatingFeatures.length > 1 ? 's' : ''} in progress
             </div>
