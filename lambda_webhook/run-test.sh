@@ -1,7 +1,5 @@
 #!/bin/bash
 
-docker build -f Dockerfile -t lambda_webhook:unit-test .
-
 UNIT_TEST_NETWORK_NAME=solight_lambda_webhook_test_shared_network
 
 # Create the shared network if it doesn't exist yet
@@ -12,6 +10,12 @@ else
   echo "Shared network $UNIT_TEST_NETWORK_NAME already exists"
 fi
 
+if [ -z $IMAGE_NAME ]; then
+  IMAGE_NAME=lambda-webhook-test:local
+  echo "Using default image name: $IMAGE_NAME"
+fi
+
+
 # Run redis container
 docker run \
   --name lambda_webhook_test_redis \
@@ -19,6 +23,8 @@ docker run \
   -d \
   -p 19203:6379 \
   redis:7-alpine
+
+docker build -f Dockerfile -t $IMAGE_NAME .
 
 # Run tests
 docker run \
@@ -30,7 +36,7 @@ docker run \
   -e REDIS_PORT=6379 \
   -e REDIS_DB=0 \
   -e REDIS_PASSWORD="" \
-  lambda_webhook:unit-test
+  $IMAGE_NAME .
 
 # Cleanup tests resources
 docker rm -f lambda_webhook_test_redis

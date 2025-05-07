@@ -6,7 +6,7 @@ if [ -z "$OPENAI_API_KEY" ]; then
 fi
 
 if [ -z $IMAGE_NAME ]; then
-  IMAGE_NAME=agent_job:unit-test
+  IMAGE_NAME=agent-job-test:local
   echo "Using default image name: $IMAGE_NAME"
 fi
 
