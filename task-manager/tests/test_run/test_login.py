@@ -133,7 +133,7 @@ class TestTickPick():
             name="Verify Google Login",
             url=self.url,
             description="Ensure users can log in using valid Google credentials.",
-            steps="1. Navigate to the login page.\n2. Click the \"Sign in with Google\" button.",
+            steps="1. Click on the \"Log In\" button.\n2. Click the \"Continue with Google\" button.",
             preconditions="User has an active Google account.",
             assertions="- Verify the user is successfully logged in and redirected to the dashboard.",
             feature_id=task_id,
