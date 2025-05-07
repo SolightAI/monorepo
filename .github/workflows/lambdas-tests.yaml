@@ -27,7 +27,6 @@ jobs:
 
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      TEST_IMAGE: lambda-test-${{ github.run_id }}-${{ github.run_attempt }}
 
 
     steps:
@@ -37,33 +36,10 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Build Lambda Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./agent_jobs
-        file: ./agent_jobs/Dockerfile
-        push: false
-        load: true
-        tags: ${{ env.TEST_IMAGE }}
-
     - name: Run Lambda tests
       run: |
-        # Run the Lambda tests
-        docker run \
-          --entrypoint pytest \
-          -v ./src/tests:/var/task/src/tests \
-          -v ./pytest.ini:/var/task/pytest.ini \
-          -e OPENAI_API_KEY=${OPENAI_API_KEY} \
-          -e HEADLESS=true \
-          ${{ env.TEST_IMAGE }}
-
-    - name: Cleanup
-      if: always()
-      run: |
-        # Clean up Docker images
-        echo "Cleaning up Docker images"
-        docker rmi ${{ env.TEST_IMAGE }} || true
-
-
+        ./run-test.sh
+      env:
+        IMAGE_NAME: validate-url:unit-test-${{ github.event.pull_request.number || 'main' }}
 
 

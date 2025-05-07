@@ -1,11 +1,16 @@
 #!/bin/bash
 
-docker build -f Dockerfile -t agent_job:unit-test .
-
 if [ -z "$OPENAI_API_KEY" ]; then
   echo "OPENAI_API_KEY environment variable not set"
   exit 1
 fi
+
+if [ -z $IMAGE_NAME ]; then
+  IMAGE_NAME=agent_job:unit-test
+  echo "Using default image name: $IMAGE_NAME"
+fi
+
+docker build -f Dockerfile -t $IMAGE_NAME .
 
 docker run \
   --rm \
@@ -14,4 +19,4 @@ docker run \
   -v ./pytest.ini:/var/task/pytest.ini \
   -e OPENAI_API_KEY=${OPENAI_API_KEY} \
   -e HEADLESS=true \
-  agent_job:unit-test
+  $IMAGE_NAME
