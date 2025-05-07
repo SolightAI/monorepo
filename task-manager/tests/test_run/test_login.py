@@ -101,7 +101,7 @@ class TestTickPick():
         assert result["status"] == TestStatus.PASSED.value
 
     @pytest.mark.asyncio
-    async def test_verify_sign_up_with_apple(self, task_id: str) -> None:
+    async def test_apple_login(self, task_id: str) -> None:
         """Test authentication with valid Apple credentials."""
 
         test = Test(
@@ -125,7 +125,7 @@ class TestTickPick():
         assert result["status"] == TestStatus.AGENT_LIMITATION.value
 
     @pytest.mark.asyncio
-    async def test_verify_sign_up_with_google(self, task_id: str) -> None:
+    async def test_google_login(self, task_id: str) -> None:
         """Test authentication with valid Google OAuth credentials."""
 
         test = Test(

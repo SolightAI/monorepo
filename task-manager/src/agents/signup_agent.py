@@ -98,6 +98,7 @@ async def signup_agent(
         test=test,
         agent_tools=TOOLS,
         agent_limitations=AGENT_LIMITATIONS,
+        secrets_names=list(format_secrets(secrets).keys()),
     )
 
     if is_able is False:

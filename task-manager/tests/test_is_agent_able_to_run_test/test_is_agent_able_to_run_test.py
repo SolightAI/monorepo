@@ -102,6 +102,61 @@ class TestTickPick():
 
         assert is_able is True, ERROR_MESSAGE.format(expected_result=True, result=is_able, explanation=explanation)
 
+    @pytest.mark.parametrize("repeat", [i for i in range(3)])  # reduce chances of flaky test
+    def test_login_with_google(self, task_id: str, repeat: int) -> None:
+
+        test = Test(
+            category=TestCategory.SMOKE,
+            name="Verify Google Login",
+            url=self.url,
+            description="Ensure users can log in using valid Google credentials.",
+            steps="1. Navigate to the login page.\n2. Click the \"Sign in with Google\" button.",
+            preconditions="User has an active Google account.",
+            assertions="- Verify the user is successfully logged in and redirected to the dashboard.",
+            feature_id=task_id,
+        )
+
+        is_able, explanation = is_agent_able_to_run_test(
+            task_id=task_id,
+            test=test,
+            agent_tools=TOOLS,
+            agent_limitations=LOGIN_AGENT_LIMITATIONS,
+            secrets_names=["google_oauth::email", "google_oauth::password"],
+        )
+
+        assert is_able is True, ERROR_MESSAGE.format(expected_result=True, result=is_able, explanation=explanation)
+
+    @pytest.mark.parametrize("repeat", [i for i in range(3)])  # reduce chances of flaky test
+    def test_login_with_google_no_secrets(self, task_id: str, repeat: int) -> None:
+
+        test = Test(
+            category=TestCategory.SMOKE,
+            name="Verify Google Authentication Option",
+            url=self.url,
+            description="Ensure that the 'Continue with Google' button is present and initiates the Google authentication flow when clicked.",
+            steps=dedent("""
+                1. Locate the 'Continue with Google' button
+                2. Click on the button
+                3. Login
+            """),
+            preconditions="None.",
+            assertions=dedent("""
+                1. The button labeled 'Continue with Google' is visible
+                2. Clicking the button redirects or opens a new window/tab for Google authentication (e.g., accounts.google.com)
+                3. The user is logged in
+            """),
+            feature_id=task_id,
+        )
+
+        is_able, explanation = is_agent_able_to_run_test(
+            task_id=task_id,
+            test=test,
+            agent_tools=TOOLS,
+            agent_limitations=LOGIN_AGENT_LIMITATIONS,
+        )
+
+        assert is_able is False, ERROR_MESSAGE.format(expected_result=False, result=is_able, explanation=explanation)
+
 
 class TestSolight():
 
@@ -134,9 +189,41 @@ class TestSolight():
             test=test,
             agent_tools=TOOLS,
             agent_limitations=LOGIN_AGENT_LIMITATIONS,
+            secrets_names=["google_oauth::email", "google_oauth::password"],
         )
 
         assert is_able is True, ERROR_MESSAGE.format(expected_result=True, result=is_able, explanation=explanation)
+
+    @pytest.mark.parametrize("repeat", [i for i in range(3)])  # reduce chances of flaky test
+    def test_login_with_google_no_secrets(self, task_id: str, repeat: int) -> None:
+
+        test = Test(
+            category=TestCategory.SMOKE,
+            name="Verify Google Authentication Option",
+            url=self.url,
+            description="Ensure that the 'Continue with Google' button is present and initiates the Google authentication flow when clicked.",
+            steps=dedent("""
+                1. Locate the 'Continue with Google' button
+                2. Click on the button
+                3. Login
+            """),
+            preconditions="None.",
+            assertions=dedent("""
+                1. The button labeled 'Continue with Google' is visible
+                2. Clicking the button redirects or opens a new window/tab for Google authentication (e.g., accounts.google.com)
+                3. The user is logged in
+            """),
+            feature_id=task_id,
+        )
+
+        is_able, explanation = is_agent_able_to_run_test(
+            task_id=task_id,
+            test=test,
+            agent_tools=TOOLS,
+            agent_limitations=LOGIN_AGENT_LIMITATIONS,
+        )
+
+        assert is_able is False, ERROR_MESSAGE.format(expected_result=False, result=is_able, explanation=explanation)
 
     @pytest.mark.parametrize("social_media", ["GitHub", "Facebook", "Twitter", "Microsoft"])
     def test_login_with_invalid_social_media(self, task_id: str, social_media: str) -> None:

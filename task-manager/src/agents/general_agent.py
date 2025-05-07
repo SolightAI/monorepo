@@ -83,6 +83,7 @@ async def general_agent(
         task_id=task_id,
         test=test,
         agent_tools=TOOLS,
+        secrets_names=list(format_secrets(secrets).keys()),
     )
 
     if is_able is False:

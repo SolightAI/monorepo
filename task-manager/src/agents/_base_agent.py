@@ -62,6 +62,9 @@ Consider the following limitations of the agent:
 Consider the following tools that the agent has access to:
 {{agent_tools}}
 
+Keep in mind that the agent will have access to the following credentials:
+{{secrets_names}}
+
 Analysis Process:
 1. Examine each aspect of the test (name, description, preconditions, steps, and assertions) separately.
 2. For each aspect:
@@ -70,6 +73,7 @@ Analysis Process:
    c. Analyze each limitation separately:
       - State whether there's a conflict and explain why or why not.
       - If a conflict is found, note which specific limitation it violates.
+      - If the test requires credentials, check if the agent has access to them.
    d. Summarize any conflicts found in this section.
 3. Keep a running count of any limitations encountered.
 
@@ -516,6 +520,7 @@ def is_agent_able_to_run_test(
     test: Test,
     agent_tools: list[Callable] | None = None,
     agent_limitations: list[str] | None = None,
+    secrets_names: list[str] | None = None,
 ) -> tuple[bool, str]:
 
     logger.info(f"[{task_id}] Running agent health check for {test.name}")
@@ -527,6 +532,7 @@ def is_agent_able_to_run_test(
                     test=test,
                     agent_tools=get_prompt_list_of_tools(agent_tools or []),
                     agent_limitations="\n".join(agent_limitations or []),
+                    secrets_names=secrets_names or [],
                 )
             )
         ]
