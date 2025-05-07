@@ -7,7 +7,6 @@ from langchain_core.messages import HumanMessage
 logger = getLogger(__name__)
 
 
-
 def _update_step_counter(agent: Agent) -> None:
     if not hasattr(agent, "_current_step"):
         agent._current_step = 0
@@ -20,6 +19,7 @@ async def check_for_google_mfa(agent: Agent) -> bool:
 
     task_id = agent._task_id if hasattr(agent, "_task_id") else "?"
 
+    await page.wait_for_load_state()
     page_content = await page.content()
 
     # if text "Verify it's you" in the page, inform the agent to fail the test

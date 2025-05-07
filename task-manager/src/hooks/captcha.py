@@ -170,6 +170,7 @@ async def check_for_captcha(agent: Agent) -> None:
 
     page = await agent.browser_context.get_current_page()
 
+    await page.wait_for_load_state()
     content = await page.content()
 
     if "captchaimg" not in content:
