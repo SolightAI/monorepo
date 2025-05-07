@@ -25,7 +25,7 @@ async def test_validate_url_login_farmzz(task_id: str) -> None:
     config: Config = {
         "headless": True,
         "openai_api_key": env.get_string("OPENAI_API_KEY"),
-        "scheduler_webhook_url": ""
+        "lambda_webhook_url": "",
     }
 
     # Run the validation task directly
@@ -34,12 +34,24 @@ async def test_validate_url_login_farmzz(task_id: str) -> None:
     # Debug output to show full validation result
     logger.info(f"[{task_id}] Validation result: {validation_result}")
 
-
     # Verify that validation found a login page
-    assert validation_result.valid is True, f"Expected valid=True, got {validation_result.valid}"
-    assert validation_result.login_url == "https://farmzz.com/#/auth/login", f"Expected login_url='https://farmzz.com/#/auth/login', got {validation_result.login_url}"
-    assert validation_result.confidence in ["high", "medium"], f"Expected confidence in ['high', 'medium'], got {validation_result.confidence}"
-    assert validation_result.source == "validation", f"Expected source='validation', got {validation_result.source}"
+    assert (
+        validation_result.valid is True
+    ), f"Expected valid=True, got {validation_result.valid}"
 
-    logger.info(f"[{task_id}] ✅ Successfully validated URL and authenticated on: {validation_result.login_url}")
+    assert (
+        validation_result.login_url == "https://farmzz.com/#/auth/login"
+    ), f"Expected login_url='https://farmzz.com/#/auth/login', got {validation_result.login_url}"
 
+    assert validation_result.confidence in [
+        "high",
+        "medium",
+    ], f"Expected confidence in ['high', 'medium'], got {validation_result.confidence}"
+
+    assert (
+        validation_result.source == "validation"
+    ), f"Expected source='validation', got {validation_result.source}"
+
+    logger.info(
+        f"[{task_id}] ✅ Successfully validated URL and authenticated on: {validation_result.login_url}"
+    )

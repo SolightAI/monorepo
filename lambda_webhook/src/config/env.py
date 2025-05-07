@@ -133,9 +133,9 @@ def get_bool(
     if value is None:
         return None
 
-    if value.lower() == "true":
+    if value.lower() == "true" or value.lower() == "yes" or value == "1":
         return True
-    elif value.lower() == "false":
+    elif value.lower() == "false" or value.lower() == "no" or value == "0":
         return False
 
     raise Exception(

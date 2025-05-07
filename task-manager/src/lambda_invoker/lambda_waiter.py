@@ -71,7 +71,9 @@ async def wait_for_lambda_result(job_id: str, timeout = 900) -> str:
       logger.info(f"Waiting for job {job_id} to complete... polling again in 10 seconds")
       await asyncio.sleep(10)
       continue
-  
+    else:
+      raise Exception(f"Unknown status for job {job_id}: {status}")
+
   
 async def delete_waiter_job(job_id: str) -> None:
   redis_client = await get_redis()

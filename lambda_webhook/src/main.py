@@ -6,6 +6,7 @@ from src.config import config
 from src.redis_store import client as redis
 
 from src.lambda_webhook import router as lambda_webhook_router
+from src.healthcheck import router as healthcheck_router
 
 logging.basicConfig(level=logging.INFO)
 
@@ -15,4 +16,5 @@ redis.init(configuration)
 app = FastAPI()
 
 
+app.include_router(healthcheck_router)
 app.include_router(lambda_webhook_router)

@@ -45,6 +45,9 @@ class RedisClient:
     def set(self, key: str, value: str, ttl: int = 1 * 60 * 60) -> None:
         self._client.set(key, value, ex=ttl)
 
+    def ping(self) -> bool:
+        return self._client.ping()
+
 
 # Singleton instance of the redis client
 redis_client: RedisClient | None = None
@@ -53,6 +56,8 @@ redis_client: RedisClient | None = None
 def init(config: Config) -> None:
     global redis_client
     redis_client = RedisClient(config=config)
+    if redis_client.ping() is False:
+        raise Exception("Cannot ping redis, check your configuration")
 
 
 def redis() -> RedisClient:

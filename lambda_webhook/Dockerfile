@@ -12,5 +12,8 @@ ENV WORKERS=1
 
 EXPOSE 8085
 
+# For healthcheck
+RUN apt-get update && apt-get install -y curl
+
 # Set the entrypoint
 CMD ["fastapi", "run", "--workers", "1", "src/main.py", "--host", "0.0.0.0", "--port", "8085"]

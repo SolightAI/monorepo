@@ -8,6 +8,7 @@ class Config(TypedDict):
     openai_api_key: str
     lambda_webhook_url: str
 
+
 def get() -> Config:
     """
     Parse configuration from environment variables.
@@ -16,7 +17,7 @@ def get() -> Config:
         Config: The parsed configuration.
     """
     return {
-      "headless": env.get_bool("HEADLESS", False),
-      "openai_api_key": env.get_string("OPENAI_API_KEY"),
-      "lambda_webhook_url": env.get_string("LAMBDA_WEBHOOK_URL"),
+        "headless": env.get_bool("HEADLESS", False),
+        "openai_api_key": env.get_string("OPENAI_API_KEY"),
+        "lambda_webhook_url": env.get_string("LAMBDA_WEBHOOK_URL"),
     }

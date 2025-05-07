@@ -12,9 +12,7 @@ from src.validate_url.config import Config
 logger = logging.getLogger(__name__)
 
 
-"""
-Confidence levels for login page detection.
-"""
+# Confidence levels for login page detection.
 CONFIDENCE_HIGH = "high"
 CONFIDENCE_MEDIUM = "medium"
 CONFIDENCE_LOW = "low"
@@ -55,7 +53,7 @@ async def run(config: Config, url: str) -> Result:
         Result: The result of the agent's execution.
     """
     logger.info(f"Setting up agent to run on {url}")
-    
+
     agent_client = ChatOpenAI(
         model="gpt-4.1",
         temperature=0.0,
@@ -78,7 +76,7 @@ async def run(config: Config, url: str) -> Result:
         logger.info(f"Running agent on {url}")
         # Run the agent and retrieve its history
         history = await agent.run(max_steps=10)
-        
+
         logger.info(f"Agent finished running on {url}")
 
         # Retrieve the result from the agent.
@@ -139,8 +137,8 @@ def _configure_browser(config: Config) -> tuple[Browser, BrowserContext]:
                 "--disable-gpu",
                 "--single-process",
                 "--no-zygote",
-                "--disable-setuid-sandbox",   
-            ]
+                "--disable-setuid-sandbox",
+            ],
         )
     )
 

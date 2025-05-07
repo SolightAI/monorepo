@@ -12,6 +12,7 @@ else
   echo "Shared network $UNIT_TEST_NETWORK_NAME already exists"
 fi
 
+# Run redis container
 docker run \
   --name lambda_webhook_test_redis \
   --network $UNIT_TEST_NETWORK_NAME \
@@ -19,6 +20,7 @@ docker run \
   -p 19203:6379 \
   redis:7-alpine
 
+# Run tests
 docker run \
   --rm \
   --entrypoint pytest \
@@ -30,4 +32,6 @@ docker run \
   -e REDIS_PASSWORD="" \
   lambda_webhook:unit-test
 
+# Cleanup tests resources
 docker rm -f lambda_webhook_test_redis
+docker network rm $UNIT_TEST_NETWORK_NAME
