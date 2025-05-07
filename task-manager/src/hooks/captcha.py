@@ -179,8 +179,9 @@ async def check_for_captcha(agent: Agent) -> None:
         content = await page.content()
 
     if "captchaimg" not in content:
-        logger.info(f"[{task_id}] No captcha found on the page")
         return
+
+    logger.info(f"[{task_id}] Captcha found on the page content")
 
     try:
         captcha_image_src = await page.locator("img[id='captchaimg']").get_attribute("src")
