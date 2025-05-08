@@ -33,6 +33,9 @@ COPY requirements.txt .
 # Install requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
+# TODO remove (just to modify a layer)
+RUN ls
+
 COPY fix_browser_use.py /app/fix_browser_use.py
 RUN python /app/fix_browser_use.py
 
@@ -49,9 +52,6 @@ RUN chmod +x /app/install_dependencies.sh
 EXPOSE 8001
 
 WORKDIR /app/
-
-# TODO remove (just to modify a layer)
-RUN ls
 
 # Set environment variable for Playwright browsers path
 ENV PLAYWRIGHT_BROWSERS_PATH=/tmp/playwright-browsers
