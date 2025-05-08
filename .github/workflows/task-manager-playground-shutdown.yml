@@ -16,8 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
-  auth-session-tests:
+  auth-session-tests-shutdown:
     runs-on: self-hosted
     timeout-minutes: 60
 
