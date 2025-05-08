@@ -1,9 +1,9 @@
 import pytest
 import logging
 
-from fixtures.authentification.get_auth_session import get_auth_session
-from test_auth_session import valid_username_password_credentials
 from typing import Any
+from test_auth_session import valid_username_password_credentials
+from src.fixtures.authentification.get_auth_session import get_auth_session
 
 
 # Auth paths in the playground
@@ -20,6 +20,7 @@ async def test_privacy_banner_email_password_simple(task_id: str, valid_username
     url = f"{playground_base_url}{BANNER_EMAIL_PASSWORD_SIMPLE_PATH}"
 
     session = await get_auth_session(
+        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -41,6 +42,7 @@ async def test_privacy_modal_email_password_simple(task_id: str, valid_username_
     url = f"{playground_base_url}{MODAL_EMAIL_PASSWORD_SIMPLE_PATH}"
 
     session = await get_auth_session(
+        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,

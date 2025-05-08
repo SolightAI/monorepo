@@ -59,12 +59,14 @@ logger = getLogger(__name__)
 
 
 def get_parameters_for_signup_agent(
+    identifier: str,
     task_id: str,
     test: Test,
     secrets: dict[str, dict[str, str]],
     auth_session: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
     return {
+        "identifier": identifier,
         "task_id": task_id,
         "test": test,
         "secrets": secrets,
@@ -73,6 +75,7 @@ def get_parameters_for_signup_agent(
 
 
 async def signup_agent(
+    identifier: str,
     task_id: str,
     test: Test,
     secrets: list[dict[str, Any]],
@@ -108,6 +111,7 @@ async def signup_agent(
         }
 
     session_data, history, evidences = await run_agent(
+        identifier=identifier,
         task_id=task_id,
         url=test.url,
         prompt=PROMPT.format(
@@ -121,6 +125,7 @@ async def signup_agent(
     )
 
     additional_healthchecks_results = await run_additional_healthcheck(
+        identifier=identifier,
         task_id=task_id,
         test=test,
         existing_session=session_data,

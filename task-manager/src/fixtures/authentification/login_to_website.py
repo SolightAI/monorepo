@@ -69,6 +69,7 @@ def _select_login_method(login_method: LoginMethod, secrets: list[dict[str, dict
 
 
 async def login_to_website(
+    identifier: str | None,
     task_id: str,
     url: str,
     login_method: LoginMethod,
@@ -99,6 +100,7 @@ async def login_to_website(
         login_methods.append(f"- {LoginMethod.GOOGLE_OAUTH.value}")
 
     session_data, history, evidences = await run_agent(
+        identifier=identifier,
         task_id=task_id,
         url=url,
         prompt=PROMPT.format(login_methods="\n".join(login_methods)),

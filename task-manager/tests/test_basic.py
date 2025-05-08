@@ -39,6 +39,7 @@ async def main():
 
     try:
         await get_auth_session(
+            identifier=None,
             task_id=task_id,
             url=url,
             secrets=secrets,

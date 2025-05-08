@@ -14,6 +14,8 @@ from agents.signup_agent import signup_agent, get_parameters_for_signup_agent
 from inspect import getfullargspec, isclass
 from logging import getLogger
 from utils.constants import SEED
+from utils.s3_utils import exists_in_s3, download_file_from_s3, upload_file_to_s3
+from tempfile import NamedTemporaryFile
 
 
 logger = getLogger(__name__)
@@ -232,6 +234,7 @@ async def select_agent_to_use(test: Test) -> Callable:
 
 
 async def select_and_call_agent(
+    identifier: str,
     task_id: str,
     test: Test,
     secrets: list[dict[str, Any]],
@@ -240,8 +243,40 @@ async def select_and_call_agent(
 
     logger.info(f"[{task_id}] Selecting agent for test {test.name}")
 
-    agent = await select_agent_to_use(test)
+    cache_key = f"{identifier}/selected_agent.txt"
+
+    agent = None
+
+    if exists_in_s3(cache_key, task_id):
+
+        logger.info(f"[{task_id}] Selecting agent from cache")
+
+        with NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as selected_agent_file:
+            download_file_from_s3(cache_key, selected_agent_file.name)
+
+            with open(selected_agent_file.name, "r") as f:
+                agent_name = f.read().strip()
+
+            for _agent in AGENTS.keys():
+                if _agent.__name__ == agent_name:
+                    agent = _agent
+                    break
+
+            if agent is None:
+                logger.warning(f"[{task_id}] Cached agent {agent_name=} not found in the list of available agents")
+
+    else:
+        logger.info(f"[{task_id}] No cached agent found, selecting agent")
+
+    if not agent:
+        agent = await select_agent_to_use(test)
 
     logger.info(f"[{task_id}] Calling agent {agent.__name__}")
 
-    return await agent(**AGENTS[agent](task_id, test, secrets, auth_session))
+    with NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as selected_agent_file:
+        with open(selected_agent_file.name, "w") as f:
+            f.write(agent.__name__)
+
+        upload_file_to_s3(selected_agent_file.name, cache_key)
+
+    return await agent(**AGENTS[agent](identifier, task_id, test, secrets, auth_session))

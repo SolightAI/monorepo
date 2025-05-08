@@ -22,11 +22,17 @@ async def check_for_google_mfa(agent: Agent) -> bool:
     await page.wait_for_load_state()
 
     try:
-        page_content = await page.content()
-    except:  # noqa: E722
-        logger.warning(f"[{task_id}] page.content failed cause page was loading, retrying...")
-        await page.wait_for_load_state("networkidle")
-        page_content = await page.content()
+
+        try:
+            page_content = await page.content()
+        except:  # noqa: E722
+            logger.warning(f"[{task_id}] page.content failed cause page was loading, retrying...")
+            await page.wait_for_load_state("networkidle", timeout=3_500)
+            page_content = await page.content()
+
+    except Exception:
+        logger.warning(f"[{task_id}] Couldn't load the page content, skipping mfa check")
+        return False
 
     # if text "Verify it's you" in the page, inform the agent to fail the test
     if "Verify it's you" in page_content and 'Choose how you want to sign in' in page_content:

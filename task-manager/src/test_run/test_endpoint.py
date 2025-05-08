@@ -1,6 +1,6 @@
-import asyncio
-import functools
+import json
 
+from hashlib import md5
 from utils.dto import Test, Product
 from typing import Optional, Any
 from logging import getLogger
@@ -10,18 +10,6 @@ from fixtures.authentification.get_auth_session import get_auth_session
 
 
 logger = getLogger(__name__)
-
-
-async def run_test_entrypoint(ctx, product, test, secrets):
-    blocking = functools.partial(run_test, ctx, product, test, secrets)
-
-    loop = asyncio.get_running_loop()
-
-    result = await loop.run_in_executor(ctx['pool'], blocking)
-
-    logger.info(f"[{ctx['job_id']}] Test {test['name']} finished running")
-
-    return result
 
 
 async def run_test(
@@ -38,9 +26,21 @@ async def run_test(
     if secrets:
         decrypted_secrets = crypto_service.decrypt_secrets(secrets)
 
+    logger.info(f"[{ctx['job_id']}] md5 of product: {md5(json.dumps(product).encode()).hexdigest()}")
+    logger.info(f"[{ctx['job_id']}] md5 of test: {md5(json.dumps(test).encode()).hexdigest()}")
+    logger.info(f"[{ctx['job_id']}] md5 of secrets: {md5(json.dumps(decrypted_secrets).encode()).hexdigest()}")
+
+    identifier = md5(json.dumps({
+        "product": product,
+        "test": test,
+        # FIXME (later): should also be based on the feature
+        "decrypted_secrets": decrypted_secrets,  # FIXME (later): should be based only on the used secrets
+    }).encode()).hexdigest()
+
     auth_session = dict()
     if test_obj.access_conditions and test_obj.access_conditions.get("must_be_logged_in") is True:
         auth_session = await get_auth_session(
+            identifier=identifier,
             task_id=ctx['job_id'],
             url=product_obj.url,
             secrets=decrypted_secrets,
@@ -49,6 +49,7 @@ async def run_test(
     logger.info(f"[{ctx['job_id']}] Running test {test_obj.name} for {test_obj.url}")
 
     result = await select_and_call_agent(
+        identifier=identifier,
         task_id=ctx['job_id'],
         test=test_obj,
         secrets=decrypted_secrets,

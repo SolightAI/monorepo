@@ -206,12 +206,9 @@ async def _generate_test_category_for_feature(
 
         # Upload GIF to S3
         s3_url = upload_file_to_s3(
-            job_id=job_id,
             file_path=temp_gif.name,
-            task_type="test",
-            task_name=feature.name,
+            object_name=f"{job_id}/{feature.name}.gif",
             additional_params=feature.model_dump(),
-            extension="gif",
             content_type="image/gif",
         )
         if s3_url:
@@ -300,6 +297,7 @@ async def generate_tests(
     auth_session = dict()
     if feature.access_conditions is not None and feature.access_conditions.get("must_be_logged_in") is True:
         auth_session = await get_auth_session(
+            identifier=None,
             task_id=ctx['job_id'],
             url=product.url,
             secrets=decrypted_secrets,  # Use decrypted secrets here

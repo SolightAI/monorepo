@@ -171,11 +171,17 @@ async def check_for_captcha(agent: Agent) -> None:
     page = await agent.browser_context.get_current_page()
 
     try:
-        content = await page.content()
-    except:  # noqa: E722
-        logger.warning(f"[{task_id}] page.content failed cause page was loading, retrying...")
-        await page.wait_for_load_state("networkidle")
-        content = await page.content()
+
+        try:
+            content = await page.content()
+        except:  # noqa: E722
+            logger.warning(f"[{task_id}] page.content failed cause page was loading, retrying...")
+            await page.wait_for_load_state("networkidle", timeout=3_500)
+            content = await page.content()
+
+    except Exception:
+        logger.warning(f"[{task_id}] Couldn't load the page content, skipping captcha check")
+        return
 
     if "captchaimg" not in content:
         return
