@@ -25,6 +25,7 @@ import { Home } from './pages/demo/Home';
 import { Results } from './pages/demo/Results';
 import { Processor } from './pages/demo/Processor';
 import { DemoLayout } from './components/layout/DemoLayout';
+import { DemoProvider } from './context/DemoContext';
 
 
 // Remove the local isAuthenticated function and use the one from AuthContext instead
@@ -103,7 +104,7 @@ function AppContent() {
                 <Route path="/join-organization/:code" element={<JoinOrganization />} />
 
                 {/* Demo routes */}
-                <Route path="/demo/*" element={<DemoLayout />}>
+                <Route path="/demo/*" element={<DemoProvider><DemoLayout /></DemoProvider>}>
                   <Route index element={<Home />} />
                   <Route path={"processing"} element={<Processor />} />
                   <Route path="results" element={<Results />} />
