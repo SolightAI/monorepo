@@ -45,11 +45,12 @@ def valid_google_credentials() -> list[dict[str, Any]]:
     """Fixture for valid Google OAuth credentials."""
     return [
         {
-            "category": LoginMethod.GOOGLE.value,
+            "category": LoginMethod.GOOGLE_OAUTH.value,
             "name": "Credentials",
             "values": {
                 "username": "testuser@gmail.com",
-                "password": "password123"
+                "password": "password123",
+                "recovery_phone_number": "+11234567890",
             }
         }
     ]
@@ -75,11 +76,12 @@ def invalid_google_credentials() -> list[dict[str, Any]]:
     """Fixture for invalid Google OAuth credentials."""
     return [
         {
-            "category": LoginMethod.GOOGLE.value,
+            "category": LoginMethod.GOOGLE_OAUTH.value,
             "name": "this-is-not-a-valid-email@fake-domain.com",
             "values": {
                 "username": "this-is-not-a-valid-email@fake-domain.com",
-                "password": "this-is-not-a-valid-password"
+                "password": "this-is-not-a-valid-password",
+                "recovery_phone_number": "+11234567890",
             }
         }
     ]

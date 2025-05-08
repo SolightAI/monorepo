@@ -1,12 +1,13 @@
 import pytest
 
+from textwrap import dedent
 from src.agents.general_agent import general_agent
 from src.utils.dto import Test, TestCategory, TestStatus
 
 
 class TestTickPick():
 
-    url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=891431485&quantity=1&listingType=TEVO&price=10&dt=f&dv=4&e=6574558&s=411&r=3"
+    url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=889809847&quantity=1&listingType=TEVO&price=72&dt=f&dv=13&e=7089570&s=111&r=1"
 
     async def _run_checkout_test(
         self,
@@ -18,16 +19,16 @@ class TestTickPick():
         expected_status: TestStatus,
     ) -> None:
         """Helper method to run a checkout test case."""
-        steps = f"""
-1. Wait for the page to load
-2. At the top of the page, fill a random email address as "Buyer Information".
-3. Select (new) credit card as payment method at the top of the page
-{credit_card_step}
-5. Scroll down and make sure contact informations are filled. If they are not filled, fill them yourself. If you need to enter a phone number, enter an US one with the +1 country code.
-6. Scroll down and make sure "No, don't make my ticket reimbursable" is selected
-7. Scroll down and click "Place order"
-8. Wait for the "Processing" to finish until you have a final message
-        """.strip()
+        steps = dedent(f"""
+            1. Wait for the page to load
+            2. At the top of the page, fill a random email address as "Buyer Information".
+            3. Select (new) credit card as payment method at the top of the page
+            {credit_card_step}
+            5. Scroll down and make sure contact informations are filled. If they are not filled, fill them yourself. If you need to enter a phone number, enter an US one with the +1 country code.
+            6. Scroll down and make sure "No, don't make my ticket reimbursable" is selected
+            7. Scroll down and click "Place order"
+            8. Wait for the "Processing" to finish until you have a final message
+        """.strip())
 
         test = Test(
             category=TestCategory.SMOKE,

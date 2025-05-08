@@ -50,7 +50,7 @@ Provide your final output in the following format:
 <login_result>Specify if the login was successful or if an error occurred</login_result>
 <error_message>Include the error message here if an error occurred, otherwise omit this tag</error_message>
 </login_attempt>
-""".strip().format(USERNAME_PASSWORD=LoginMethod.EMAIL.value, GOOGLE_OAUTH=LoginMethod.GOOGLE.value)
+""".strip().format(USERNAME_PASSWORD=LoginMethod.EMAIL.value, GOOGLE_OAUTH=LoginMethod.GOOGLE_OAUTH.value)
 
 
 logger = getLogger(__name__)
@@ -65,7 +65,7 @@ def _select_login_method(login_method: LoginMethod, secrets: list[dict[str, dict
         if method.value in [_secret.get('category') for _secret in secrets]:
             return method
 
-    raise ValueError("No matching login method found in secrets")
+    raise ValueError(f"No matching login method found in secrets: {secrets}")
 
 
 async def login_to_website(
@@ -95,8 +95,8 @@ async def login_to_website(
     login_methods = []
     if any(LoginMethod.EMAIL.value in _secret['category'] for _secret in secrets):
         login_methods.append(f"- {LoginMethod.EMAIL.value}")
-    if any(LoginMethod.GOOGLE.value in _secret['category'] for _secret in secrets):
-        login_methods.append(f"- {LoginMethod.GOOGLE.value}")
+    if any(LoginMethod.GOOGLE_OAUTH.value in _secret['category'] for _secret in secrets):
+        login_methods.append(f"- {LoginMethod.GOOGLE_OAUTH.value}")
 
     session_data, history, evidences = await run_agent(
         task_id=task_id,
@@ -104,7 +104,7 @@ async def login_to_website(
         prompt=PROMPT.format(login_methods="\n".join(login_methods)),
         sensitive_data=sensitive_data,
         auth_session=None,
-        tools=None,
+        tools=[],
     )
 
     logger.info(f"[{task_id}] Checking if agent is logged in")

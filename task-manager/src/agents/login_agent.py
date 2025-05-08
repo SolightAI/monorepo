@@ -16,8 +16,8 @@ from fixtures.tools import TOOLS, get_prompt_list_of_tools
 
 
 AGENT_LIMITATIONS = [
-    "The agent cannot login using a social media account (Google, Facebook, Twitter, etc.)",
-    "The agent cannot login using \"Instant Login\"",
+    "The agent cannot login using a social media account outside of Google (GitHub, Facebook, Twitter, etc.)",
+    "The agent cannot use the \"Instant Login\" feature (that sends a link to the user's email to login)",
 ]
 
 PROMPT = """
@@ -39,6 +39,7 @@ Assertions: {test.assertions}
 
 Additional instructions:
 - When using the login method, take the time to read the form's error messages if any.
+- If you encounter a MFA google verification, select "Confirm your recovery phone number" and enter the phone number provided in the secrets.
 
 Be aware that you have the ability to:
 {tools}
@@ -88,11 +89,12 @@ async def login_agent(
 
     del auth_session
 
-    is_able, explanation = is_agent_able_to_run_test(
+    is_able, explanation = await is_agent_able_to_run_test(
         task_id=task_id,
         test=test,
         agent_tools=TOOLS,
         agent_limitations=AGENT_LIMITATIONS,
+        secrets_names=list(format_secrets(secrets).keys()),
     )
 
     if is_able is False:
@@ -120,7 +122,7 @@ async def login_agent(
         existing_session=session_data,
     )
 
-    status, explanation = check_final_test_result(
+    status, explanation = await check_final_test_result(
         task_id=task_id,
         test=test,
         agent_output=history.final_result(),

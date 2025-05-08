@@ -79,10 +79,11 @@ async def general_agent(
         A dictionary containing the status of the test, the results, and the tracing.
     """
 
-    is_able, explanation = is_agent_able_to_run_test(
+    is_able, explanation = await is_agent_able_to_run_test(
         task_id=task_id,
         test=test,
         agent_tools=TOOLS,
+        secrets_names=list(format_secrets(secrets).keys()),
     )
 
     if is_able is False:
@@ -114,7 +115,7 @@ async def general_agent(
 
     logger.info(f"[{task_id}] General agent finished running additional healthchecks.")
 
-    status, explanation = check_final_test_result(
+    status, explanation = await check_final_test_result(
         task_id=task_id,
         test=test,
         agent_output=history.final_result(),

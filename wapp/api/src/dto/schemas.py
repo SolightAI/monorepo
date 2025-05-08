@@ -324,12 +324,7 @@ class Test(TestBase):
 class SecretType(str, Enum):
     """Type of secret for categorization and handling."""
     USERNAME_PASSWORD = "username_password"
-    # OAUTH_CREDENTIAL = "oauth_credential"
-    GOOGLE = "oauth_credential:google"
-    # API_KEY = "api_key"
-    # ENVIRONMENT_VARIABLE = "environment_variable"
-    # CONNECTION_STRING = "connection_string"
-    # OTHER = "other"
+    GOOGLE_OAUTH = "google_oauth"
 
 
 class SecretBase(BaseModel):

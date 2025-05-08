@@ -21,22 +21,41 @@ const GoogleOAuth = ({ onSuccess, onFailure }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [step, setStep] = useState('email'); // 'email' or 'password'
 
   const handleGoogleLogin = () => {
+    // Reset state when opening the modal
+    setEmail("");
+    setPassword("");
+    setError("");
+    setStep('email');
     setShowModal(true);
   };
 
-  const handleSubmit = (e) => {
+  const handleEmailSubmit = (e) => {
     e.preventDefault();
+    if (!email) {
+      setError("Enter an email or phone number");
+      return;
+    }
+    // In a real scenario, you might want more robust email validation
+    if (email === DEFAULT_CREDENTIALS.email) {
+      setStep('password');
+      setError(""); // Clear previous errors
+    } else {
+      setError("Couldn't find your Google Account");
+      // Potentially offer account recovery or creation links here
+    }
+  };
 
-    // Simple validation
-    if (!email || !password) {
-      setError("Please enter both email and password");
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    if (!password) {
+      setError("Enter a password");
       return;
     }
 
-    // Check if credentials match
-    if (email === DEFAULT_CREDENTIALS.email && password === DEFAULT_CREDENTIALS.password) {
+    if (password === DEFAULT_CREDENTIALS.password) {
       // Simulate successful login
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('username', GOOGLE_USER.name);
@@ -48,11 +67,17 @@ const GoogleOAuth = ({ onSuccess, onFailure }) => {
       // Call the success callback with user data
       onSuccess && onSuccess({
         user: GOOGLE_USER,
-        tokenId: "ya29.a0AfB_byD7Hb8xjNmgHjLmg31RKmVvFvJFhNQl-9yBl_i7nEcIE2OYQ1qnTuKWvbnH"
+        tokenId: "ya29.a0AfB_byD7Hb8xjNmgHjLmg31RKmVvFvJFhNQl-9yBl_i7nEcIE2OYQ1qnTuKWvbnH" // Example token
       });
     } else {
-      setError("Invalid email or password");
+      setError("Wrong password. Try again or click Forgot password to reset it.");
     }
+  };
+
+  const handleBack = () => {
+    setStep('email');
+    setPassword(''); // Clear password when going back
+    setError(''); // Clear errors
   };
 
   return (
@@ -104,56 +129,98 @@ const GoogleOAuth = ({ onSuccess, onFailure }) => {
                   <path fill="#4285f4" d="M14.11 14.182c.722-.723 1.205-1.78 1.387-3.334H9.423V8.373h8.518c.09.452.16 1.07.16 1.664 0 1.903-.52 4.26-2.19 5.934-1.63 1.7-3.71 2.61-6.48 2.61-5.12 0-9.42-4.17-9.42-9.29C0 4.17 4.31 0 9.43 0c2.83 0 4.843 1.108 6.362 2.56L14 4.347c-1.087-1.02-2.56-1.81-4.577-1.81-3.74 0-6.662 3.01-6.662 6.75s2.93 6.75 6.67 6.75c2.43 0 3.81-.972 4.69-1.856z"></path>
                 </g>
               </svg>
-              <h2 className="text-2xl font-bold my-6">Sign in</h2>
-              <p className="mb-8 text-center text-gray-600">Use your Google Account</p>
+              <h2 className="text-2xl font-bold my-4">
+                {step === 'email' ? 'Sign in' : 'Welcome'}
+              </h2>
+              <p className="mb-6 text-center text-gray-600">
+                {step === 'email' ? 'Use your Google Account' : email}
+              </p>
             </div>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={step === 'email' ? handleEmailSubmit : handlePasswordSubmit}>
               {error && (
-                <div className="mb-4 p-2 bg-red-100 text-red-800 rounded text-sm">
+                <div className="mb-4 p-3 bg-red-100 text-red-700 border border-red-200 rounded text-sm flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
                   {error}
                 </div>
               )}
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="email">
-                  Email or phone
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Email"
-                />
-              </div>
+              {step === 'email' && (
+                <>
+                  <div className="mb-4">
+                    <input
+                      type="email"
+                      id="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                      placeholder="Email or phone"
+                      aria-label="Email or phone"
+                      autoComplete="username"
+                    />
+                  </div>
+                   <div className="text-sm mb-6">
+                      <button type="button" className="font-medium text-blue-600 hover:text-blue-800 focus:outline-none">
+                        Forgot email?
+                      </button>
+                   </div>
+                   <p className="text-sm text-gray-600 mb-6">
+                     Not your computer? Use Guest mode to sign in privately.
+                     <button type="button" className="ml-1 font-medium text-blue-600 hover:text-blue-800 focus:outline-none">
+                       Learn more
+                     </button>
+                   </p>
+                </>
+              )}
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="password">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Password"
-                />
-              </div>
+              {step === 'password' && (
+                <>
+                  <div className="mb-4">
+                    <input
+                      type="password"
+                      id="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                      placeholder="Enter your password"
+                      aria-label="Enter your password"
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  <div className="text-sm mb-6">
+                      <button type="button" className="font-medium text-blue-600 hover:text-blue-800 focus:outline-none">
+                        Forgot password?
+                      </button>
+                   </div>
+                </>
+              )}
 
-              <div className="flex justify-between items-center mb-6">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="text-blue-600 hover:text-blue-800"
-                >
-                  Cancel
-                </button>
+
+              <div className="flex justify-between items-center mt-8">
+                 {step === 'email' ? (
+                   <button
+                     type="button"
+                     // TODO: Implement Create account functionality or link
+                     className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                    >
+                     Create account
+                   </button>
+                 ) : (
+                   <button
+                     type="button"
+                     onClick={handleBack}
+                     className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                   >
+                     Back
+                   </button>
+                 )}
+
                 <button
                   type="submit"
-                  className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                  disabled={step === 'email' ? !email : !password}
                 >
                   Next
                 </button>

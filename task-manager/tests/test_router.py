@@ -139,13 +139,13 @@ TEST_CASES = [
 
 
 @pytest.mark.parametrize("test_input, expected_agent", TEST_CASES)
-def test_select_agent_to_use(test_input: Test, expected_agent: Callable) -> None:
+async def test_select_agent_to_use(test_input: Test, expected_agent: Callable) -> None:
     """
     Tests the select_agent_to_use function to ensure it selects the correct agent
     based on the provided test description.
     This test makes actual calls to the LLM.
     """
 
-    selected_agent = select_agent_to_use(test_input)
+    selected_agent = await select_agent_to_use(test_input)
 
     assert selected_agent == expected_agent, f"For test '{test_input.name}', expected agent {expected_agent.__name__}, but got {selected_agent.__name__}"

@@ -39,13 +39,6 @@ const HomePage = () => {
       items: [
         { name: "Task Dashboard with Hidden Auth Banner", path: "/epic/hidden-auth-banner", description: "Normal-looking task dashboard page with a non-visible authentication banner in the markup" },
       ]
-    },
-    {
-      title: "Epic Generation",
-      description: "Test cases for epic generation",
-      items: [
-        { name: "Task Dashboard with Hidden Auth Banner", path: "/epic/hidden-auth-banner", description: "Normal-looking task dashboard page with a non-visible authentication banner in the markup" },
-      ]
     }
   ];
 

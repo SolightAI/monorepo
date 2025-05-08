@@ -10,19 +10,20 @@ from langchain_openai import ChatOpenAI
 from browser_use import Agent, Browser, BrowserConfig, AgentHistoryList, Controller
 from browser_use.browser.context import BrowserContextConfig, BrowserContext, BrowserContextWindowSize
 from utils.s3_utils import upload_file_to_s3
-# from test_run.tracing import initialize, extend_agent_history
+from utils.constants import SEED
 from fixtures.tools import TOOLS, get_prompt_list_of_tools
 from typing import Callable
 from healthchecks import get_prompt_list_of_healthchecks, HEALTHCHECKS
 from utils.dto import Test
 from langchain_core.messages import HumanMessage
 from utils.dto import TestStatus
+from hooks.on_step_start_hook import on_step_start_hook
 
 
 SHARED_AGENT_LIMITATIONS = [
     "The agent cannot upload or download any type of file (including images, videos, documents, etc.).",
     "The agent cannot interact with OS file selectors, uploaders, or file dialogs.",
-    "The agent cannot leave the website to perform any search or action outside the website.",
+    "The agent cannot leave the website to perform any google search or action outside the website (except for oauth).",
     "The agent cannot change the window size or viewport size.",
 ]
 
@@ -61,6 +62,9 @@ Consider the following limitations of the agent:
 Consider the following tools that the agent has access to:
 {{agent_tools}}
 
+Keep in mind that the agent will have access to the following credentials:
+{{secrets_names}}
+
 Analysis Process:
 1. Examine each aspect of the test (name, description, preconditions, steps, and assertions) separately.
 2. For each aspect:
@@ -69,6 +73,7 @@ Analysis Process:
    c. Analyze each limitation separately:
       - State whether there's a conflict and explain why or why not.
       - If a conflict is found, note which specific limitation it violates.
+      - If the test requires credentials, check if the agent has access to them.
    d. Summarize any conflicts found in this section.
 3. Keep a running count of any limitations encountered.
 
@@ -153,6 +158,8 @@ Finally, review any additional healthcheck results (if available):
 <healthcheck_results>
 {{healthcheck_results}}
 </healthcheck_results>
+
+If there's a conflict between the agent's output and the healthchecks, the healthcheck result is authoritative.
 
 Your task is to carefully analyze this information and determine the final result of the test. The possible outcomes are:
 
@@ -322,12 +329,14 @@ DESCRIPTION_HEALTHCHECK_RESULT = """
 OUTPUT_VALIDATION_LLM = ChatOpenAI(
     model="gpt-4.1-mini",
     temperature=0.0,
+    seed=SEED,
 )
 
 
 LLM_CLIENT = ChatOpenAI(
     model="gpt-4.1",
     temperature=0.0,
+    seed=SEED,
 )
 
 
@@ -336,11 +345,13 @@ AGENT_CLIENT = ChatOpenAI(
     temperature=0.0,
     timeout=120,
     frequency_penalty=0.3,
+    seed=SEED,
 )
 
 PLANNER_CLIENT = ChatOpenAI(
     model="gpt-4.1",
     temperature=0.0,
+    seed=SEED,
 )
 
 
@@ -393,7 +404,7 @@ async def run_additional_healthcheck(
 
     logger.info(f"[{task_id}] Selecting additional healthcheck for {test.name}")
 
-    result: str = LLM_CLIENT.invoke(
+    result: str = (await LLM_CLIENT.ainvoke(
         [
             HumanMessage(
                 content=SELECT_ADDITIONAL_TEST_PROMPT.format(
@@ -402,7 +413,7 @@ async def run_additional_healthcheck(
                 )
             )
         ]
-    ).content  # type: ignore
+    )).content  # type: ignore
 
     healthcheck_evaluation, selected_healthchecks = _parse_select_additional_healthcheck_result(result)
 
@@ -438,13 +449,13 @@ def _parse_check_final_test_result(result: str) -> tuple[TestStatus, str]:
 
     try:
         status = TestStatus[status]
-    except ValueError:
+    except KeyError:
         raise ValueError(f"Invalid status: {status}")
 
     return status, explanation
 
 
-def check_final_test_result(
+async def check_final_test_result(
     task_id: str,
     test: Test,
     agent_output: str,
@@ -468,7 +479,7 @@ def check_final_test_result(
 
     logger.info(f"[{task_id}] Agent prompt: {CHECK_FINAL_TEST_RESULT_PROMPT.format(test=test, agent_output=agent_output, healthcheck_results=healthcheck_results_str).strip()}")
 
-    result: str = OUTPUT_VALIDATION_LLM.invoke(
+    result: str = (await OUTPUT_VALIDATION_LLM.ainvoke(
         [
             HumanMessage(
                 content=CHECK_FINAL_TEST_RESULT_PROMPT.format(
@@ -478,7 +489,7 @@ def check_final_test_result(
                 ).strip()
             )
         ]
-    ).content  # type: ignore
+    )).content  # type: ignore
 
     status, explanation = _parse_check_final_test_result(result)
 
@@ -504,26 +515,28 @@ def _parse_is_agent_able_to_run_test_result(result: str) -> tuple[bool, str]:
     return decision == "AGENT ABLE", explanation
 
 
-def is_agent_able_to_run_test(
+async def is_agent_able_to_run_test(
     task_id: str,
     test: Test,
     agent_tools: list[Callable] | None = None,
     agent_limitations: list[str] | None = None,
+    secrets_names: list[str] | None = None,
 ) -> tuple[bool, str]:
 
     logger.info(f"[{task_id}] Running agent health check for {test.name}")
 
-    result: str = LLM_CLIENT.invoke(
+    result: str = (await LLM_CLIENT.ainvoke(
         [
             HumanMessage(
                 content=ABILITY_TO_RUN_TEST_PROMPT.format(
                     test=test,
                     agent_tools=get_prompt_list_of_tools(agent_tools or []),
                     agent_limitations="\n".join(agent_limitations or []),
+                    secrets_names=secrets_names or [],
                 )
             )
         ]
-    ).content  # type: ignore
+    )).content  # type: ignore
 
     is_able, explanation = _parse_is_agent_able_to_run_test_result(result)
 
@@ -545,7 +558,7 @@ def get_agent_actions(history: AgentHistoryList) -> list[dict[str, Any]]:
 
 def format_secrets(secrets: list[dict[str, Any]]) -> dict[str, str]:
     return {
-        f"{_secret['category']}:{_secret['name']}:{secret_name}": secret_value
+        f"{_secret['category'].strip()}:{_secret['name'].strip()}:{secret_name.strip()}".strip().replace(" ", "_"): secret_value
         for _secret in secrets
         for secret_name, secret_value in _secret['values'].items()
     }
@@ -685,14 +698,19 @@ async def run_agent(
             # planner_llm=PLANNER_CLIENT,
             # use_vision_for_planner=True,
 
-            initial_actions=[{'go_to_url': {'url': url}}, {'go_to_url': {'url': url}}],  # twice cause it some case we have a redirect at the first try
+            initial_actions=[{'go_to_url': {'url': url}}],
             sensitive_data=sensitive_data,
             browser_context=context,
             controller=controller,
             max_actions_per_step=1,
         )
 
-        history = await agent.run(max_steps=50)
+        agent._task_id = task_id
+
+        history = await agent.run(
+            max_steps=50,
+            on_step_start=on_step_start_hook,
+        )
 
         logger.info(f"[{task_id}] Finished running agent")
 

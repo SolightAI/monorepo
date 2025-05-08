@@ -8,20 +8,15 @@ class LoginMethod(str, Enum):
     """
     ANY = "any"
     EMAIL = "username_password"
-    INSTANT_LOGIN = "instant_login"
-    GOOGLE = "oauth_credential_google"
-    FACEBOOK = "oauth_credential_facebook"
-    APPLE = "oauth_credential_apple"
-    TWITTER = "oauth_credential_twitter"
-    OTHER = "other"
+    GOOGLE_OAUTH = "google_oauth"
 
 
-SUPPORTED_LOGIN_METHODS = [LoginMethod.ANY, LoginMethod.EMAIL]
+SUPPORTED_LOGIN_METHODS = [LoginMethod.ANY, LoginMethod.EMAIL, LoginMethod.GOOGLE_OAUTH]
 
 
 REQUIRED_FIELDS = {
     LoginMethod.EMAIL.value: ["username", "password"],
-    LoginMethod.GOOGLE.value: ["username", "password"],
+    LoginMethod.GOOGLE_OAUTH.value: ["username", "password", "recovery_phone_number"],
 }
 
 
@@ -49,8 +44,9 @@ def has_required_secrets(login_method: LoginMethod, secrets: list[dict[str, Any]
 
     # If loop completes, none of the matching secrets had all required fields
     # Construct a helpful error message showing required vs found fields across all matching secrets
-    fields_found = set()
+    fields_found: set[str] = set()
     for secret in matching_secrets:
         fields_found.update(secret.get('values', {}).keys())
+    missing_fields = [field for field in required_fields if field not in fields_found]
 
-    return False, f"No secret for {login_method.name}"
+    return False, f"No secret for {login_method.name}, missing fields: {missing_fields}"
