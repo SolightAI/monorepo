@@ -18,7 +18,7 @@ export function Home() {
   };
 
   return (
-    <div className="flex flex-col md:max-w-[740px] mx-auto items-center py-12">
+    <div className="flex flex-col md:max-w-[740px] mx-auto items-center pb-12 pt-24">
       <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-8">
         Solight Demo
       </h1>
