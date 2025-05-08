@@ -50,6 +50,9 @@ EXPOSE 8001
 
 WORKDIR /app/
 
+# TODO remove (just to modify a layer)
+RUN ls
+
 # Set environment variable for Playwright browsers path
 ENV PLAYWRIGHT_BROWSERS_PATH=/tmp/playwright-browsers
 
