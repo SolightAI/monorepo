@@ -33,9 +33,6 @@ COPY requirements.txt .
 # Install requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
-# TODO remove (just to modify a layer)
-RUN ls
-
 COPY fix_browser_use.py /app/fix_browser_use.py
 RUN python /app/fix_browser_use.py
 
