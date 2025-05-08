@@ -1,0 +1,45 @@
+name: Task Manager Playground Tests Shutdown
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [ main ]
+    paths:
+      - '.github/workflows/task-manager-playground-tests.yml'
+      - '.github/workflows/task-manager-playground-shutdown.yml'
+      - 'task-manager/**'
+  # Manual trigger
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  auth-session-tests-shutdown:
+    runs-on: self-hosted
+    timeout-minutes: 60
+
+    defaults:
+      run:
+        working-directory: ./task-manager
+
+    env:
+      TEST_IMAGE: task-manager-test:${{ github.event.pull_request.number }}
+      PLAYWRIGHT_IMAGE: task-manager-playwright:${{ github.event.pull_request.number }}
+      PLAYGROUND_IMAGE: playground-test:${{ github.event.pull_request.number }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        driver: docker
+
+    - name: Cleanup
+      run: |
+        # Clean up Docker images for that PR
+        echo "Cleaning up Docker images"
+        docker rmi ${{ env.TEST_IMAGE }} ${{ env.PLAYWRIGHT_IMAGE }} ${{ env.PLAYGROUND_IMAGE }} || true
