@@ -37,6 +37,8 @@ const steps = [
 function ProgressStepper() {
   const [activeStep, setActiveStep] = React.useState(0);
 
+  // TODO Add Generation Tests status pooling
+
   const handleNext = () => {
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
@@ -52,7 +54,6 @@ function ProgressStepper() {
 
     return () => clearInterval(interval);
   }, [activeStep])
-  console.log(activeStep, steps.length);
 
   return (
     <Box>
