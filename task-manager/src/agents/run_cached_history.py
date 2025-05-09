@@ -148,7 +148,7 @@ def _enable_cached_generation_for_history_rerun(agent: Agent, history: list[Agen
                 # registering new decorated function
                 new_action_fn = decorator_factory(history, PLACEHOLDER_FORMAT.format(tool_name=action_taken, index=len(placeholders) - 1))(GENERATION_TASKS[action_taken])
                 new_action_fn.__name__ = new_action_fn.__name__ + "_" + str(len(placeholders))
-                agent.controller.action(GENERATION_TASKS[action_taken].__doc__)(new_action_fn)  # FIXME: in case rerun history fails, we need to remove the new action to prevent the llm from using the old function
+                agent.controller.action(GENERATION_TASKS[action_taken].__doc__)(new_action_fn)
 
                 setattr(step_history.model_output.action[i], action_taken, None)  # deactivate the original function call
                 new_action_to_call = {new_action_fn.__name__: type(action_params_obj)(**action_parameters)}   # create the new function call

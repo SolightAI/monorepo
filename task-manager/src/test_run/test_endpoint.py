@@ -28,10 +28,6 @@ async def run_test(
     if secrets:
         decrypted_secrets = crypto_service.decrypt_secrets(secrets)
 
-    logger.info(f"[{ctx['job_id']}] md5 of product: {md5(json.dumps(product).encode()).hexdigest()}")
-    logger.info(f"[{ctx['job_id']}] md5 of test: {md5(json.dumps(test).encode()).hexdigest()}")
-    logger.info(f"[{ctx['job_id']}] md5 of secrets: {md5(json.dumps(decrypted_secrets).encode()).hexdigest()}")
-
     identifier = md5(json.dumps({
         "product": product,
         "test": test,

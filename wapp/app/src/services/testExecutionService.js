@@ -56,7 +56,7 @@ export const createTestExecution = async (executionData) => {
     const payload = { ...executionData }; // Clone to avoid modifying original object if it's passed around
     // The backend expects run_without_cache to be explicitly false if not true.
     // If undefined, set it to false. If true, it will be passed as true.
-    if (payload.run_without_cache === undefined) {
+    if (payload.run_without_cache === undefined || payload.run_without_cache === null) {
       payload.run_without_cache = false;
     }
 

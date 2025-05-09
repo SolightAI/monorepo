@@ -187,7 +187,6 @@ def upload_file_to_s3(
 
 def exists_in_s3(
     object_name: str,
-    job_id: str,
 ) -> bool:
     """
     Check if a file exists in S3.

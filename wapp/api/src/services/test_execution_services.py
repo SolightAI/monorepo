@@ -107,7 +107,7 @@ async def get_test_executions_by_test(test_id: UUID4) -> List[TestExecutionEleme
             )
             execution.evidence = [url for url in generated_urls if url is not None]
 
-    return [TestExecutionElement.model_validate(ex, from_attributes=True) for ex in test_executions]
+    return test_executions
 
 
 async def create_test_execution(
@@ -155,7 +155,6 @@ async def create_test_execution(
                 "links_to_documentation": product.links_to_documentation,
             },
             "feature": {
-                "id": feature.id,
                 "name": feature.name,
                 "description": feature.description,
                 "urls": feature.urls,
@@ -256,8 +255,6 @@ async def _check_status_from_redis(test_execution: TestExecutionModel) -> TestEx
     agent_actions = status_data.get("agent_actions", [])
 
     # Prepare metadata with agent data
-    logger.info(f"status_data: {status_data}")
-    logger.info(f"status_data.is_from_cache: {status_data.get('is_from_cache', 'NOTHING')}")
     updated_metadata = (test_execution.metadata or {}) | {
         "agent_thoughts": agent_thoughts,
         "agent_actions": agent_actions,

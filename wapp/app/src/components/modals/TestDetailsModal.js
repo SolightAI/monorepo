@@ -556,11 +556,6 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
                     <Play size={16} className="mr-1" />
                   )}
                   {runningTest ? 'Starting...' : 'Run Test'}
-                  {secrets && secrets.length > 0 && (
-                    <span className="ml-1.5 flex items-center justify-center bg-green-800 text-white text-xs rounded-full h-5 min-w-5 px-1">
-                      {secrets.length}
-                    </span>
-                  )}
                 </button>
               </div>
             </>

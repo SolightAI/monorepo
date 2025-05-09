@@ -407,7 +407,7 @@ async def run_additional_healthcheck(
 
     cache_key = f"{identifier}/selected_healthcheck.json"
 
-    if identifier and exists_in_s3(cache_key, task_id):
+    if identifier and exists_in_s3(cache_key):
 
         logger.info(f"[{task_id}] Selecting additional healthcheck from cache")
 
@@ -431,9 +431,7 @@ async def run_additional_healthcheck(
             ]
         )).content  # type: ignore
 
-        healthcheck_evaluation, selected_healthchecks = _parse_select_additional_healthcheck_result(result)
-
-        logger.info(f"[{task_id}] Selected additional healthcheck(s): {selected_healthchecks} - Evaluation: {healthcheck_evaluation}")
+        _, selected_healthchecks = _parse_select_additional_healthcheck_result(result)
 
         with NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as selected_healthcheck_file:
             with open(selected_healthcheck_file.name, "w") as f:
@@ -529,7 +527,11 @@ async def check_final_test_result(
         ]
     )).content  # type: ignore
 
-    status, explanation = _parse_check_final_test_result(result)
+    try:
+        status, explanation = _parse_check_final_test_result(result)
+    except Exception as e:
+        logger.error(f"[{task_id}] Error parsing final test result ({e}) : {result}")
+        raise e
 
     logger.info(f"[{task_id}] Final test result: {status} - {explanation}")
 
@@ -755,9 +757,8 @@ async def run_agent(
 
         run_agent = True
 
-        # FIXME: Task id changes at each run
         try:
-            if identifier and exists_in_s3(f"{identifier}/history.json", task_id):
+            if identifier and exists_in_s3(f"{identifier}/history.json"):
 
                 logger.info(f"[{task_id}] Running agent from cached history")
 
@@ -769,20 +770,14 @@ async def run_agent(
                     agent = Agent(**agent_params)
                     agent._task_id = task_id  # NOTE: we want to use a different agent for rerun_history and agent.run as rerun_history modifies the agent's controller
 
-                    # This history contains screenshots from the original run.
-                    loaded_history_for_gif = AgentHistoryList.load_from_file(history_file.name, agent.AgentOutput)
-
                     history = await rerun_history(
                         agent,
-                        loaded_history_for_gif,
+                        AgentHistoryList.load_from_file(history_file.name, agent.AgentOutput),
                         max_retries=10,  # cost nothing to retry, cost a lot to fail
                         skip_failures=False,
                         delay_between_actions=1,  # leaves time for the page to load (otherwise leads to errors)
                     )
 
-                    # Use the loaded history for the GIF, as agent.state.history is not
-                    # populated with visual steps of the rerun by load_and_rerun without service.py changes.
-                    # history = loaded_history_for_gif # FIXME: This is not the history of the rerun, but the original history.
                     run_agent = False
 
         except Exception:
@@ -800,8 +795,12 @@ async def run_agent(
                 on_step_start=on_step_start_hook,
             )
 
+            logger.info(f"[{task_id}] Agent finished running ({identifier})")
+
             if identifier:
                 with NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as history_file:
+
+                    logger.info(f"[{task_id}] Saving history to {f'{identifier}/history.json'}")
 
                     history.save_to_file(history_file.name)
 
