@@ -26,6 +26,36 @@ export const EXECUTOR_TYPE = {
 };
 
 /**
+ * Helper to sort tests by test execution status
+ *
+ * @param {string} status - The status of the test execution
+ * @returns {number} Object with icon and color for the status
+ */
+export const orderStatus = (status) => {
+  switch (status) {
+    case TEST_STATUS.PASSED:
+      return 0;
+    case TEST_STATUS.FAILED:
+      return 0;
+    case TEST_STATUS.PENDING:
+      return 1;
+    case TEST_STATUS.ERROR:
+      return 0;
+    case TEST_STATUS.AGENT_LIMITATION:
+      return 0;
+    case TEST_STATUS.NOT_FOUND:
+      return 0;
+    case TEST_STATUS.BLOCKED_BY_CAPTCHA:
+      return 0;
+    case null:
+      return 2;
+    default:
+      console.log('getStatusInfo', status);
+      return 2;
+  }
+};
+
+/**
  * Get icon and color based on execution status
  *
  * @param {string} status - The status of the test execution

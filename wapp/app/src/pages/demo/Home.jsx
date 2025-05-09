@@ -103,7 +103,7 @@ export function Home() {
       await triggerFeatureTestGeneration(feature.id);
       
       // Save data to context
-      updateUrl(data.url);
+      updateUrl(data.url.trim());
       updateOrganization(org);
       updateProduct(product);
       updateEpic(defaultEpic);

@@ -100,14 +100,6 @@ const DemoTestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUp
   const [selectedExecution, setSelectedExecution] = useState(null);
   const modalRef = useRef(null);
 
-  // Get secrets/credentials from the context
-  const { secrets, fetchSecrets } = useSecret();
-
-  // Fetch secrets when component mounts
-  useEffect(() => {
-    fetchSecrets();
-  }, [fetchSecrets]);
-
   // Update internal state when initialTest changes
   useEffect(() => {
     setTestData(initialTest);
@@ -289,17 +281,6 @@ const DemoTestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUp
                 <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-center">
                   <AlertTriangle size={20} className="mr-2 text-red-600" />
                   <p>{error}</p>
-                </div>
-              )}
-
-              {/* Display credentials warning if none available */}
-              {(!secrets || secrets.length === 0) && (
-                <div className="mb-6 p-4 bg-yellow-100 border border-yellow-200 text-yellow-800 rounded-lg flex items-center">
-                  <AlertTriangle size={20} className="mr-2 text-yellow-600" />
-                  <div>
-                    <p className="font-medium">Test credentials required</p>
-                    <p className="text-sm mt-1">You need to add test credentials before running tests. Go to Test Credentials to add credentials.</p>
-                  </div>
                 </div>
               )}
 

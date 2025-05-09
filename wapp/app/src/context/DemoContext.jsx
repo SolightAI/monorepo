@@ -152,8 +152,6 @@ import { createContext, useContext, useState, useRef, useCallback } from 'react'
 const defaultValue = {
   tests: [],
   latestExecutionsMap: {},
-
-  isGeneratingTests: false,
   generationPollingIntervalRef: { current: null },
   testPollingIntervalsRef: { current: {} },
 }
@@ -169,13 +167,7 @@ export function DemoProvider({ children }) {
   const [product, setProduct] = useState(null);
   const [organization, setOrganization] = useState(null);
   const [tests, setTests] = useState([]);
-  const testPollingIntervalsRef = useRef({}); // Track polling intervals for individual tests
-  const [latestExecutionsMap, setLatestExecutionsMap] = useState({}); // New state for latest execution data
-  
-  // const pollingIntervalRef = useRef(null);
-  // const [runningTests, setRunningTests] = useState({}); // Track tests that are currently running
-  // const testPollingIntervalsRef = useRef({}); // Track polling intervals for individual tests
-  
+  const testPollingIntervalsRef = useRef({}); // Track polling intervals for individual tests  
 
   const updateUrl = (newUrl) => { 
     setUrl(newUrl);
@@ -208,7 +200,6 @@ export function DemoProvider({ children }) {
     setEpic(null);
     setProduct(null);
     setOrganization(null);
-    setLatestExecutionsMap({});
     
     // Clear test polling intervals
     Object.values(testPollingIntervalsRef.current).forEach(interval => {
@@ -228,7 +219,6 @@ export function DemoProvider({ children }) {
       epic,
       product,
       organization,
-      latestExecutionsMap,
       testPollingIntervalsRef,
       updateUrl,
       updateTests,
@@ -236,133 +226,9 @@ export function DemoProvider({ children }) {
       updateEpic,
       updateProduct,
       updateOrganization,
-      setLatestExecutionsMap,
       reset,
     }}>
       {children}
     </DemoContext.Provider>
   );
 }
-// // Update the startTestGenerationPolling function
-// const startTestGenerationPolling = async (featureId) => {
-//   if (!featureId) return;
-
-//   const featureObj = features.find(f => f.id === featureId);
-//   const featureName = featureObj ? featureObj.name : featureId;
-
-//   try {
-//     // Clear any existing polling interval
-//     if (pollingIntervalRef.current) {
-//       clearInterval(pollingIntervalRef.current);
-//     }
-
-//     // Set initial states
-//     setError(null);
-
-//     // Use the pollTestGenerationStatus function from the service
-//     pollingIntervalRef.current = pollTestGenerationStatus(
-//       featureId,
-//       (statusMessage) => {
-//         setSuccessMessage(statusMessage);
-//       },
-//       async (successMsg) => {
-//         setIsGeneratingTests(false);
-//         setGeneratingFeatures([]);
-//         pollingIntervalRef.current = null;
-//         setSuccessMessage(`Test generation completed successfully. ${successMsg}`);
-//       },
-//       (errorMsg) => {
-//         setIsGeneratingTests(false);
-//         setGeneratingFeatures([]);
-//         pollingIntervalRef.current = null;
-//         setError(`Test generation failed. ${errorMsg}`);
-//         setSuccessMessage(null);
-//       },
-//       featureName
-//     );
-//   } catch (error) {
-//     console.error('Error starting test generation polling:', error);
-//     setIsGeneratingTests(false);
-//     setGeneratingFeatures([]);
-//     setError('Error starting test generation. Please try again.');
-//   }
-// };
-
-// // Update the useEffect to use checkExistingTaskId
-// useEffect(() => {
-//   let isMounted = true;
-//   let checkTimeout = null;
-
-//   const initialize = async () => {
-//     if (!isMounted) return;
-
-//     // First, check if we have any generating features in state
-//     if (generatingFeatures.length > 0) {
-//       // Start polling for each feature immediately
-//       generatingFeatures.forEach(feature => {
-//         startTestGenerationPolling(feature.id);
-//       });
-//     }
-
-//     // Then check for existing task ID in the background
-//     await checkExistingTaskId();
-//   };
-
-//   // Use a smaller timeout to ensure the component is fully mounted
-//   checkTimeout = setTimeout(() => {
-//     initialize();
-//   }, 50);
-
-//   // Cleanup function
-//   return () => {
-//     isMounted = false;
-//     if (checkTimeout) {
-//       clearTimeout(checkTimeout);
-//     }
-//     if (pollingIntervalRef.current) {
-//       clearInterval(pollingIntervalRef.current);
-//       pollingIntervalRef.current = null;
-//     }
-//   };
-// }, [selectedFeature]);
-
-
-
-// ! Function to handle test generation for the selected feature
-// const handleGenerateTests = async () => {
-//   // Clear previous messages/state
-//   setError(null);
-//   setSuccessMessage(null);
-
-//   // Set generating state immediately
-//   const featureObj = features.find(f => f.id === selectedFeature);
-//   const featureName = featureObj ? featureObj.name : 'Selected Feature';
-//   setIsGeneratingTests(true);
-//   setGeneratingFeatures([{ id: selectedFeature, name: featureName }]);
-
-//   // Call the new service function
-//   pollingIntervalRef.current = await handleFeatureTestGeneration(
-//     selectedFeature,
-//     secrets,
-//     (taskId) => { // onStart
-//       // State already set, no need to set again
-//     },
-//     (statusUpdate) => { // onStatusUpdate
-//       setSuccessMessage(statusUpdate);
-//     },
-//     async (successMsg) => { // onSuccess
-//       setIsGeneratingTests(false);
-//       setGeneratingFeatures([]);
-//       pollingIntervalRef.current = null;
-//       setSuccessMessage(`Test generation completed successfully. ${successMsg}`);
-//     },
-//     (errorMsg) => { // onError
-//       setIsGeneratingTests(false);
-//       setGeneratingFeatures([]);
-//       setError(`Test generation failed. ${errorMsg}`);
-//       setSuccessMessage(null);
-//       pollingIntervalRef.current = null;
-//     },
-//     featureName
-//   );
-// };

@@ -3,7 +3,7 @@ import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
 import { Box, StepContent } from '@mui/material';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, PauseCircle, X } from 'lucide-react';
 import { useDemo } from '@/context/DemoContext';
 import { useNavigate } from 'react-router-dom';
 import { pollTestGenerationStatus } from '@/services/testGenerationService';
@@ -200,14 +200,17 @@ function ProgressStepper() {
             {
               index >= activeStep ? (
                 <StepLabel
-                  StepIconComponent={isGeneratingTests ? Loader2 : error ? X : undefined}
+                  StepIconComponent={isGeneratingTests ? Loader2 : 
+                    error 
+                    ? activeStep === index ? X : PauseCircle
+                    : undefined}
                   StepIconProps={isGeneratingTests ? {
                     className: "animate-spin",
                     active: 'true',
                     error: "false",
                     completed: "false",
                   } : {
-                    className: "text-red-500",
+                    className: activeStep === index ? "text-red-500" : "text-gray-400",
                     active: 'false',
                     error: "true",
                     completed: "false",
