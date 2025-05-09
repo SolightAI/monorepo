@@ -1105,12 +1105,14 @@ const TestsTable = () => {
           setSuccessMessage(statusMessage);
         },
         async (successMsg) => {
+          setTimeout(() => window.location.reload(), 2000);
           setIsGeneratingTests(false);
           setGeneratingFeatures([]);
           pollingIntervalRef.current = null;
           setSuccessMessage(`Test generation completed successfully. ${successMsg}`);
         },
         (errorMsg) => {
+          setTimeout(() => window.location.reload(), 2000);
           setIsGeneratingTests(false);
           setGeneratingFeatures([]);
           pollingIntervalRef.current = null;

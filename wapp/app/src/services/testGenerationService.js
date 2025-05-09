@@ -23,11 +23,11 @@ export const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, o
                 onSuccess(
                     `Successfully generated tests for feature "${featureName || featureId}". Status: ${formatStatus(TEST_STATUS.PASSED)}`
                 );
-                setTimeout(() => window.location.reload(), 2000);
+                // setTimeout(() => window.location.reload(), 2000);
             } else if (response.status === TEST_STATUS.ERROR || response.status === TEST_STATUS.FAILED) {
                 clearInterval(intervalId);
                 onError(response.status === TEST_STATUS.ERROR ? `Error generating tests for feature "${featureName || featureId}". Please try again.` : `Test generation failed for feature "${featureName || featureId}". Please try again.`);
-                setTimeout(() => window.location.reload(), 2000);
+                // setTimeout(() => window.location.reload(), 2000);
             }
         } catch (pollErr) {
             console.error(`Error polling test generation status for Feature ${featureId}:`, pollErr);
@@ -92,11 +92,13 @@ export const handleFeatureTestGeneration = async (
             // Wrap onSuccess to clear pollingIntervalId
             (successMsg) => {
                 pollingIntervalId = null; // Mark interval as cleared
+                setTimeout(() => window.location.reload(), 2000);
                 onSuccess(successMsg);
             },
             // Wrap onError to clear pollingIntervalId
             (errorMsg) => {
                 pollingIntervalId = null; // Mark interval as cleared
+                setTimeout(() => window.location.reload(), 2000);
                 onError(errorMsg);
             },
             featureId
