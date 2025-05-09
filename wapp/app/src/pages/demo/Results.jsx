@@ -1,3 +1,4 @@
+import DemoTestDetailsModal from "@/components/modals/DemoTestDetailsModal";
 import { Play } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -5,6 +6,10 @@ import { useNavigate } from "react-router-dom";
 export function Results() {
   const navigate = useNavigate();
   const [selectedTest, setSelectedTest] = useState(null);
+  //   runningTests: Record<string, boolean>;
+  //   setRunningTests: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  const [runningTests, setRunningTests] = useState({}); // Track tests that are currently running
+
 
   // Only show error page for critical/loading errors that prevent displaying the main UI
   // if (error && tests.length === 0 && !loading) {
@@ -24,15 +29,15 @@ export function Results() {
 
   return (
     <div className="flex flex-col w-full md:max-w-[840px] mx-auto items-center pb-12 pt-24">
-      {/* {selectedTest && (
+      {selectedTest && (
         <DemoTestDetailsModal
-          test={selectedTest}
+          // test={selectedTest}
           // Find the feature and pass its first URL
-          featureUrl={features.find(f => f.id === selectedTest.feature_id)?.urls?.[0]}
-          onClose={handleTestClose}
-          onTestUpdated={handleTestUpdated}
+          // featureUrl={features.find(f => f.id === selectedTest.feature_id)?.urls?.[0]}
+          // onClose={handleTestClose}
+          // onTestUpdated={handleTestUpdated}
         />
-      )} */}
+      )}
 
       <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-8">
         Your tests are ready!

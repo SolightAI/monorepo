@@ -136,7 +136,6 @@ import { createContext, useContext, useState, useRef } from 'react';
 //   url: string;
 //   tests: any[]; // Test[]
 //   error: string | null;
-//   runningTests: Record<string, boolean>;
 //   isGeneratingTests: boolean;
 //   latestExecutionsMap: Record<string, any>; // Map of test IDs to their latest execution data TestExecution[]
 //   generationPollingIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>;
@@ -145,7 +144,6 @@ import { createContext, useContext, useState, useRef } from 'react';
 //   setTests: React.Dispatch<React.SetStateAction<any[]>>;
 //   setError: React.Dispatch<React.SetStateAction<string | null>>;
 //   setIsGeneratingTests: React.Dispatch<React.SetStateAction<boolean>>;
-//   setRunningTests: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
 //   setLatestExecutionsMap: React.Dispatch<React.SetStateAction<Record<string, any>>>;
 //   dismissError: () => void;
 //   reset: () => void;
@@ -153,7 +151,6 @@ import { createContext, useContext, useState, useRef } from 'react';
 
 const defaultValue = {
   tests: [],
-  runningTests: {},
   error: null,
   latestExecutionsMap: {},
 
@@ -172,7 +169,6 @@ export function DemoProvider({ children }) {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [isGeneratingTests, setIsGeneratingTests] = useState(false);
-  const [runningTests, setRunningTests] = useState({}); // Track tests that are currently running
   const generationPollingIntervalRef = useRef(null); // Polling interval for test generation
   const testPollingIntervalsRef = useRef({}); // Track polling intervals for individual tests
   const [latestExecutionsMap, setLatestExecutionsMap] = useState({}); // New state for latest execution data
@@ -193,7 +189,6 @@ export function DemoProvider({ children }) {
     setError(null);
     setSuccessMessage(null);
     setIsGeneratingTests(false);
-    setRunningTests({});
     setLatestExecutionsMap({});
     
     // Clear test polling intervals
@@ -217,7 +212,6 @@ export function DemoProvider({ children }) {
       tests,
       error,
       successMessage,
-      runningTests,
       latestExecutionsMap,
       generationPollingIntervalRef,
       testPollingIntervalsRef,
@@ -226,7 +220,6 @@ export function DemoProvider({ children }) {
       setTests,
       setError,
       setSuccessMessage,
-      setRunningTests,
       setIsGeneratingTests,
       setLatestExecutionsMap,
       dismissError,
