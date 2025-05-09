@@ -718,11 +718,42 @@ const TestsTable = () => {
       (statusUpdate) => { // onStatusUpdate
         setSuccessMessage(statusUpdate);
       },
-      async (successMsg) => { // onSuccess
-        setIsGeneratingTests(false);
-        setGeneratingFeatures([]);
-        pollingIntervalRef.current = null;
-        setSuccessMessage(`Test generation completed successfully. ${successMsg}`);
+      async (result) => { // onSuccess
+        try {
+          // First update the tests list with the new data
+          if (result.tests && result.tests.length > 0) {
+            // Add feature name to each test for easier sorting/display
+            const testsWithFeatureName = result.tests.map(test => ({
+              ...test,
+              feature_name: featureName
+            }));
+            
+            // Update the tests state
+            setTests(prevTests => {
+              // Filter out any existing tests for this feature
+              const otherTests = prevTests.filter(t => t.feature_id !== selectedFeature);
+              // Combine with new tests
+              return [...otherTests, ...testsWithFeatureName];
+            });
+            
+            // Apply current filters to the new tests
+            applyFilters(testsWithFeatureName, selectedStatus, searchQuery);
+            // Fetch latest executions for the new tests
+            await fetchLatestExecutions(testsWithFeatureName);
+          }
+          
+          // Then update the UI state
+          setIsGeneratingTests(false);
+          setGeneratingFeatures([]);
+          pollingIntervalRef.current = null;
+          setSuccessMessage(result.message);
+        } catch (err) {
+          console.error('Error updating tests after generation:', err);
+          setError('Tests were generated but could not be displayed. Please refresh the page.');
+          setIsGeneratingTests(false);
+          setGeneratingFeatures([]);
+          pollingIntervalRef.current = null;
+        }
       },
       (errorMsg) => { // onError
         setIsGeneratingTests(false);
