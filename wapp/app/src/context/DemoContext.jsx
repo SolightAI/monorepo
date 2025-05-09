@@ -165,6 +165,10 @@ export const useDemo = () => useContext(DemoContext);
 
 export function DemoProvider({ children }) {
   const [url, setUrl] = useState('');
+  const [feature, setFeature] = useState(null);
+  const [epic, setEpic] = useState(null);
+  const [product, setProduct] = useState(null);
+  const [organization, setOrganization] = useState(null);
   const [tests, setTests] = useState([]);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -187,6 +191,10 @@ export function DemoProvider({ children }) {
     setUrl('');
     setTests([]);
     setError(null);
+    setFeature(null);
+    setEpic(null);
+    setProduct(null);
+    setOrganization(null);
     setSuccessMessage(null);
     setIsGeneratingTests(false);
     setLatestExecutionsMap({});
@@ -211,6 +219,10 @@ export function DemoProvider({ children }) {
       url,
       tests,
       error,
+      feature,
+      epic,
+      product,
+      organization,
       successMessage,
       latestExecutionsMap,
       generationPollingIntervalRef,
@@ -219,6 +231,10 @@ export function DemoProvider({ children }) {
       setUrl,
       setTests,
       setError,
+      setFeature,
+      setEpic,
+      setProduct,
+      setOrganization,
       setSuccessMessage,
       setIsGeneratingTests,
       setLatestExecutionsMap,

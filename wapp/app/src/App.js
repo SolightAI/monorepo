@@ -108,6 +108,7 @@ function AppContent() {
                   <Route index element={<Home />} />
                   <Route path={"processing"} element={<Processor />} />
                   <Route path="results" element={<Results />} />
+                  <Route path="*" element={<NotFound />} />
                 </Route>
 
                 {/* Organization Setup Route */}
