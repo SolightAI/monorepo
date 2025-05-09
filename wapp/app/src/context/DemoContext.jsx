@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useRef } from 'react';
+import { createContext, useContext, useState, useRef, useCallback } from 'react';
 
 // --- Enums (You’ll need to define these appropriately) ---
 // export enum OrganizationType { /* ... */ }
@@ -151,7 +151,6 @@ import { createContext, useContext, useState, useRef } from 'react';
 
 const defaultValue = {
   tests: [],
-  error: null,
   latestExecutionsMap: {},
 
   isGeneratingTests: false,
@@ -170,7 +169,6 @@ export function DemoProvider({ children }) {
   const [product, setProduct] = useState(null);
   const [organization, setOrganization] = useState(null);
   const [tests, setTests] = useState([]);
-  const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [isGeneratingTests, setIsGeneratingTests] = useState(false);
   const generationPollingIntervalRef = useRef(null); // Polling interval for test generation
@@ -182,15 +180,33 @@ export function DemoProvider({ children }) {
   // const testPollingIntervalsRef = useRef({}); // Track polling intervals for individual tests
   
 
-  // Function to dismiss error message
-  const dismissError = () => {
-    setError(null);
+  const updateUrl = (newUrl) => { 
+    setUrl(newUrl);
+  };
+
+  const updateTests = (newTests) => {
+    setTests(newTests);
   };
   
-  const reset = () => {
+  const updateFeature = (newFeature) => {
+    setFeature(newFeature);
+  };
+
+  const updateEpic = (newEpic) => {
+    setEpic(newEpic);
+  };
+
+  const updateProduct = (newProduct) => {
+    setProduct(newProduct);
+  }
+
+  const updateOrganization = (newOrganization) => {
+    setOrganization(newOrganization);
+  }
+
+  const reset = useCallback(() => {
     setUrl('');
     setTests([]);
-    setError(null);
     setFeature(null);
     setEpic(null);
     setProduct(null);
@@ -212,13 +228,12 @@ export function DemoProvider({ children }) {
       clearInterval(generationPollingIntervalRef.current);
       generationPollingIntervalRef.current = null;
     }
-  };
+  }, [generationPollingIntervalRef, testPollingIntervalsRef]);
 
   return (
     <DemoContext.Provider value={{
       url,
       tests,
-      error,
       feature,
       epic,
       product,
@@ -228,17 +243,15 @@ export function DemoProvider({ children }) {
       generationPollingIntervalRef,
       testPollingIntervalsRef,
       isGeneratingTests,
-      setUrl,
-      setTests,
-      setError,
-      setFeature,
-      setEpic,
-      setProduct,
-      setOrganization,
+      updateUrl,
+      updateTests,
+      updateFeature,
+      updateEpic,
+      updateProduct,
+      updateOrganization,
       setSuccessMessage,
       setIsGeneratingTests,
       setLatestExecutionsMap,
-      dismissError,
       reset,
     }}>
       {children}

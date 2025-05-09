@@ -3,7 +3,7 @@ import { Card, CardContent, Typography } from "@mui/material";
 import { isValidUrl } from "@/utils/urlUtils";
 import { useNavigate } from "react-router-dom";
 import { useDemo } from "@/context/DemoContext";
-import { useAuth } from '@/context/AuthContext';
+// import { useAuth } from '@/context/AuthContext';
 import { useOrganization } from "@/context/OrganizationContext";
 import axios from "axios";
 import { API_URL } from "@/constants/api";
@@ -11,11 +11,13 @@ import { getAllEpics } from "@/services/productService";
 import { triggerFeatureTestGeneration } from "@/services/testService";
 import { useEffect, useState } from "react";
 
+// const DEMO_ACCOUNT_EMAIL = process.env.REACT_APP_DEMO_EMAIL || "";
+// const DEMO_ACCOUNT_TOKEN = process.env.REACT_APP_DEMO_TOKEN || "";
 
 export function Home() {
   const navigate = useNavigate();
-  const { setUrl, setFeature, setEpic, setProduct, setOrganization, reset } = useDemo();
-  const { login: authLogin, logout, isAuthenticated } = useAuth();
+  const { updateUrl, updateFeature, updateEpic, updateProduct, updateOrganization, reset } = useDemo();
+  // const { login: authLogin, logout, isAuthenticated } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -32,16 +34,17 @@ export function Home() {
       setIsLoading(true);
       setError(null);
       
-      // Logout if user is logged in
-      if (isAuthenticated) {
-        await logout();
-      }
-
+      // ! TODO Should be done so we can use demo account instead of using
+      // ! current user logged in account
+      // Logout if user is logged in 
+      // if (isAuthenticated) {
+      //   await logout();
+      // }
       // Get token from demo account
-      await authLogin({
-        email: "demo@demo.demo", // TODO Set in .env
-        password: "passw0rd", // TODO Set in .env
-      });
+      // await authLogin({
+      //   email: DEMO_ACCOUNT_EMAIL,
+      //   password: DEMO_ACCOUNT_TOKEN,
+      // });
       
       // Create new organization
       const org = await createOrganization({
@@ -75,8 +78,7 @@ export function Home() {
 
       if (epicsData.length === 0) {
         console.error("No epics found for the product");
-        // TODO Handle error (e.g., show a message to the user)
-        return;
+        throw new Error("No epics found for the product");
       }
       
       const defaultEpic = epicsData[0];
@@ -101,11 +103,11 @@ export function Home() {
       await triggerFeatureTestGeneration(feature.id);
       
       // Save data to context
-      setUrl(data.url);
-      setOrganization(org);
-      setProduct(product);
-      setEpic(defaultEpic);
-      setFeature(feature);      
+      updateUrl(data.url);
+      updateOrganization(org);
+      updateProduct(product);
+      updateEpic(defaultEpic);
+      updateFeature(feature);      
       
       navigate("/demo/processing");
     } catch (error) {

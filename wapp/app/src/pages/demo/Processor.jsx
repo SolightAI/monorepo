@@ -64,7 +64,12 @@ function ProgressStepper() {
               index >= activeStep ? (
                 <StepLabel
                   StepIconComponent={Loader2}
-                  StepIconProps={{ className: "animate-spin" }}
+                  StepIconProps={{
+                    className: "animate-spin",
+                    active: 'true',
+                    error: "false",
+                    completed: "false",
+                  }}
                 >
                   {step.label}
                 </StepLabel>
