@@ -169,9 +169,6 @@ export function DemoProvider({ children }) {
   const [product, setProduct] = useState(null);
   const [organization, setOrganization] = useState(null);
   const [tests, setTests] = useState([]);
-  const [successMessage, setSuccessMessage] = useState(null);
-  const [isGeneratingTests, setIsGeneratingTests] = useState(false);
-  const generationPollingIntervalRef = useRef(null); // Polling interval for test generation
   const testPollingIntervalsRef = useRef({}); // Track polling intervals for individual tests
   const [latestExecutionsMap, setLatestExecutionsMap] = useState({}); // New state for latest execution data
   
@@ -211,8 +208,6 @@ export function DemoProvider({ children }) {
     setEpic(null);
     setProduct(null);
     setOrganization(null);
-    setSuccessMessage(null);
-    setIsGeneratingTests(false);
     setLatestExecutionsMap({});
     
     // Clear test polling intervals
@@ -222,13 +217,8 @@ export function DemoProvider({ children }) {
       }
     });
     testPollingIntervalsRef.current = {}; // Reset the intervals object
-    
-    // Clear generation polling interval
-    if (generationPollingIntervalRef.current) {
-      clearInterval(generationPollingIntervalRef.current);
-      generationPollingIntervalRef.current = null;
-    }
-  }, [generationPollingIntervalRef, testPollingIntervalsRef]);
+
+  }, [testPollingIntervalsRef]);
 
   return (
     <DemoContext.Provider value={{
@@ -238,19 +228,14 @@ export function DemoProvider({ children }) {
       epic,
       product,
       organization,
-      successMessage,
       latestExecutionsMap,
-      generationPollingIntervalRef,
       testPollingIntervalsRef,
-      isGeneratingTests,
       updateUrl,
       updateTests,
       updateFeature,
       updateEpic,
       updateProduct,
       updateOrganization,
-      setSuccessMessage,
-      setIsGeneratingTests,
       setLatestExecutionsMap,
       reset,
     }}>
