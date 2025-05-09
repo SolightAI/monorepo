@@ -48,11 +48,19 @@ export const getTestExecution = async (executionId) => {
  * @param {string} [executionData.executor_name] - Optional name of the executor
  * @param {string} [executionData.notes] - Optional notes about the execution
  * @param {Array} [executionData.evidence] - Optional list of evidence URLs
+ * @param {boolean} [executionData.run_without_cache] - Optional flag to run test without cache
  * @returns {Promise<Object>} Promise with the created test execution data
  */
 export const createTestExecution = async (executionData) => {
   try {
-    const response = await axios.post(`${API_URL}/test-executions/`, executionData, {
+    const payload = { ...executionData }; // Clone to avoid modifying original object if it's passed around
+    // The backend expects run_without_cache to be explicitly false if not true.
+    // If undefined, set it to false. If true, it will be passed as true.
+    if (payload.run_without_cache === undefined) {
+      payload.run_without_cache = false;
+    }
+
+    const response = await axios.post(`${API_URL}/test-executions/`, payload, {
       withCredentials: true
     });
     return response.data;

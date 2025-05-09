@@ -95,7 +95,7 @@ async def general_agent(
             "results": explanation,
         }
 
-    session_data, history, evidences = await run_agent(
+    session_data, history, evidences, is_from_cache = await run_agent(
         identifier=identifier,
         task_id=task_id,
         url=test.url,
@@ -138,4 +138,5 @@ async def general_agent(
         # "tracing": history.get_logs(),
         "error": explanation if status != TestStatus.PASSED else "",
         "traceback": "",
+        "is_from_cache": is_from_cache,
     }

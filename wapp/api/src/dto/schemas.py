@@ -437,6 +437,7 @@ class TestExecutionCreate(BaseModel):
     notes: Optional[str] = None
     evidence: List[str] = []
     metadata: Dict[str, Any] = {}
+    run_without_cache: Optional[bool] = False
 
 
 class TestExecutionUpdate(BaseModel):

@@ -15,7 +15,9 @@ logger = getLogger(__name__)
 async def run_test(
     ctx: dict[Any, Any],
     product: dict[str, Any],  # used to get the login url
+    feature: dict[str, Any],
     test: dict[str, Any],
+    run_without_cache: bool = False,
     secrets: Optional[list[dict[str, Any]]] = None,
 ) -> dict[str, Any]:
 
@@ -33,14 +35,14 @@ async def run_test(
     identifier = md5(json.dumps({
         "product": product,
         "test": test,
-        # FIXME (later): should also be based on the feature
-        "decrypted_secrets": decrypted_secrets,  # FIXME (later): should be based only on the used secrets
-    }).encode()).hexdigest()
+        "feature": feature,
+        "decrypted_secrets": decrypted_secrets,  # TODO (later): should be based only on the used secrets
+    }).encode()).hexdigest() if not run_without_cache else None
 
     auth_session = dict()
     if test_obj.access_conditions and test_obj.access_conditions.get("must_be_logged_in") is True:
         auth_session = await get_auth_session(
-            identifier=identifier,
+            identifier=None,
             task_id=ctx['job_id'],
             url=product_obj.url,
             secrets=decrypted_secrets,

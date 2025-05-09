@@ -234,7 +234,7 @@ async def select_agent_to_use(test: Test) -> Callable:
 
 
 async def select_and_call_agent(
-    identifier: str,
+    identifier: str | None,
     task_id: str,
     test: Test,
     secrets: list[dict[str, Any]],

@@ -1,8 +1,8 @@
 import asyncio
 
-from typing import Callable
 from functools import wraps
 from logging import getLogger
+from typing import Any, Callable
 from fixtures.tools import TOOLS
 from pydantic import create_model
 from browser_use.agent.views import AgentHistory
@@ -67,7 +67,7 @@ def decorator_factory(history: list[AgentHistory], placeholder: str) -> Callable
     def decorator(function: Callable) -> Callable:
 
         @wraps(function)
-        def wrapper(*args, **kwargs) -> str:
+        def wrapper(*args: Any, **kwargs: Any) -> str:
             result = function(*args, **kwargs)
             fill_placeholder(history, placeholder, result)
             return result

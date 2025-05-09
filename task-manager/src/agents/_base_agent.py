@@ -12,7 +12,7 @@ from utils.dto import TestStatus
 from utils.constants import SEED
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
-from agents._run_cached_history import rerun_history
+from agents.run_cached_history import rerun_history
 from hooks.on_step_start_hook import on_step_start_hook
 from fixtures.tools import TOOLS, get_prompt_list_of_tools
 from tempfile import NamedTemporaryFile, TemporaryDirectory
@@ -674,9 +674,22 @@ async def run_agent(
     auth_session: dict[str, dict[str, str]] | None = None,
     tools: list[Callable] = TOOLS,
     **kwargs: Any,
-) -> tuple[dict[str, dict[str, str]], AgentHistoryList, list[str]]:
+) -> tuple[dict[str, dict[str, str]], AgentHistoryList, list[str], bool]:
     """
     Signup to the webapp and return the generated cookies.
+
+    Args:
+        identifier: The identifier of the agent.
+        task_id: The task id of the agent.
+        url: The url of the webapp.
+        prompt: The prompt of the agent.
+        sensitive_data: The sensitive data of the agent.
+        auth_session: The auth session of the agent.
+        tools: The tools of the agent.
+        **kwargs: Any additional arguments.
+
+    Returns:
+        A tuple containing the session data, history, evidences and a boolean indicating if the agent was run from cache.
     """
 
     evidences = []
@@ -787,14 +800,15 @@ async def run_agent(
                 on_step_start=on_step_start_hook,
             )
 
-            with NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as history_file:
+            if identifier:
+                with NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as history_file:
 
-                history.save_to_file(history_file.name)
+                    history.save_to_file(history_file.name)
 
-                upload_file_to_s3(
-                    file_path=history_file.name,
-                    object_name=f"{identifier}/history.json",
-                )
+                    upload_file_to_s3(
+                        file_path=history_file.name,
+                        object_name=f"{identifier}/history.json",
+                    )
 
         logger.info(f"[{task_id}] Finished running agent")
 
@@ -822,4 +836,4 @@ async def run_agent(
 
     logger.info(f"[{task_id}] Returning session data, history and evidences")
 
-    return session_data, history, evidences
+    return session_data, history, evidences, not run_agent
