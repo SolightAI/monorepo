@@ -119,7 +119,8 @@ function ProgressStepper() {
         async () => { // onSuccess
           setIsGeneratingTests(false);
           generationPollingIntervalRef.current = null;
-          navigate('/demo/results');
+          handleNext();
+          setTimeout(() => navigate('/demo/results'), 2000);
         },
         (errorMsg) => { // onError
           setIsGeneratingTests(false);
@@ -176,7 +177,7 @@ function ProgressStepper() {
   };
 
   React.useEffect(() => {
-    if (activeStep === steps.length) {
+    if (activeStep === steps.length - 1) {
       return;
     }
 
