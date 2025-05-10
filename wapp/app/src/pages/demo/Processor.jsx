@@ -180,7 +180,8 @@ function ProgressStepper() {
     if (!isGeneratingTests) return;
 
     const handleBeforeUnload = (e) => {
-      return true;
+      e.preventDefault();
+      return "Are you sure ?";
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -224,12 +225,12 @@ function ProgressStepper() {
                     active: 'true',
                     error: "false",
                     completed: "false",
-                  } : {
+                  } : error ? {
                     className: activeStep === index ? "text-red-500" : "text-gray-400",
                     active: 'false',
                     error: "true",
                     completed: "false",
-                  }}
+                  } : undefined}
                 >
                   <p>{step.label}</p>
                 </StepLabel>

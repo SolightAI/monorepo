@@ -4,7 +4,7 @@ import { useDemo } from "@/context/DemoContext";
 import { createTestExecution, getTestExecution } from "@/services/testExecutionService";
 import { getTestsByFeature } from "@/services/testService";
 import { formatStatus, getStatusDescription, getStatusInfo, orderStatus, TEST_STATUS } from "@/utils/testExecutionUtils";
-import { Play } from "lucide-react";
+import { Lock, Play } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -17,6 +17,7 @@ export function Results() {
   const [tests, setTests] = useState([]);
   const [selectedTest, setSelectedTest] = useState(null);
   const [testRunsRemaining, setTestRunsRemaining] = useState(DEMO_TEST_RUNS_QUOTA);
+  const [maxTestRuns, setMaxTestRuns] = useState(DEMO_TEST_RUNS_QUOTA);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [runningTests, setRunningTests] = useState({}); // Track tests that are currently running - Record<string, boolean>;
@@ -149,6 +150,13 @@ export function Results() {
   
   // Handle running a single test
   const handleRunSingleTest = async (testId) => {
+    let maxTestsToRun = testRunsRemaining;
+
+    if (maxTestsToRun === 0) {
+      setError('No test runs remaining.');
+      return;
+    };
+
     try {
       setError(null);
 
@@ -177,6 +185,8 @@ export function Results() {
           started_at: new Date().toISOString()
         } : test
       ));
+      
+      decountTestRunsRemaining();
     } catch (err) {
       console.error('Error running test:', err);
       setError('Failed to run test. Please try again.');
@@ -252,6 +262,8 @@ export function Results() {
       setLoading(true);
       const testsData = await getTestsByFeature(feature.id);
       setTests(testsData);
+      setTestRunsRemaining(Math.min(testsData.length, DEMO_TEST_RUNS_QUOTA));
+      setMaxTestRuns(Math.min(testsData.length, DEMO_TEST_RUNS_QUOTA));
       setLoading(false);
     } catch (err) {
       handleFetchError('fetching tests', err);
@@ -282,13 +294,17 @@ export function Results() {
     if (!feature) {
       navigate("/demo", { replace: true });
     }
+ 
+    fetchDemoTests();
+
   }, [feature, navigate]);
 
   useEffect(() => {
     if (!hasRunningTests()) return;
 
     const handleBeforeUnload = (e) => {
-      return true;
+      e.preventDefault();
+      return "Are you sure ?";
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -297,7 +313,7 @@ export function Results() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     
     }
-  }, [runningTests]);
+  }, [runningTests, hasRunningTests]);
 
   // Only show error page for critical/loading errors that prevent displaying the main UI
   if (error && tests.length === 0 && !loading) {
@@ -348,7 +364,7 @@ export function Results() {
             {testRunsRemaining === 0 ? (
               <span>No test runs remaining</span>
             ) : 
-            `${testRunsRemaining} of ${DEMO_TEST_RUNS_QUOTA} test run${testRunsRemaining > 1 ? 's' : ''} remaining`
+            `${testRunsRemaining} of ${maxTestRuns} test run${testRunsRemaining > 1 ? 's' : ''} remaining`
           }
           </div>
           <div className="flex gap-2">
@@ -449,11 +465,13 @@ export function Results() {
                           e.stopPropagation();
                           handleRunSingleTest(test.id);
                         }}
-                        title={runningTests[test.id] ? `Test is ${formatStatus(RUNNING_STATUS)}` : `Run this test`}
+                        title={runningTests[test.id] ? `Test is ${formatStatus(RUNNING_STATUS)}` : testRunsRemaining === 0 ? 'No more tests to run' : `Run this test`}
                         disabled={runningTests[test.id] || testRunsRemaining === 0}
                       >
                         {runningTests[test.id] ? (
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-1"></div>
+                        ) : testRunsRemaining === 0 ? (
+                          <Lock size={16} />
                         ) : (
                           <Play size={16} />
                         )}
