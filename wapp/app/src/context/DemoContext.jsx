@@ -131,24 +131,6 @@ import { createContext, useContext, useState, useRef, useCallback } from 'react'
 /**
  * DemoContext is a React context that provides a way to manage and share demo-related state
  */
-
-// type DemoContextType = {
-//   url: string;
-//   tests: any[]; // Test[]
-//   error: string | null;
-//   isGeneratingTests: boolean;
-//   latestExecutionsMap: Record<string, any>; // Map of test IDs to their latest execution data TestExecution[]
-//   generationPollingIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>;
-//   testPollingIntervalsRef: React.MutableRefObject<Record<string, NodeJS.Timeout | null>>;
-//   setUrl: React.Dispatch<React.SetStateAction<string>>;
-//   setTests: React.Dispatch<React.SetStateAction<any[]>>;
-//   setError: React.Dispatch<React.SetStateAction<string | null>>;
-//   setIsGeneratingTests: React.Dispatch<React.SetStateAction<boolean>>;
-//   setLatestExecutionsMap: React.Dispatch<React.SetStateAction<Record<string, any>>>;
-//   dismissError: () => void;
-//   reset: () => void;
-// }
-
 const defaultValue = {
   tests: [],
   latestExecutionsMap: {},

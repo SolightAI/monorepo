@@ -262,6 +262,10 @@ export function Results() {
     setSelectedTest(null);
   };
 
+  const hasRunningTests = () => {
+    return Object.keys(runningTests).length > 0;
+  };
+
   // Add useEffect for cleanup of test polling intervals
   useEffect(() => {
     return () => {
@@ -274,12 +278,27 @@ export function Results() {
   }, []);
 
   // Fallback to home demo page if no feature
-  // useEffect(() => {
-  //   if (!feature) {
-  //     navigate("/demo", { replace: true });
-  //   }
-  // }, [feature, navigate]);
-  
+  useEffect(() => {
+    if (!feature) {
+      navigate("/demo", { replace: true });
+    }
+  }, [feature, navigate]);
+
+  useEffect(() => {
+    if (!hasRunningTests()) return;
+
+    const handleBeforeUnload = (e) => {
+      return true;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    
+    }
+  }, [runningTests]);
+
   // Only show error page for critical/loading errors that prevent displaying the main UI
   if (error && tests.length === 0 && !loading) {
     return (

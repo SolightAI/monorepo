@@ -135,6 +135,10 @@ function ProgressStepper() {
       setError('Error starting test generation. Please try again.');
     }
   };
+
+  const handleNext = () => {
+    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+  };
   
   // Update the useEffect to use checkExistingTaskId
   React.useEffect(() => {
@@ -172,9 +176,20 @@ function ProgressStepper() {
     };
   }, [feature, navigate]);
 
-  const handleNext = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep + 1);
-  };
+  React.useEffect(() => {
+    if (!isGeneratingTests) return;
+
+    const handleBeforeUnload = (e) => {
+      return true;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    
+    }
+  }, [isGeneratingTests]);
 
   React.useEffect(() => {
     if (activeStep === steps.length - 1) {
