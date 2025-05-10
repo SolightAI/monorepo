@@ -75,7 +75,7 @@ def get_parameters_for_signup_agent(
 
 
 async def signup_agent(
-    identifier: str,
+    identifier: str | None,
     task_id: str,
     test: Test,
     secrets: list[dict[str, Any]],

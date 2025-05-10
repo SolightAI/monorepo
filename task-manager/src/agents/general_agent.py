@@ -63,7 +63,7 @@ def get_parameters_for_general_agent(
 
 
 async def general_agent(
-    identifier: str,
+    identifier: str | None,
     task_id: str,
     test: Test,
     secrets: list[dict[str, Any]],
