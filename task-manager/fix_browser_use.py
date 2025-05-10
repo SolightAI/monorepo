@@ -13,6 +13,7 @@ def get_base_dir() -> str:
 
 
 def remove_debug_port() -> None:
+
     dir_path = get_base_dir()
     temp_file = tempfile.mktemp()
     file_to_change = os.path.join(dir_path, "browser", "chrome.py")
@@ -30,6 +31,8 @@ def remove_debug_port() -> None:
 
 def limit_max_scroll() -> None:
 
+    modified = False
+
     dir_path = get_base_dir()
     temp_file = tempfile.mktemp()
     file_to_change = os.path.join(dir_path, "controller", "service.py")
@@ -39,11 +42,50 @@ def limit_max_scroll() -> None:
 
     with open(file_to_change, 'r') as input_file, open(temp_file, 'w') as output_file:
         for line in input_file:
-            output_file.write(line.replace(before_line, after_line))
+
+            if before_line in line:
+                modified = True
+                line = line.replace(before_line, after_line)
+
+            output_file.write(line)
 
     shutil.move(temp_file, file_to_change)
+
+    if not modified:
+        raise RuntimeError(f"Couldn't modify the file in {file_to_change}")
+
+    print("Successfully limited max scrolls")
+
+
+def prevent_screenshot_to_modify_dom() -> None:
+
+    modified = False
+
+    dir_path = get_base_dir()
+    temp_file = tempfile.mktemp()
+    file_to_change = os.path.join(dir_path, "browser", "context.py")
+
+    before_line = "animations='disabled',"
+    after_line = "animations='disabled', caret='initial',"
+
+    with open(file_to_change, 'r') as input_file, open(temp_file, 'w') as output_file:
+        for line in input_file:
+
+            if before_line in line:
+                modified = True
+                line = line.replace(before_line, after_line)
+
+            output_file.write(line)
+
+    shutil.move(temp_file, file_to_change)
+
+    if not modified:
+        raise RuntimeError(f"Couldn't modify the file in {file_to_change}")
+
+    print("Successfully prevented screenshot to modify DOM")
 
 
 if __name__ == "__main__":
     remove_debug_port()
     limit_max_scroll()
+    prevent_screenshot_to_modify_dom()
