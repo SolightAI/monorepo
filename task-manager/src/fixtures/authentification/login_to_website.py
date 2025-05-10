@@ -69,14 +69,26 @@ def _select_login_method(login_method: LoginMethod, secrets: list[dict[str, dict
 
 
 async def login_to_website(
+    identifier: str | None,
     task_id: str,
     url: str,
     login_method: LoginMethod,
     secrets: list[dict[str, Any]],
     **kwargs: Any,
-) -> tuple[dict[str, dict[str, str]] | None, AgentHistoryList, list[str]]:
+) -> tuple[dict[str, dict[str, str]] | None, AgentHistoryList, list[str], bool]:
     """
     Login to the webapp and return the generated cookies.
+
+    Args:
+        identifier: The identifier of the agent.
+        task_id: The task id of the agent.
+        url: The url of the webapp.
+        login_method: The login method to use.
+        secrets: The secrets to use.
+        **kwargs: Any additional arguments.
+
+    Returns:
+        A tuple containing the session data, history, evidences and a boolean indicating if the agent was run from cache.
     """
 
     evidences = []
@@ -98,7 +110,8 @@ async def login_to_website(
     if any(LoginMethod.GOOGLE_OAUTH.value in _secret['category'] for _secret in secrets):
         login_methods.append(f"- {LoginMethod.GOOGLE_OAUTH.value}")
 
-    session_data, history, evidences = await run_agent(
+    session_data, history, evidences, is_from_cache = await run_agent(
+        identifier=identifier,
         task_id=task_id,
         url=url,
         prompt=PROMPT.format(login_methods="\n".join(login_methods)),
@@ -122,6 +135,6 @@ async def login_to_website(
     logger.info(f"[{task_id}] Agent is logged in: {is_logged_in}")
 
     if not is_logged_in:
-        return None, history, evidences
+        return None, history, evidences, is_from_cache
 
-    return session_data, history, evidences
+    return session_data, history, evidences, is_from_cache

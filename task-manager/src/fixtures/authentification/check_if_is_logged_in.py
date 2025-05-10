@@ -168,8 +168,6 @@ async def check_is_logged_in_using_html_diff(
         ]
     )).content  # type: ignore
 
-    logger.info(f"[{task_id}] Login check result: {result}")
-
     return _parse_result_from_html_diff(result)
 
 
@@ -224,10 +222,7 @@ async def check_is_logged_in(
                 temp_png.flush()
                 upload_file_to_s3(
                     file_path=temp_png.name,
-                    job_id=task_id,
-                    task_type="auth_check",
-                    task_name=f"{url}_before",
-                    extension="png",
+                    object_name=f"{task_id}/{url}_before.png",
                     content_type="image/png"
                 )
         except Exception as e:
@@ -287,10 +282,7 @@ async def check_is_logged_in(
                     temp_png.flush()
                     upload_file_to_s3(
                         file_path=temp_png.name,
-                        job_id=task_id,
-                        task_type="auth_check",
-                        task_name=f"{url}_after",
-                        extension="png",
+                        object_name=f"{task_id}/{url}_after.png",
                         content_type="image/png"
                     )
             except Exception as e:

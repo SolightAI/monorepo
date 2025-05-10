@@ -26,6 +26,7 @@ async def test_text_captcha_login_agent(task_id: str) -> None:
     )
 
     result = await login_agent(
+        identifier=None,
         task_id=task_id,
         test=test,
         secrets=[],
@@ -55,6 +56,7 @@ async def test_image_captcha_login_agent(task_id: str) -> None:
     )
 
     result = await login_agent(
+        identifier=None,
         task_id=task_id,
         test=test,
         secrets=[],

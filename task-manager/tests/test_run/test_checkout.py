@@ -42,6 +42,7 @@ class TestTickPick():
         )
 
         result = await general_agent(
+            identifier=None,
             task_id=task_id,
             test=test,
             secrets=[],

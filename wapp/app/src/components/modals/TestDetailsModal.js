@@ -199,7 +199,7 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
   };
 
   // New function to directly run the test
-  const handleRunTest = async () => {
+  const handleRunTest = async (forceNoCache = false) => {
     // Check if credentials are available
     if (!secrets || secrets.length === 0) {
       setError('Cannot run test: No test credentials found. Please add credentials in the Test Credentials Management section.');
@@ -215,7 +215,8 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
         status: TEST_STATUS.PENDING,
         environment: 'development', // Default to development environment
         executor_type: 'MANUAL',
-        notes: null
+        notes: null,
+        run_without_cache: forceNoCache,
       };
 
       const execution = await createTestExecution(executionData);
@@ -535,10 +536,19 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
                   Edit Test
                 </button>
                 <button
-                  onClick={handleRunTest}
+                  onClick={() => handleRunTest(true)}
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-150 flex items-center disabled:bg-yellow-300 disabled:cursor-not-allowed"
+                  disabled={runningTest || !secrets || secrets.length === 0}
+                  title={!secrets || secrets.length === 0 ? "Test credentials required to run tests" : "Force run this test (bypasses cache)"}
+                >
+                  <Play size={16} className="mr-1" />
+                  Run without cache
+                </button>
+                <button
+                  onClick={() => handleRunTest(false)}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-150 flex items-center disabled:bg-green-300 disabled:cursor-not-allowed"
                   disabled={runningTest || !secrets || secrets.length === 0}
-                  title={!secrets || secrets.length === 0 ? "Test credentials required to run tests" : "Run this test"}
+                  title={!secrets || secrets.length === 0 ? "Test credentials required to run tests" : "Run this test (uses cache if available)"}
                 >
                   {runningTest ? (
                     <Loader size={16} className="mr-1 animate-spin" />
@@ -546,11 +556,6 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
                     <Play size={16} className="mr-1" />
                   )}
                   {runningTest ? 'Starting...' : 'Run Test'}
-                  {secrets && secrets.length > 0 && (
-                    <span className="ml-1.5 flex items-center justify-center bg-green-800 text-white text-xs rounded-full h-5 min-w-5 px-1">
-                      {secrets.length}
-                    </span>
-                  )}
                 </button>
               </div>
             </>

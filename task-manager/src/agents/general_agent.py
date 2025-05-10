@@ -47,12 +47,14 @@ logger = getLogger(__name__)
 
 
 def get_parameters_for_general_agent(
+    identifier: str,
     task_id: str,
     test: Test,
     secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
     return {
+        "identifier": identifier,
         "task_id": task_id,
         "test": test,
         "secrets": secrets,
@@ -61,6 +63,7 @@ def get_parameters_for_general_agent(
 
 
 async def general_agent(
+    identifier: str | None,
     task_id: str,
     test: Test,
     secrets: list[dict[str, Any]],
@@ -92,7 +95,8 @@ async def general_agent(
             "results": explanation,
         }
 
-    session_data, history, evidences = await run_agent(
+    session_data, history, evidences, is_from_cache = await run_agent(
+        identifier=identifier,
         task_id=task_id,
         url=test.url,
         prompt=PROMPT.format(
@@ -108,6 +112,7 @@ async def general_agent(
     logger.info(f"[{task_id}] General agent finished running test.")
 
     additional_healthchecks_results = await run_additional_healthcheck(
+        identifier=identifier,
         task_id=task_id,
         test=test,
         existing_session=session_data,
@@ -133,4 +138,5 @@ async def general_agent(
         # "tracing": history.get_logs(),
         "error": explanation if status != TestStatus.PASSED else "",
         "traceback": "",
+        "is_from_cache": is_from_cache,
     }

@@ -6,7 +6,7 @@ import asyncio
 import logging
 
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from arq.jobs import Job, JobStatus
 from fastapi import HTTPException, BackgroundTasks
 from pydantic import UUID4
@@ -112,7 +112,7 @@ async def get_test_executions_by_test(test_id: UUID4) -> List[TestExecutionEleme
 
 async def create_test_execution(
     test_execution: TestExecutionCreateSchema,
-    background_tasks: BackgroundTasks = None
+    background_tasks: Optional[BackgroundTasks] = None
 ) -> TestExecutionModel:
     """
     Create a new test execution.
@@ -154,6 +154,11 @@ async def create_test_execution(
                 "documentation": product.documentation,
                 "links_to_documentation": product.links_to_documentation,
             },
+            "feature": {
+                "name": feature.name,
+                "description": feature.description,
+                "urls": feature.urls,
+            },
             "test": {
                 "name": test.name,
                 "category": test.category.value,
@@ -165,6 +170,7 @@ async def create_test_execution(
                 "assertions": test.assertions,
                 "access_conditions": test.feature.access_conditions,
             },
+            "run_without_cache": test_execution.run_without_cache,
         }
 
         encrypted_secrets = await get_encrypted_secrets(
@@ -251,7 +257,8 @@ async def _check_status_from_redis(test_execution: TestExecutionModel) -> TestEx
     # Prepare metadata with agent data
     updated_metadata = (test_execution.metadata or {}) | {
         "agent_thoughts": agent_thoughts,
-        "agent_actions": agent_actions
+        "agent_actions": agent_actions,
+        "is_from_cache": status_data.get("is_from_cache", False),
     }
 
     # Extract evidence list if present

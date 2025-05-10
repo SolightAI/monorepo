@@ -237,6 +237,11 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
             <h2 className="text-xl font-semibold ml-2">
               {/* Display "Running" if running, otherwise format status */}
               {isRunning ? 'Running' : formatStatus(execution.status)}
+              {execution.metadata && execution.metadata.is_from_cache === true && (
+                <span className="ml-3 px-2.5 py-1 text-xs font-semibold bg-teal-100 text-teal-900 rounded-full whitespace-nowrap">
+                  CACHE
+                </span>
+              )}
             </h2>
           </div>
           <div className={`text-sm ${isRunning ? 'text-blue-600' : 'text-gray-600'}`}>
@@ -297,14 +302,14 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
 
         {execution.metadata && Object.keys(execution.metadata).length > 0 && (
           <div className="p-3 bg-gray-50 rounded-lg">
-            <span className="text-sm text-gray-500">Metadata</span>
+            <span className="text-sm text-gray-500">Metadata</span> {/* Reverted title */}
             <div className="font-medium">
               {Object.entries(execution.metadata)
-                .filter(([key]) => key !== 'agent_thoughts' && key !== 'agent_actions')
+                .filter(([key]) => key !== 'agent_thoughts' && key !== 'agent_actions' && key !== 'is_from_cache') // Keep filtering is_from_cache as it's now shown in the header
                 .map(([key, value]) => (
                   <div key={key} className="text-sm">
-                    <span className="font-medium">{key}: </span>
-                    <span>{typeof value === 'object' ? JSON.stringify(value) : value}</span>
+                    <span className="font-medium">{key}: </span> {/* Reverted key formatting */}
+                    <span>{typeof value === 'object' ? JSON.stringify(value) : value}</span> {/* Reverted String() cast, relying on React's rendering */}
                   </div>
                 ))}
             </div>

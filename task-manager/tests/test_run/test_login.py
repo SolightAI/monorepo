@@ -27,6 +27,7 @@ class TestTickPick():
         )
 
         result = await login_agent(
+            identifier=None,
             task_id=task_id,
             test=test,
             secrets=[],
@@ -51,6 +52,7 @@ class TestTickPick():
         )
 
         result = await login_agent(
+            identifier=None,
             task_id=task_id,
             test=test,
             secrets=[],
@@ -92,6 +94,7 @@ class TestTickPick():
         )
 
         result = await login_agent(
+            identifier=None,
             task_id=task_id,
             test=test,
             secrets=secrets,
@@ -116,6 +119,7 @@ class TestTickPick():
         )
 
         result = await login_agent(
+            identifier=None,
             task_id=task_id,
             test=test,
             secrets=[],
@@ -162,6 +166,7 @@ class TestTickPick():
         }]
 
         result = await login_agent(
+            identifier=None,
             task_id=task_id,
             test=test,
             secrets=secrets,
@@ -222,6 +227,7 @@ class TestSolight():
         )
 
         result = await login_agent(
+            identifier=None,
             task_id=task_id,
             test=test,
             secrets=secrets,
