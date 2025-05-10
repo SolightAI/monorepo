@@ -168,8 +168,6 @@ async def check_is_logged_in_using_html_diff(
         ]
     )).content  # type: ignore
 
-    logger.info(f"[{task_id}] Login check result: {result}")
-
     return _parse_result_from_html_diff(result)
 
 

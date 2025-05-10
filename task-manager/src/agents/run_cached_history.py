@@ -197,6 +197,8 @@ async def rerun_history(
             List of action results
     """
 
+    # NOTE: This is still not perfect, cache rate is ~50%
+
     history.history = _enable_cached_generation_for_history_rerun(agent, history.history)
     agent.state.history.history.clear()  # Clear agent's internal history
 
@@ -227,6 +229,10 @@ async def rerun_history(
                 browser_state_before_action = await agent.browser_context.get_state(cache_clickable_elements_hashes=True)
 
                 step_action_results = await agent._execute_history_step(history_item, delay_between_actions)
+
+                if any([_action.error for _action in step_action_results]):  # if any action failed, raise an error (triggering the retry on agent logic)
+                    raise RuntimeError(f"Step {i + 1} failed: {step_action_results}")
+
                 results.extend(step_action_results)  # Accumulate overall results for the function's return value
 
                 # Construct and append AgentHistory item to agent's internal history
@@ -246,6 +252,7 @@ async def rerun_history(
                         metadata=history_item.metadata           # From original history (or create new)
                     )
                     agent.state.history.history.append(new_replayed_history_item)
+                    agent.state.last_result = step_action_results  # NEW
 
                 break
 
@@ -256,12 +263,14 @@ async def rerun_history(
                     logger.error(error_msg)
                     if not skip_failures:
                         results.append(ActionResult(error=error_msg))
-                        raise RuntimeError(error_msg)
+                        raise RuntimeError(error_msg)  # TODO: (later) instead of resuming test from scrach w/ Agent, we should resume from the last successful step
                 else:
                     logger.warning(f'Step {i + 1} failed (attempt {retry_count}/{max_retries}), retrying...')
                     await asyncio.sleep(delay_between_actions)
 
     agent.state.history.history.pop()  # Remove the cached "done" action
+    agent.state.last_result = agent.state.history.history[-1].result  # Replace the "done" action with the last action before it
+
     await agent.step(AgentStepInfo(step_number=len(history.history), max_steps=len(history.history)))
 
     return agent.state.history

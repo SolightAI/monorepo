@@ -25,7 +25,7 @@ from browser_use.browser.context import BrowserContextConfig, BrowserContext, Br
 SHARED_AGENT_LIMITATIONS = [
     "The agent cannot upload or download any type of file (including images, videos, documents, etc.).",
     "The agent cannot interact with OS file selectors, uploaders, or file dialogs.",
-    "The agent cannot leave the website to perform any google search or action outside the website (except for oauth).",
+    "The agent cannot leave the website to perform any google search or action outside the website (except for google oauth).",
     "The agent cannot change the window size or viewport size.",
 ]
 
@@ -732,12 +732,14 @@ async def run_agent(
             await context.navigate_to(url)  # allowing us to load the localStorage
             await _load_local_storage(context, auth_session["localStorage"])
 
-        # extend_agent_hsistory()
-
         controller = Controller()
 
         for tool in (tools or []):
-            controller.action(tool.__doc__ or "")(tool)
+
+            if not tool.__doc__:
+                raise ValueError(f"Tool {tool.__name__} has no docstring")
+
+            controller.action(tool.__doc__.strip() or "")(tool)
 
         agent_params = {
             "task": prompt,
@@ -746,7 +748,10 @@ async def run_agent(
             "use_vision": False,
             "enable_memory": False,
 
-            "initial_actions": [{'go_to_url': {'url': url}, 'wait': {'seconds': 5}}],
+            "initial_actions": [
+                {'go_to_url': {'url': url}},
+                {'wait': {'seconds': 5}}
+            ],
             "sensitive_data": sensitive_data,
             "browser_context": context,
             "controller": controller,
@@ -773,9 +778,9 @@ async def run_agent(
                     history = await rerun_history(
                         agent,
                         AgentHistoryList.load_from_file(history_file.name, agent.AgentOutput),
-                        max_retries=10,  # cost nothing to retry, cost a lot to fail
+                        max_retries=5,  # cost nothing to retry, cost a lot to fail
                         skip_failures=False,
-                        delay_between_actions=1,  # leaves time for the page to load (otherwise leads to errors)
+                        delay_between_actions=2,  # leaves time for the page to load (otherwise leads to errors)
                     )
 
                     run_agent = False

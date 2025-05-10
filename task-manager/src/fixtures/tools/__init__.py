@@ -1,14 +1,14 @@
 from typing import Callable
 from inspect import getfullargspec
 from fixtures.tools.generate_uuid import generate_uuid
-from fixtures.tools.generate_email_address import generate_plus_addressing_email_address, generate_random_email_address
+from fixtures.tools.generate_email_address import generate_random_email_address
 from fixtures.tools.generate_password import generate_password
 from fixtures.tools.generate_credit_card import generate_credit_card
 
 
 TOOLS = [
     generate_uuid,
-    generate_plus_addressing_email_address,
+    # generate_plus_addressing_email_address,  #  afaik generate_random_email_address is enough
     generate_random_email_address,
     generate_password,
     generate_credit_card,
