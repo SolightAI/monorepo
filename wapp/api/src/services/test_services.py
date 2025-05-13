@@ -99,6 +99,157 @@ async def create_test(test: TestCreateSchema) -> TestModel:
     return await get_test(test_model.id)
 
 
+async def trigger_improve_test_steps(
+    test_model: TestModel,
+) -> str:
+    feature = await get_feature(test_model.feature_id)
+    epic = await get_epic(feature.epic_id)
+    product = await get_product(epic.product_id)
+
+    payload: dict[str, Any] = {
+        'feature': {
+            'id': str(feature.id),
+            'name': feature.name,
+            'description': feature.description,
+            'urls': feature.urls,
+            'access_conditions': feature.access_conditions,
+        },
+        'product': {
+            'name': product.name,
+            'url': product.url,
+            'description': product.description,
+            'documentation': product.documentation,
+            'links_to_documentation': [],  # TODO
+        },
+        "test": {
+            "name": test_model.name,
+            "category": test_model.category.value,
+            "description": test_model.description,
+            "url": feature.urls[0],
+            "feature_id": "random_id",
+            "preconditions": test_model.preconditions,
+            "steps": test_model.steps,
+            "assertions": test_model.assertions,
+            "access_conditions": feature.access_conditions,
+        },
+    }
+
+    encrypted_secrets = await get_encrypted_secrets(
+        organization_id=product.organization_id,
+        product_id=product.id
+    )
+
+    if encrypted_secrets:
+        payload['secrets'] = encrypted_secrets
+
+    redis = await get_redis_pool()
+
+    job_id = f'improve_test_steps:{test_model.id}'
+    keys = [k + job_id for k in [default_queue_name, in_progress_key_prefix, job_key_prefix, result_key_prefix]]
+    await redis.delete(*keys)
+
+    job = Job(job_id, redis=redis)
+
+    job = await redis.enqueue_job('improve_test_steps', **payload, _job_id=job_id)
+
+    if job is None:
+        raise HTTPException(status_code=503, detail="Tried to force triggering test steps improvement but failed")
+
+    return job.job_id
+
+
+async def get_improve_test_steps_status(test_id: UUID4) -> dict:
+    """
+    Get the status of a test generation task using arq.
+
+    Args:
+        test_id: The job ID of the test generation task
+
+    Returns:
+        A dictionary containing the task status and potentially results/feature_id
+    """
+
+    redis = await get_redis_pool()
+
+    try:
+        job = Job(f"improve_test_steps:{test_id}", redis=redis)
+        job_status = await job.status()
+        job_info = await job.info()
+        response_data = {"task_id": str(test_id)}
+
+        if job_status == JobStatus.complete:
+
+            try:
+                job_result = await job.result()  # job.result() raise any exception the worker raises
+            except Exception:
+                return response_data | {"status": TestStatus.ERROR.value, "error": "An error occurred while generating tests"}
+
+            response_data |= job_result
+
+            # Attempt to get feature_id from the job's initial arguments
+            if job_info and 'feature' in job_info.kwargs and 'id' in job_info.kwargs['feature']:
+                response_data["feature_id"] = job_info.kwargs['feature']['id']
+            else:
+                logger.warning(f"Could not retrieve feature_id for completed job {test_id}")
+
+        elif job_status in [JobStatus.queued, JobStatus.deferred, JobStatus.in_progress]:
+            response_data["status"] = TestStatus.PENDING.value
+        elif job_status == JobStatus.not_found:
+            response_data["status"] = TestStatus.UNKNOWN.value
+        else:  # JobStatus.not_found or other unexpected statuses
+            logger.error(f"Unexpected job status: {job_status}")
+            response_data["status"] = TestStatus.UNKNOWN.value
+
+        return response_data
+
+    except ConnectionRefusedError:
+        logger.error("Could not connect to Redis.")
+        raise HTTPException(status_code=503, detail="Service unavailable: Could not connect to task queue.")
+
+    except Exception as e:
+        logger.error(f"Error getting test generation status for job {test_id}: {e}")
+        logger.error(traceback.format_exc())
+        return {"task_id": str(test_id), "status": TestStatus.ERROR.value}
+
+
+async def poll_improve_test_steps_status(test_id: UUID4, timeout: int = 900, interval: float = 0.5) -> None:
+    attempts = 0
+
+    max_attempts = timeout / interval
+
+    while attempts < max_attempts:
+        attempts += 1
+
+        response = await get_improve_test_steps_status(test_id)
+        status = response["status"]
+
+        logger.info(f"Improve test steps status: {status}")
+
+        if status in [TestStatus.PENDING.value, TestStatus.UNKNOWN.value]:
+            await asyncio.sleep(interval)
+            continue
+
+        elif status == TestStatus.ERROR.value:
+            logger.error(f"Failed to rewrite test steps for task {test_id}")
+            return
+
+        elif status == TestStatus.PASSED.value:
+
+            if not response.get("results"):
+                logger.error(f"No test results found in response for task {test_id}")
+                return
+
+            test = await get_test(test_id)
+            test.steps = response["results"]
+            await test.save()
+
+            return
+
+        else:
+            logger.error("Unknown status for rewrite test steps")
+            return
+
+
 async def delete_test(test_id: str | UUID) -> bool:
     """
     Delete a test.

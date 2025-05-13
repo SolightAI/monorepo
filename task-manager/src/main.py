@@ -9,6 +9,7 @@ from arq.connections import RedisSettings
 from generation.test_generation import generate_tests
 from test_run.test_endpoint import run_test
 from lambda_invoker.validate_url import validate_url
+from improve_test_steps.endpoint import improve_test_steps
 
 
 logger = logging.getLogger(__name__)
@@ -23,11 +24,13 @@ async def startup(ctx: dict[str, Any]) -> None:
         max_tasks_per_child=1
     )
 
+
 class WorkerSettings:
     functions = [
         func(generate_tests),
         func(run_test),  # we do not want to retry test runs
         func(validate_url),
+        func(improve_test_steps),
     ]
 
     on_startup = startup
