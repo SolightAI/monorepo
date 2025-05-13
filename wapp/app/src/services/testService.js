@@ -200,3 +200,40 @@ export const duplicateTest = async (testData) => {
     throw error;
   }
 };
+
+/**
+ * Trigger the improvement of test steps for a specific test
+ * @param {string} testId - The UUID of the test
+ * @returns {Promise<string>} Promise with the job ID
+ */
+export const improveTestSteps = async (testId) => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/tests/${testId}/steps`,
+      {},
+      { withCredentials: true }
+    );
+    // Returns the job ID (optional, depending on API response)
+    return response.data;
+  } catch (error) {
+    console.error(`Error triggering step improvement for test ${testId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Check the status of a test steps improvement task
+ * @param {string} testId - The test ID (UUID)
+ * @returns {Promise<object>} Promise with the task status data
+ */
+export const getImproveTestStepsStatus = async (testId) => {
+  try {
+    const response = await axios.get(`${API_URL}/tests/${testId}/steps/status`, {
+      withCredentials: true
+    });
+    return response.data; // Expected format: { task_id: string, status: string, ... }
+  } catch (error) {
+    console.error(`Error checking test steps improvement status for test ${testId}:`, error);
+    throw error;
+  }
+};

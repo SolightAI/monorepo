@@ -19,6 +19,9 @@ from services.test_services import (
     get_feature,
     get_epic,
     get_product,
+    trigger_improve_test_steps,
+    poll_improve_test_steps_status,
+    get_improve_test_steps_status,
 )
 from pydantic import UUID4
 from typing import List
@@ -98,6 +101,29 @@ async def delete_test_endpoint(test_id: UUID4) -> dict:
     """Delete a test."""
     deleted = await delete_test(test_id)
     return {"success": deleted, "message": "Test deleted successfully"}
+
+
+@router.post("/{test_id}/steps")
+async def improve_test_steps(
+    test_id: UUID4,
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    current_user: User = Depends(get_current_user_dependency),
+) -> str:
+    test_model = await get_test(test_id=test_id)
+
+    job_id = await trigger_improve_test_steps(test_model=test_model)
+
+    background_tasks.add_task(
+        poll_improve_test_steps_status,
+        test_id=test_id,
+    )
+
+    return job_id
+
+
+@router.get("/{test_id}/steps/status")
+async def get_improve_test_steps_status_endpoint(test_id: UUID4) -> dict:
+    return await get_improve_test_steps_status(test_id=test_id)
 
 
 @router.post("/generate")

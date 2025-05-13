@@ -332,6 +332,7 @@ OUTPUT_VALIDATION_LLM = ChatOpenAI(
     model="gpt-4.1-mini",
     temperature=0.0,
     seed=SEED,
+    timeout=120,
 )
 
 
@@ -339,6 +340,7 @@ LLM_CLIENT = ChatOpenAI(
     model="gpt-4.1",
     temperature=0.0,
     seed=SEED,
+    timeout=120,
 )
 
 
@@ -354,6 +356,7 @@ PLANNER_CLIENT = ChatOpenAI(
     model="gpt-4.1",
     temperature=0.0,
     seed=SEED,
+    timeout=120,
 )
 
 
@@ -675,6 +678,7 @@ async def run_agent(
     sensitive_data: dict[str, str],
     auth_session: dict[str, dict[str, str]] | None = None,
     tools: list[Callable] = TOOLS,
+    additional_task: str | None = None,
     **kwargs: Any,
 ) -> tuple[dict[str, dict[str, str]], AgentHistoryList, list[str], bool]:
     """
@@ -792,13 +796,22 @@ async def run_agent(
 
             logger.info(f"[{task_id}] Running agent for the first time")
 
-            agent = Agent(**agent_params)
+            agent = Agent(**(agent_params))
             agent._task_id = task_id
 
             history = await agent.run(
                 max_steps=50,
                 on_step_start=on_step_start_hook,
             )
+
+            if additional_task is not None and len(additional_task) > 0:
+                injected_agent_state = agent.state
+                agent = Agent(**(agent_params | {"injected_agent_state": injected_agent_state, "task": additional_task}))
+                agent.add_new_task(additional_task)
+                history = await agent.run(
+                    max_steps=50,
+                    on_step_start=on_step_start_hook,
+                )
 
             logger.info(f"[{task_id}] Agent finished running ({identifier})")
 
