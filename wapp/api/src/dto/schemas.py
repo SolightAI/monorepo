@@ -1,5 +1,5 @@
 from __future__ import annotations
-from pydantic import BaseModel, UUID4, Field, ConfigDict
+from pydantic import BaseModel, UUID4, Field, ConfigDict, EmailStr
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -495,3 +495,16 @@ class LatestTestExecutionResponse(BaseModel):
     status: Optional[TestStatus] = None
     started_at: Optional[datetime] = None
     ended_at: Optional[datetime] = None
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+    invitation_code: Optional[str] = None
+
+
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    invitation_code: Optional[str] = None

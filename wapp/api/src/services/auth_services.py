@@ -13,7 +13,7 @@ from itsdangerous import URLSafeTimedSerializer
 from services.user_services import get_user
 from services.invitation_services import validate_invitation, mark_invitation_used
 from services.organization_invitation_service import handle_organization_invitation
-from dto.schemas import InvitationCreate
+from dto.schemas import InvitationCreate, UserCreate as UserCreateSchema
 from jose import jwt, JWTError, ExpiredSignatureError  # Changed import
 
 
@@ -209,7 +209,6 @@ def get_google_userinfo(google_access_token: str) -> dict:
     return response.json()
 
 
-# Refactored user processing logic to be reusable
 async def _process_oauth_user(user_info: dict, invitation_code: Optional[str], provider_name: str) -> UserModel:
     """Handles user lookup/creation and invitation logic for OAuth callbacks."""
 
@@ -272,15 +271,13 @@ async def _process_oauth_user(user_info: dict, invitation_code: Optional[str], p
 
         # Mark invitation used & handle organization
         await mark_invitation_used(invitation.code, user.id)
-        if invitation.organization_id:
+        if invitation.organization_id is not None:
             try:
-                success, message = await handle_organization_invitation(invitation_code, user)
+                success, message = await handle_organization_invitation(invitation.code, user)
                 if not success:
-                    error_query = f"error=join_failed&error_description={message}"
-                    raise RedirectException(f"{frontend_callback_base_url}?{error_query}")
-            except HTTPException as e:
-                error_query = f"error=join_failed&error_description={e.detail}"
-                raise RedirectException(f"{frontend_callback_base_url}?{error_query}")
+                    logging.warning(f"Failed to add user {user.email} to organization via invite {invitation.code}: {message}")
+            except Exception as e:
+                logging.error(f"Error processing organization invitation for new user {user.email}: {str(e)}")
     else:
         # Existing user: Process potential organization invitation
         logging.info(f"Existing user logged in via {provider_name}: {email}")
@@ -448,3 +445,114 @@ async def logout(response: Response) -> dict:
     response.delete_cookie(key="access_token")
     response.delete_cookie(key="refresh_token")
     return {"message": "Successfully logged out"}
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+async def authenticate_user(email: str, password: str, invitation_code: Optional[str] = None) -> Optional[UserModel]:
+    logging.info(f"Authenticating user: {email}, invitation_code: {invitation_code if invitation_code else 'N/A'}")
+    user = await get_user(email=email)
+    if not user:
+        logging.warning(f"Authentication failed: User not found for email {email}")
+        return None
+    if not user.hashed_password or not verify_password(password, user.hashed_password):
+        logging.warning(f"Authentication failed: Invalid password for user {email}")
+        return None
+
+    logging.info(f"User {email} authenticated successfully.")
+
+    if invitation_code and user:
+        logging.info(f"Processing invitation_code {invitation_code} for user {email} during login.")
+        try:
+            invitation = await validate_invitation(invitation_code, check_used=False)
+            logging.info(f"Invitation {invitation_code} validated for user {email}. Details: {invitation}")
+
+            if invitation.email and invitation.email.lower() != user.email.lower():
+                logging.warning(f"User {user.email} attempted to use invitation {invitation_code} meant for {invitation.email} during login.")
+            else:
+                if invitation.organization_id is not None:
+                    logging.info(f"Invitation {invitation_code} is for organization {invitation.organization_id}. Attempting to handle for user {email}.")
+                    try:
+                        success, message = await handle_organization_invitation(invitation.code, user)
+                        if success:
+                            logging.info(f"Successfully processed organization invitation {invitation.code} for user {user.email}: {message}")
+                            if not invitation.used:
+                                await mark_invitation_used(invitation.code, user.id)
+                                logging.info(f"Marked organization invitation {invitation.code} as used by user {user.email}.")
+                        else:
+                            logging.warning(f"Failed to process organization invitation {invitation.code} for user {user.email}: {message}")
+                    except Exception as e_org_inv:
+                        logging.error(f"Error processing organization invitation {invitation.code} for user {user.email} during login: {str(e_org_inv)}")
+                elif not invitation.used:
+                    await mark_invitation_used(invitation.code, user.id)
+                    logging.info(f"User {user.email} successfully used product invitation {invitation.code} during login and marked as used.")
+                elif invitation.used:
+                    logging.info(f"Product invitation {invitation.code} already used. User: {invitation.used_by_id}, Time: {invitation.used_at}")
+
+        except HTTPException as e_http_inv:
+            logging.warning(f"User {user.email} authenticated, but provided invitation code {invitation_code} had an issue during login: {e_http_inv.detail}")
+        except Exception as e_inv_generic:
+            logging.error(f"Unexpected error processing invitation_code {invitation_code} for user {user.email} during login: {str(e_inv_generic)}")
+    return user
+
+
+async def create_user_account(user_data: UserCreateSchema) -> UserModel:
+    logging.info(f"Attempting to create user account for email: {user_data.email}, with invitation_code: {user_data.invitation_code if user_data.invitation_code else 'N/A'}")
+    existing_user = await get_user(email=user_data.email)
+    if existing_user:
+        logging.warning(f"User creation failed: Email {user_data.email} already registered.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+
+    invitation = None
+    if user_data.invitation_code:
+        logging.info(f"Processing invitation_code {user_data.invitation_code} for new user {user_data.email}.")
+        try:
+            invitation = await validate_invitation(user_data.invitation_code, check_used=False)
+            logging.info(f"Invitation {user_data.invitation_code} validated for new user {user_data.email}. Details: {invitation}")
+            if invitation.email and invitation.email.lower() != user_data.email.lower():
+                logging.warning(f"User creation failed: Invitation {user_data.invitation_code} is for {invitation.email}, but registration is for {user_data.email}.")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"The invitation code is for {invitation.email}, but you are registering with {user_data.email}."
+                )
+        except HTTPException as e_val:
+            logging.warning(f"User creation failed: Invitation validation error for code {user_data.invitation_code}. Details: {e_val.detail}")
+            raise e_val
+        except Exception as e_inv:
+            logging.error(f"Unexpected error validating invitation code {user_data.invitation_code} during registration: {str(e_inv)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="An unexpected error occurred while validating the invitation code. Please try again."
+            )
+
+    logging.info(f"Proceeding to create user {user_data.email} after invitation processing (if any).")
+    hashed_password = get_hash(user_data.password)
+    new_user = await UserModel.create(
+        username=user_data.username,
+        email=user_data.email,
+        hashed_password=hashed_password,
+        is_admin=_should_be_admin(user_data.email),
+        onboarding_completed=False
+    )
+    logging.info(f"User {new_user.email} (ID: {new_user.id}) created successfully.")
+
+    if invitation:
+        logging.info(f"Marking invitation {invitation.code} as used by user {new_user.id}.")
+        await mark_invitation_used(invitation.code, new_user.id)
+        if invitation.organization_id is not None:
+            logging.info(f"Invitation {invitation.code} also for organization {invitation.organization_id}. Attempting to handle for new user {new_user.email}.")
+            try:
+                success, message = await handle_organization_invitation(invitation.code, new_user)
+                if success:
+                    logging.info(f"Successfully processed organization part of invitation {invitation.code} for new user {new_user.email}: {message}")
+                else:
+                    logging.warning(f"Failed to process organization part of invitation {invitation.code} for new user {new_user.email}: {message}")
+            except Exception as e_org_handle:
+                logging.error(f"Error processing organization part of invitation {invitation.code} for new user {new_user.email}: {str(e_org_handle)}")
+
+    return new_user

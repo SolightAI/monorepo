@@ -37,13 +37,16 @@ export default function Register() {
   // Function to validate code (will be used during form submission)
   const validateCode = async (code) => {
     if (!code) {
-      return { valid: false, error: 'Invitation code is required' };
+      const result = { valid: false, error: 'Invitation code is required (from RegisterPage.validateCode)' };
+      return result;
     }
 
     try {
-      return await validateInvitationCode(code, email || undefined);
+      const validationApiResult = await validateInvitationCode(code, email || undefined);
+      return validationApiResult;
     } catch (error) {
-      return { valid: false, error: 'Error validating invitation code' };
+      const result = { valid: false, error: 'Error validating invitation code (from RegisterPage.validateCode catch)' };
+      return result;
     }
   };
 
@@ -51,51 +54,38 @@ export default function Register() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+    setInvitationValid(null); // Reset validation status on new submission
 
-    if (!invitationCode) {
-      setError('Invitation code is required');
-      setIsLoading(false);
-      return;
+    // If an invitation code is provided, validate it.
+    if (invitationCode) {
+      setValidatingCode(true);
+      const validationResult = await validateCode(invitationCode);
+
+      const isValidBoolean = validationResult.isValid;
+
+      const negatedIsValidBoolean = !isValidBoolean;
+
+      setValidatingCode(false);
+
+      if (negatedIsValidBoolean) {
+        setInvitationValid(false);
+        setError(validationResult.error || 'Invalid invitation code');
+        setIsLoading(false);
+        return;
+      }
+      setInvitationValid(true);
+    } else {
+      // No invitation code provided, clear any previous validation state for it
+      setInvitationValid(null);
     }
-
-    // Validate invitation code at submission time
-    setValidatingCode(true);
-    const validationResult = await validateCode(invitationCode);
-    setValidatingCode(false);
-
-    if (!validationResult.valid) {
-      setInvitationValid(false);
-      setError(validationResult.error || 'Invalid invitation code');
-      setIsLoading(false);
-      return;
-    }
-
-    setInvitationValid(true);
 
     try {
-      await authRegister(username, email, password, invitationCode);
-      navigate('/');
-      return;
+      // Pass invitationCode (it will be undefined if empty, which is fine for the backend)
+      await authRegister(username, email, password, invitationCode || undefined);
+      navigate('/'); // Navigate to home or dashboard on successful registration
+      return; // Ensure no further code in this try block executes on success
     } catch (error) {
-      if (error.response) {
-        if (error.response.status === 422) {
-          // Handle 422 Unprocessable Entity errors
-          const errorData = error.response.data;
-          if (Array.isArray(errorData.detail)) {
-            // If the error detail is an array, join the messages
-            setError(errorData.detail.map(err => err.msg).join(', '));
-          } else if (typeof errorData.detail === 'object') {
-            // If the error detail is an object, stringify it
-            setError(JSON.stringify(errorData.detail));
-          } else {
-            setError(errorData.detail || 'Registration failed');
-          }
-        } else {
-          setError(error.response.data?.detail || 'Registration failed');
-        }
-      } else {
-        setError('An error occurred during registration.');
-      }
+      // Error state is set by AuthContext, this log is for tracing here.
     } finally {
       setIsLoading(false);
     }
@@ -154,7 +144,6 @@ export default function Register() {
                   id="invitationCode"
                   name="invitationCode"
                   type="text"
-                  required
                   className={`appearance-none relative block w-full px-3 py-2 border ${
                     invitationValid === true ? 'border-green-500' :
                     invitationValid === false ? 'border-red-500' :

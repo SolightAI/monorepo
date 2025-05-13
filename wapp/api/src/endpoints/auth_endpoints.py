@@ -7,6 +7,7 @@ from services import auth_services
 from services.invitation_services import get_invitation_by_code
 from dependencies import get_current_user_dependency
 from dto.models import User
+from dto.schemas import UserLogin, UserCreate
 from fastapi import APIRouter, Depends, Response, HTTPException, status, Cookie
 from pydantic import BaseModel
 from typing import Optional
@@ -62,6 +63,55 @@ async def auth_google(response: Response, code: str, state: Optional[str] = None
             pass
 
     return await auth_services.auth_google_callback(code=code, response=response, invitation_code=invitation_code)
+
+
+@router.post("/login/password")
+async def login_password(user_credentials: UserLogin, response: Response) -> dict:
+    user = await auth_services.authenticate_user(
+        email=user_credentials.email,
+        password=user_credentials.password,
+        invitation_code=user_credentials.invitation_code
+    )
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token, refresh_token = auth_services.create_tokens(user.email)
+    auth_services.set_auth_cookie(response, access_token)
+    auth_services.set_refresh_cookie(response, refresh_token)
+    return {"message": "Login successful"}
+
+
+@router.post("/register")
+async def register_user(user_data: UserCreate, response: Response) -> dict:
+    try:
+        user = await auth_services.create_user_account(user_data)
+    except Exception as e:
+        # Log the unexpected error
+        logging.error(f"Unexpected error during user registration: {str(e)}")
+        # Return a generic error to the client
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during registration."
+        )
+
+    # Automatically log in the user after successful registration
+    access_token, refresh_token = auth_services.create_tokens(user.email)
+    auth_services.set_auth_cookie(response, access_token)
+    auth_services.set_refresh_cookie(response, refresh_token)
+    # Return user info or a success message
+    return {
+        "message": "Registration successful. User logged in.",
+        "user": {
+            "id": str(user.id),
+            "email": user.email,
+            "username": user.username,
+            "is_admin": user.is_admin,
+            "onboarding_completed": user.onboarding_completed
+        }
+    }
 
 
 @router.post("/refresh")

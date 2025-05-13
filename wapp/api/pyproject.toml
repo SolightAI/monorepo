@@ -21,6 +21,7 @@ dependencies = [
     "msal>=1.29.0",
     "arq==0.26.3",
     "python-jose[cryptography]>=3.4.0",
+    "email_validator==2.2.0",
 ]
 
 [project.optional-dependencies]
