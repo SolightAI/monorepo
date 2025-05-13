@@ -104,7 +104,11 @@ async def delete_test_endpoint(test_id: UUID4) -> dict:
 
 
 @router.post("/{test_id}/steps")
-async def improve_test_steps(test_id: UUID4, background_tasks: BackgroundTasks = BackgroundTasks()) -> str:
+async def improve_test_steps(
+    test_id: UUID4,
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    current_user: User = Depends(get_current_user_dependency),
+) -> str:
     test_model = await get_test(test_id=test_id)
 
     job_id = await trigger_improve_test_steps(test_model=test_model)
