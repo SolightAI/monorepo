@@ -36,11 +36,9 @@ export const AuthProvider = ({ children }) => {
   // Validate invitation code
   const validateInvitationCode = async (code, email) => {
     try {
-      let url = `${API_URL}/invitations/validate/${code}`;
+      let url = `${API_URL}/invitations/validate/${code}/`;
       if (email) {
         url += `?email=${email}`;
-      } else {
-        url += `/`;
       }
       const response = await axios.get(url);
       const result = { isValid: true, data: response.data };
