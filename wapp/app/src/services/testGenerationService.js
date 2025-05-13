@@ -93,7 +93,7 @@ export const handleFeatureTestGeneration = async (
 
     try {
         onStart(null); // Indicate start, featureId will follow
-        onStatusUpdate(`Starting test generation. Status: ${formatStatus(TEST_STATUS.PENDING)}`);
+        onStatusUpdate(`Starting test generation for "${featureName || featureId}"...`);
 
         // Trigger test generation for the feature with categories
         const taskId = await triggerFeatureTestGeneration(featureId, categories);

@@ -719,6 +719,9 @@ const TestsTable = () => {
       selectedFeature,  // featureId
       secrets,         // secrets
       selectedCategories, // categories
+      (taskId) => {    // onStart
+        console.log('Test generation started with task ID:', taskId);
+      },
       (statusUpdate) => { // onStatusUpdate
         setSuccessMessage(statusUpdate);
       },
@@ -750,7 +753,7 @@ const TestsTable = () => {
           setIsGeneratingTests(false);
           setGeneratingFeatures([]);
           pollingIntervalRef.current = null;
-          setSuccessMessage(result.message);
+
         } catch (err) {
           console.error('Error updating tests after generation:', err);
           setError('Tests were generated but could not be displayed. Please refresh the page.');
@@ -765,7 +768,7 @@ const TestsTable = () => {
         setError(`Test generation failed. ${errorMsg}`);
         setSuccessMessage(null);
       },
-      featureName  
+      featureName  // featureName
     );
   };
 
