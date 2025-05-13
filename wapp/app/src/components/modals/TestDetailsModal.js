@@ -127,11 +127,6 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
   const fetchTestData = useCallback(async () => {
     if (!testData || !testData.id) return; // Guard against missing ID
     try {
-      // Replace with actual fetch function if available, otherwise use existing data
-      // For now, we assume onTestUpdated might handle refresh or we just update state
-      // const updatedTestData = await getTest(testData.id); // Hypothetical function
-      // setTestData(updatedTestData);
-      // For now, let's just trigger the provided callback to signal an update
       if (typeof onTestUpdated === 'function') {
           onTestUpdated();
       }
