@@ -280,41 +280,19 @@ export const AuthProvider = ({ children }) => {
 
   // Login function
   const login = async (email, password, invitationCode) => {
-    // console.log(`[AuthContext] Attempting login for ${email}, with invitationCode: ${invitationCode}`);
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.post(
+      await axios.post(
         `${API_URL}/auth/login/password`,
         { email, password, invitation_code: invitationCode },
         { withCredentials: true }
       );
 
-      // If login is successful, backend sets cookies.
-      // We need to get the access token details if provided in response,
-      // or rely on checkAuthStatus and subsequent refresh to populate token state.
-      // For now, let's assume cookies are set and we can refresh state.
-
-      await checkAuthStatus(); // This should update isAuthenticated, user, isAdmin, onboardingCompleted
-
-      // The backend's /login/password endpoint doesn't directly return token expiry,
-      // but set_auth_cookie does. The refresh mechanism will handle getting a new access token
-      // if needed, or the initial checkAuthStatus might pick it up if the cookie is fresh.
-      // We might need to explicitly call refreshAccessToken if checkAuthStatus isn't enough
-      // or if we want to immediately use the access token from the login response (if available).
-      // For simplicity with HttpOnly cookies, we'll rely on checkAuthStatus and the interceptor/refresh timer.
-
-      // A successful login implies we should attempt to get fresh token details if possible
-      // or ensure the refresh mechanism is primed.
-      // If the login response itself contained token details (like /refresh does), we could use setTokenData.
-      // Since it doesn't, we rely on the cookies being set.
-      // A call to refreshAccessToken can be made to ensure the client-side token state is updated if the /login/password response doesn't give expiry.
+      // Backend sets HttpOnly cookies on successful login.
+      // Refresh frontend auth state and ensure token mechanisms are primed.
+      await checkAuthStatus();
       await refreshAccessToken();
-
-      // If login was successful and an invitation code was processed,
-      // the user object in checkAuthStatus might reflect changes (e.g., org membership)
-      // Forcing a re-fetch of user data might be good if invitation processing modifies user state significantly
-      // However, checkAuthStatus() already fetches the latest user state.
 
       console.log('Login successful, auth status updated.');
       return true; // Indicate success
@@ -324,7 +302,6 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
       setUser(null);
       setIsAdmin(false);
-      // Clear any potentially stale token data
       setTokens({ accessToken: null, refreshToken: null, expiresAt: null });
       localStorage.removeItem('tokenExpiresAt');
       localStorage.removeItem('isAuthenticated');
@@ -338,36 +315,28 @@ export const AuthProvider = ({ children }) => {
 
   // Register function
   const register = async (username, email, password, invitation_code) => {
-    // console.log(`[AuthContext] Attempting registration for ${email}, username: ${username}, invitation_code: ${invitation_code}`);
     setLoading(true);
     setError(null);
     try {
       const response = await axios.post(
         `${API_URL}/auth/register`,
-        { username, email, password, invitation_code }, // invitation_code can be undefined if not provided
+        { username, email, password, invitation_code },
         { withCredentials: true }
       );
-      // console.log('[AuthContext] register - API Success Response:', response);
-
-      // Backend now handles cookie setting and returns user info.
-      // We need to update auth state based on this.
-      // The response.data should contain the user object and message.
 
       if (response.data && response.data.user) {
-        // Cookies are set by the backend, now update local auth state
-        await checkAuthStatus(); // This updates isAuthenticated, user, isAdmin, onboardingCompleted
-        await refreshAccessToken(); // Ensure client-side token state is up-to-date
+        // Backend sets HttpOnly cookies and returns user data.
+        // Refresh frontend auth state and ensure token mechanisms are primed.
+        await checkAuthStatus();
+        await refreshAccessToken();
 
         console.log('Registration successful, user logged in.', response.data.user);
-        return response.data; // Return the full response which includes user info
+        return response.data;
       } else {
-        // Should not happen if backend behaves as expected
         throw new Error('Registration response did not include user data.');
       }
     } catch (err) {
-      // console.error('[AuthContext] register - API Error:', err.response || err.message, err.response?.data);
       setError(err.response?.data?.detail || 'Registration failed. Please try again.');
-      // Ensure auth state is cleared on registration failure
       setIsAuthenticated(false);
       setUser(null);
       setIsAdmin(false);
@@ -376,7 +345,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('isAdmin');
       localStorage.removeItem('onboardingCompleted');
-      throw err; // Re-throw to be caught by the calling component
+      throw err;
     } finally {
       setLoading(false);
     }
