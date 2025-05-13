@@ -1141,11 +1141,19 @@ const TestsTable = () => {
         (statusMessage) => {
           setSuccessMessage(statusMessage);
         },
-        async (successMsg) => {
+        async (result) => {
           setIsGeneratingTests(false);
           setGeneratingFeatures([]);
           pollingIntervalRef.current = null;
-          setSuccessMessage(`Test generation completed successfully. ${successMsg}`);
+          setSuccessMessage(result.message || 'Test generation completed successfully.');
+          if (selectedFeature === 'all') {
+            await fetchTestsByProduct(selectedProduct.id);
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
+          } else {
+            await fetchTestsWithCurrentFilters();
+          }
         },
         (errorMsg) => {
           setIsGeneratingTests(false);

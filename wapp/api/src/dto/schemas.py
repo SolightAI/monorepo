@@ -293,6 +293,7 @@ class TestCreate(BaseModel):
     feature_id: UUID4
     name: str
     description: str
+    url: str
     category: TestCategory
     preconditions: str
     steps: str
