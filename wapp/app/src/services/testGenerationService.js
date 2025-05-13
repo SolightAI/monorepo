@@ -53,6 +53,7 @@ export const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, o
  * Handles the logic for triggering and monitoring feature test generation.
  * @param {string} featureId - The ID of the feature to generate tests for.
  * @param {Array} secrets - Array of test credentials. Should not be empty.
+ * @param {Array<string>} categories - Array of test categories to generate
  * @param {Function} onStart - Callback function when generation starts (receives featureId).
  * @param {Function} onStatusUpdate - Callback function for status updates (receives status message).
  * @param {Function} onSuccess - Callback function on successful completion (receives success message).
@@ -63,6 +64,7 @@ export const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, o
 export const handleFeatureTestGeneration = async (
     featureId,
     secrets,
+    categories,
     onStart,
     onStatusUpdate,
     onSuccess,
@@ -93,8 +95,8 @@ export const handleFeatureTestGeneration = async (
         onStart(null); // Indicate start, featureId will follow
         onStatusUpdate(`Starting test generation. Status: ${formatStatus(TEST_STATUS.PENDING)}`);
 
-        // Trigger test generation for the feature
-        await triggerFeatureTestGeneration(featureId);
+        // Trigger test generation for the feature with categories
+        await triggerFeatureTestGeneration(featureId, categories);
 
         onStart(featureId); // Update with the feature ID
 

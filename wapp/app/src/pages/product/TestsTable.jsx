@@ -30,6 +30,7 @@ import { formatDate } from '@/utils/dateUtils';
 import { API_URL } from '@/constants/api';
 import { TEST_STATUS } from '@/utils/testExecutionUtils';
 import Tooltip from '@/components/common/Tooltip'; // Import the new component
+import TestCategorySelectionModal from '@/components/modals/TestCategorySelectionModal';
 
 /**
  * Displays all tests in a tabular format with sorting and filtering capabilities
@@ -66,6 +67,7 @@ const TestsTable = () => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // State for confirmation modal
   const [isConfirmFeatureDeleteModalOpen, setIsConfirmFeatureDeleteModalOpen] = useState(false); // State for feature delete confirmation
   const [featureToDeleteId, setFeatureToDeleteId] = useState(null); // ID of feature marked for deletion
+  const [isTestCategoryModalOpen, setIsTestCategoryModalOpen] = useState(false); // State for test category modal
 
   // New state for latest execution data
   const [latestExecutionsMap, setLatestExecutionsMap] = useState({});
@@ -697,7 +699,11 @@ const TestsTable = () => {
   };
 
   // Function to handle test generation for the selected feature
-  const handleGenerateTests = async () => {
+  const handleGenerateTests = () => {
+    setIsTestCategoryModalOpen(true);
+  };
+
+  const handleTestCategoryGenerate = async (selectedCategories) => {
     // Clear previous messages/state
     setError(null);
     setSuccessMessage(null);
@@ -708,12 +714,13 @@ const TestsTable = () => {
     setIsGeneratingTests(true);
     setGeneratingFeatures([{ id: selectedFeature, name: featureName }]);
 
-    // Call the new service function
+    // Call the new service function with parameters in the correct order
     pollingIntervalRef.current = await handleFeatureTestGeneration(
-      selectedFeature,
-      secrets,
-      (taskId) => { // onStart
-        // State already set, no need to set again
+      selectedFeature,  // featureId
+      secrets,         // secrets
+      selectedCategories, // categories
+      (taskId) => {    // onStart
+        console.log('Test generation started with task ID:', taskId);
       },
       (statusUpdate) => { // onStatusUpdate
         setSuccessMessage(statusUpdate);
@@ -760,9 +767,8 @@ const TestsTable = () => {
         setGeneratingFeatures([]);
         setError(`Test generation failed. ${errorMsg}`);
         setSuccessMessage(null);
-        pollingIntervalRef.current = null;
       },
-      featureName
+      featureName  // featureName
     );
   };
 
@@ -1369,6 +1375,13 @@ const TestsTable = () => {
         message={`Are you sure you want to delete this feature? This will also delete all associated tests. This action cannot be undone.`}
         confirmButtonText="Delete Feature"
         confirmButtonVariant="danger"
+      />
+
+      {/* Test Category Selection Modal */}
+      <TestCategorySelectionModal
+        isOpen={isTestCategoryModalOpen}
+        onClose={() => setIsTestCategoryModalOpen(false)}
+        onGenerate={handleTestCategoryGenerate}
       />
 
       {/* Error message display */}

@@ -174,7 +174,7 @@ async def _generate_test_category_for_feature(
                 epic=epic,
                 feature=feature,
                 url=feature.urls[0],
-                category_of_test=category_of_test,
+                category_of_test=category_of_test.value,
                 test_categories_description="- ".join([f"{k}: {v}" for k, v in TEST_CATEGORIES_DESCRIPTION.items()]),
             ),
             llm=LLM_CLIENT,
@@ -254,6 +254,7 @@ async def generate_tests(
     epic: Epic,
     feature: Feature,
     secrets: Optional[list[dict[str, Any]]] = None,
+    categories: Optional[list[str]] = None,
 ) -> dict[str, Any]:
     """
     Endpoint to generate tests for a feature.
@@ -265,6 +266,7 @@ async def generate_tests(
         background_task: Background tasks handler
         secrets: List of secret dictionaries for authentication
                  (expected to be encrypted if provided)
+        categories: List of test categories to generate
 
     Returns:
         Task ID for tracking the test generation process
@@ -289,10 +291,17 @@ async def generate_tests(
             }
             return output
 
-    # List of test categories to generate
-    categories = [
-        TestCategory.SMOKE,
-    ]
+    # Use provided categories or default to SMOKE only if categories is None
+    # If categories is an empty list, we'll use that (meaning no tests will be generated)
+    categories_to_generate = categories if categories is not None else [TestCategory.SMOKE]
+
+    # If categories_to_generate is empty, return early with no tests
+    if not categories_to_generate:
+        output = {
+            "results": [],
+            "status": TestStatus.PASSED.value,
+        }
+        return output
 
     auth_session = dict()
     if feature.access_conditions is not None and feature.access_conditions.get("must_be_logged_in") is True:
@@ -303,32 +312,35 @@ async def generate_tests(
             secrets=decrypted_secrets,  # Use decrypted secrets here
         )
 
-    tests = []
-    with NamedTemporaryFile(suffix=".json", mode="w+") as cookies_file:
-        cookies_file.write(json.dumps(auth_session.get('cookies')))
-        cookies_file.flush()
-        cookies_file.seek(0)
-
-        local_storage_data = auth_session.get('localStorage')
-        local_storage_json = json.dumps(local_storage_data) if local_storage_data is not None else None
-
-        for category in categories:
-            category_tests = await _generate_test_category_for_feature(
+    # Generate tests for each category
+    all_tests = []
+    for category in categories_to_generate:
+        try:
+            tests = await _generate_test_category_for_feature(
                 job_id=ctx['job_id'],
                 product=product,
                 epic=epic,
                 feature=feature,
                 category_of_test=category,
-                cookies_file=cookies_file.name if auth_session.get('cookies') is not None else None,
-                localStorage=local_storage_json,
+                cookies_file=auth_session.get('cookies_file'),
+                localStorage=auth_session.get('localStorage'),
             )
-            tests.extend(category_tests)
+            all_tests.extend(tests)
+        except Exception as e:
+            logger.error(f"[{ctx['job_id']}] Error generating {category} tests: {e}")
+            # Continue with other categories even if one fails
+            continue
+
+    if not all_tests:
+        output = {
+            "results": [],
+            "status": TestStatus.FAILED.value,
+            "error": "Failed to generate any tests"
+        }
+        return output
 
     output = {
-        "results": [_test.model_dump() | {'category': _test.category.value} for _test in tests],
+        "results": [test.model_dump() for test in all_tests],
         "status": TestStatus.PASSED.value,
     }
-
-    logger.info(f"[{ctx['job_id']}] Test Generation Output: {output}")
-
     return output
