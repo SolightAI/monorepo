@@ -7,7 +7,7 @@ from src.utils.dto import Test, TestCategory, TestStatus
 
 class TestTickPick():
 
-    url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=889809847&quantity=1&listingType=TEVO&price=72&dt=f&dv=13&e=7089570&s=111&r=1"
+    url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=889809947&quantity=1&listingType=TEVO&price=96&dt=f&dv=2&e=7089570&s=123&r=14"
 
     async def _run_checkout_test(
         self,

@@ -9,6 +9,7 @@ from browser_use.agent.views import AgentHistory
 from browser_use import Agent, AgentHistoryList, ActionResult
 from browser_use.agent.views import AgentStepInfo
 from browser_use.agent.views import BrowserStateHistory
+from langchain_core.messages import HumanMessage
 
 
 logger = getLogger(__name__)
@@ -235,6 +236,33 @@ async def rerun_history(
 
                 results.extend(step_action_results)  # Accumulate overall results for the function's return value
 
+                if history_item.model_output:
+                    # Add the LLM's thought/action from the original run
+                    agent.message_manager.add_model_output(history_item.model_output)
+
+                    # Add the outcome of replaying those actions as HumanMessages
+                    # This helps build the narrative for the LLM.
+                    # Filter out results from 'done' actions, as a new 'done' will be generated.
+                    action_models_for_this_step = history_item.model_output.action
+                    if step_action_results:
+                        for r_idx, r_item in enumerate(step_action_results):
+                            is_done_action_result = False
+                            if action_models_for_this_step and r_idx < len(action_models_for_this_step):
+                                action_model = action_models_for_this_step[r_idx]
+                                # Get the action name (e.g., 'click_element', 'done')
+                                action_name = next((name for name in action_model.model_fields_set if name != 'index'), None)
+                                if action_name == 'done':
+                                    is_done_action_result = True
+
+                            if not is_done_action_result and r_item.include_in_memory:
+                                if r_item.extracted_content:
+                                    msg_content = 'Action result: ' + str(r_item.extracted_content)
+                                    agent.message_manager._add_message_with_tokens(HumanMessage(content=msg_content))
+                                if r_item.error:
+                                    last_line = r_item.error.split('\n')[-1]
+                                    msg_content = 'Action error: ' + last_line
+                                    agent.message_manager._add_message_with_tokens(HumanMessage(content=msg_content))
+
                 # Construct and append AgentHistory item to agent's internal history
                 if history_item.model_output and browser_state_before_action:
                     replayed_browser_state_history = BrowserStateHistory(
@@ -268,8 +296,20 @@ async def rerun_history(
                     logger.warning(f'Step {i + 1} failed (attempt {retry_count}/{max_retries}), retrying...')
                     await asyncio.sleep(delay_between_actions)
 
-    agent.state.history.history.pop()  # Remove the cached "done" action
-    agent.state.last_result = agent.state.history.history[-1].result  # Replace the "done" action with the last action before it
+    # --- START MODIFICATION: Robustly set last_result before final agent.step ---
+    if agent.state.history.history:  # Check if there's anything to pop
+        # Assuming the last item corresponds to the original "done" action's replay
+        agent.state.history.history.pop()
+        if agent.state.history.history:  # If there are still items left
+            agent.state.last_result = agent.state.history.history[-1].result
+        else:
+            # History became empty after pop; original history might have been just one "done" step.
+            # An empty list for last_result is safer to not mislead the final agent.step().
+            agent.state.last_result = []
+    else:
+        # Agent's history was already empty (e.g., all steps failed/skipped).
+        agent.state.last_result = []
+    # --- END MODIFICATION ---
 
     await agent.step(AgentStepInfo(step_number=len(history.history), max_steps=len(history.history)))
 
