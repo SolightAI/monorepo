@@ -34,10 +34,10 @@ export default function Register() {
     }
   }, [authError]);
 
-  // Function to validate code (will be used during form submission)
+  // Function to validate code (used during form submission)
   const validateCode = async (code) => {
     if (!code) {
-      const result = { valid: false, error: 'Invitation code is required (from RegisterPage.validateCode)' };
+      const result = { isValid: false, error: 'Invitation code is required' };
       return result;
     }
 
@@ -45,7 +45,7 @@ export default function Register() {
       const validationApiResult = await validateInvitationCode(code, email || undefined);
       return validationApiResult;
     } catch (error) {
-      const result = { valid: false, error: 'Error validating invitation code (from RegisterPage.validateCode catch)' };
+      const result = { isValid: false, error: 'Error validating invitation code' };
       return result;
     }
   };
