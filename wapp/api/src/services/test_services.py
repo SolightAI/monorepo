@@ -148,8 +148,6 @@ async def trigger_improve_test_steps(
     keys = [k + job_id for k in [default_queue_name, in_progress_key_prefix, job_key_prefix, result_key_prefix]]
     await redis.delete(*keys)
 
-    job = Job(job_id, redis=redis)
-
     job = await redis.enqueue_job('improve_test_steps', **payload, _job_id=job_id)
 
     if job is None:

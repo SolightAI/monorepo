@@ -9,7 +9,6 @@ import { useSecret } from '@/context/SecretContext';
 import EditTestModal from './EditTestModal';
 import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
 import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus, TEST_STATUS } from '@/utils/testExecutionUtils';
-import { TEST_STATUS } from '@/utils/testExecutionUtils';
 
 /**
  * Component to display the last test execution in a table format
