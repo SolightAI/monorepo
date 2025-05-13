@@ -167,19 +167,16 @@ async def _generate_test_category_for_feature(
             """.strip() % json.dumps(localStorage)
             await context.execute_javascript(load_script)
 
-        prompt_to_send = PROMPT.format(
+        # NOTE: we do not provide a controller as models tend to provide better results when not constrained by a controller output model
+        agent = Agent(
+            task=PROMPT.format(
             product=product,
             epic=epic,
             feature=feature,
             url=feature.urls[0],
             category_of_test=category_of_test.value,
             test_categories_description="- ".join([f"{k}: {v}" for k, v in TEST_CATEGORIES_DESCRIPTION.items()]),
-        )
-        logger.info(f"[DEBUG_CATEGORY] Category being used in prompt: {category_of_test.value}")
-        logger.info(f"[DEBUG_CATEGORY] Prompt sent to LLM for category {category_of_test}:\n{prompt_to_send}")
-        # NOTE: we do not provide a controller as models tend to provide better results when not constrained by a controller output model
-        agent = Agent(
-            task=prompt_to_send,
+        ),
             llm=LLM_CLIENT,
             initial_actions=[{'go_to_url': {'url': feature.urls[0]}}, {'go_to_url': {'url': feature.urls[0]}}],
             browser_context=context,
