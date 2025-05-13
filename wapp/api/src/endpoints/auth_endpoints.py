@@ -88,13 +88,16 @@ async def login_password(user_credentials: UserLogin, response: Response) -> dic
 async def register_user(user_data: UserCreate, response: Response) -> dict:
     try:
         user = await auth_services.create_user_account(user_data)
+    except HTTPException as http_exc:
+        # Re-raise the specific HTTPException from the service layer
+        raise http_exc
     except Exception as e:
         # Log the unexpected error
-        logging.error(f"Unexpected error during user registration: {str(e)}")
-        # Return a generic error to the client
+        logging.error(f"Unexpected error during user registration: {str(e)} - UserData: {user_data.model_dump_json(exclude=set(['password']))}")
+        # Return a generic error to the client for truly unexpected issues
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred during registration."
+            detail="An unexpected server error occurred during registration. Please try again later."
         )
 
     # Automatically log in the user after successful registration

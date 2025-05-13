@@ -508,6 +508,14 @@ async def create_user_account(user_data: UserCreateSchema) -> UserModel:
             detail="Email already registered"
         )
 
+    # Password validation
+    if len(user_data.password) < 7:
+        logging.warning(f"User creation failed for email {user_data.email}: Password too short.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 7 characters long."
+        )
+
     invitation = None
     if user_data.invitation_code:
         logging.info(f"Processing invitation_code {user_data.invitation_code} for new user {user_data.email}.")
