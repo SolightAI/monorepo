@@ -719,9 +719,6 @@ const TestsTable = () => {
       selectedFeature,  // featureId
       secrets,         // secrets
       selectedCategories, // categories
-      (taskId) => {    // onStart
-        console.log('Test generation started with task ID:', taskId);
-      },
       (statusUpdate) => { // onStatusUpdate
         setSuccessMessage(statusUpdate);
       },
@@ -768,7 +765,6 @@ const TestsTable = () => {
         setError(`Test generation failed. ${errorMsg}`);
         setSuccessMessage(null);
       },
-      featureName  // featureName
     );
   };
 
