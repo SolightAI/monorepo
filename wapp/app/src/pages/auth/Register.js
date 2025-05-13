@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { HelpCircle, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 
@@ -99,9 +99,6 @@ export default function Register() {
           <h2 className="mt-6 text-center text-2xl font-extrabold text-gray-900">
             Create your account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Join us to transform your ideas into captivating videos with AI-powered generation.
-          </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm space-y-3">
@@ -211,12 +208,6 @@ export default function Register() {
           <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
             Already have an account? Sign in here
           </Link>
-          <div>
-            <Link to="/faq" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700">
-              <HelpCircle className="w-4 h-4 mr-1" />
-              Need help? Check our FAQ
-            </Link>
-          </div>
         </div>
       </div>
     </div>
