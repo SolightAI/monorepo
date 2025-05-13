@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '@/context/AuthContext';
@@ -113,14 +113,24 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      console.log('Attempting login with email:', email);
-      await authLogin(email, password);
-      console.log('Login successful, redirecting to main app');
-      // Always redirect to main app
-      navigate('/', { replace: true });
-    } catch (error) {
-      console.error('Login error:', error);
-      setError(error.response?.data?.detail || 'An error occurred during login.');
+      console.log('Attempting login with email:', email, 'and invitation code:', invitationCode);
+      // Pass email, password, and invitationCode (which can be undefined)
+      const loginSuccess = await authLogin(email, password, invitationCode);
+
+      if (loginSuccess) {
+        console.log('Login successful, navigating to main app');
+        // Navigation is handled by useEffect based on isAuthenticated
+      } else {
+        // Error is set by authLogin if it returns false or throws
+        // No need to set error here explicitly unless authLogin doesn't handle it
+        console.log('Login attempt returned false or threw an error.');
+      }
+    } catch (error) { // This catch block might be redundant if authLogin handles all errors
+      console.error('Login error in component:', error);
+      // setError is typically set within authLogin now
+      // If authLogin re-throws, this will catch it.
+      // If authLogin returns false, error should already be set in AuthContext.
+    } finally {
       setIsLoading(false);
     }
   };
@@ -186,78 +196,99 @@ export default function Login() {
         ) : !showForgotPassword ? (
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div className="rounded-md shadow-sm -space-y-px">
-              {ALLOW_EMAIL_LOGIN && (
-                <>
-                  <div>
-                    <label htmlFor="email" className="sr-only">
-                      Email
-                    </label>
-                    <input
-                      id="email"
-                      name="email"
-                      type="text"
-                      required
-                      className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                      placeholder="Email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="relative">
-                    <label htmlFor="password" className="sr-only">
-                      Password
-                    </label>
-                    <input
-                      id="password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      required
-                      className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                      placeholder="Password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
-                    </button>
-                  </div>
-                </>
-              )}
+              <>
+                <div>
+                  <label htmlFor="email" className="sr-only">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="relative">
+                  <label htmlFor="password" className="sr-only">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    required
+                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
+                  </button>
+                </div>
+              </>
             </div>
 
             {error && (
               <div className="text-red-500 text-sm text-center">{error}</div>
             )}
 
-            {ALLOW_EMAIL_LOGIN && (
-              <>
-                <div className="flex items-center justify-between">
-                  <div className="text-sm">
-                    <button
-                      type="button"
-                      onClick={() => setShowForgotPassword(true)}
-                      className="font-medium text-blue-600 hover:text-blue-500"
-                    >
-                      Forgot your password?
-                    </button>
-                  </div>
-                </div>
-
-                <div>
+            <>
+              {/* We do not support email sending yet */}
+              {/* <div className="flex items-center justify-between">
+                <div className="text-sm">
                   <button
-                    type="submit"
-                    className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    disabled={isLoading}
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="font-medium text-blue-600 hover:text-blue-500"
                   >
-                    {isLoading ? 'Signing in...' : 'Sign in'}
+                    Forgot your password?
                   </button>
                 </div>
-              </>
-            )}
+              </div> */}
+
+              <div>
+                <button
+                  type="submit"
+                  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Signing in...' : 'Sign in'}
+                </button>
+              </div>
+              <div className="text-center space-y-2">
+                <p className="text-sm text-gray-600">
+                  Don't have an account?{' '}
+                  <Link
+                    to={`/register${invitationCode ? `?invitation_code=${invitationCode}` : ''}`}
+                    className="font-medium text-blue-600 hover:text-blue-500"
+                  >
+                    Register here
+                  </Link>
+                </p>
+              </div>
+            </>
+
+            {/* Separator */}
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or</span>
+              </div>
+            </div>
+
 
             {/* Google Login Button */}
             <div>
@@ -277,16 +308,6 @@ export default function Login() {
                   Continue with Google
                 </span>
               </button>
-            </div>
-
-            {/* Separator */}
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or</span>
-              </div>
             </div>
 
             {/* Microsoft Login Button */}
@@ -434,17 +455,6 @@ export default function Login() {
             </div>
           </form>
         )}
-        <div className="text-center space-y-2">
-          {/* <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
-            Don't have an account? Register here
-          </Link> */}
-          {/* <div>
-            <Link to="/faq" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700">
-              <HelpCircle className="w-4 h-4 mr-1" />
-              Need help? Check our FAQ
-            </Link>
-          </div> */}
-        </div>
       </div>
     </div>
   );

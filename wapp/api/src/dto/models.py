@@ -7,6 +7,7 @@ class User(models.Model):
 
     username = fields.CharField(max_length=255, unique=False)
     email = fields.CharField(max_length=255, unique=True)
+    hashed_password = fields.CharField(max_length=255, null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     is_admin = fields.BooleanField(default=False)
     onboarding_completed = fields.BooleanField(default=False)
