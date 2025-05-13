@@ -23,6 +23,7 @@ services:
       - S3_BUCKET_NAME=task-manager
       - AWS_ENDPOINT_URL=http://minio:9000
       - SYMMETRIC_ENCRYPTION_KEY=${SYMMETRIC_ENCRYPTION_KEY:-S5ox-_h4p9NISVvQFPsAE5T-8K-SNp67GLQalO75rDI=}
+      - TWOCAPTCHA_API_KEY=${TWOCAPTCHA_API_KEY:-}
     depends_on:
       - redis
       - minio

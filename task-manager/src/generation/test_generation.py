@@ -167,16 +167,19 @@ async def _generate_test_category_for_feature(
             """.strip() % json.dumps(localStorage)
             await context.execute_javascript(load_script)
 
+        prompt_to_send = PROMPT.format(
+            product=product,
+            epic=epic,
+            feature=feature,
+            url=feature.urls[0],
+            category_of_test=category_of_test.value,
+            test_categories_description="- ".join([f"{k}: {v}" for k, v in TEST_CATEGORIES_DESCRIPTION.items()]),
+        )
+        logger.info(f"[DEBUG_CATEGORY] Category being used in prompt: {category_of_test.value}")
+        logger.info(f"[DEBUG_CATEGORY] Prompt sent to LLM for category {category_of_test}:\n{prompt_to_send}")
         # NOTE: we do not provide a controller as models tend to provide better results when not constrained by a controller output model
         agent = Agent(
-            task=PROMPT.format(
-                product=product,
-                epic=epic,
-                feature=feature,
-                url=feature.urls[0],
-                category_of_test=category_of_test.value,
-                test_categories_description="- ".join([f"{k}: {v}" for k, v in TEST_CATEGORIES_DESCRIPTION.items()]),
-            ),
+            task=prompt_to_send,
             llm=LLM_CLIENT,
             initial_actions=[{'go_to_url': {'url': feature.urls[0]}}, {'go_to_url': {'url': feature.urls[0]}}],
             browser_context=context,
@@ -293,10 +296,29 @@ async def generate_tests(
 
     # Use provided categories or default to SMOKE only if categories is None
     # If categories is an empty list, we'll use that (meaning no tests will be generated)
-    categories_to_generate = categories if categories is not None else [TestCategory.SMOKE]
+    logger.info(f"[DEBUG_CATEGORY] Categories received: {categories}")
+    
+    # Convert string categories to TestCategory enum values
+    categories_to_generate = []
+    if categories is not None:
+        for cat in categories:
+            try:
+                logger.info(f"[DEBUG_CATEGORY] Converting category string '{cat}' to enum")
+                category_enum = TestCategory(cat)
+                logger.info(f"[DEBUG_CATEGORY] Successfully converted to {category_enum}")
+                categories_to_generate.append(category_enum)
+            except ValueError as e:
+                logger.error(f"[{ctx['job_id']}] Invalid category {cat}: {e}")
+                continue
+    else:
+        logger.info("[DEBUG_CATEGORY] No categories provided, defaulting to SMOKE")
+        categories_to_generate = [TestCategory.SMOKE]
+    
+    logger.info(f"[DEBUG_CATEGORY] Categories to generate: {categories_to_generate}")
 
     # If categories_to_generate is empty, return early with no tests
     if not categories_to_generate:
+        logger.info("[DEBUG_CATEGORY] No valid categories to generate, returning early")
         output = {
             "results": [],
             "status": TestStatus.PASSED.value,
@@ -316,6 +338,7 @@ async def generate_tests(
     all_tests = []
     for category in categories_to_generate:
         try:
+            logger.info(f"[DEBUG_CATEGORY] Generating tests for category: {category}")
             tests = await _generate_test_category_for_feature(
                 job_id=ctx['job_id'],
                 product=product,
@@ -340,7 +363,10 @@ async def generate_tests(
         return output
 
     output = {
-        "results": [test.model_dump() for test in all_tests],
+        "results": [_test.model_dump() | {'category': _test.category.value} for _test in all_tests],
         "status": TestStatus.PASSED.value,
     }
+
+    logger.info(f"[{ctx['job_id']}] Test Generation Output: {output}")
+
     return output

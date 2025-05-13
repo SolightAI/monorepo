@@ -714,7 +714,7 @@ const TestsTable = () => {
     setIsGeneratingTests(true);
     setGeneratingFeatures([{ id: selectedFeature, name: featureName }]);
 
-    // Call the new service function with parameters in the correct order
+    // Call the new service function
     pollingIntervalRef.current = await handleFeatureTestGeneration(
       selectedFeature,  // featureId
       secrets,         // secrets

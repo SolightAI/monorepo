@@ -347,12 +347,13 @@ async def get_test_secrets_with_values(test_id: UUID4) -> Dict[str, Dict[str, st
     return result
 
 
-async def trigger_test_generation(feature_id: UUID4) -> dict:
+async def trigger_test_generation(feature_id: UUID4, categories: List[str] = None) -> dict:
     """
     Trigger test generation for a feature.
 
     Args:
-        feature_id: The ID of the feature
+        feature_id: The ID of the feature to generate tests for
+        categories: List of test categories to generate (e.g., ["SMOKE", "NEGATIVE"])
 
     Returns:
         A dictionary containing the task ID and feature ID
@@ -374,7 +375,7 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
             'description': feature.description,
             'urls': feature.urls,
             'access_conditions': feature.access_conditions,
-        },
+        }, 
         'epic': {
             'name': epic.name,
             'description': epic.description,
@@ -387,6 +388,9 @@ async def trigger_test_generation(feature_id: UUID4) -> dict:
             'links_to_documentation': [],  # TODO
         },
     }
+
+    if categories:
+        payload['categories'] = categories
 
     encrypted_secrets = await get_encrypted_secrets(
         organization_id=product.organization_id,
