@@ -347,7 +347,7 @@ async def get_test_secrets_with_values(test_id: UUID4) -> Dict[str, Dict[str, st
     return result
 
 
-async def trigger_test_generation(feature_id: UUID4, categories: List[str] = None) -> dict:
+async def trigger_test_generation(feature_id: UUID4, categories: list[str] | None = None) -> dict:
     """
     Trigger test generation for a feature.
 

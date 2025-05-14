@@ -97,10 +97,7 @@ export const triggerFeatureTestGeneration = async (featureId, categories) => {
       `${API_URL}/tests/generate?feature_id=${featureId}`,
       { categories },
       {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        withCredentials: true
       }
     );
     return response.data.task_id;

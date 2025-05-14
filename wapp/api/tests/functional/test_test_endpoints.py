@@ -74,7 +74,6 @@ async def test_create_test(client: AsyncClient, admin_user, test_feature, accept
         "preconditions": "System is in a stable state",
         "steps": "1. Navigate to the page\n2. Click the button",
         "assertions": "assert result == expected",
-        "url": "https://example.com/test"
     }
 
     response = await client.post(

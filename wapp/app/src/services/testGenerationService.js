@@ -97,8 +97,7 @@ export const handleFeatureTestGeneration = async (
 
         // Trigger test generation for the feature with categories
         const taskId = await triggerFeatureTestGeneration(featureId, categories);
-
-        onStart(taskId); // Update with the task ID
+        onStart(taskId);
 
         // Start polling using the dedicated function
         pollingIntervalId = pollTestGenerationStatus(

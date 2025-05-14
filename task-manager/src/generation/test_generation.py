@@ -266,7 +266,8 @@ async def generate_tests(
         background_task: Background tasks handler
         secrets: List of secret dictionaries for authentication
                  (expected to be encrypted if provided)
-        categories: List of test categories to generate
+        categories: List of test categories to generate. If None, defaults to [TestCategory.SMOKE].
+                    If an empty list is provided, no tests will be generated.
 
     Returns:
         Task ID for tracking the test generation process
@@ -291,32 +292,21 @@ async def generate_tests(
             }
             return output
 
-    # Use provided categories or default to SMOKE only if categories is None
     # If categories is an empty list, we'll use that (meaning no tests will be generated)
     logger.info(f"[DEBUG_CATEGORY] Categories received: {categories}")
     
     # Convert string categories to TestCategory enum values
     categories_to_generate = []
     if categories is not None:
-        for cat in categories:
+        for _category in categories:
             try:
-                category_enum = TestCategory(cat)
+                category_enum = TestCategory(_category)
                 categories_to_generate.append(category_enum)
             except ValueError as e:
-                logger.error(f"[{ctx['job_id']}] Invalid category {cat}: {e}")
-                continue
+                raise ValueError(f"Invalid test category: {_category}") from e
     else:
         logger.info("[DEBUG_CATEGORY] No categories provided, defaulting to SMOKE")
         categories_to_generate = [TestCategory.SMOKE]
-
-    # If categories_to_generate is empty, return early with no tests
-    if not categories_to_generate:
-        logger.info("[DEBUG_CATEGORY] No valid categories to generate, returning early")
-        output = {
-            "results": [],
-            "status": TestStatus.PASSED.value,
-        }
-        return output
 
     auth_session = dict()
     if feature.access_conditions is not None and feature.access_conditions.get("must_be_logged_in") is True:
@@ -329,23 +319,29 @@ async def generate_tests(
 
     # Generate tests for each category
     all_tests = []
-    for category in categories_to_generate:
-        try:
-            logger.info(f"[DEBUG_CATEGORY] Generating tests for category: {category}")
-            tests = await _generate_test_category_for_feature(
-                job_id=ctx['job_id'],
-                product=product,
-                epic=epic,
-                feature=feature,
-                category_of_test=category,
-                cookies_file=auth_session.get('cookies_file'),
-                localStorage=auth_session.get('localStorage'),
-            )
-            all_tests.extend(tests)
-        except Exception as e:
-            logger.error(f"[{ctx['job_id']}] Error generating {category} tests: {e}")
-            # Continue with other categories even if one fails
-            continue
+    with NamedTemporaryFile(suffix=".json", mode="w+") as cookies_file:
+        cookies_file.write(json.dumps(auth_session.get('cookies')))
+        cookies_file.flush()
+        cookies_file.seek(0)
+
+        local_storage_data = auth_session.get('localStorage')
+        local_storage_json = json.dumps(local_storage_data) if local_storage_data is not None else None
+
+        for category in categories_to_generate:
+            try:
+                logger.info(f"[DEBUG_CATEGORY] Generating tests for category: {category}")
+                tests = await _generate_test_category_for_feature(
+                    job_id=ctx['job_id'],
+                    product=product,
+                    epic=epic,
+                    feature=feature,
+                    category_of_test=category,
+                    cookies_file=cookies_file.name if auth_session.get('cookies') is not None else None,
+                    localStorage=local_storage_json,
+                )
+                all_tests.extend(tests)
+            except Exception as e:
+                raise ValueError(f"Error generating {category} tests: {e}") from e
 
     if not all_tests:
         output = {
