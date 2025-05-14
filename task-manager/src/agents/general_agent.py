@@ -123,7 +123,8 @@ async def general_agent(
     status, explanation = await check_final_test_result(
         task_id=task_id,
         test=test,
-        agent_output=history.final_result(),
+        agent_output=history.final_result() or "None",
+        screenshot_base64=history.screenshots()[-1] if len(history.screenshots()) > 0 else None,
         healthcheck_results=additional_healthchecks_results,
     )
 
