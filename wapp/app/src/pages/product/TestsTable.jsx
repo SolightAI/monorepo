@@ -1405,9 +1405,8 @@ const TestsTable = () => {
       )}
 
       {/* ✅ NEW — success / completion banner */}
-      {!isGeneratingTests && successMessage &&
-        !successMessage.includes('Test Generation in Progress') &&
-        !successMessage.includes('Status: PENDING') && (
+      {!isGeneratingTests && successMessage && 
+        !successMessage.includes('Test Generation in Progress') && (
         <div className="mb-6 p-4 bg-green-100 border border-green-200 text-green-700 rounded-lg flex items-start justify-between">
           <p className="break-words">{successMessage}</p>
           <button
