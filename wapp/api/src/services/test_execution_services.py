@@ -4,6 +4,7 @@ import uuid
 import json
 import asyncio
 import logging
+import traceback
 
 from datetime import datetime
 from typing import List, Dict, Any, Optional
@@ -223,8 +224,6 @@ async def _check_status_from_redis(test_execution: TestExecutionModel) -> TestEx
     job = Job(str(test_execution.id), redis=redis)
     job_status = await job.status()
 
-    logger.info(f"Job {test_execution.id} status: {job_status}")
-
     if job_status in [JobStatus.queued, JobStatus.deferred, JobStatus.in_progress]:
         return None
 
@@ -240,6 +239,7 @@ async def _check_status_from_redis(test_execution: TestExecutionModel) -> TestEx
     try:
         status_data = await job.result()
     except Exception as e:
+        logger.error(traceback.format_exc())
         logger.error(f"Job {test_execution.id} failed: {str(e)}")
         return TestExecutionUpdateSchema(
             status=TestStatus.ERROR,

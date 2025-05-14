@@ -221,8 +221,6 @@ async def poll_improve_test_steps_status(test_id: UUID4, timeout: int = 900, int
         response = await get_improve_test_steps_status(test_id)
         status = response["status"]
 
-        logger.info(f"Improve test steps status: {status}")
-
         if status in [TestStatus.PENDING.value, TestStatus.UNKNOWN.value]:
             await asyncio.sleep(interval)
             continue
