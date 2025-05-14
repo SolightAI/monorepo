@@ -93,13 +93,14 @@ class S3Manager:
         self,
         object_name: str,
         output_path: str,
+        overwrite_bucket: str | None = None,
     ) -> Optional[str]:
         """
         Download a file from S3.
         """
         try:
             self.s3_client.download_file(
-                Bucket=self.bucket_name,
+                Bucket=self.bucket_name if overwrite_bucket is None else overwrite_bucket,
                 Key=object_name,
                 Filename=output_path
             )
@@ -141,7 +142,7 @@ class S3Manager:
         try:
             extra_args = {'ContentType': content_type}
             if additional_params:
-                extra_args["Metadata"] = {k: json.dumps(v) for k, v in additional_params.items()}
+                extra_args["Metadata"] = {k: json.dumps(v) for k, v in additional_params.items()}  # type: ignore
 
             self.s3_client.upload_file(
                 file_path,
@@ -197,6 +198,7 @@ def exists_in_s3(
 def download_file_from_s3(
     object_name: str,
     output_path: str,
+    overwrite_bucket: str | None = None,
 ) -> Optional[str]:
     """
     Download a file from S3.
@@ -205,4 +207,5 @@ def download_file_from_s3(
     return s3_manager.download_file(
         object_name=object_name,
         output_path=output_path,
+        overwrite_bucket=overwrite_bucket,
     )
