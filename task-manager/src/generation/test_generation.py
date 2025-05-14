@@ -291,9 +291,6 @@ async def generate_tests(
                 "error": f"Failed to decrypt secrets: {e}"
             }
             return output
-
-    # If categories is an empty list, we'll use that (meaning no tests will be generated)
-    logger.info(f"[DEBUG_CATEGORY] Categories received: {categories}")
     
     # Convert string categories to TestCategory enum values
     categories_to_generate = []
@@ -305,7 +302,7 @@ async def generate_tests(
             except ValueError as e:
                 raise ValueError(f"Invalid test category: {_category}") from e
     else:
-        logger.info("[DEBUG_CATEGORY] No categories provided, defaulting to SMOKE")
+        #No categories provided, defaulting to SMOKE
         categories_to_generate = [TestCategory.SMOKE]
 
     auth_session = dict()
@@ -329,7 +326,6 @@ async def generate_tests(
 
         for category in categories_to_generate:
             try:
-                logger.info(f"[DEBUG_CATEGORY] Generating tests for category: {category}")
                 tests = await _generate_test_category_for_feature(
                     job_id=ctx['job_id'],
                     product=product,
@@ -342,14 +338,6 @@ async def generate_tests(
                 all_tests.extend(tests)
             except Exception as e:
                 raise ValueError(f"Error generating {category} tests: {e}") from e
-
-    if not all_tests:
-        output = {
-            "results": [],
-            "status": TestStatus.FAILED.value,
-            "error": "Failed to generate any tests"
-        }
-        return output
 
     output = {
         "results": [_test.model_dump() | {'category': _test.category.value} for _test in all_tests],

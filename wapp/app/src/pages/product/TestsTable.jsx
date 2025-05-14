@@ -719,9 +719,6 @@ const TestsTable = () => {
       selectedFeature,  // featureId
       secrets,         // secrets
       selectedCategories, // categories
-      (taskId) => { // onStart
-        // Don't set success message here, let the status update handle it
-      },
       (statusUpdate) => { // onStatusUpdate
         setSuccessMessage(statusUpdate);
       },
