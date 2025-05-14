@@ -95,7 +95,7 @@ export const triggerFeatureTestGeneration = async (featureId, categories) => {
   try {
     const response = await axios.post(
       `${API_URL}/tests/generate?feature_id=${featureId}`,
-      { categories },
+      categories || null,
       {
         withCredentials: true
       }
