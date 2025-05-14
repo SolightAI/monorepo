@@ -36,7 +36,10 @@ async def check_for_google_mfa(agent: Agent) -> bool:
 
     # if text "Verify it's you" in the page, inform the agent to fail the test
     if "Verify it's you" in page_content and 'Choose how you want to sign in' in page_content:
-        content = "You encountered a MFA google verification. End all your actions and inform the user of the failure and that it's outside of your limitations."
+        content = (
+            "You've encountered a MFA google verification.Select 'Confirm your recovery phone number' and enter the phone number provided in the secrets. "
+            "If you do not have any phone number stored in secrets, stop all your actions and inform the user of the failure and that it's outside of your limitations."
+        )
 
         logger.info(f"[{task_id}] Adding to agent's history: {content}")
         agent_message = HumanMessage(content=content)
