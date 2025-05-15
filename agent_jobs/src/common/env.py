@@ -1,6 +1,19 @@
+"""
+Utility functions for getting environment variables.
+"""
+
 import os
 
 from typing import Literal, overload
+
+
+class InvalidValueException(Exception):
+    """Exception raised when an invalid value is provided."""
+    pass
+
+class MissingValueException(Exception):
+    """Exception raised when a required value is missing."""
+    pass
 
 
 @overload
@@ -93,6 +106,6 @@ def get_bool(
     elif value.lower() == "false" or value == "0" or value.lower() == "no":
         return False
 
-    raise Exception(
+    raise InvalidValueException(
         f"Invalid value for {name}: Must be either 'true' or 'false', not {value}"
     )

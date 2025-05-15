@@ -1,4 +1,7 @@
-"""
-Config is a module that contains all utility functions
-for lambdas to fetch configuration values.
-"""
+from .config import Config, ConfigError, get_config
+
+__all__ = [
+    "Config",
+    "ConfigError",
+    "get_config",
+]

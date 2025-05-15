@@ -6,16 +6,11 @@ from browser_use.browser.browser import Browser, BrowserConfig
 from browser_use.browser.context import BrowserContext, BrowserContextConfig
 from langchain_openai import ChatOpenAI
 
-from src.validate_url.dto import Result
-from src.validate_url.config import Config
+from .dto import ValidateURLResult, ConfidenceLevel
+
 
 logger = logging.getLogger(__name__)
 
-
-# Confidence levels for login page detection.
-CONFIDENCE_HIGH = "high"
-CONFIDENCE_MEDIUM = "medium"
-CONFIDENCE_LOW = "low"
 
 PROMPT = """
 You are an AI assistant tasked with examining a website to find its login page.
@@ -35,13 +30,16 @@ After examining the site, provide a conclusion in the following format:
 <confidence>'{CONFIDENCE_HIGH}'/'{CONFIDENCE_MEDIUM}'/'{CONFIDENCE_LOW}'</confidence>
 </login_page_detection>
 """.strip().format(
-    CONFIDENCE_HIGH=CONFIDENCE_HIGH,
-    CONFIDENCE_MEDIUM=CONFIDENCE_MEDIUM,
-    CONFIDENCE_LOW=CONFIDENCE_LOW,
+    CONFIDENCE_HIGH=ConfidenceLevel.HIGH.value,
+    CONFIDENCE_MEDIUM=ConfidenceLevel.MEDIUM.value,
+    CONFIDENCE_LOW=ConfidenceLevel.LOW.value,
 )
 
 
-async def run(config: Config, url: str) -> Result:
+async def run(
+    url: str,
+    headless: bool = True,
+) -> ValidateURLResult:
     """
     Run the agent on the given URL and return the result.
 
@@ -61,7 +59,7 @@ async def run(config: Config, url: str) -> Result:
         frequency_penalty=0.3,
     )
 
-    browser, context = _configure_browser(config)
+    browser, context = _configure_browser(headless)
 
     agent = Agent(
         task=PROMPT,
@@ -89,7 +87,7 @@ async def run(config: Config, url: str) -> Result:
         found, login_url, confidence = _extract_result(result)
         logger.info(f"Agent found login page on {login_url}: {found}")
 
-        return Result(
+        return ValidateURLResult(
             valid=found,
             login_url=login_url if found else None,
             confidence=confidence,
@@ -103,10 +101,10 @@ async def run(config: Config, url: str) -> Result:
     except Exception as e:
         logger.error(f"Error validating URL: {url} - {str(e)}")
 
-        return Result(
+        return ValidateURLResult(
             valid=False,
             login_url=None,
-            confidence=CONFIDENCE_LOW,
+            confidence=ConfidenceLevel.LOW,
             message="An error occurred while validating the URL",
             original_url=url,
             source="validation",
@@ -118,19 +116,19 @@ async def run(config: Config, url: str) -> Result:
         await browser.close()
 
 
-def _configure_browser(config: Config) -> tuple[Browser, BrowserContext]:
+def _configure_browser(headless: bool = True) -> tuple[Browser, BrowserContext]:
     """
     Configure and return a ready to use browser with its context.
 
     Args:
-        config (Config): The configuration object.
+        headless (bool): Whether to run the browser in headless mode.
 
     Returns:
         tuple: A tuple containing the browser and context.
     """
     browser = Browser(
         config=BrowserConfig(
-            headless=config["headless"],
+            headless=headless,
             extra_browser_args=[
                 "--no-sandbox",
                 "--disable-dev-shm-usage",
@@ -154,7 +152,7 @@ def _configure_browser(config: Config) -> tuple[Browser, BrowserContext]:
     return browser, context
 
 
-def _extract_result(result: str) -> tuple[bool, str, str]:
+def _extract_result(result: str) -> tuple[bool, str, ConfidenceLevel]:
     """
     Extract the result from the agent's final result.
 
@@ -174,10 +172,10 @@ def _extract_result(result: str) -> tuple[bool, str, str]:
         login_url = login_url_match.group(1).strip()
 
     # Extract confidence
-    confidence = CONFIDENCE_LOW
+    confidence = ConfidenceLevel.LOW
     confidence_match = re.search(r"<confidence>(.*?)</confidence>", result, re.DOTALL)
     if confidence_match:
-        confidence = confidence_match.group(1).strip().lower()
+        confidence = ConfidenceLevel(confidence_match.group(1).strip().lower())
 
     return found, login_url, confidence
 
