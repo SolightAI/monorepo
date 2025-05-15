@@ -1,5 +1,7 @@
 import os
 
+from warnings import warn
+
 
 SEED = None  # 20250102 (unused for now as don't make things really more deterministic)
 
@@ -15,3 +17,7 @@ if AZURE_OPENAI_KEY is None:
 TWOCAPTCHA_API_KEY = os.getenv('TWOCAPTCHA_API_KEY')
 if TWOCAPTCHA_API_KEY is None:
     raise ValueError('TWOCAPTCHA_API_KEY is not set')
+
+LMNR_PROJECT_API_KEY = os.getenv('LMNR_PROJECT_API_KEY')
+if LMNR_PROJECT_API_KEY is None:
+    warn("LMNR_PROJECT_API_KEY env var not found, telemetry will be disabled.")

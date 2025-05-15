@@ -1,30 +1,47 @@
-from utils.dto import TestStatus
-from textwrap import dedent
 from utils.dto import Test
-from typing import Any, Optional
+from textwrap import dedent
 from logging import getLogger
-from crypto.crypto import crypto_service
 from utils.dto import Product
-from fixtures.tools import TOOLS, get_prompt_list_of_tools
-from agents._base_agent import run_agent, format_secrets
-from fixtures.authentification.get_auth_session import get_auth_session
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage
+from utils.dto import TestStatus
+from typing import Any, Optional
 from utils.constants import SEED
+from crypto.crypto import crypto_service
+from langchain_openai import ChatOpenAI
+from agents._base_agent import run_agent, format_secrets
+from fixtures.tools import TOOLS, get_prompt_list_of_tools
+from fixtures.authentification.get_auth_session import get_auth_session
 
 
 logger = getLogger(__name__)
 
 
-IMPROVE_STEPS_PROMPT = dedent("""You are an AI assistant acting as a test automation engineer. Your task is to rewrite the test steps below to be much more detailed, clear, precise and structured.
+IMPROVE_STEPS_PROMPT = dedent("""You are an AI assistant acting as a test automation engineer. Your task is to rewrite the provided test steps to follow the desired rules.
 
 To do this, first explore the entire page and attempt to go through the test flow. Your goal is to fully understand every individual action that must be taken in order to complete the test.
 This includes identifying each required element and interaction, even if they aren't explicitly mentioned in the original steps.
 
-You are allowed to perform parts of the test if necessary to reveal or locate elements that are otherwise hidden or dependent on user interaction.
+You are allowed to perform parts of the test, explore the page, and do any action you need to reveal or locate elements that are otherwise hidden or dependent on user interaction.
 Take as much time and a many steps as you need to fully understand and cover the test flow. It's very important that you cover absolutely everything.
 
-Once you've explored the full flow and understand exactly what's needed, rewrite the test steps to reflect that level of detail. The updated steps should make it easy for someone else to follow and execute the test with no ambiguity.
+Once you've explored the full flow and understand exactly what's needed, rewrite the test steps to respect the expected format. The updated steps should make it easy for someone else to follow and execute the test with no ambiguity.
+The goals of test steps are to describe every single actions that the agent needs to take in order to do the provided test. Every single action must be included, mentioned and described.
+
+The steps should only contain actions the agent must perform, not assertions, no observations, no notes, no validations, only actions to do in order to complete the test.
+Actions must be listed in the exact order they should be performed, from first to last. If two actions can be performed simultaneously, order them based on their position on the page, top to bottom.
+
+Do not include example values in the test steps you output, nor initial link navigation.
+
+You can reference tools to be used in the test steps. The following tools are available:
+{tools}
+
+The steps should be written in the following format:
+1. First action to do
+2. A big action to do
+    a. A sub-action to do in order to achieve the bigger action
+    b. ...
+3. ...
+
+To give you more context and a better understanding of the test, here is some additional information about the test:
 
 <test_info>
 Test Name: {test.name}
@@ -34,45 +51,16 @@ Description: {test.description}
 Preconditions (if any):
 {test.preconditions}
 
-Steps:
-{test.steps}
-
 Assertions: {test.assertions}
 </test_info>
 
-While writing the test steps, you can reference the following tools to be used:
-{tools}
-
-For your final output, do not write anything else than the test steps, nothing before, nothing after, no additional notes, only the test steps.
-Do not include example values in the test steps you output, however you can reference tools if needed.
-Do not include the initial link navigation in the test steps you output, it's automatically performed.
-If the initial test step includes a mistake, fix it.
-
-Final output example:
-1. First step to do
-    a. Sub test to do
-2 Second step to do
-...
-""")
-
-
-FORMAT_PROMPT = dedent("""You're given some test steps, your goal is to make sure the output is correctly formated.
-The output should only contain a suite of steps and sub-steps to do, no introduction, no conclusion, no additional notes, only the steps.
-
-Given the following test steps, output step in the correct format. If they are already correctly formated, output it as it is, otherwise, format it.
+Knowing your task, and context about the test, here are the steps that needs to be improved:
 
 <test_steps>
-{test_steps}
+{test.steps}
 </test_steps>
 
-Write the results without any preliminary sentence, no intro, no outro, just the result.
-Do not modify the content of the test steps, only the format and only if needed.
-
-Example of final output:
-1. First step to do
-    a. Sub test to do
-2 Second step to do
-...
+Help yourself from the provided draft to make sure you don't forget any actions to mention in your final result.
 """)
 
 
@@ -120,26 +108,12 @@ async def improve_test_steps(
         task_id=ctx['job_id'],
         url=test_obj.url,
         prompt=prompt,
-        sensitive_data=format_secrets(secrets),
+        sensitive_data=format_secrets(secrets) if secrets is not None else dict(),
         auth_session=auth_session,
         tools=TOOLS,
     )
 
-    inital_result = history.final_result()
-
-    if inital_result is None:
-        return {
-            "status": TestStatus.FAILED.value,
-            "results": "No result from agent",
-        }
-
-    message = HumanMessage(
-        content=[
-            {"type": "text", "text": FORMAT_PROMPT.format(test_steps=inital_result)},
-        ],
-    )
-
-    final_result: str = (await LLM_FORMAT.ainvoke([message])).content.strip()  # type: ignore
+    final_result = history.final_result()
 
     if final_result is None:
         return {
@@ -149,5 +123,5 @@ async def improve_test_steps(
 
     return {
         "status": TestStatus.PASSED.value,
-        "results": final_result,
+        "results": history.final_result(),
     }
