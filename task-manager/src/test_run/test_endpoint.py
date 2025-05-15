@@ -1,9 +1,11 @@
 import json
 
+from lmnr import Laminar
 from hashlib import md5
-from utils.dto import Test, Product
-from typing import Optional, Any
+from lmnr import observe
 from logging import getLogger
+from typing import Optional, Any
+from utils.dto import Test, Product
 from crypto.crypto import crypto_service
 from test_run.agent_selection import select_and_call_agent
 from fixtures.authentification.get_auth_session import get_auth_session
@@ -12,6 +14,7 @@ from fixtures.authentification.get_auth_session import get_auth_session
 logger = getLogger(__name__)
 
 
+@observe()
 async def run_test(
     ctx: dict[Any, Any],
     product: dict[str, Any],  # used to get the login url
@@ -24,6 +27,8 @@ async def run_test(
     product_obj: Product = Product(**product)
     test_obj: Test = Test(**test)
     decrypted_secrets: list[dict[str, Any]] = list()
+
+    Laminar.set_session(session_id=ctx['job_id'])
 
     if secrets:
         decrypted_secrets = crypto_service.decrypt_secrets(secrets)

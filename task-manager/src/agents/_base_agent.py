@@ -5,6 +5,7 @@ import asyncio
 
 from PIL import Image
 from typing import Any
+from lmnr import observe
 from utils.dto import Test
 from typing import Callable
 from logging import getLogger
@@ -708,6 +709,7 @@ async def _generate_and_upload_evidences(task_id: str, history: AgentHistoryList
     return evidences
 
 
+@observe()
 async def run_agent(
     identifier: str | None,
     task_id: str,
@@ -786,12 +788,12 @@ async def run_agent(
         agent_params = {
             "task": prompt,
 
-            "llm": AGENT_CLIENT,
-            "use_vision": False,
-            "enable_memory": False,
+            "llm": kwargs.get("llm", AGENT_CLIENT),
+            "use_vision": kwargs.get("use_vision", False),
+            "enable_memory": kwargs.get("enable_memory", False),
 
             "initial_actions": [
-                {'go_to_url': {'url': url}},
+                {'go_to_url': {'url': url}}, {'go_to_url': {'url': url}},  # necessary to do it twice in some situations (i.e tickpick in-url auth in dev)
                 {'wait': {'seconds': 5}}
             ],
             "sensitive_data": sensitive_data,

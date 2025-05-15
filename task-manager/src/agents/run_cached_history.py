@@ -5,6 +5,7 @@ from logging import getLogger
 from typing import Any, Callable
 from fixtures.tools import TOOLS
 from pydantic import create_model
+from lmnr import observe
 from browser_use.agent.views import AgentHistory
 from browser_use import Agent, AgentHistoryList, ActionResult
 from browser_use.agent.views import AgentStepInfo
@@ -177,7 +178,7 @@ def _enable_cached_generation_for_history_rerun(agent: Agent, history: list[Agen
 
     return history
 
-
+@observe()
 async def rerun_history(
     agent: Agent,
     history: AgentHistoryList,

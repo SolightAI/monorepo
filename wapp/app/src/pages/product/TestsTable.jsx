@@ -731,7 +731,7 @@ const TestsTable = () => {
               ...test,
               feature_name: featureName
             }));
-            
+
             // Update the tests state
             setTests(prevTests => {
               // Filter out any existing tests for this feature
@@ -739,13 +739,13 @@ const TestsTable = () => {
               // Combine with new tests
               return [...otherTests, ...testsWithFeatureName];
             });
-            
+
             // Apply current filters to the new tests
             applyFilters(testsWithFeatureName, selectedStatus, searchQuery);
             // Fetch latest executions for the new tests
             await fetchLatestExecutions(testsWithFeatureName);
           }
-          
+
           // Then update the UI state
           setIsGeneratingTests(false);
           setGeneratingFeatures([]);
@@ -1893,8 +1893,8 @@ const TestsTable = () => {
                         <td colSpan="7" className="px-6 py-12 text-center text-lg text-gray-500">
                           {tests.length === 0 && selectedFeature === 'all' ? (
                             <div className="flex flex-col items-center">
-                              <p>No features or tests found for this product.</p>
-                              <p className="text-sm mt-2">Start by adding a Feature using the dropdown menu, then generate or add tests.</p>
+                              <p>No tests found for this product or feature.</p>
+                              <p className="text-sm mt-2">Start by adding adding a Feature using the dropdown menu or a test using the corresponding button.</p>
                           </div>
                           ) : tests.length === 0 && selectedFeature !== 'all' ? (
                               <div className="flex flex-col items-center">
