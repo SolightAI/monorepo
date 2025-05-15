@@ -88,14 +88,17 @@ export const triggerTestGeneration = async (acceptanceCriteriaId) => {
 /**
  * Trigger test generation for a feature
  * @param {string} featureId - The UUID of the feature
+ * @param {Array<string>} categories - Array of test categories to generate
  * @returns {Promise<string>} Promise with the task ID (UUID)
  */
-export const triggerFeatureTestGeneration = async (featureId) => {
+export const triggerFeatureTestGeneration = async (featureId, categories) => {
   try {
     const response = await axios.post(
       `${API_URL}/tests/generate?feature_id=${featureId}`,
-      {},
-      { withCredentials: true }
+      categories || null,
+      {
+        withCredentials: true
+      }
     );
     return response.data.task_id;
   } catch (error) {

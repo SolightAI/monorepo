@@ -53,7 +53,7 @@ export const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, o
  * Handles the logic for triggering and monitoring feature test generation.
  * @param {string} featureId - The ID of the feature to generate tests for.
  * @param {Array} secrets - Array of test credentials. Should not be empty.
- * @param {Function} onStart - Callback function when generation starts (receives featureId).
+ * @param {Array<string>} categories - Array of test categories to generate
  * @param {Function} onStatusUpdate - Callback function for status updates (receives status message).
  * @param {Function} onSuccess - Callback function on successful completion (receives success message).
  * @param {Function} onError - Callback function on error (receives error message).
@@ -63,7 +63,7 @@ export const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, o
 export const handleFeatureTestGeneration = async (
     featureId,
     secrets,
-    onStart,
+    categories,
     onStatusUpdate,
     onSuccess,
     onError,
@@ -90,13 +90,10 @@ export const handleFeatureTestGeneration = async (
     let pollingIntervalId = null;
 
     try {
-        onStart(null); // Indicate start, featureId will follow
-        onStatusUpdate(`Starting test generation. Status: ${formatStatus(TEST_STATUS.PENDING)}`);
+        onStatusUpdate(`Starting test generation for "${featureName || featureId}"...`);
 
-        // Trigger test generation for the feature
-        await triggerFeatureTestGeneration(featureId);
-
-        onStart(featureId); // Update with the feature ID
+        // Trigger test generation for the feature with categories
+        await triggerFeatureTestGeneration(featureId, categories);
 
         // Start polling using the dedicated function
         pollingIntervalId = pollTestGenerationStatus(
@@ -121,8 +118,6 @@ export const handleFeatureTestGeneration = async (
         if (pollingIntervalId) clearInterval(pollingIntervalId);
         // Pass the specific error message if available
         onError(`Failed to start test generation: ${err.message || 'Please try again.'}`);
-        // Ensure start state is reset if we error out
-        onStart(null);
     }
 
     // Return a cleanup function

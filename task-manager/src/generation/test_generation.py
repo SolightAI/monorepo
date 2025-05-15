@@ -174,7 +174,7 @@ async def _generate_test_category_for_feature(
                 epic=epic,
                 feature=feature,
                 url=feature.urls[0],
-                category_of_test=category_of_test,
+                category_of_test=category_of_test.value,
                 test_categories_description="- ".join([f"{k}: {v}" for k, v in TEST_CATEGORIES_DESCRIPTION.items()]),
             ),
             llm=LLM_CLIENT,
@@ -254,6 +254,7 @@ async def generate_tests(
     epic: Epic,
     feature: Feature,
     secrets: Optional[list[dict[str, Any]]] = None,
+    categories: Optional[list[str]] = None,
 ) -> dict[str, Any]:
     """
     Endpoint to generate tests for a feature.
@@ -265,6 +266,8 @@ async def generate_tests(
         background_task: Background tasks handler
         secrets: List of secret dictionaries for authentication
                  (expected to be encrypted if provided)
+        categories: List of test categories to generate. If None, defaults to [TestCategory.SMOKE].
+                    If an empty list is provided, no tests will be generated.
 
     Returns:
         Task ID for tracking the test generation process
@@ -288,11 +291,19 @@ async def generate_tests(
                 "error": f"Failed to decrypt secrets: {e}"
             }
             return output
-
-    # List of test categories to generate
-    categories = [
-        TestCategory.SMOKE,
-    ]
+    
+    # Convert string categories to TestCategory enum values
+    categories_to_generate = []
+    if categories is not None:
+        for _category in categories:
+            try:
+                category_enum = TestCategory(_category)
+                categories_to_generate.append(category_enum)
+            except ValueError as e:
+                raise ValueError(f"Invalid test category: {_category}") from e
+    else:
+        #No categories provided, defaulting to SMOKE
+        categories_to_generate = [TestCategory.SMOKE]
 
     auth_session = dict()
     if feature.access_conditions is not None and feature.access_conditions.get("must_be_logged_in") is True:
@@ -303,7 +314,8 @@ async def generate_tests(
             secrets=decrypted_secrets,  # Use decrypted secrets here
         )
 
-    tests = []
+    # Generate tests for each category
+    all_tests = []
     with NamedTemporaryFile(suffix=".json", mode="w+") as cookies_file:
         cookies_file.write(json.dumps(auth_session.get('cookies')))
         cookies_file.flush()
@@ -312,20 +324,23 @@ async def generate_tests(
         local_storage_data = auth_session.get('localStorage')
         local_storage_json = json.dumps(local_storage_data) if local_storage_data is not None else None
 
-        for category in categories:
-            category_tests = await _generate_test_category_for_feature(
-                job_id=ctx['job_id'],
-                product=product,
-                epic=epic,
-                feature=feature,
-                category_of_test=category,
-                cookies_file=cookies_file.name if auth_session.get('cookies') is not None else None,
-                localStorage=local_storage_json,
-            )
-            tests.extend(category_tests)
+        for category in categories_to_generate:
+            try:
+                tests = await _generate_test_category_for_feature(
+                    job_id=ctx['job_id'],
+                    product=product,
+                    epic=epic,
+                    feature=feature,
+                    category_of_test=category,
+                    cookies_file=cookies_file.name if auth_session.get('cookies') is not None else None,
+                    localStorage=local_storage_json,
+                )
+                all_tests.extend(tests)
+            except Exception as e:
+                raise ValueError(f"Error generating {category} tests: {e}") from e
 
     output = {
-        "results": [_test.model_dump() | {'category': _test.category.value} for _test in tests],
+        "results": [_test.model_dump() | {'category': _test.category.value} for _test in all_tests],
         "status": TestStatus.PASSED.value,
     }
 

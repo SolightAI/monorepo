@@ -147,7 +147,6 @@ class Test(models.Model):
     preconditions = fields.TextField()
     steps = fields.TextField()
     assertions = fields.TextField()
-
     category = fields.CharEnumField(TestCategory, max_length=255)
 
     feature = fields.ForeignKeyField("models.Feature", related_name="tests")

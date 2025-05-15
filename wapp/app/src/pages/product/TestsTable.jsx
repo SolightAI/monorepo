@@ -30,6 +30,7 @@ import { formatDate } from '@/utils/dateUtils';
 import { API_URL } from '@/constants/api';
 import { TEST_STATUS } from '@/utils/testExecutionUtils';
 import Tooltip from '@/components/common/Tooltip'; // Import the new component
+import TestCategorySelectionModal from '@/components/modals/TestCategorySelectionModal';
 
 /**
  * Displays all tests in a tabular format with sorting and filtering capabilities
@@ -66,6 +67,7 @@ const TestsTable = () => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // State for confirmation modal
   const [isConfirmFeatureDeleteModalOpen, setIsConfirmFeatureDeleteModalOpen] = useState(false); // State for feature delete confirmation
   const [featureToDeleteId, setFeatureToDeleteId] = useState(null); // ID of feature marked for deletion
+  const [isTestCategoryModalOpen, setIsTestCategoryModalOpen] = useState(false); // State for test category modal
 
   // New state for latest execution data
   const [latestExecutionsMap, setLatestExecutionsMap] = useState({});
@@ -697,7 +699,11 @@ const TestsTable = () => {
   };
 
   // Function to handle test generation for the selected feature
-  const handleGenerateTests = async () => {
+  const handleGenerateTests = () => {
+    setIsTestCategoryModalOpen(true);
+  };
+
+  const handleTestCategoryGenerate = async (selectedCategories) => {
     // Clear previous messages/state
     setError(null);
     setSuccessMessage(null);
@@ -710,11 +716,9 @@ const TestsTable = () => {
 
     // Call the new service function
     pollingIntervalRef.current = await handleFeatureTestGeneration(
-      selectedFeature,
-      secrets,
-      (taskId) => { // onStart
-        // State already set, no need to set again
-      },
+      selectedFeature,  // featureId
+      secrets,         // secrets
+      selectedCategories, // categories
       (statusUpdate) => { // onStatusUpdate
         setSuccessMessage(statusUpdate);
       },
@@ -746,7 +750,7 @@ const TestsTable = () => {
           setIsGeneratingTests(false);
           setGeneratingFeatures([]);
           pollingIntervalRef.current = null;
-          setSuccessMessage(result.message);
+
         } catch (err) {
           console.error('Error updating tests after generation:', err);
           setError('Tests were generated but could not be displayed. Please refresh the page.');
@@ -760,9 +764,8 @@ const TestsTable = () => {
         setGeneratingFeatures([]);
         setError(`Test generation failed. ${errorMsg}`);
         setSuccessMessage(null);
-        pollingIntervalRef.current = null;
       },
-      featureName
+      featureName // Pass the feature name to the service
     );
   };
 
@@ -1135,11 +1138,19 @@ const TestsTable = () => {
         (statusMessage) => {
           setSuccessMessage(statusMessage);
         },
-        async (successMsg) => {
+        async (result) => {
           setIsGeneratingTests(false);
           setGeneratingFeatures([]);
           pollingIntervalRef.current = null;
-          setSuccessMessage(`Test generation completed successfully. ${successMsg}`);
+          setSuccessMessage(result.message || 'Test generation completed successfully.');
+          if (selectedFeature === 'all') {
+            await fetchTestsByProduct(selectedProduct.id);
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
+          } else {
+            await fetchTestsWithCurrentFilters();
+          }
         },
         (errorMsg) => {
           setIsGeneratingTests(false);
@@ -1371,6 +1382,13 @@ const TestsTable = () => {
         confirmButtonVariant="danger"
       />
 
+      {/* Test Category Selection Modal */}
+      <TestCategorySelectionModal
+        isOpen={isTestCategoryModalOpen}
+        onClose={() => setIsTestCategoryModalOpen(false)}
+        onGenerate={handleTestCategoryGenerate}
+      />
+
       {/* Error message display */}
       {error && (
         <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start justify-between">
@@ -1387,9 +1405,8 @@ const TestsTable = () => {
       )}
 
       {/* ✅ NEW — success / completion banner */}
-      {!isGeneratingTests && successMessage &&
-        !successMessage.includes('Test Generation in Progress') &&
-        !successMessage.includes('Status: PENDING') && (
+      {!isGeneratingTests && successMessage && 
+        !successMessage.includes('Test Generation in Progress') && (
         <div className="mb-6 p-4 bg-green-100 border border-green-200 text-green-700 rounded-lg flex items-start justify-between">
           <p className="break-words">{successMessage}</p>
           <button
