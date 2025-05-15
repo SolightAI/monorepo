@@ -2,9 +2,11 @@ import logging
 import re
 
 from browser_use import Agent
-from browser_use.browser.browser import Browser, BrowserConfig
+from browser_use.browser.browser import Browser
 from browser_use.browser.context import BrowserContext, BrowserContextConfig
 from langchain_openai import ChatOpenAI
+
+from src.agents.utils import create_browser
 
 from .dto import ValidateURLResult, ConfidenceLevel
 
@@ -126,19 +128,7 @@ def _configure_browser(headless: bool = True) -> tuple[Browser, BrowserContext]:
     Returns:
         tuple: A tuple containing the browser and context.
     """
-    browser = Browser(
-        config=BrowserConfig(
-            headless=headless,
-            extra_browser_args=[
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-gpu",
-                "--single-process",
-                "--no-zygote",
-                "--disable-setuid-sandbox",
-            ],
-        )
-    )
+    browser = create_browser(headless)
 
     context = BrowserContext(
         browser=browser,
