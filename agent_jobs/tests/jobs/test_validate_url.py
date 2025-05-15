@@ -1,9 +1,7 @@
 import logging
 import pytest
 
-from src.config import env
-from src.validate_url.config import Config
-from src.validate_url.agent import run
+from src.jobs.validate_url.agent import run
 
 logger = logging.getLogger(__name__)
 
@@ -22,14 +20,8 @@ async def test_validate_url_login_farmzz(task_id: str) -> None:
     # First, validate the URL
     base_url = "https://farmzz.com"
 
-    config: Config = {
-        "headless": True,
-        "openai_api_key": env.get_string("OPENAI_API_KEY"),
-        "lambda_webhook_url": "",
-    }
-
     # Run the validation task directly
-    validation_result = await run(config, base_url)
+    validation_result = await run(base_url)
 
     # Debug output to show full validation result
     logger.info(f"[{task_id}] Validation result: {validation_result}")

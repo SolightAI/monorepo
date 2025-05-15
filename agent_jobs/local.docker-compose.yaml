@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
-    command: src.validate_url.handler.lambda_handler
+    command: src.main.lambda_handler
     ports:
       - "8081:8080"
     environment:
