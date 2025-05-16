@@ -47,29 +47,14 @@ Now, run the test.
 logger = getLogger(__name__)
 
 
-def get_parameters_for_general_agent(
+@observe()
+async def general_agent(
     identifier: str,
     task_id: str,
     test: Test,
     secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],
-) -> dict[str, Any]:
-    return {
-        "identifier": identifier,
-        "task_id": task_id,
-        "test": test,
-        "secrets": secrets,
-        "auth_session": auth_session,
-    }
-
-
-@observe()
-async def general_agent(
-    identifier: str | None,
-    task_id: str,
-    test: Test,
-    secrets: list[dict[str, Any]],
-    auth_session: dict[str, dict[str, str]],
+    run_without_cache: bool = False,
 ) -> dict[str, Any]:
     """
     General test runner that should be used for most of the tests.
@@ -109,6 +94,7 @@ async def general_agent(
         sensitive_data=format_secrets(secrets),
         auth_session=auth_session,
         tools=TOOLS,
+        run_without_cache=run_without_cache,
     )
 
     logger.info(f"[{task_id}] General agent finished running test.")

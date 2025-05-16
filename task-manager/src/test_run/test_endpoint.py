@@ -39,7 +39,7 @@ async def run_test(
         "test": test,
         "feature": feature,
         "decrypted_secrets": decrypted_secrets,  # TODO (later): should be based only on the used secrets
-    }).encode()).hexdigest() if not run_without_cache else None
+    }).encode()).hexdigest()
 
     auth_session = dict()
     if test_obj.access_conditions and test_obj.access_conditions.get("must_be_logged_in") is True:
@@ -58,6 +58,7 @@ async def run_test(
         test=test_obj,
         secrets=decrypted_secrets,
         auth_session=auth_session,
+        run_without_cache=run_without_cache,
     )
 
     result["tracing"] = {}  # deactivated for now

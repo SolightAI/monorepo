@@ -178,12 +178,14 @@ def _enable_cached_generation_for_history_rerun(agent: Agent, history: list[Agen
 
     return history
 
+
 @observe()
 async def rerun_history(
     agent: Agent,
     history: AgentHistoryList,
     max_retries: int = 3,
-    skip_failures: bool = True,
+    skip_failures: bool = False,
+    fallback_to_llm: bool = True,
     delay_between_actions: float = 2.0,
 ) -> AgentHistoryList:
     """
@@ -193,6 +195,7 @@ async def rerun_history(
             history: The history to replay
             max_retries: Maximum number of retries per action
             skip_failures: Whether to skip failed actions or stop execution
+            fallback_to_llm: Whether to fallback to LLM if the action fails
             delay_between_actions: Delay between actions in seconds
 
     Returns:
@@ -225,10 +228,19 @@ async def rerun_history(
             continue
 
         retry_count = 0
-        while retry_count < max_retries:
+        skip_action = False
+        while skip_action is False and retry_count < max_retries:
             try:
                 # Capture browser state before executing the actions for this history_item
                 browser_state_before_action = await agent.browser_context.get_state(cache_clickable_elements_hashes=True)
+
+                # check if next actions evaluated current action as failed. If so, skip current action
+                if i < len(history.history) - 1:
+                    model_output = history.history[i + 1].model_output
+                    if model_output is not None and model_output.current_state.evaluation_previous_goal.startswith("Failed - "):
+                        logger.info("Next action evaluated current action as failed, skipping current action")
+                        skip_action = True
+                        continue
 
                 step_action_results = await agent._execute_history_step(history_item, delay_between_actions)
 
@@ -287,17 +299,26 @@ async def rerun_history(
 
             except Exception as e:
                 retry_count += 1
-                if retry_count == max_retries:
-                    error_msg = f'Step {i + 1} failed after {max_retries} attempts: {str(e)}'
-                    logger.error(error_msg)
-                    if not skip_failures:
-                        results.append(ActionResult(error=error_msg))
-                        raise RuntimeError(error_msg)  # TODO: (later) instead of resuming test from scrach w/ Agent, we should resume from the last successful step
-                else:
+
+                if retry_count < max_retries:
                     logger.warning(f'Step {i + 1} failed (attempt {retry_count}/{max_retries}), retrying...')
                     await asyncio.sleep(delay_between_actions)
+                    continue
 
-    # --- START MODIFICATION: Robustly set last_result before final agent.step ---
+                error_msg = f'Step {i + 1} failed after {max_retries} attempts: {str(e)}'
+                logger.error(error_msg)
+
+                if fallback_to_llm:
+                    logger.info("Falling back to LLM.")
+                    await agent.step(AgentStepInfo(step_number=len(history.history), max_steps=len(history.history) + 10))  # '+10' to prevent llm from using the 'done' action
+                    # NOTE: this does not check if the result agent.step is successful. We should stop the caching if it failed.
+                    continue
+
+                if not skip_failures:
+                    results.append(ActionResult(error=error_msg))
+                    raise RuntimeError(error_msg)  # TODO: (later) instead of resuming test from scrach w/ Agent, we should resume from the last successful step
+
+    # set last_result before final agent.step
     if agent.state.history.history:  # Check if there's anything to pop
         # Assuming the last item corresponds to the original "done" action's replay
         agent.state.history.history.pop()
@@ -310,7 +331,6 @@ async def rerun_history(
     else:
         # Agent's history was already empty (e.g., all steps failed/skipped).
         agent.state.last_result = []
-    # --- END MODIFICATION ---
 
     await agent.step(AgentStepInfo(step_number=len(history.history), max_steps=len(history.history)))
 

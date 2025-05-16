@@ -711,7 +711,7 @@ async def _generate_and_upload_evidences(task_id: str, history: AgentHistoryList
 
 @observe()
 async def run_agent(
-    identifier: str | None,
+    identifier: str,
     task_id: str,
     url: str,
     prompt: str,
@@ -719,6 +719,7 @@ async def run_agent(
     auth_session: dict[str, dict[str, str]] | None = None,
     tools: list[Callable] = TOOLS,
     additional_task: str | None = None,
+    run_without_cache: bool = False,
     **kwargs: Any,
 ) -> tuple[dict[str, dict[str, str]], AgentHistoryList, list[str], bool]:
     """
@@ -807,7 +808,7 @@ async def run_agent(
         run_agent = True
 
         try:
-            if identifier and exists_in_s3(f"{identifier}/history.json"):
+            if not run_without_cache and exists_in_s3(f"{identifier}/history.json"):
 
                 logger.info(f"[{task_id}] Running agent from cached history")
 
@@ -855,17 +856,16 @@ async def run_agent(
 
             logger.info(f"[{task_id}] Agent finished running ({identifier=})")
 
-            if identifier:
-                with NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as history_file:
+            with NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as history_file:
 
-                    logger.info(f"[{task_id}] Saving history to {f'{identifier}/history.json'}")
+                logger.info(f"[{task_id}] Saving history to {f'{identifier}/history.json'}")
 
-                    history.save_to_file(history_file.name)
+                history.save_to_file(history_file.name)
 
-                    upload_file_to_s3(
-                        file_path=history_file.name,
-                        object_name=f"{identifier}/history.json",
-                    )
+                upload_file_to_s3(
+                    file_path=history_file.name,
+                    object_name=f"{identifier}/history.json",
+                )
 
         logger.info(f"[{task_id}] Finished running agent")
 
