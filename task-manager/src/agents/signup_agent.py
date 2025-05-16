@@ -13,6 +13,7 @@ from agents._base_agent import (
     format_secrets,
     SHARED_AGENT_LIMITATIONS,
 )
+from lmnr import observe
 
 
 AGENT_LIMITATIONS = [
@@ -73,6 +74,7 @@ def get_parameters_for_signup_agent(
     }
 
 
+@observe()
 async def signup_agent(
     identifier: str | None,
     task_id: str,

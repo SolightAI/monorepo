@@ -5,6 +5,7 @@ import types
 import enum
 import traceback
 
+from lmnr import observe
 from typing import Any, Callable
 from utils.dto import Test
 from langchain_openai import ChatOpenAI
@@ -234,6 +235,7 @@ async def select_agent_to_use(test: Test) -> Callable:
     raise ValueError(f"Agent {agent_name} not found")
 
 
+@observe()
 async def select_and_call_agent(
     identifier: str | None,
     task_id: str,

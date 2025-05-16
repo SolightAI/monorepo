@@ -14,6 +14,7 @@ from agents._base_agent import (
     SHARED_AGENT_LIMITATIONS,
 )
 from fixtures.tools import TOOLS
+from lmnr import observe
 
 
 PROMPT = """
@@ -62,6 +63,7 @@ def get_parameters_for_general_agent(
     }
 
 
+@observe()
 async def general_agent(
     identifier: str | None,
     task_id: str,

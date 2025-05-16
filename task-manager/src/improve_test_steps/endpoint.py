@@ -10,6 +10,7 @@ from langchain_openai import ChatOpenAI
 from agents._base_agent import run_agent, format_secrets
 from fixtures.tools import TOOLS, get_prompt_list_of_tools
 from fixtures.authentification.get_auth_session import get_auth_session
+from lmnr import Laminar, observe
 
 
 logger = getLogger(__name__)
@@ -72,6 +73,7 @@ LLM_FORMAT = ChatOpenAI(
 )
 
 
+@observe()
 async def improve_test_steps(
     ctx: dict[Any, Any],
     product: dict[str, Any],  # used to get the login url
@@ -83,6 +85,9 @@ async def improve_test_steps(
     product_obj: Product = Product(**product)
     test_obj: Test = Test(**test)
     decrypted_secrets: list[dict[str, Any]] = list()
+
+    Laminar.set_session(session_id=ctx['job_id'])
+    Laminar.set_metadata({"task_id": ctx['job_id'], "job": improve_test_steps.__name__})
 
     if secrets:
         decrypted_secrets = crypto_service.decrypt_secrets(secrets)

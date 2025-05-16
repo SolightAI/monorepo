@@ -29,6 +29,7 @@ async def run_test(
     decrypted_secrets: list[dict[str, Any]] = list()
 
     Laminar.set_session(session_id=ctx['job_id'])
+    Laminar.set_metadata({"task_id": ctx['job_id'], "job": run_test.__name__})
 
     if secrets:
         decrypted_secrets = crypto_service.decrypt_secrets(secrets)

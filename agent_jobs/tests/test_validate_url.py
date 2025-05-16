@@ -40,8 +40,8 @@ async def test_validate_url_login_farmzz(task_id: str) -> None:
     ), f"Expected valid=True, got {validation_result.valid}"
 
     assert (
-        validation_result.login_url == "https://farmzz.com/#/auth/login"
-    ), f"Expected login_url='https://farmzz.com/#/auth/login', got {validation_result.login_url}"
+        validation_result.login_url == "https://farmzz.com/fr#/auth/login"
+    ), f"Expected login_url='https://farmzz.com/fr#/auth/login', got {validation_result.login_url}"
 
     assert validation_result.confidence in [
         "high",
