@@ -140,7 +140,7 @@ def replace_invoke_by_ainvoke_in_extract_content() -> None:
 
 
 if __name__ == "__main__":
-    # remove_debug_port()  # seems to be fixed
+    remove_debug_port()
     limit_max_scroll()
     prevent_screenshot_to_modify_dom()
     replace_invoke_by_ainvoke_in_get_next_action()
