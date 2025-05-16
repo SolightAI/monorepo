@@ -2,6 +2,7 @@ import os
 import re
 import json
 
+from lmnr import Laminar, observe
 from typing import Optional, Any
 from logging import getLogger
 from tempfile import NamedTemporaryFile
@@ -116,6 +117,7 @@ def _parse_test_cases(test_case_text: str) -> list[dict[str, str]]:
     return test_cases
 
 
+@observe()
 async def _generate_test_category_for_feature(
     job_id: str,
     product: Product,
@@ -248,6 +250,7 @@ async def _generate_test_category_for_feature(
     return tests
 
 
+@observe()
 async def generate_tests(
     ctx: dict[Any, Any],
     product: Product,
@@ -273,6 +276,9 @@ async def generate_tests(
         Task ID for tracking the test generation process
     """
 
+    Laminar.set_session(session_id=ctx['job_id'])
+    Laminar.set_metadata({"task_id": ctx['job_id'], "job": generate_tests.__name__})
+
     product = Product(**product)
     epic = Epic(**epic)
     feature = Feature(**feature)
@@ -291,7 +297,7 @@ async def generate_tests(
                 "error": f"Failed to decrypt secrets: {e}"
             }
             return output
-    
+
     # Convert string categories to TestCategory enum values
     categories_to_generate = []
     if categories is not None:
@@ -302,7 +308,7 @@ async def generate_tests(
             except ValueError as e:
                 raise ValueError(f"Invalid test category: {_category}") from e
     else:
-        #No categories provided, defaulting to SMOKE
+        # No categories provided, defaulting to SMOKE
         categories_to_generate = [TestCategory.SMOKE]
 
     auth_session = dict()

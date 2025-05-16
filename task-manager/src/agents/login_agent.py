@@ -13,6 +13,7 @@ from agents._base_agent import (
     SHARED_AGENT_LIMITATIONS,
 )
 from fixtures.tools import TOOLS, get_prompt_list_of_tools
+from lmnr import observe
 
 
 AGENT_LIMITATIONS = [
@@ -69,6 +70,7 @@ def get_parameters_for_login_agent(
     }
 
 
+@observe()
 async def login_agent(
     identifier: str | None,
     task_id: str,

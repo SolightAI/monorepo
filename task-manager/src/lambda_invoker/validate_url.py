@@ -9,6 +9,7 @@ import boto3
 from config import env
 from utils.session_manager import get_redis
 from lambda_invoker import lambda_waiter
+from lmnr import Laminar, observe
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +40,12 @@ class Result(TypedDict):
 
 def _get_config() -> Config:
     dev_mode = env.get_bool("DEV_MODE", False)
-    
+
     # If dev, we're triggering the lambda through a local HTTP endpoint
     test_aws_lambda_validate_url_endpoint = env.get_string(
         "TEST_AWS_LAMBDA_VALIDATE_URL_ENDPOINT", None, dev_mode
     )
-    
+
     # If production, we're triggering the lambda through SQS
     prod_aws_lambda_queue_trigger_access_key = env.get_string(
         "PROD_AWS_LAMBDA_QUEUE_TRIGGER_ACCESS_KEY", None, not dev_mode
@@ -65,6 +66,7 @@ def _get_config() -> Config:
     }
 
 
+@observe()
 async def validate_url(
     ctx: dict[Any, Any],
     url: str,
@@ -81,6 +83,10 @@ async def validate_url(
     Returns:
         Dictionary with validation results
     """
+
+    Laminar.set_session(session_id=ctx['job_id'])
+    Laminar.set_metadata({"task_id": ctx['job_id'], "job": validate_url.__name__})
+
     # TODO(TomChv): This should be refactored to a global config loaded
     # when the binary starts instead of fetching env vars on every call.
     config = _get_config()

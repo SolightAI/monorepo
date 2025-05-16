@@ -853,7 +853,7 @@ async def run_agent(
                     on_step_start=on_step_start_hook,
                 )
 
-            logger.info(f"[{task_id}] Agent finished running ({identifier})")
+            logger.info(f"[{task_id}] Agent finished running ({identifier=})")
 
             if identifier:
                 with NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as history_file:
