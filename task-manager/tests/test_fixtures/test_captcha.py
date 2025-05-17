@@ -31,6 +31,7 @@ async def test_text_captcha_login_agent(task_id: str) -> None:
         test=test,
         secrets=[],
         auth_session={},
+        run_without_cache=True,
     )
 
     assert result["status"] == TestStatus.PASSED.value
@@ -61,6 +62,7 @@ async def test_image_captcha_login_agent(task_id: str) -> None:
         test=test,
         secrets=[],
         auth_session={},
+        run_without_cache=True,
     )
 
     assert result["status"] == TestStatus.AGENT_LIMITATION.value

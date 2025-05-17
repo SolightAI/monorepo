@@ -47,6 +47,7 @@ class TestTickPick():
             test=test,
             secrets=[],
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == expected_status.value, f"Expected {expected_status.value} but got {result['status']}"
