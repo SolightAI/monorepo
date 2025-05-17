@@ -19,6 +19,7 @@ class TestTickPick():
 
     url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/"
 
+    @pytest.mark.asyncio
     async def test_signup_wo_email_verification(self, task_id: str) -> None:
 
         test = Test(
@@ -47,6 +48,7 @@ class TestTickPick():
 
         assert is_able is True, ERROR_MESSAGE.format(expected_result=True, result=is_able, explanation=explanation)
 
+    @pytest.mark.asyncio
     async def test_signup_w_email_verification(self, task_id: str) -> None:
 
         test = Test(
@@ -76,6 +78,7 @@ class TestTickPick():
 
         assert is_able is False, ERROR_MESSAGE.format(expected_result=False, result=is_able, explanation=explanation)
 
+    @pytest.mark.asyncio
     async def test_validate_email_field_input(self, task_id: str) -> None:
 
         test = Test(
@@ -102,6 +105,7 @@ class TestTickPick():
 
         assert is_able is True, ERROR_MESSAGE.format(expected_result=True, result=is_able, explanation=explanation)
 
+    @pytest.mark.asyncio
     @pytest.mark.parametrize("repeat", [i for i in range(3)])  # reduce chances of flaky test
     async def test_login_with_google(self, task_id: str, repeat: int) -> None:
 
@@ -126,6 +130,7 @@ class TestTickPick():
 
         assert is_able is True, ERROR_MESSAGE.format(expected_result=True, result=is_able, explanation=explanation)
 
+    @pytest.mark.asyncio
     @pytest.mark.parametrize("repeat", [i for i in range(3)])  # reduce chances of flaky test
     async def test_login_with_google_no_secrets(self, task_id: str, repeat: int) -> None:
 
@@ -162,6 +167,7 @@ class TestSolight():
 
     url = "https://app.solight.ai/"
 
+    @pytest.mark.asyncio
     @pytest.mark.parametrize("repeat", [i for i in range(3)])  # reduce chances of flaky test
     async def test_login_with_google(self, task_id: str, repeat: int) -> None:
 
@@ -194,6 +200,7 @@ class TestSolight():
 
         assert is_able is True, ERROR_MESSAGE.format(expected_result=True, result=is_able, explanation=explanation)
 
+    @pytest.mark.asyncio
     @pytest.mark.parametrize("repeat", [i for i in range(3)])  # reduce chances of flaky test
     async def test_login_with_google_no_secrets(self, task_id: str, repeat: int) -> None:
 
@@ -225,6 +232,7 @@ class TestSolight():
 
         assert is_able is False, ERROR_MESSAGE.format(expected_result=False, result=is_able, explanation=explanation)
 
+    @pytest.mark.asyncio
     @pytest.mark.parametrize("social_media", ["GitHub", "Facebook", "Twitter", "Microsoft"])
     async def test_login_with_invalid_social_media(self, task_id: str, social_media: str) -> None:
 

@@ -30,6 +30,7 @@ class TestTickPick():
             test=test,
             secrets=[],
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == TestStatus.PASSED.value
@@ -55,6 +56,7 @@ class TestTickPick():
             test=test,
             secrets=[],
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == TestStatus.AGENT_LIMITATION.value
@@ -80,6 +82,7 @@ class TestTickPick():
             test=test,
             secrets=[],
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == TestStatus.AGENT_LIMITATION.value

@@ -10,9 +10,9 @@ from typing import Any, Callable
 from utils.dto import Test
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
-from agents.general_agent import general_agent, get_parameters_for_general_agent
-from agents.login_agent import login_agent, get_parameters_for_login_agent
-from agents.signup_agent import signup_agent, get_parameters_for_signup_agent
+from agents.general_agent import general_agent
+from agents.login_agent import login_agent
+from agents.signup_agent import signup_agent
 from inspect import getfullargspec, isclass
 from logging import getLogger
 from utils.constants import SEED
@@ -23,10 +23,10 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 logger = getLogger(__name__)
 
 
-AGENTS: dict[Callable, Callable] = {
-    general_agent: get_parameters_for_general_agent,
-    login_agent: get_parameters_for_login_agent,
-    signup_agent: get_parameters_for_signup_agent,
+AGENTS: set[Callable] = {
+    general_agent,
+    login_agent,
+    signup_agent,
 }
 
 
@@ -219,7 +219,7 @@ async def select_agent_to_use(test: Test) -> Callable:
         content=PROMPT_AGENT_SELECTOR.format(
             test=get_test_prompt_description(test),
             agents="\n---\n".join([
-                "<agent>\n" + get_agent_prompt_description(agent) + "\n</agent>" for agent in AGENTS.keys()
+                "<agent>\n" + get_agent_prompt_description(agent) + "\n</agent>" for agent in AGENTS
             ])
         )
     )
@@ -228,7 +228,7 @@ async def select_agent_to_use(test: Test) -> Callable:
 
     agent_name = parse_agent_selection(response)
 
-    for _agent in AGENTS.keys():
+    for _agent in AGENTS:
         if _agent.__name__ == agent_name:
             return _agent
 
@@ -237,11 +237,12 @@ async def select_agent_to_use(test: Test) -> Callable:
 
 @observe()
 async def select_and_call_agent(
-    identifier: str | None,
+    identifier: str,
     task_id: str,
     test: Test,
     secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],
+    run_without_cache: bool = False,
 ) -> dict:
 
     logger.info(f"[{task_id}] Selecting agent for test {test.name}")
@@ -263,7 +264,7 @@ async def select_and_call_agent(
             with open(os.path.join(temp_dir, "selected_agent.txt"), "r") as f:
                 agent_name = f.read().strip()
 
-            for _agent in AGENTS.keys():
+            for _agent in AGENTS:
                 if _agent.__name__ == agent_name:
                     agent = _agent
                     break
@@ -288,4 +289,4 @@ async def select_and_call_agent(
 
             upload_file_to_s3(selected_agent_file.name, cache_key)
 
-    return await agent(**AGENTS[agent](identifier, task_id, test, secrets, auth_session))
+    return await agent(identifier, task_id, test, secrets, auth_session, run_without_cache)

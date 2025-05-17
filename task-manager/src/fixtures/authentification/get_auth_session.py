@@ -23,7 +23,7 @@ def get_user_id(secrets: list[dict[str, Any]]) -> str | None:
 
 
 async def get_auth_session(
-    identifier: str | None,
+    identifier: str,
     task_id: str,
     url: str,
     secrets: list[dict[str, Any]],
@@ -51,7 +51,7 @@ async def get_auth_session(
         else:
             logger.info(f"[{task_id}] No cached session found for {url} (user: {user_id}), generating a new one")
 
-    session_data, history, _, __ = await login_to_website(identifier, task_id, url, LoginMethod.ANY, secrets)
+    session_data, history, _, __ = await login_to_website(identifier, task_id, url, LoginMethod.ANY, secrets, run_without_cache=not reuse_session)
 
     if session_data is None:
         raise RuntimeError(f"Login failed for {url}: {history.final_result()}")
