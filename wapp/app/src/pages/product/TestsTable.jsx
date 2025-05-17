@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Filter,
   Search,
@@ -11,7 +11,6 @@ import {
   Plus,
   Edit,
   Trash2,
-  // ChevronRight, // Not needed here as ChevronDown will be used and rotated
 } from 'lucide-react';
 import axios from 'axios';
 import { getTestsByFeature, getTestsByEpic, getTestsByProduct, deleteTest, getTestGenerationStatus } from '@/services/testService';
@@ -30,7 +29,7 @@ import { getStatusInfo, formatStatus, getStatusDescription } from '@/utils/testE
 import { formatDate } from '@/utils/dateUtils';
 import { API_URL } from '@/constants/api';
 import { TEST_STATUS } from '@/utils/testExecutionUtils';
-import Tooltip from '@/components/common/Tooltip'; // Import the new component
+import Tooltip from '@/components/common/Tooltip';
 import TestCategorySelectionModal from '@/components/modals/TestCategorySelectionModal';
 
 /**
@@ -872,7 +871,6 @@ const TestsTable = () => {
       if (featureDropdownRef.current && !featureDropdownRef.current.contains(event.target)) {
         setIsFeatureDropdownOpen(false);
       }
-      // Add click outside handler for the new Add Test dropdown
       if (addTestDropdownRef.current && !addTestDropdownRef.current.contains(event.target)) {
         setIsAddTestDropdownOpen(false);
       }
@@ -1477,7 +1475,7 @@ const TestsTable = () => {
 
           {/* All filters in one row */}
           <div className="flex flex-col sm:flex-row gap-3 mb-6 items-center">
-            <div className="flex flex-col sm:flex-row gap-3 items-center flex-grow w-full"> {/* ADDED this wrapper */}
+            <div className="flex flex-col sm:flex-row gap-3 items-center flex-grow w-full">
               {/* Search input */}
               <div className="relative w-full">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -1523,7 +1521,6 @@ const TestsTable = () => {
               </div>
 
               {/* Feature filter - Custom dropdown */}
-              {/* The div className="flex flex-col md:flex-row w-full gap-2" that previously wrapped Feature and AddTest is removed. */}
               <div className="relative w-full" ref={featureDropdownRef}>
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FileText size={18} className="text-gray-400" />
@@ -1633,10 +1630,9 @@ const TestsTable = () => {
               </div>
             )}
           </div> {/* End of Feature filter div */}
-            </div> {/* ADDED: closes the new flex-grow wrapper */}
+          </div>
 
-            {/* Action buttons group - now a dropdown */}
-            {/* This div is now a direct child of the main filter items container */}
+            {/* Action buttons group dropdown */}
             <div className="relative w-full sm:w-auto" ref={addTestDropdownRef}>
               <Tooltip
                 content={selectedFeature === 'all' ? "Select a feature first to add tests" : null}
@@ -1668,11 +1664,10 @@ const TestsTable = () => {
                       handleGenerateTests();
                       setIsAddTestDropdownOpen(false);
                     }}
-                    disabled={isGeneratingTests || !secrets || secrets.length === 0 /* || selectedFeature === 'all' - This check is now handled by the parent dropdown state */}
+                    disabled={isGeneratingTests || !secrets || secrets.length === 0}
                     className="w-full flex items-center px-4 py-2.5 text-sm text-purple-700 hover:bg-purple-50 transition duration-150 disabled:text-gray-400 disabled:hover:bg-white disabled:cursor-not-allowed"
                     title={
                       !secrets || secrets.length === 0 ? "Test credentials required to generate tests" :
-                      // selectedFeature === 'all' ? "Please select a specific feature first" : // Already handled
                       isGeneratingTests ? "Generation in progress..." :
                       "Generate tests for selected feature using AI"
                     }
@@ -1695,14 +1690,6 @@ const TestsTable = () => {
                   {/* Add Test to Feature button (Dropdown Item 2) */}
                   <button
                     onClick={() => { // This onClick is for the item action
-                      // if (selectedFeature === 'all') { // Already handled by parent dropdown state
-                      //   setError(
-                      //     <span>
-                      //       Please select a specific feature first
-                      //     </span>
-                      //   );
-                      //   return;
-                      // }
                       setIsAddTestModalOpen(true);
                       setIsAddTestDropdownOpen(false);
                     }}
@@ -1717,7 +1704,6 @@ const TestsTable = () => {
                 </div>
               )}
             </div> {/* End of Add Test button div */}
-            {/* The closing </div> of the removed "flex flex-col md:flex-row w-full gap-2" (previously around line 1660) is implicitly removed. */}
           </div>
 
           <div className="bg-white rounded-lg shadow overflow-hidden">
