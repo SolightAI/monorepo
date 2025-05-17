@@ -205,6 +205,8 @@ async def rerun_history(
             List of action results
     """
 
+    task_id = agent._task_id if hasattr(agent, "_task_id") else None
+
     history.history = _enable_cached_generation_for_history_rerun(agent, history.history)
     agent.state.history.history.clear()  # Clear agent's internal history
 
@@ -219,14 +221,14 @@ async def rerun_history(
     for i, history_item in enumerate(history.history):
 
         goal = history_item.model_output.current_state.next_goal if history_item.model_output else ''
-        logger.info(f'Replaying step {i + 1}/{len(history.history)}: goal: {goal}')
+        logger.info(f'[{task_id}] Replaying step {i + 1}/{len(history.history)}: goal: {goal}')
 
         if (
             not history_item.model_output
             or not history_item.model_output.action
             or history_item.model_output.action == [None]
         ):
-            logger.warning(f'Step {i + 1}: No action to replay, skipping')
+            logger.warning(f'[{task_id}] Step {i + 1}: No action to replay, skipping')
             results.append(ActionResult(error='No action to replay'))
             continue
 
@@ -241,7 +243,7 @@ async def rerun_history(
                 if i < len(history.history) - 1:
                     model_output = history.history[i + 1].model_output
                     if model_output is not None and model_output.current_state.evaluation_previous_goal.startswith("Failed - "):
-                        logger.info("Next action evaluated current action as failed, skipping current action")
+                        logger.info(f"[{task_id}] Next action evaluated current action as failed, skipping current action")
                         skip_action = True
                         continue
 
@@ -304,7 +306,7 @@ async def rerun_history(
                 retry_count += 1
 
                 if retry_count < max_retries:
-                    logger.warning(f'Step {i + 1} failed (attempt {retry_count}/{max_retries}), retrying...')
+                    logger.warning(f'[{task_id}] Step {i + 1} failed (attempt {retry_count}/{max_retries}), retrying...')
                     await asyncio.sleep(delay_between_actions)
                     continue
 
@@ -313,11 +315,11 @@ async def rerun_history(
                 if max_failures > 0 and number_of_failures >= max_failures:
                     raise RuntimeError(f"Reached the maximum number of failures: ({number_of_failures}/{max_failures})")
 
-                error_msg = f'Step {i + 1} failed after {max_retries} attempts: {str(e)}'
+                error_msg = f'[{task_id}] Step {i + 1} failed after {max_retries} attempts: {str(e)}'
                 logger.error(error_msg)
 
                 if fallback_to_llm:
-                    logger.info("Falling back to LLM.")
+                    logger.info(f"[{task_id}] Falling back to LLM.")
                     await agent.step(AgentStepInfo(step_number=len(history.history), max_steps=len(history.history) + 10))  # '+10' to prevent llm from using the 'done' action
 
                     if agent.state.last_result and agent.state.last_result[0].error:
