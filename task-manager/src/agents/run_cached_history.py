@@ -11,6 +11,7 @@ from browser_use import Agent, AgentHistoryList, ActionResult
 from browser_use.agent.views import AgentStepInfo
 from browser_use.agent.views import BrowserStateHistory
 from langchain_core.messages import HumanMessage
+from browser_use.agent.prompts import AgentMessagePrompt
 
 
 logger = getLogger(__name__)
@@ -186,6 +187,7 @@ async def rerun_history(
     max_retries: int = 3,
     skip_failures: bool = False,
     fallback_to_llm: bool = True,
+    max_failures: int = 5,
     delay_between_actions: float = 2.0,
 ) -> AgentHistoryList:
     """
@@ -196,13 +198,12 @@ async def rerun_history(
             max_retries: Maximum number of retries per action
             skip_failures: Whether to skip failed actions or stop execution
             fallback_to_llm: Whether to fallback to LLM if the action fails
+            max_failures: Maximum number of actions allowed to fallback to llm before stopping execution
             delay_between_actions: Delay between actions in seconds
 
     Returns:
             List of action results
     """
-
-    # NOTE: This is still not perfect, cache rate is ~50%
 
     history.history = _enable_cached_generation_for_history_rerun(agent, history.history)
     agent.state.history.history.clear()  # Clear agent's internal history
@@ -212,9 +213,11 @@ async def rerun_history(
         result = await agent.multi_act(agent.initial_actions)
         agent.state.last_result = result
 
+    number_of_failures = 0
     results: list[ActionResult] = []
 
     for i, history_item in enumerate(history.history):
+
         goal = history_item.model_output.current_state.next_goal if history_item.model_output else ''
         logger.info(f'Replaying step {i + 1}/{len(history.history)}: goal: {goal}')
 
@@ -229,7 +232,7 @@ async def rerun_history(
 
         retry_count = 0
         skip_action = False
-        while skip_action is False and retry_count < max_retries:
+        while skip_action is False and retry_count < max_retries and number_of_failures < max_failures:
             try:
                 # Capture browser state before executing the actions for this history_item
                 browser_state_before_action = await agent.browser_context.get_state(cache_clickable_elements_hashes=True)
@@ -305,18 +308,43 @@ async def rerun_history(
                     await asyncio.sleep(delay_between_actions)
                     continue
 
+                number_of_failures += 1
+
+                if max_failures > 0 and number_of_failures >= max_failures:
+                    raise RuntimeError(f"Reached the maximum number of failures: ({number_of_failures}/{max_failures})")
+
                 error_msg = f'Step {i + 1} failed after {max_retries} attempts: {str(e)}'
                 logger.error(error_msg)
 
                 if fallback_to_llm:
                     logger.info("Falling back to LLM.")
                     await agent.step(AgentStepInfo(step_number=len(history.history), max_steps=len(history.history) + 10))  # '+10' to prevent llm from using the 'done' action
-                    # NOTE: this does not check if the result agent.step is successful. We should stop the caching if it failed.
+
+                    if agent.state.last_result and agent.state.last_result[0].error:
+                        raise RuntimeError(f"Step {i + 1} failed after {max_retries} attempts and falling back on LLM: {str(e)}")
+
+                    if agent.state.last_result and agent.state.last_result[0].success is False:
+                        raise RuntimeError(f"Step {i + 1} failed after {max_retries} attempts and falling back on LLM: {str(e)=} {agent.state.last_result=}")
+
+                    state = await agent.browser_context.get_state(cache_clickable_elements_hashes=True)
+                    state_message = AgentMessagePrompt(
+                        state,
+                        result,
+                        include_attributes=agent.settings.include_attributes,
+                        step_info=AgentStepInfo(step_number=len(history.history), max_steps=len(history.history) + 10),
+                    ).get_user_message(False)
+
+                    input_messages = agent._message_manager.get_messages()
+                    model_output = await agent.get_next_action(input_messages + [state_message])
+
+                    # doing another step just to get the evaluation_previous_goal (we don't use agent.step to not mess the history)
+                    if model_output and model_output.current_state.evaluation_previous_goal.startswith("Failed - "):
+                        raise RuntimeError(f"Step {i + 1} failed after {max_retries} attempts and falling back on LLM: {str(e)=}")
                     continue
 
                 if not skip_failures:
                     results.append(ActionResult(error=error_msg))
-                    raise RuntimeError(error_msg)  # TODO: (later) instead of resuming test from scrach w/ Agent, we should resume from the last successful step
+                    raise RuntimeError(error_msg)
 
     # set last_result before final agent.step
     if agent.state.history.history:  # Check if there's anything to pop

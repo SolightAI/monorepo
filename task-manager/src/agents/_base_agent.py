@@ -823,15 +823,15 @@ async def run_agent(
                     history = await rerun_history(
                         agent,
                         AgentHistoryList.load_from_file(history_file.name, agent.AgentOutput),
-                        max_retries=5,  # cost nothing to retry, cost a lot to fail
+                        max_retries=3,
                         skip_failures=False,
                         delay_between_actions=2,  # leaves time for the page to load (otherwise leads to errors)
                     )
 
                     run_agent = False
 
-        except Exception:
-            logger.info(f"[{task_id}] Couldn't run cached history, running agent again")
+        except Exception as e:
+            logger.info(f"[{task_id}] Couldn't run cached history, running agent again. {e=}")
 
         if run_agent:
 
