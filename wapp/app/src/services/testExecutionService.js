@@ -25,9 +25,9 @@ export const getTestExecutions = async (testId) => {
  * @param {string} executionId - The UUID of the test execution
  * @returns {Promise<Object>} Promise with the test execution data
  */
-export const getTestExecution = async (executionId) => {
+export const getTestExecution = async (executionId, demo = false) => {
   try {
-    const response = await axios.get(`${API_URL}/test-executions/${executionId}`, {
+    const response = await axios.get(`${API_URL}${demo ? '/demo' : ''}/test-executions/${executionId}`, {
       withCredentials: true
     });
     return response.data;
@@ -50,9 +50,9 @@ export const getTestExecution = async (executionId) => {
  * @param {Array} [executionData.evidence] - Optional list of evidence URLs
  * @returns {Promise<Object>} Promise with the created test execution data
  */
-export const createTestExecution = async (executionData) => {
+export const createTestExecution = async (executionData, demo = false) => {
   try {
-    const response = await axios.post(`${API_URL}/test-executions/`, executionData, {
+    const response = await axios.post(`${API_URL}${demo ? '/demo' : ''}/test-executions/`, executionData, {
       withCredentials: true
     });
     return response.data;

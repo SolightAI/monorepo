@@ -10,10 +10,10 @@ import { TEST_STATUS, formatStatus } from '@/utils/testExecutionUtils';
  * @param {string} featureName - The name of the feature.
  * @returns {number} - The interval ID for clearing.
  */
-export const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, onError, featureName) => {
+export const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, onError, featureName, demo = false) => {
     const intervalId = setInterval(async () => {
         try {
-            const response = await getTestGenerationStatus(featureId);
+            const response = await getTestGenerationStatus(featureId, demo);
 
             const statusMessage = `Test Generation in Progress. Status: ${response.status ? formatStatus(response.status) : formatStatus(TEST_STATUS.PENDING)}${response.progress ? ` (${response.progress})` : ''}`;
             onStatusUpdate(statusMessage);

@@ -17,9 +17,6 @@ export const useDemo = () => useContext(DemoContext);
 export function DemoProvider({ children }) {
   const [url, setUrl] = useState('');
   const [feature, setFeature] = useState(null);
-  const [epic, setEpic] = useState(null);
-  const [product, setProduct] = useState(null);
-  const [organization, setOrganization] = useState(null);
   const [tests, setTests] = useState([]);
 
   const updateUrl = (newUrl) => { 
@@ -34,25 +31,10 @@ export function DemoProvider({ children }) {
     setFeature(newFeature);
   };
 
-  const updateEpic = (newEpic) => {
-    setEpic(newEpic);
-  };
-
-  const updateProduct = (newProduct) => {
-    setProduct(newProduct);
-  }
-
-  const updateOrganization = (newOrganization) => {
-    setOrganization(newOrganization);
-  }
-
   const reset = useCallback(() => {
     setUrl('');
     setTests([]);
     setFeature(null);
-    setEpic(null);
-    setProduct(null);
-    setOrganization(null);
   }, []);
 
   return (
@@ -60,15 +42,9 @@ export function DemoProvider({ children }) {
       url,
       tests,
       feature,
-      epic,
-      product,
-      organization,
       updateUrl,
       updateTests,
       updateFeature,
-      updateEpic,
-      updateProduct,
-      updateOrganization,
       reset,
     }}>
       {children}

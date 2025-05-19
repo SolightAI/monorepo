@@ -2,10 +2,10 @@ import Tooltip from "@/components/common/Tooltip";
 import DemoTestDetailsModal from "@/components/modals/DemoTestDetailsModal";
 import { useDemo } from "@/context/DemoContext";
 import { createTestExecution, getTestExecution } from "@/services/testExecutionService";
-import { getTestsByFeature } from "@/services/testService";
+import { getDemoTests } from "@/services/testService";
 import { formatStatus, getStatusDescription, getStatusInfo, orderStatus, TEST_STATUS } from "@/utils/testExecutionUtils";
 import { Lock, Play } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -171,7 +171,7 @@ export function Results() {
         notes: null
       };
 
-      const response = await createTestExecution(executionData);
+      const response = await createTestExecution(executionData, true);
 
       // Start polling for the test status
       pollTestExecutionStatus(testId, response.id);
@@ -211,7 +211,7 @@ export function Results() {
     // Start polling
     testPollingIntervalsRef.current[testId] = setInterval(async () => {
       try {
-        const executionData = await getTestExecution(executionId);
+        const executionData = await getTestExecution(executionId, true);
 
         // Instead of updating the test object's status directly,
         // update the latestExecutionsMap
@@ -260,7 +260,7 @@ export function Results() {
     try {
       setError(null);
       setLoading(true);
-      const testsData = await getTestsByFeature(feature.id);
+      const testsData = await getDemoTests(feature);
       setTests(testsData);
       setTestRunsRemaining(Math.min(testsData.length, DEMO_TEST_RUNS_QUOTA));
       setMaxTestRuns(Math.min(testsData.length, DEMO_TEST_RUNS_QUOTA));
@@ -274,9 +274,9 @@ export function Results() {
     setSelectedTest(null);
   };
 
-  const hasRunningTests = () => {
+  const hasRunningTests = useCallback(() => {
     return Object.keys(runningTests).length > 0;
-  };
+  }, [runningTests]);
 
   // Add useEffect for cleanup of test polling intervals
   useEffect(() => {
@@ -337,7 +337,7 @@ export function Results() {
         <DemoTestDetailsModal
           test={selectedTest}
           // Find the feature and pass its first URL
-          featureUrl={feature.urls?.[0]}
+          featureUrl={url}
           onClose={handleTestClose}
         />
       )}
@@ -396,20 +396,16 @@ export function Results() {
                 <tr>
                   <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    // onClick={() => handleSort('name')}
                   >
                     <div className="flex items-center">
                       Name
-                      {/* {getSortIcon('name')} */}
                     </div>
                   </th>
                   <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    // onClick={() => handleSort('latest_status')}
                   >
                     <div className="flex items-center">
                       Status
-                      {/* {getSortIcon('latest_status')} */}
                     </div>
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -430,7 +426,7 @@ export function Results() {
                   sortedTests.map((test) => (
                     <tr
                       key={test.id}
-                      className={`hover:bg-gray-50 cursor-pointer`} // ${selectedTestIds.has(test.id) ? 'bg-blue-50' : ''}
+                      className={`hover:bg-gray-50 cursor-pointer`}
                       onClick={() => handleTestSelect(test)}
                     >
                       <td className="px-4 py-4 whitespace-nowrap">

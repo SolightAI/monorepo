@@ -3,25 +3,17 @@ import { Card, CardContent, Typography } from "@mui/material";
 import { isValidUrl } from "@/utils/urlUtils";
 import { useNavigate } from "react-router-dom";
 import { useDemo } from "@/context/DemoContext";
-// import { useAuth } from '@/context/AuthContext';
-import { useOrganization } from "@/context/OrganizationContext";
 import axios from "axios";
 import { API_URL } from "@/constants/api";
-import { getAllEpics } from "@/services/productService";
 import { triggerFeatureTestGeneration } from "@/services/testService";
 import { useEffect, useState } from "react";
-
-// const DEMO_ACCOUNT_EMAIL = process.env.REACT_APP_DEMO_EMAIL || "";
-// const DEMO_ACCOUNT_TOKEN = process.env.REACT_APP_DEMO_TOKEN || "";
 
 export function Home() {
   const navigate = useNavigate();
   const { updateUrl, updateFeature, updateEpic, updateProduct, updateOrganization, reset } = useDemo();
-  // const { login: authLogin, logout, isAuthenticated } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const { createOrganization } = useOrganization();
   const form = useForm({
     mode: "all",
     defaultValues: {
@@ -33,82 +25,19 @@ export function Home() {
     try {
       setIsLoading(true);
       setError(null);
-      
-      // ! TODO Should be done so we can use demo account instead of using
-      // ! current user logged in account
-      // Logout if user is logged in 
-      // if (isAuthenticated) {
-      //   await logout();
-      // }
-      // Get token from demo account
-      // await authLogin({
-      //   email: DEMO_ACCOUNT_EMAIL,
-      //   password: DEMO_ACCOUNT_TOKEN,
-      // });
-      
-      // Create new organization
-      const org = await createOrganization({
-        name: "demo", // TODO Set default name in .env
-        description: "Demo organization for Solight",
-        type: "education",
-      });
 
-      console.log("Organization created:", org);
-
-      // Create new product "default"
-
-      const productData = {
-        name: 'default',
-        url: data.url,
-        description: 'Demo product for Solight',
-        documentation: '',
-        organization_id: org.id,
-      };
-
-      const product = (await axios.post(
-        `${API_URL}/products/`,
-        productData,
-        { withCredentials: true }
-      )).data;
-
-      console.log("Product created:", product);
-
-      /// Get default epic
-      const epicsData = await getAllEpics(product.id, org.id);
-
-      if (epicsData.length === 0) {
-        console.error("No epics found for the product");
-        throw new Error("No epics found for the product");
-      }
-      
-      const defaultEpic = epicsData[0];
-    
-      // Create new feature "default"
-      const { data: feature } = await axios.post(
-        `${API_URL}/features/`,
+      // Generate tests in a demo setting
+      const { data: testsGenerationData } = await axios.post(
+        `${API_URL}/demo/tests/generate`,
         {
-          name: 'default',
-          description: "Demo feature for Solight",
-          epic_id: defaultEpic.id,
-          urls: [data.url],
-          access_conditions: {
-            must_be_logged_in: false,
-          },
+          url: data.url.trim(),
         },
-        { withCredentials: true }
       );
-      console.log("Feature created:", feature);
+      console.log("Test generation running", testsGenerationData);
 
-      // Run the test generation for feature "default"
-      await triggerFeatureTestGeneration(feature.id);
-      
       // Save data to context
       updateUrl(data.url.trim());
-      updateOrganization(org);
-      updateProduct(product);
-      updateEpic(defaultEpic);
-      updateFeature(feature);      
-      
+      updateFeature(testsGenerationData.feature_id);
       navigate("/demo/processing");
     } catch (error) {
       console.error("Error while initiate test generation", error);

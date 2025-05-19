@@ -54,7 +54,7 @@ function ProgressStepper() {
     try {
       try {
         // Use feature ID to check task-manager status
-        const statusData = await getTestGenerationStatus(feature.id);
+        const statusData = await getTestGenerationStatus(feature, true);
 
         if (statusData && statusData.status === TEST_STATUS.PENDING) {
           setIsGeneratingTests(true);
@@ -112,7 +112,7 @@ function ProgressStepper() {
 
       // Use the pollTestGenerationStatus function from the service
       generationPollingIntervalRef.current = pollTestGenerationStatus(
-        feature.id,
+        feature,
         (_) => { // onStatusUpdate
           return;
         },
@@ -127,7 +127,8 @@ function ProgressStepper() {
           generationPollingIntervalRef.current = null;
           setError(`Test generation failed. ${errorMsg}`);
         },
-        feature.name
+        "default",
+        true
       );
     } catch (error) {
       console.error('Error starting test generation polling:', error);
