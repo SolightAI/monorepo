@@ -5,7 +5,6 @@ from src.crypto.crypto import crypto_service
 from logging import getLogger, INFO, StreamHandler
 import pytest
 import sys
-import json
 from typing import List, Dict
 from analyze_ui_coverage import analyze_ui_coverage
 from analyze_category_match import analyze_category_match
@@ -24,10 +23,10 @@ async def test_generate_tests():
     # Create dummy test data
     product = Product(
         name="Test Product",
-        url="http://host.docker.internal:3000/tests",
+        url="https://qacrmdemo.netlify.app/",
         description="A test product",
-        documentation="http://host.docker.internal:3000/tests",
-        links_to_documentation=["http://host.docker.internal:3000/tests"]
+        documentation="https://qacrmdemo.netlify.app/",
+        links_to_documentation=["https://qacrmdemo.netlify.app/"]
     )
     
     epic = Epic(
@@ -38,8 +37,8 @@ async def test_generate_tests():
     feature = Feature(
         id="test-feature-123",
         name="Test Web App Functionality",
-        description="Login and test the web app functionality",
-        urls=["http://host.docker.internal:3000/tests"]
+        description="Test the web app functionality",
+        urls=["https://qacrmdemo.netlify.app/"]
     )
     
     # Context with job ID
@@ -47,32 +46,8 @@ async def test_generate_tests():
         "job_id": "test-job-123"
     }
     
-    # Create and encrypt secrets for authentication
-    raw_secrets = [{
-        "category": "authentication",
-        "name": "login_credentials",
-        "values": {
-            "username": "evanedreo@gmail.com",
-            "password": "testing123"
-        }
-    }]
-    
-    # Encrypt the secrets
-    encrypted_secrets = []
-    for secret in raw_secrets:
-        encrypted_values = {}
-        for key, value in secret["values"].items():
-            # Convert value to string and encrypt
-            encrypted_values[key] = crypto_service.encrypt(str(value))
-        
-        encrypted_secrets.append({
-            "category": secret["category"],
-            "name": secret["name"],
-            "values": encrypted_values
-        })
-    
     # Requested category
-    requested_category = TestCategory.SMOKE.value
+    requested_category = TestCategory.NEGATIVE.value
     
     # Generate tests
     result = await generate_tests(
@@ -80,8 +55,7 @@ async def test_generate_tests():
         product=product.model_dump(),
         epic=epic.model_dump(),
         feature=feature.model_dump(),
-        secrets=encrypted_secrets,  # Pass the encrypted secrets
-        categories=[requested_category]  # Generate smoke tests
+        categories=[requested_category] 
     )
     
     # Store generated tests
