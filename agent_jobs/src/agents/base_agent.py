@@ -82,20 +82,19 @@ async def run_agent(
             logger.info(f"[{task_id}] Try Running agent from cached history")
 
             history, ran_from_cache = await try_rerun_from_history(
+                config=config,
                 task_id=task_id,
                 identifier=identifier,
-                s3_client=config.s3_client,
                 agent_params=agent_params,
             )
 
         if ran_from_cache is False:
             history = await run_uncached_history(
+                config=config,
                 task_id=task_id,
                 identifier=identifier,
                 agent_params=agent_params,
                 additional_task=additional_task,
-                twocaptcha_api_key=config.twocapcha_api_key,
-                s3_client=config.s3_client,
             )
 
         logger.info(f"[{task_id}] Agent finished running ({identifier})")

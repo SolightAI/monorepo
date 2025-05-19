@@ -22,7 +22,7 @@ async def handler(
     try:
         logger.info(f"[{job_id}] Validating URL: {url}")
         
-        result = await run(url, config.headless)
+        result = await run(config, url)
         config.webhook_client.send_success(job_id, result.model_dump_json())
         
         logger.info(f"[{job_id}] URL validated successfully: {url} ; sending result back to webhook")

@@ -49,7 +49,7 @@ def get_string(
     """
     value = os.getenv(name)
     if value is None and default is None and required:
-        raise Exception(f"Missing required environment variable: {name}")
+        raise MissingValueException(f"Missing required environment variable: {name}")
 
     if value is None and default is not None:
         return default
@@ -93,7 +93,7 @@ def get_bool(
     """
     value = os.getenv(name)
     if value is None and default is None and required:
-        raise Exception(f"Missing required environment variable: {name}")
+        raise MissingValueException(f"Missing required environment variable: {name}")
 
     if value is None and default is not None:
         return default
@@ -109,3 +109,47 @@ def get_bool(
     raise InvalidValueException(
         f"Invalid value for {name}: Must be either 'true' or 'false', not {value}"
     )
+
+@overload
+def get_int(
+    name: str, default: int | None = None, required: Literal[True] = True
+) -> int: ...
+
+
+@overload
+def get_int(
+    name: str, default: int | None = None, required: Literal[False] = False
+) -> int | None: ...
+
+
+def get_int(name: str, default: int | None = None, required: bool = True) -> int | None:
+    """
+    Parse an integer value from an environment variable.
+
+    Args:
+        name (str): The name of the environment variable.
+        default (int | None): The default value to return if the environment
+        variable is not set.
+        required (bool): Whether the value is required. If True, an exception
+        will be raised if the value is missing.
+
+    Returns:
+        int: The parsed integer value or None by default.
+
+    Raises:
+        Exception: If the value is not set and required is True.
+    """
+    value = os.getenv(name)
+    if value is None and default is None and required:
+        raise MissingValueException(f"Missing required environment variable: {name}")
+
+    if value is None and default is not None:
+        return default
+
+    if value is None:
+        return None
+
+    if value.isdigit() is False:
+        raise InvalidValueException(f"Invalid value for {name}: Must be an integer, not {value}")
+
+    return int(value)

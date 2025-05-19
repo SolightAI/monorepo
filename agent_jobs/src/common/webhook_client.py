@@ -1,12 +1,10 @@
-from pydantic import BaseModel
-
 import requests
 
 
-class WebhookClient(BaseModel):
+class WebhookClient():
     _url: str
 
-    def __init__(self, url: str):
+    def __init__(self, url: str):        
         self._url = url
 
     def send_success(self, job_id: str,result: str):

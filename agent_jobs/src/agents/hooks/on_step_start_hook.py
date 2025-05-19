@@ -1,9 +1,9 @@
 from logging import getLogger
 from typing import Any, Callable, Coroutine
 from browser_use import Agent
-from hooks.captcha import check_for_captcha
 from langchain_core.messages import HumanMessage
 
+from ._captcha import check_for_captcha
 
 logger = getLogger(__name__)
 
@@ -51,7 +51,7 @@ async def check_for_google_mfa(agent: Agent) -> bool:
     return False
 
 
-def on_step_start_hook(twocapha_api_key: str) -> Callable[[Agent], Coroutine[Any, Any, None]]:
+def on_step_start_hook(twocaptcha_api_key: str) -> Callable[[Agent], Coroutine[Any, Any, None]]:
   async def _on_step_start_hook(agent: Agent) -> None:
 
     _update_step_counter(agent)
@@ -59,6 +59,6 @@ def on_step_start_hook(twocapha_api_key: str) -> Callable[[Agent], Coroutine[Any
     if await check_for_google_mfa(agent):
         return
 
-    await check_for_captcha(agent)
+    await check_for_captcha(twocaptcha_api_key, agent)
     
   return _on_step_start_hook

@@ -5,13 +5,12 @@ import os
 from typing import Any, Dict, Optional
 
 
-from pydantic import BaseModel
 import boto3
 
 logger = logging.getLogger(__name__)
 
 
-class S3Client(BaseModel):
+class S3Client():
     bucket_name: str
     endpoint_url: str
     client: Any
@@ -23,7 +22,7 @@ class S3Client(BaseModel):
         bucket_name: str,
         bucket_endpoint_url: str,
         region: str = "us-east-1",
-    ) -> None:
+    ) -> None:        
         """
         Initialize the S3 client and create the bucket if it doesn't exist.
 
@@ -34,7 +33,6 @@ class S3Client(BaseModel):
             bucket_endpoint_url: Endpoint URL of the S3 bucket
             region: Region of the S3 bucket (default is "us-east-1")
         """
-
         self.bucket_name = bucket_name
         self.endpoint_url = bucket_endpoint_url
         self.client = boto3.client(

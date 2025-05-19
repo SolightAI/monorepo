@@ -42,6 +42,10 @@ COPY requirements.txt ./
 # Install requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Execute fix_browser_use.py script
+COPY fix_browser_use.py /var/task/fix_browser_use.py
+RUN python /var/task/fix_browser_use.py
+
 COPY src src
 
 # Use AWS Lambda Runtime Interface Client as entrypoint
