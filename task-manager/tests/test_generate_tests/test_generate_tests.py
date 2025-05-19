@@ -1,11 +1,9 @@
 from src.generation.test_generation import generate_tests
 from src.utils.dto import Product, Epic, Feature, TestCategory
 from src.test_run.test_endpoint import run_test
-from src.crypto.crypto import crypto_service
 from logging import getLogger, INFO, StreamHandler
 import pytest
 import sys
-from typing import List, Dict
 from analyze_ui_coverage import analyze_ui_coverage
 from analyze_category_match import analyze_category_match
 from analyze_redundancy import analyze_redundancy
