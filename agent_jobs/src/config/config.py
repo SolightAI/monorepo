@@ -1,8 +1,14 @@
+import logging
+
+from lmnr import Laminar
+
 from src.common import env
 from src.common.webhook_client import WebhookClient
 from src.common.s3_client import S3Client
 from src.common.crypto import CryptoService
 from src.common.redis_client import RedisClient
+
+logger = logging.getLogger(__name__)
 
 
 class Config:
@@ -60,6 +66,15 @@ def get_config() -> Config:
     """
 
     try:
+        # Check for the LAMINAR_API_KEY environment variable
+        laminar_api_key = env.get_string("LAMINAR_API_KEY", required=False)
+        if laminar_api_key is None:
+            logger.warning(
+                "LMNR_PROJECT_API_KEY env var not found, telemetry will be disabled."
+            )
+        else:
+            Laminar.initialize(project_api_key=laminar_api_key)
+
         return Config(
             headless=env.get_bool("HEADLESS", False),
             openai_api_key=env.get_string("OPENAI_API_KEY"),

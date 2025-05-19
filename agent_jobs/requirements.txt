@@ -4,7 +4,7 @@ pydantic_core==2.27.2
 openai==1.70.0
 openai[datalib]
 browser-use==0.1.41
-langchain==0.3.21
+langchain>=0.3.21
 aws-lambda-typing==2.20.0
 pytest==8.3.5
 pytest-asyncio==0.26.0

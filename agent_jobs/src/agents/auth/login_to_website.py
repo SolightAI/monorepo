@@ -75,7 +75,7 @@ def _select_login_method(login_method: LoginMethod, secrets: list[dict[str, dict
 
 async def login_to_website(
     config: Config,
-    identifier: str | None,
+    identifier: str,
     task_id: str,
     url: str,
     login_method: LoginMethod,
@@ -125,6 +125,7 @@ async def login_to_website(
         sensitive_data=sensitive_data,
         auth_session=None,
         tools=[],
+        **kwargs
     )
 
     logger.info(f"[{task_id}] Checking if agent is logged in")

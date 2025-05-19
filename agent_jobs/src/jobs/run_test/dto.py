@@ -19,4 +19,4 @@ class RunTestPayload(BaseModel):
     feature: Feature
     test: Test
     secrets: Optional[list[dict[str, Any]]]
-    run_with_cache: Optional[bool]
+    run_without_cache: Optional[bool]

@@ -22,7 +22,7 @@ async def test_validate_url_login_farmzz(task_id: str, config: Config) -> None:
     base_url = "https://farmzz.com"
 
     # Run the validation task directly
-    validation_result = await run(config, base_url)
+    validation_result = await run(config, task_id, base_url)
 
     # Debug output to show full validation result
     logger.info(f"[{task_id}] Validation result: {validation_result}")

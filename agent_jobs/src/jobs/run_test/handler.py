@@ -22,27 +22,23 @@ async def handler(
     feature: Feature,
     test: Test,
     secrets: Optional[list[dict[str, Any]]],
-    run_with_cache: bool | None = None,
+    run_without_cache: bool | None = None,
 ) -> None:
     decrypted_secrets: list[dict[str, Any]] = list()
 
     if secrets:
         decrypted_secrets = config.crypto.decrypt_secrets(secrets)
 
-    identifier = (
-        md5(
-            json.dumps(
-                {
-                    "product": product,
-                    "test": test,
-                    "feature": feature,
-                    "decrypted_secrets": decrypted_secrets,  # TODO (later): should be based only on the used secrets
-                }
-            ).encode()
-        ).hexdigest()
-        if run_with_cache
-        else None
-    )
+    identifier = md5(
+        json.dumps(
+            {
+                "product": product,
+                "test": test,
+                "feature": feature,
+                "decrypted_secrets": decrypted_secrets,  # TODO (later): should be based only on the used secrets
+            }
+        ).encode()
+    ).hexdigest()
 
     auth_session = dict()
     if (
@@ -51,7 +47,7 @@ async def handler(
     ):
         auth_session = await get_auth_session(
             config=config,
-            identifier=None,
+            identifier=identifier,
             task_id=job_id,
             url=product.url,
             secrets=decrypted_secrets,
@@ -66,14 +62,13 @@ async def handler(
         test=test,
         secrets=decrypted_secrets,
         auth_session=auth_session,
+        run_without_cache=run_without_cache is False,
     )
 
     result["tracing"] = {}  # deactivated for now
 
     logger.info(f"[{job_id}] Ran tests for {test.url}")
-    
+
     config.webhook_client.send_success(job_id, json.dumps(result))
-        
+
     logger.info(f"[{job_id}] Test ran successfully ; sending result back to webhook")
-    
-    

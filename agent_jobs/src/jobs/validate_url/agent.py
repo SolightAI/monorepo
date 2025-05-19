@@ -1,6 +1,7 @@
 import logging
 import re
 
+from lmnr import Laminar, observe
 from browser_use import Agent
 from browser_use.browser.browser import Browser
 from browser_use.browser.context import BrowserContext, BrowserContextConfig
@@ -38,9 +39,10 @@ After examining the site, provide a conclusion in the following format:
     CONFIDENCE_LOW=ConfidenceLevel.LOW.value,
 )
 
-
+@observe()
 async def run(
     config: Config,
+    task_id: str,
     url: str,
 ) -> ValidateURLResult:
     """
@@ -53,6 +55,9 @@ async def run(
     Returns:
         Result: The result of the agent's execution.
     """
+    Laminar.set_session(session_id=task_id)
+    Laminar.set_metadata({"task_id": task_id, "job": "validate_url.run"})
+    
     logger.info(f"Setting up agent to run on {url}")
 
     agent_client = ChatOpenAI(

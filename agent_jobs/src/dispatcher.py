@@ -37,6 +37,7 @@ async def dispatch_job(config: Config, job: Job) -> None:
                 feature=job.payload.feature,
                 test=job.payload.test,
                 secrets=job.payload.secrets,
+                run_without_cache=job.payload.run_without_cache,
             )
         case JobType.IMPROVE_TEST_STEPS:
             await improve_test_steps_handler(
