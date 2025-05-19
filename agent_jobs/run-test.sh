@@ -5,6 +5,16 @@ if [ -z "$OPENAI_API_KEY" ]; then
   exit 1
 fi
 
+UNIT_TEST_NETWORK_NAME=solight_agent_job_test_shared_network
+
+# Create the shared network if it doesn't exist yet
+if ! docker network inspect $UNIT_TEST_NETWORK_NAME &>/dev/null; then
+  echo "Creating shared network: $UNIT_TEST_NETWORK_NAME &>/dev/null; then"
+  docker network create $UNIT_TEST_NETWORK_NAME
+else
+  echo "Shared network $UNIT_TEST_NETWORK_NAME already exists"
+fi
+
 if [ -z $IMAGE_NAME ]; then
   IMAGE_NAME=agent-job-test:local
   echo "Using default image name: $IMAGE_NAME"
@@ -12,11 +22,55 @@ fi
 
 docker build -f Dockerfile -t $IMAGE_NAME .
 
+# Run redis container
+docker run \
+  --name agent-job-test-redis \
+  --network $UNIT_TEST_NETWORK_NAME \
+  -d \
+  -p 6379 \
+  redis:7-alpine
+
+# Run Minio container
+docker run \
+  --name agent-job-test-minio \
+  --network $UNIT_TEST_NETWORK_NAME \
+  -d \
+  -p 9000 \
+  -e MINIO_ROOT_USER=minio \
+  -e MINIO_ROOT_PASSWORD=minio123 \
+  minio/minio server /data
+
+# Build & run playground
+docker build -f tests/playground/Dockerfile -t playground:test tests/playground
+
 docker run \
   --rm \
+  --name agent-job-test-playground \
+  --network $UNIT_TEST_NETWORK_NAME \
+  -p 3000 \
+  -d \
+  playground:test
+
+
+# Run test in container
+docker run \
+  --rm \
+  --network $UNIT_TEST_NETWORK_NAME \
   --entrypoint pytest \
   -v ./tests:/var/task/tests \
   -v ./pytest.ini:/var/task/pytest.ini \
   -e OPENAI_API_KEY=${OPENAI_API_KEY} \
   -e HEADLESS=true \
-  $IMAGE_NAME
+  -e REDIS_HOST=agent-job-test-redis \
+  -e REDIS_PORT=6379 \
+  -e S3_ACCESS_KEY_ID=minio \
+  -e S3_SECRET_ACCESS_KEY=minio123 \
+  -e S3_ENDPOINT_URL=http://agent-job-test-minio:9000 \
+  -e PLAYGROUND_URL=http://agent-job-test-playground:3000 \
+  $IMAGE_NAME -n 4|| true
+
+# Cleanup tests resources
+docker rm -f agent-job-test-redis
+docker rm -f agent-job-test-minio
+docker rm -f agent-job-test-playground
+docker network rm $UNIT_TEST_NETWORK_NAME

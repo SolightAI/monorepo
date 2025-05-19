@@ -1,3 +1,5 @@
+import json
+
 from typing import Any
 from logging import getLogger
 
@@ -42,10 +44,11 @@ async def get_auth_session(
     """
 
     user_id = get_user_id(secrets)
+    cache_key = f"session:{url}:{user_id}"
 
     # First check if we can reuse a cached session
     if user_id and reuse_session:
-        cached_session = await get_cached_session(url, user_id)
+        cached_session = config.redis.get(cache_key, dict[str, dict[str, str]])
         if cached_session:
             logger.info(
                 f"[{task_id}] Found cached session for {url} (user: {user_id}), checking if still valid..."
@@ -54,7 +57,7 @@ async def get_auth_session(
                 logger.info(
                     f"[{task_id}] Cached session for user {user_id} is still valid, reusing it"
                 )
-                await update_session_timestamp(url, user_id)
+                config.redis.update_ttl(cache_key)
                 return cached_session
             else:
                 logger.info(
@@ -74,6 +77,6 @@ async def get_auth_session(
 
     # Cache the new session for future use
     if user_id:
-        await cache_session(url, user_id, session_data)
+        config.redis.set(cache_key, json.dumps(session_data))
 
     return session_data

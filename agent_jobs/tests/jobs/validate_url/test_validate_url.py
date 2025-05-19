@@ -1,13 +1,14 @@
 import logging
 import pytest
 
+from src.config import Config
 from src.jobs.validate_url.agent import run
 
 logger = logging.getLogger(__name__)
 
 
 @pytest.mark.asyncio
-async def test_validate_url_login_farmzz(task_id: str) -> None:
+async def test_validate_url_login_farmzz(task_id: str, config: Config) -> None:
     """
     Test validating the farmzz.com URL to find a login page,
     then attempt login with credentials.
@@ -21,7 +22,7 @@ async def test_validate_url_login_farmzz(task_id: str) -> None:
     base_url = "https://farmzz.com"
 
     # Run the validation task directly
-    validation_result = await run(base_url)
+    validation_result = await run(config, base_url)
 
     # Debug output to show full validation result
     logger.info(f"[{task_id}] Validation result: {validation_result}")

@@ -6,6 +6,7 @@ from browser_use.browser.browser import Browser
 from browser_use.browser.context import BrowserContext, BrowserContextConfig
 from langchain_openai import ChatOpenAI
 
+from src.config import Config
 from src.agents.utils import create_browser
 
 from .dto import ValidateURLResult, ConfidenceLevel
@@ -39,8 +40,8 @@ After examining the site, provide a conclusion in the following format:
 
 
 async def run(
+    config: Config,
     url: str,
-    headless: bool = True,
 ) -> ValidateURLResult:
     """
     Run the agent on the given URL and return the result.
@@ -61,7 +62,7 @@ async def run(
         frequency_penalty=0.3,
     )
 
-    browser, context = _configure_browser(headless)
+    browser, context = _configure_browser(config.headless)
 
     agent = Agent(
         task=PROMPT,

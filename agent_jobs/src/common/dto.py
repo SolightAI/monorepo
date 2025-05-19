@@ -70,6 +70,9 @@ class TestCategory(str, Enum):
         SMOKE (str): testing basic functionalities of a feature
         NEGATIVE (str): testing a negative path of a feature
     """
+    
+    # Tell pytest to ignore this class when running tests.
+    __test__ = False
 
     UNIT = "UNIT"
     SMOKE = "SMOKE"
@@ -93,6 +96,9 @@ TEST_CATEGORIES_DESCRIPTION = {
 class TestStatus(Enum):
     """Test status enum"""
 
+    # Tell pytest to ignore this class when running tests.
+    __test__ = False
+    
     PENDING = "pending"
     PASSED = "passed"
     FAILED = "failed"
@@ -117,6 +123,9 @@ class Test(BaseModel):
         feature_id (str): id of the feature the test belongs to (changed from acceptance_criteria_id to feature_id)
         access_conditions (dict[str, Any] | None): conditions to access the feature
     """
+    
+    # Tell pytest to ignore this class when running tests.
+    __test__ = False
 
     name: str
     description: str
