@@ -13,6 +13,7 @@ from endpoints.invitation_endpoints import router as invitation_router
 from endpoints.organization_endpoints import router as organization_router
 from endpoints.secret_endpoints import router as secret_router
 from endpoints.user_endpoints import router as user_router
+from endpoints.demo_endpoints import router as demo_router
 from fastapi.middleware.cors import CORSMiddleware
 from tortoise.contrib.fastapi import RegisterTortoise
 from contextlib import asynccontextmanager
@@ -88,3 +89,4 @@ app.include_router(test_execution_router)
 app.include_router(invitation_router)
 app.include_router(secret_router)
 app.include_router(user_router)
+app.include_router(demo_router)

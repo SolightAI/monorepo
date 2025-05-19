@@ -1,5 +1,5 @@
 from __future__ import annotations
-from pydantic import BaseModel, UUID4, Field, ConfigDict
+from pydantic import BaseModel, UUID4, Field, ConfigDict, HttpUrl
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -499,3 +499,12 @@ class LatestTestExecutionResponse(BaseModel):
     status: Optional[TestStatus] = None
     started_at: Optional[datetime] = None
     ended_at: Optional[datetime] = None
+
+class DemoTestGenerateRequest(BaseModel):
+    """Schema for generating tests in a using demo"""
+    url: HttpUrl
+
+class DemoTestGenerateResponse(BaseModel):
+    """Schema for the response containing demo tests generation details"""
+    feature_id: UUID4
+    task_id: UUID4
