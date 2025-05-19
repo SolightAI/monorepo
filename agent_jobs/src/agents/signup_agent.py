@@ -1,6 +1,7 @@
 import logging
 
 from typing import Any
+from lmnr import observe
 
 from src.common.dto import Test, TestStatus
 from src.config import Config
@@ -54,29 +55,16 @@ Now, run the test.
 
 logger = logging.getLogger(__name__)
 
-def get_parameters_for_signup_agent(
-    identifier: str,
-    task_id: str,
-    test: Test,
-    secrets: dict[str, dict[str, str]],
-    auth_session: dict[str, dict[str, str]],
-) -> dict[str, Any]:
-    return {
-        "identifier": identifier,
-        "task_id": task_id,
-        "test": test,
-        "secrets": secrets,
-        "auth_session": auth_session,
-    }
 
-
+@observe()
 async def signup_agent(
     config: Config,
-    identifier: str | None,
+    identifier: str,
     task_id: str,
     test: Test,
     secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],  # unused
+    run_without_cache: bool = False,
 ) -> dict[str, Any]:
     """
     Agent used to test the signup feature of a website.
@@ -110,6 +98,7 @@ async def signup_agent(
     session_data, history, evidences, is_from_cache = await run_agent(
         config=config,
         identifier=identifier,
+        run_without_cache=run_without_cache,
         task_id=task_id,
         url=test.url,
         prompt=PROMPT.format(
@@ -133,8 +122,10 @@ async def signup_agent(
     status, explanation = await check_final_test_result(
         task_id=task_id,
         test=test,
-        agent_output=history.final_result() or "", # TODO(TomChv): Can this happens?
-        screenshot_base64=history.screenshots()[-1] if len(history.screenshots()) > 0 else None,
+        agent_output=history.final_result() or "",  # TODO(TomChv): Can this happens?
+        screenshot_base64=history.screenshots()[-1]
+        if len(history.screenshots()) > 0
+        else None,
         healthcheck_results=additional_healthchecks_results,
     )
 

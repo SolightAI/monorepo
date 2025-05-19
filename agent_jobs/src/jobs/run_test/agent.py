@@ -8,23 +8,24 @@ import traceback
 
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import Any, Callable
+from lmnr import observe, Laminar
 from inspect import getfullargspec, isclass
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
-from src.agents.general_agent import general_agent, get_parameters_for_general_agent
-from src.agents.login_agent import login_agent, get_parameters_for_login_agent
-from src.agents.signup_agent import signup_agent,get_parameters_for_signup_agent
+from src.agents.general_agent import general_agent
+from src.agents.login_agent import login_agent
+from src.agents.signup_agent import signup_agent
 from src.common.dto import Test
 from src.config import Config
 
 logger = logging.getLogger(__name__)
 
 
-AGENTS: dict[Callable, Callable] = {
-    general_agent: get_parameters_for_general_agent,
-    login_agent: get_parameters_for_login_agent,
-    signup_agent: get_parameters_for_signup_agent,
+AGENTS: set[Callable] = {
+    general_agent,
+    login_agent,
+    signup_agent,
 }
 
 
@@ -168,8 +169,12 @@ def get_test_prompt_description(test: Test) -> str:
 
 def get_agent_prompt_description(agent: Callable) -> str:
     spec = getfullargspec(agent)
-    parameters = "".join([f"\n- {name}: {spec.annotations[name]}" for name in spec.args])
-    return AGENT_DESCRIPTION.format(name=agent.__name__, description=agent.__doc__, parameters=parameters)
+    parameters = "".join(
+        [f"\n- {name}: {spec.annotations[name]}" for name in spec.args]
+    )
+    return AGENT_DESCRIPTION.format(
+        name=agent.__name__, description=agent.__doc__, parameters=parameters
+    )
 
 
 def parse_agent_selection(response: str) -> str:
@@ -186,7 +191,7 @@ def get_type_description(_type: type) -> str:
 
     try:
         if origin is typing.Literal:
-            options_str = ' '.join([f'{new_line}- {repr(arg)}' for arg in args])
+            options_str = " ".join([f"{new_line}- {repr(arg)}" for arg in args])
             description = f"Name: Literal\nType: typing.Literal\nOptions: {options_str}"
 
         elif origin is typing.Union or origin is types.UnionType:
@@ -195,7 +200,9 @@ def get_type_description(_type: type) -> str:
             optional_indicator = " (Optional)" if type(None) in args else ""
             description = f"Name: Union{optional_indicator}\nType: typing.Union\nPossible Types:{new_line}{new_line.join(type_descriptions)}"
 
-        elif isclass(_type) and isinstance(_type, type) and issubclass(_type, enum.Enum):
+        elif (
+            isclass(_type) and isinstance(_type, type) and issubclass(_type, enum.Enum)
+        ):
             description = f"Name: {_type.__name__}\nType: {type(_type)}\nDescription: {_type.__doc__}"
             description += f"\nOptions: {' '.join([f'{new_line}- {name}: {value.value}' for (name, value) in _type.__members__.items()])}"
 
@@ -205,19 +212,24 @@ def get_type_description(_type: type) -> str:
     except Exception as e:
         logger.error(f"Error getting type description: {e}")
         logger.error(traceback.format_exc())
-        description = f"Name: {_type.__name__}\nType: {type(_type)}\nDescription: {_type.__doc__}"
+        description = (
+            f"Name: {_type.__name__}\nType: {type(_type)}\nDescription: {_type.__doc__}"
+        )
 
     return description
 
 
+@observe()
 async def select_agent_to_use(test: Test) -> Callable:
-
     query = HumanMessage(
         content=PROMPT_AGENT_SELECTOR.format(
             test=get_test_prompt_description(test),
-            agents="\n---\n".join([
-                "<agent>\n" + get_agent_prompt_description(agent) + "\n</agent>" for agent in AGENTS.keys()
-            ])
+            agents="\n---\n".join(
+                [
+                    "<agent>\n" + get_agent_prompt_description(agent) + "\n</agent>"
+                    for agent in AGENTS
+                ]
+            ),
         )
     )
 
@@ -225,21 +237,25 @@ async def select_agent_to_use(test: Test) -> Callable:
 
     agent_name = parse_agent_selection(response)
 
-    for _agent in AGENTS.keys():
+    for _agent in AGENTS:
         if _agent.__name__ == agent_name:
             return _agent
 
     raise ValueError(f"Agent {agent_name} not found")
 
 
+@observe()
 async def run(
     config: Config,
-    identifier: str | None,
+    identifier: str,
     task_id: str,
     test: Test,
     secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],
+    run_without_cache: bool = False,
 ) -> dict:
+    Laminar.set_session(session_id=task_id)
+    Laminar.set_metadata({"task_id": task_id, "job": "run_test.run"})
 
     logger.info(f"[{task_id}] Selecting agent for test {test.name}")
 
@@ -249,24 +265,26 @@ async def run(
     agent_was_newly_selected = False
 
     if config.s3_client.exists(cache_key):
-
         logger.info(f"[{task_id}] Selecting agent from cache")
 
         with TemporaryDirectory() as temp_dir:
-
             logger.info(f"[{task_id}] Downloading agent name from s3: {cache_key}")
-            config.s3_client.download_file(cache_key, os.path.join(temp_dir, "selected_agent.txt"))
+            config.s3_client.download_file(
+                cache_key, os.path.join(temp_dir, "selected_agent.txt")
+            )
 
             with open(os.path.join(temp_dir, "selected_agent.txt"), "r") as f:
                 agent_name = f.read().strip()
 
-            for _agent in AGENTS.keys():
+            for _agent in AGENTS:
                 if _agent.__name__ == agent_name:
                     agent = _agent
                     break
 
             if agent is None:
-                logger.warning(f"[{task_id}] Cached agent {agent_name=} not found in the list of available agents")
+                logger.warning(
+                    f"[{task_id}] Cached agent {agent_name=} not found in the list of available agents"
+                )
     else:
         logger.info(f"[{task_id}] No cached agent found, selecting agent")
 
@@ -277,12 +295,18 @@ async def run(
     logger.info(f"[{task_id}] Calling agent {agent.__name__}")
 
     if identifier and agent_was_newly_selected:
-        with NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as selected_agent_file:
-            logger.info(f"[{task_id}] Uploading agent name '{agent.__name__}' to cache: {cache_key}")
+        with NamedTemporaryFile(
+            mode="w+", suffix=".txt", delete=False
+        ) as selected_agent_file:
+            logger.info(
+                f"[{task_id}] Uploading agent name '{agent.__name__}' to cache: {cache_key}"
+            )
             selected_agent_file.write(agent.__name__)
             selected_agent_file.flush()
             selected_agent_file.seek(0)
 
             config.s3_client.upload_file(selected_agent_file.name, cache_key)
 
-    return await agent(**AGENTS[agent](identifier, task_id, test, secrets, auth_session))
+    return await agent(
+        identifier, task_id, test, secrets, auth_session, run_without_cache
+    )

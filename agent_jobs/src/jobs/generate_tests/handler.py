@@ -43,6 +43,7 @@ async def handler(
 
             config.webhook_client.send_success(job_id, json.dumps(result))
 
+    # No category specified, default to smoke tests
     if categories is None:
         categories = [TestCategory.SMOKE]
 

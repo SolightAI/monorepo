@@ -6,6 +6,7 @@ from typing import Callable, Any
 
 from PIL import Image
 from langchain_openai import ChatOpenAI
+from lmnr import observe
 from tempfile import _TemporaryFileWrapper, NamedTemporaryFile, TemporaryDirectory
 from browser_use import Browser, AgentHistoryList, Controller
 from browser_use.browser.context import (
@@ -25,17 +26,20 @@ from .tools import TOOLS
 logger = logging.getLogger(__name__)
 
 
+@observe()
 async def run_agent(
     config: Config,
     task_id: str,
     url: str,
     prompt: str,
+    identifier: str,
+    run_without_cache: bool,
     sensitive_data: dict[str, str],
     auth_session: dict[str, dict[str, str]] | None = None,
     additional_task: str | None = None,
     tools: list[Callable] = TOOLS,
     headless: bool = True,
-    identifier: str | None = None,
+    **kwargs: Any,
 ) -> tuple[dict[str, dict[str, str]], AgentHistoryList, list[str], bool]:
     with NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as cookies_file:
         if auth_session is None:
@@ -73,12 +77,17 @@ async def run_agent(
         logger.info(f"[{task_id}] Checking if history exists in S3 for {identifier}")
 
         agent_params = _create_agent_params(
-            prompt, url, context, controller, sensitive_data
+            prompt,
+            url,
+            context,
+            controller,
+            sensitive_data,
+            **kwargs,
         )
 
         ran_from_cache = False
 
-        if identifier and config.s3_client.exists(f"{identifier}/history.json"):
+        if not run_without_cache and config.s3_client.exists(f"{identifier}/history.json"):
             logger.info(f"[{task_id}] Try Running agent from cached history")
 
             history, ran_from_cache = await try_rerun_from_history(
@@ -97,7 +106,7 @@ async def run_agent(
                 additional_task=additional_task,
             )
 
-        logger.info(f"[{task_id}] Agent finished running ({identifier})")
+        logger.info(f"[{task_id}] Agent finished running ({identifier=})")
 
         cookies = await context.session.context.cookies()  # type: ignore
         local_storage_data = await get_local_storage(context)
@@ -133,6 +142,7 @@ def _create_agent_params(
     browser_context: BrowserContext,
     controller: Controller,
     sensitive_data: dict[str, str] | None = None,
+    **kwargs: Any,
 ) -> dict[str, Any]:
     agent_client = ChatOpenAI(
         model="gpt-4.1",
@@ -143,10 +153,16 @@ def _create_agent_params(
 
     return {
         "task": prompt,
-        "llm": agent_client,
-        "use_vision": False,
-        "enable_memory": False,
-        "initial_actions": [{"go_to_url": {"url": url}}, {"wait": {"seconds": 5}}],
+        "llm": kwargs.get("llm", agent_client),
+        "use_vision": kwargs.get("use_vision", False),
+        "enable_memory": kwargs.get("enable_memory", False),
+        "initial_actions": [
+            {"go_to_url": {"url": url}},
+            {
+                "go_to_url": {"url": url}
+            },  # necessary to do it twice in some situations (i.e tickpick in-url auth in dev)
+            {"wait": {"seconds": 5}},
+        ],
         "sensitive_data": sensitive_data,
         "browser_context": browser_context,
         "controller": controller,

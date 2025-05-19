@@ -1,8 +1,9 @@
 import json
 import logging
 import re
-from typing import Optional
 
+from lmnr import observe, Laminar
+from typing import Optional
 from tempfile import NamedTemporaryFile
 from browser_use import Agent, AgentHistoryList
 from browser_use.browser.browser import Browser, BrowserConfig
@@ -91,7 +92,7 @@ For each test case, you should write the following informations in the <test_cas
 Make sure to close each XML tag you open.
 """.strip()
 
-
+@observe()
 async def run(
     job_id: str,
     s3_client: S3Client,
@@ -103,6 +104,9 @@ async def run(
     local_storage: str | None = None,
     headless: bool = True,
 ) -> list[Test]:
+    Laminar.set_session(session_id=job_id)
+    Laminar.set_metadata({"task_id": job_id, "job": "generate_tests.run"})    
+    
     logger.info(f"Setting up agent to run on {epic.name}/{product.name}/{feature.name}")
 
     agent_client = ChatOpenAI(

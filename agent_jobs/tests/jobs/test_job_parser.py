@@ -138,7 +138,7 @@ async def test_parse_run_test_job() -> None:
               "feature_id": "1234567890"
             },
             "secrets": [],
-            "run_with_cache": True
+            "run_without_cache": False
         }
     }
 

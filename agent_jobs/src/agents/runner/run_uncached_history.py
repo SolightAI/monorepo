@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 async def run_uncached_history(
     config: Config,
     task_id: str,
-    identifier: str | None,
+    identifier: str,
     agent_params: dict[str, Any],
     additional_task: str | None,
 ) -> AgentHistoryList:
@@ -50,19 +50,16 @@ async def run_uncached_history(
 
         logger.info(f"[{task_id}] Agent finished running ({identifier})")
 
-        if identifier:
-            with NamedTemporaryFile(
-                mode="w+", suffix=".json", delete=False
-            ) as history_file:
-                logger.info(
-                    f"[{task_id}] Saving history to {f'{identifier}/history.json'}"
-                )
+        with NamedTemporaryFile(
+            mode="w+", suffix=".json", delete=False
+        ) as history_file:
+            logger.info(f"[{task_id}] Saving history to {f'{identifier}/history.json'}")
 
-                history.save_to_file(history_file.name)
+            history.save_to_file(history_file.name)
 
-                config.s3_client.upload_file(
-                    file_path=history_file.name,
-                    object_name=f"{identifier}/history.json",
-                )
+            config.s3_client.upload_file(
+                file_path=history_file.name,
+                object_name=f"{identifier}/history.json",
+            )
 
     return history
