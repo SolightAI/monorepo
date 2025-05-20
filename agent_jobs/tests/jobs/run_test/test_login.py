@@ -30,11 +30,12 @@ class TestTickPick():
 
         result = await login_agent(
             config=config,
-            identifier=None,
+            identifier=None, # type: ignore
             task_id=task_id,
             test=test,
             secrets=[],
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == TestStatus.PASSED.value
@@ -56,11 +57,12 @@ class TestTickPick():
 
         result = await login_agent(
             config=config,
-            identifier=None,
+            identifier=None, # type: ignore
             task_id=task_id,
             test=test,
             secrets=[],
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == TestStatus.PASSED.value
@@ -99,11 +101,12 @@ class TestTickPick():
 
         result = await login_agent(
             config=config,
-            identifier=None,
+            identifier=None, # type: ignore
             task_id=task_id,
             test=test,
             secrets=secrets,
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == TestStatus.PASSED.value
@@ -125,11 +128,12 @@ class TestTickPick():
 
         result = await login_agent(
             config=config,
-            identifier=None,
+            identifier=None, # type: ignore
             task_id=task_id,
             test=test,
             secrets=[],
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == TestStatus.AGENT_LIMITATION.value
@@ -173,11 +177,12 @@ class TestTickPick():
 
         result = await login_agent(
             config=config,
-            identifier=None,
+            identifier=None, # type: ignore
             task_id=task_id,
             test=test,
             secrets=secrets,
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == TestStatus.PASSED.value
@@ -235,11 +240,12 @@ class TestSolight():
 
         result = await login_agent(
             config=config,
-            identifier=None,
+            identifier=None, # type: ignore
             task_id=task_id,
             test=test,
             secrets=secrets,
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == TestStatus.PASSED.value

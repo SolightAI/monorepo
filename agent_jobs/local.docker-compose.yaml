@@ -10,6 +10,16 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - HEADLESS=true
       - LAMBDA_WEBHOOK_URL=http://lambda_webhook:8085/lambda-webhook
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - S3_ACCESS_KEY_ID=minioadmin
+      - S3_SECRET_ACCESS_KEY=minioadmin
+      - S3_BUCKET_NAME=task-manager
+      - S3_BUCKET_ENDPOINT_URL=http://minio:9000
+      - SYMMETRIC_ENCRYPTION_KEY=${SYMMETRIC_ENCRYPTION_KEY:-S5ox-_h4p9NISVvQFPsAE5T-8K-SNp67GLQalO75rDI=}
+      - TWOCAPTCHA_API_KEY=${TWOCAPTCHA_API_KEY:-unknown}
     networks:
       - default
       - api-tm_shared_network

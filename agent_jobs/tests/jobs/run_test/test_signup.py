@@ -5,13 +5,14 @@ from src.agents.signup_agent import signup_agent
 from src.common.dto import Test, TestCategory, TestStatus
 
 
-class TestTickPick():
-
+class TestTickPick:
     url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/"
 
     @pytest.mark.parametrize("repeat", range(5))
     @pytest.mark.asyncio
-    async def test_verify_sign_up_with_email(self, task_id: str, repeat: int, config: Config) -> None:
+    async def test_verify_sign_up_with_email(
+        self, task_id: str, repeat: int, config: Config
+    ) -> None:
         """Test authentication with valid email credentials."""
 
         test = Test(
@@ -27,17 +28,20 @@ class TestTickPick():
 
         result = await signup_agent(
             config=config,
-            identifier=None,
+            identifier=None,  # type: ignore
             task_id=task_id,
             test=test,
             secrets=[],
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == TestStatus.PASSED.value
 
     @pytest.mark.asyncio
-    async def test_verify_sign_up_with_apple(self, task_id: str, config: Config) -> None:
+    async def test_verify_sign_up_with_apple(
+        self, task_id: str, config: Config
+    ) -> None:
         """Test authentication with valid Apple credentials."""
 
         test = Test(
@@ -53,17 +57,20 @@ class TestTickPick():
 
         result = await signup_agent(
             config=config,
-            identifier=None,
+            identifier=None,  # type: ignore
             task_id=task_id,
             test=test,
             secrets=[],
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == TestStatus.AGENT_LIMITATION.value
 
     @pytest.mark.asyncio
-    async def test_verify_sign_up_with_google(self, task_id: str, config: Config) -> None:
+    async def test_verify_sign_up_with_google(
+        self, task_id: str, config: Config
+    ) -> None:
         """Test authentication with valid Google OAuth credentials."""
 
         test = Test(
@@ -79,11 +86,12 @@ class TestTickPick():
 
         result = await signup_agent(
             config=config,
-            identifier=None,
+            identifier=None,  # type: ignore
             task_id=task_id,
             test=test,
             secrets=[],
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == TestStatus.AGENT_LIMITATION.value

@@ -136,6 +136,7 @@ TEST_CASES = [
 ]
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize("test_input, expected_agent", TEST_CASES)
 async def test_select_agent_to_use(test_input: Test, expected_agent: Callable) -> None:
     """

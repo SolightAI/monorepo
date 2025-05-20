@@ -21,6 +21,7 @@ ERROR_MESSAGE = (
 class TestTickPick:
     url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/"
 
+    @pytest.mark.asyncio
     async def test_signup_wo_email_verification(self, task_id: str) -> None:
         test = Test(
             category=TestCategory.SMOKE,
@@ -50,6 +51,7 @@ class TestTickPick:
             expected_result=True, result=is_able, explanation=explanation
         )
 
+    @pytest.mark.asyncio
     async def test_signup_w_email_verification(self, task_id: str) -> None:
         test = Test(
             category=TestCategory.SMOKE,
@@ -80,6 +82,7 @@ class TestTickPick:
             expected_result=False, result=is_able, explanation=explanation
         )
 
+    @pytest.mark.asyncio
     async def test_validate_email_field_input(self, task_id: str) -> None:
         test = Test(
             category=TestCategory.SMOKE,
@@ -107,6 +110,7 @@ class TestTickPick:
             expected_result=True, result=is_able, explanation=explanation
         )
 
+    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "repeat", [i for i in range(3)]
     )  # reduce chances of flaky test
@@ -134,6 +138,7 @@ class TestTickPick:
             expected_result=True, result=is_able, explanation=explanation
         )
 
+    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "repeat", [i for i in range(3)]
     )  # reduce chances of flaky test
@@ -174,6 +179,7 @@ class TestTickPick:
 class TestSolight:
     url = "https://app.solight.ai/"
 
+    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "repeat", [i for i in range(3)]
     )  # reduce chances of flaky test
@@ -209,6 +215,7 @@ class TestSolight:
             expected_result=True, result=is_able, explanation=explanation
         )
 
+    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "repeat", [i for i in range(3)]
     )  # reduce chances of flaky test
@@ -245,6 +252,7 @@ class TestSolight:
             expected_result=False, result=is_able, explanation=explanation
         )
 
+    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "social_media", ["GitHub", "Facebook", "Twitter", "Microsoft"]
     )

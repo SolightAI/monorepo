@@ -7,7 +7,6 @@ class ValidateURLPayload(BaseModel):
 
     Attributes:
         url (str): URL to validate
-        job_id (str): ID of the job
     """
 
     url: str
