@@ -5,7 +5,7 @@ import asyncio
 
 from PIL import Image
 from typing import Any
-from lmnr import observe
+from lmnr import Laminar, observe
 from utils.dto import Test
 from typing import Callable
 from logging import getLogger
@@ -21,6 +21,7 @@ from healthchecks import get_prompt_list_of_healthchecks, HEALTHCHECKS
 from utils.s3_utils import upload_file_to_s3, download_file_from_s3, exists_in_s3
 from browser_use import Agent, Browser, BrowserConfig, AgentHistoryList, Controller
 from browser_use.browser.context import BrowserContextConfig, BrowserContext, BrowserContextWindowSize
+from utils.constants import LMNR_PROJECT_API_KEY
 
 
 SHARED_AGENT_LIMITATIONS = [
@@ -709,6 +710,39 @@ async def _generate_and_upload_evidences(task_id: str, history: AgentHistoryList
     return evidences
 
 
+def _get_agent(context: BrowserContext, controller: Controller, prompt: str, sensitive_data: dict[str, str], url: str, **kwargs: Any) -> Agent:
+
+    rules_for_message_context = [
+        # Prevents issues when the agent store in memory the index of an element, scroll, and then try to interact with the wrong index
+        "Do never store any index in your memory. Elements' indexes are not stable, they can change as you scroll the page.",
+
+        # Prevents issues when the agent do not have the right element it needs to interact with, and press a random button
+        "If you do not have the right element you need to interact with in your list of interactive elements, scroll to find it.",
+    ]
+
+    agent_params = {
+        "task": prompt,
+
+        "llm": kwargs.get("llm", AGENT_CLIENT),
+        "use_vision": kwargs.get("use_vision", False),
+        "enable_memory": kwargs.get("enable_memory", False),
+
+        "initial_actions": [
+            {'go_to_url': {'url': url}}, {'go_to_url': {'url': url}},  # necessary to do it twice in some situations (i.e tickpick in-url auth in dev)
+            {'wait': {'seconds': 5}}
+        ],
+        "sensitive_data": sensitive_data,
+        "browser_context": context,
+        "controller": controller,
+        "max_actions_per_step": 1,
+        "injected_agent_state": kwargs.get("injected_agent_state", None),
+        # as long as we're using browser-use==0.41, please keep the space before the "Do never" as browser-use doesn't add it
+        "message_context": " " + "".join(["\n- " + rule for rule in rules_for_message_context]),
+    }
+
+    return Agent(**(agent_params))  # after try use vision (both for planner and agent)
+
+
 @observe()
 async def run_agent(
     identifier: str,
@@ -738,6 +772,9 @@ async def run_agent(
     Returns:
         A tuple containing the session data, history, evidences and a boolean indicating if the agent was run from cache.
     """
+
+    if LMNR_PROJECT_API_KEY:
+        Laminar.set_session(session_id=task_id)
 
     evidences = []
 
@@ -786,23 +823,6 @@ async def run_agent(
 
             controller.action(tool.__doc__.strip() or "")(tool)
 
-        agent_params = {
-            "task": prompt,
-
-            "llm": kwargs.get("llm", AGENT_CLIENT),
-            "use_vision": kwargs.get("use_vision", False),
-            "enable_memory": kwargs.get("enable_memory", False),
-
-            "initial_actions": [
-                {'go_to_url': {'url': url}}, {'go_to_url': {'url': url}},  # necessary to do it twice in some situations (i.e tickpick in-url auth in dev)
-                {'wait': {'seconds': 5}}
-            ],
-            "sensitive_data": sensitive_data,
-            "browser_context": context,
-            "controller": controller,
-            "max_actions_per_step": 1,
-        }
-
         logger.info(f"[{task_id}] Checking if history exists in S3 for {identifier}")
 
         run_agent = True
@@ -817,7 +837,7 @@ async def run_agent(
 
                     logger.info(f"[{task_id}] Loading history from {history_file.name} for GIF generation.")
 
-                    agent = Agent(**agent_params)
+                    agent: Agent = _get_agent(context, controller, prompt, sensitive_data, url, **kwargs)
                     agent._task_id = task_id  # NOTE: we want to use a different agent for rerun_history and agent.run as rerun_history modifies the agent's controller
 
                     history = await rerun_history(
@@ -837,7 +857,7 @@ async def run_agent(
 
             logger.info(f"[{task_id}] Running agent for the first time")
 
-            agent = Agent(**(agent_params))
+            agent = _get_agent(context, controller, prompt, sensitive_data, url, **kwargs)
             agent._task_id = task_id
 
             history = await agent.run(
@@ -846,8 +866,7 @@ async def run_agent(
             )
 
             if additional_task is not None and len(additional_task) > 0:
-                injected_agent_state = agent.state
-                agent = Agent(**(agent_params | {"injected_agent_state": injected_agent_state, "task": additional_task}))
+                agent = _get_agent(context, controller, additional_task, sensitive_data, url, **kwargs | {"injected_agent_state": agent.state})
                 agent.add_new_task(additional_task)
                 history = await agent.run(
                     max_steps=50,
