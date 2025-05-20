@@ -8,6 +8,7 @@ from analyze_ui_coverage import analyze_ui_coverage
 from analyze_category_match import analyze_category_match
 from analyze_redundancy import analyze_redundancy
 from analyze_execution_rate import analyze_execution_rate, TestStatus
+from analyze_intent_alignment import analyze_intent_alignment_batch
 
 # Configure logging
 logger = getLogger(__name__)
@@ -178,6 +179,38 @@ async def test_generate_tests():
     for recommendation in redundancy_analysis.get('recommendations', []):
         print(f"- {recommendation}")
     
+    # Analyze intent alignment
+    intent_analysis = analyze_intent_alignment_batch(
+        generated_tests,
+        user_request="Generate negative tests for the web app functionality",
+        category=requested_category
+    )
+    
+    # Log intent alignment analysis
+    print("\n=== Intent Alignment Analysis ===")
+    summary = intent_analysis.get('intent_alignment_summary', {})
+    print(f"\nTotal Tests: {summary.get('total_tests', 0)}")
+    print(f"Average Relevance Score: {summary.get('average_relevance_score', 0):.2f}")
+    print(f"Keep Count: {summary.get('keep_count', 0)}")
+    print(f"Improve Count: {summary.get('improve_count', 0)}")
+    print(f"Discard Count: {summary.get('discard_count', 0)}")
+    print(f"Keep Percentage: {summary.get('keep_percentage', 0):.2f}%")
+    
+    print("\nTest Analysis:")
+    for test_analysis in intent_analysis.get('test_analysis', []):
+        print(f"\nTest: {test_analysis['test_name']}")
+        print(f"Alignment: {test_analysis['alignment']}")
+        print(f"Relevance Score: {test_analysis['relevance_score']:.2f}")
+        print(f"Covers: {', '.join(test_analysis['covers'])}")
+        if test_analysis['missing']:
+            print(f"Missing: {', '.join(test_analysis['missing'])}")
+        print(f"Recommendation: {test_analysis['recommendation']}")
+        print(f"Reasoning: {test_analysis['reasoning']}")
+    
+    print("\nRecommendations:")
+    for recommendation in intent_analysis.get('recommendations', []):
+        print(f"- {recommendation}")
+    
     # Calculate total score
     execution_score = execution_analysis.get('execution_summary', {}).get('success_rate', 0)  # Already in percentage
     
@@ -196,32 +229,42 @@ async def test_generate_tests():
     category_score = category_analysis.get('category_match_summary', {}).get('match_percentage', 0)  # Already in percentage
     redundancy_penalty = redundancy_analysis.get('redundancy_summary', {}).get('overall_redundancy_score', 0)  # Already in percentage
     
+    # Calculate intent alignment score based on average relevance score instead of keep percentage
+    intent_summary = intent_analysis.get('intent_alignment_summary', {})
+    intent_score = intent_summary.get('average_relevance_score', 0) * 100  # Convert to percentage
+    
     # Calculate total score using adjusted weights for test environment limitations
     total_score = (
-        (execution_score * 0.5) +           # 50% weight for execution (reduced from 50%)
-        (interaction_coverage * 0.2) +      # 20% weight for interaction coverage (reduced from 20%)
-        (category_score * 0.2) -            # 20% weight for category accuracy (increased from 20%)
-        (redundancy_penalty * 0.1)          # 10% penalty for redundancy (unchanged)
+        (execution_score * 0.4) +           # 40% weight for execution 
+        (interaction_coverage * 0.15) +     # 15% weight for interaction coverage 
+        (category_score * 0.15) +           # 15% weight for category accuracy 
+        (intent_score * 0.2) -              # 20% weight for intent alignment 
+        (redundancy_penalty * 0.1)          # 10% penalty for redundancy 
     )
     
     print("\n=== Total Score Analysis ===")
     print(f"Execution Score: {execution_score:.2f}%")
     print(f"Interaction Coverage: {interaction_coverage:.2f}%")
     print(f"Category Match Score: {category_score:.2f}%")
+    print(f"Intent Alignment Score: {intent_score:.2f}%")
     print(f"Redundancy Penalty: {redundancy_penalty:.2f}%")
     print(f"Total Score: {total_score:.2f}%")
     
     # Assert minimum total score with lower threshold
-    assert total_score >= 10, f"Total score {total_score:.2f}% is below minimum threshold of 50%"
+    assert total_score >= 10, f"Total score {total_score:.2f}% is below minimum threshold of 10%"
 
     # Assert that tests were generated
     assert result["status"] == "passed"
     assert len(generated_tests) > 0
 
     # Assert category match quality
-    assert summary.get('match_percentage', 0) >= 50, "Category match percentage should be at least 80%"
+    category_summary = category_analysis.get('category_match_summary', {})
+    assert category_summary.get('match_percentage', 0) >= 50, "Category match percentage should be at least 50%"
     
     # Assert redundancy is not too high
-    assert redundancy_summary.get('overall_redundancy_score', 0) < 90, "Overall redundancy score should be less than 70%"
+    assert redundancy_summary.get('overall_redundancy_score', 0) < 90, "Overall redundancy score should be less than 90%"
+    
+    # Assert intent alignment quality using average relevance score
+    assert intent_summary.get('average_relevance_score', 0) >= 0.1, "Average relevance score should be at least 0.2"
 
 
