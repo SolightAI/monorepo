@@ -57,7 +57,7 @@ class TestTickPick():
         Assertion/Validation:
             a. Verify that after processing completes, an error message appears stating exactly: "We encountered an error processing your order. Please try again."
             b. If this message does not appear but another error or alert is shown instead (such as an alert icon without text), note this as a deviation from expected behavior.
-        """.strip())
+        """).strip()
 
         test_params = {
             "feature_id": task_id,
@@ -112,7 +112,7 @@ class TestTickPick():
         5. Press the 'Place Order' button at the bottom of the form.
 
         6. Wait for any processing animation or message to finish after clicking Place Order.
-        """.strip())
+        """).strip()
 
         test_params = {
             "feature_id": task_id,
@@ -164,7 +164,7 @@ class TestTickPick():
         4. Ensure that the radio button labelled "No, don't make my ticket reimbursable" is selected.
 
         5. Wait for any processing animation or message to finish after clicking Place Order.
-        """.strip())
+        """).strip()
 
         test_params = {
             "feature_id": task_id,

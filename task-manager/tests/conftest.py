@@ -1,9 +1,10 @@
+import os
 import sys
 import pytest
-import os
+import warnings
 
 from uuid import uuid4
-
+from lmnr import Laminar
 
 # Environment variables
 PLAYGROUND_URL = os.getenv("PLAYGROUND_URL", "http://localhost:3000")
@@ -11,6 +12,12 @@ HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+
+
+if os.getenv("LMNR_PROJECT_API_KEY"):
+    Laminar.initialize(project_api_key=os.getenv("LMNR_PROJECT_API_KEY"))
+else:
+    warnings.warn("LMNR_PROJECT_API_KEY is not set, deactivating tracing and observability")
 
 
 def pytest_configure(config):
