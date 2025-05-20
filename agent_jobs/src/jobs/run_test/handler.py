@@ -23,7 +23,7 @@ async def handler(
     test: Test,
     secrets: Optional[list[dict[str, Any]]],
     run_without_cache: bool | None = None,
-) -> None:
+) -> Any:  # TODO(TomChv): This should be a RunTestResult
     decrypted_secrets: list[dict[str, Any]] = list()
 
     if secrets:
@@ -68,7 +68,6 @@ async def handler(
     result["tracing"] = {}  # deactivated for now
 
     logger.info(f"[{job_id}] Ran tests for {test.url}")
+    logger.info(f"[{job_id}] Test ran successfully")
 
-    config.webhook_client.send_success(job_id, json.dumps(result))
-
-    logger.info(f"[{job_id}] Test ran successfully ; sending result back to webhook")
+    return result

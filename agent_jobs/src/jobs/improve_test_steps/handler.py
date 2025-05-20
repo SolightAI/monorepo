@@ -2,7 +2,8 @@ import logging
 
 from typing import Any, Optional
 
-from src.common.dto import Product, Feature, Test
+from .dto import ImproveTestStepsResult
+from src.common.dto import Product, Test
 from src.config import Config
 
 from src.agents.auth.get_auth_session import get_auth_session
@@ -18,7 +19,7 @@ async def handler(
     product: Product,
     test: Test,
     secrets: Optional[list[dict[str, Any]]] = None,
-) -> None:
+) -> ImproveTestStepsResult:
     decrypted_secrets: list[dict[str, Any]] = list()
 
     if secrets:
@@ -31,7 +32,7 @@ async def handler(
     ):
         auth_session = await get_auth_session(
             config=config,
-            identifier=None,
+            identifier=None, # type: ignore
             task_id=job_id,
             url=product.url,
             secrets=decrypted_secrets,
@@ -49,8 +50,4 @@ async def handler(
 
     logger.info(f"[{job_id}] Test {test.name} finished running: {result}")
 
-    config.webhook_client.send_success(job_id, result.model_dump_json())
-
-    logger.info(
-        f"[{job_id}] Successfully sent result {result.status.value} to webhook for {test.name} run"
-    )
+    return result

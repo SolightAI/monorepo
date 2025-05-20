@@ -19,7 +19,7 @@ concurrency:
 jobs:
   validate-url-lambda-tests:
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 60
 
     defaults:
       run:

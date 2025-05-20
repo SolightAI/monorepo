@@ -29,7 +29,7 @@ async def test_text_captcha_login_agent(task_id: str, config: Config) -> None:
 
     result = await login_agent(
         config=config,
-        identifier=None,
+        identifier=None, # type: ignore
         task_id=task_id,
         test=test,
         secrets=[],
@@ -61,7 +61,7 @@ async def test_image_captcha_login_agent(task_id: str, config: Config) -> None:
 
     result = await login_agent(
         config=config,
-        identifier=None, # TODO: CONTINUE REBASE FROM THERE https://github.com/SolightAI/monorepo/commit/23c7d01208e714a537b5987e9ed75d1c1cc5d53d#diff-95c1975f287d537c4af43bb4fd8ca810fd14d09bf6d51584a649eeb782b9e425
+        identifier=None, # type: ignore
         task_id=task_id,
         test=test,
         secrets=[],

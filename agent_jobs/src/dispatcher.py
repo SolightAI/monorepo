@@ -1,3 +1,6 @@
+import logging
+
+from typing import Any
 from .config import Config
 from .job_parser import Job, JobType
 
@@ -7,6 +10,9 @@ from .jobs.improve_test_steps import handler as improve_test_steps_handler
 from .jobs.run_test import handler as run_test_handler
 
 
+logger = logging.getLogger(__name__)
+
+
 class DispatchError(Exception):
     """Error raised when dispatching a job fails."""
 
@@ -14,13 +20,15 @@ class DispatchError(Exception):
 
 
 async def dispatch_job(config: Config, job: Job) -> None:
+    result: Any = {}
+
     match job.job_type:
         case JobType.VALIDATE_URL:
-            await validate_url_handler(
+            result = await validate_url_handler(
                 config=config, job_id=job.job_id, url=job.payload.url
             )
         case JobType.GENERATE_TESTS:
-            await generate_tests_handler(
+            result = await generate_tests_handler(
                 config=config,
                 job_id=job.job_id,
                 product=job.payload.product,
@@ -30,7 +38,7 @@ async def dispatch_job(config: Config, job: Job) -> None:
                 categories=job.payload.categories,
             )
         case JobType.RUN_TEST:
-            await run_test_handler(
+            result = await run_test_handler(
                 config=config,
                 job_id=job.job_id,
                 product=job.payload.product,
@@ -40,7 +48,7 @@ async def dispatch_job(config: Config, job: Job) -> None:
                 run_without_cache=job.payload.run_without_cache,
             )
         case JobType.IMPROVE_TEST_STEPS:
-            await improve_test_steps_handler(
+            result = await improve_test_steps_handler(
                 config=config,
                 job_id=job.job_id,
                 product=job.payload.product,
@@ -49,3 +57,6 @@ async def dispatch_job(config: Config, job: Job) -> None:
             )
         case _:
             raise DispatchError(f"Unknown job type: {job.job_type}")
+
+    config.webhook_client.send_success(job.job_id, result.model_dump_json())
+    logger.info(f"[{job.job_id}] Job completed ; sending result back to webhook")

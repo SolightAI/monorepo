@@ -141,8 +141,11 @@ async def validate_url(
 
 async def _trigger_lambda(config: Config, job_id: str, url: str) -> None:
     payload = {
+        "job_type": "validate_url",
         "job_id": job_id,
-        "url": url,
+        "payload": {
+            "url": url,
+        }
     }
 
     # Comment this block and expose the webhook with ngrok to test locally the complete

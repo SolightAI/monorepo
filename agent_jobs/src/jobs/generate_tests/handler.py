@@ -24,7 +24,7 @@ async def handler(
     feature: Feature,
     secrets: Optional[list[dict[str, Any]]] = None,
     categories: Optional[list[TestCategory]] = None,
-) -> None:
+) -> GeneratedTestResult:
     logger.info(
         f"[{job_id}] Test generation: {epic.name}/{product.name}/{feature.name}"
     )
@@ -54,7 +54,7 @@ async def handler(
     ):
         auth_session = await get_auth_session(
             config=config,
-            identifier=None,
+            identifier=None, # type: ignore
             task_id=job_id,
             url=product.url,
             secrets=decrypted_secrets,  # Use decrypted secrets here # type: ignore
@@ -100,8 +100,8 @@ async def handler(
 
     logger.info(f"[{job_id}] Test generation output: {result}")
 
-    config.webhook_client.send_success(job_id, result.model_dump_json())
-
     logger.info(
-        f"[{job_id}] Successfully generated tests for {epic.name}/{product.name}/{feature.name} ; send result back to webhook"
+        f"[{job_id}] Successfully generated tests for {epic.name}/{product.name}/{feature.name}"
     )
+    
+    return result
