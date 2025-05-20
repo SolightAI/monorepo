@@ -1,6 +1,6 @@
 import logging
 
-from agent_jobs.src.jobs.validate_url.dto import ValidateURLResult
+from src.jobs.validate_url.dto import ValidateURLResult
 
 from .agent import run
 

@@ -1,5 +1,5 @@
 services:
-  validate_url_lambda:
+  lambda_jobs:
     build:
       context: .
       dockerfile: Dockerfile.local
@@ -9,7 +9,7 @@ services:
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - HEADLESS=true
-      - LAMBDA_WEBHOOK_URL=http://lambda_webhook:8085/lambda-webhook
+      - WEBHOOK_URL=http://lambda_webhook:8085/lambda-webhook
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_DB=0

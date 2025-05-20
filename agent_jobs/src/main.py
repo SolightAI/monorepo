@@ -6,9 +6,9 @@ import aws_lambda_typing.events as AWSEvents
 from aws_lambda_typing.context import Context as LambdaContext
 from pydantic import ValidationError
 
-import job_parser
-import dispatcher
 from .config import ConfigError, get_config
+from .job_parser import parse_job
+from .dispatcher import dispatch_job
 
 
 logger = logging.getLogger(__name__)
@@ -41,16 +41,17 @@ async def _async_lambda_handler(
         return
 
     body_payload_json = json.loads(body_payload)
+    logger.info(f"Received job: {body_payload_json}")
 
     try:
         # Get the configuration
         config = get_config()
         
         # Parse the job from the payload
-        job = job_parser.parse_job(body_payload_json)
+        job = parse_job(body_payload_json)
         
         # Dispatch the job
-        await dispatcher.dispatch_job(config, job)
+        await dispatch_job(config, job)
     except ValidationError as e:
         logger.error(f"Failed to parse job: {e}")
         raise Exception(f"Failed to parse job: {e.errors()}")
