@@ -40,6 +40,7 @@ jobs:
       AZURE_TENANT_ID: "test_azure_tenant_id"
       AZURE_REDIRECT_URI: "http://localhost:8000/auth/azure/callback"
       SECRET_ENCRYPTION_KEY: "test_encryption_key_for_testing_only"
+      DEMO_ACCOUNT_EMAIL: "demo@example.com"
       TASK_MANAGER_URL: "http://localhost:8001"
       REDIS_HOST: "localhost"
       REDIS_PORT: "6379"
