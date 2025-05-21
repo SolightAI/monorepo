@@ -103,14 +103,17 @@ export const triggerTestGeneration = async (acceptanceCriteriaId) => {
 /**
  * Trigger test generation for a feature
  * @param {string} featureId - The UUID of the feature
+ * @param {Array<string>} categories - Array of test categories to generate
  * @returns {Promise<string>} Promise with the task ID (UUID)
  */
-export const triggerFeatureTestGeneration = async (featureId) => {
+export const triggerFeatureTestGeneration = async (featureId, categories) => {
   try {
     const response = await axios.post(
       `${API_URL}/tests/generate?feature_id=${featureId}`,
-      {},
-      { withCredentials: true }
+      categories || null,
+      {
+        withCredentials: true
+      }
     );
     return response.data.task_id;
   } catch (error) {
@@ -213,6 +216,43 @@ export const duplicateTest = async (testData) => {
   } catch (error) {
     console.error('Error duplicating test:', error);
     // Re-throw the error to be caught by the calling component
+    throw error;
+  }
+};
+
+/**
+ * Trigger the improvement of test steps for a specific test
+ * @param {string} testId - The UUID of the test
+ * @returns {Promise<string>} Promise with the job ID
+ */
+export const improveTestSteps = async (testId) => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/tests/${testId}/steps`,
+      {},
+      { withCredentials: true }
+    );
+    // Returns the job ID (optional, depending on API response)
+    return response.data;
+  } catch (error) {
+    console.error(`Error triggering step improvement for test ${testId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Check the status of a test steps improvement task
+ * @param {string} testId - The test ID (UUID)
+ * @returns {Promise<object>} Promise with the task status data
+ */
+export const getImproveTestStepsStatus = async (testId) => {
+  try {
+    const response = await axios.get(`${API_URL}/tests/${testId}/steps/status`, {
+      withCredentials: true
+    });
+    return response.data; // Expected format: { task_id: string, status: string, ... }
+  } catch (error) {
+    console.error(`Error checking test steps improvement status for test ${testId}:`, error);
     throw error;
   }
 };

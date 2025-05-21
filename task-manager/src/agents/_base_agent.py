@@ -1,28 +1,33 @@
 import os
 import re
 import json
+import asyncio
 
 from PIL import Image
 from typing import Any
+from lmnr import Laminar, observe
+from utils.dto import Test
+from typing import Callable
 from logging import getLogger
-from tempfile import NamedTemporaryFile, TemporaryDirectory
+from utils.dto import TestStatus
+from utils.constants import SEED
 from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage
+from agents.run_cached_history import rerun_history
+from hooks.on_step_start_hook import on_step_start_hook
+from fixtures.tools import TOOLS, get_prompt_list_of_tools
+from tempfile import NamedTemporaryFile, TemporaryDirectory
+from healthchecks import get_prompt_list_of_healthchecks, HEALTHCHECKS
+from utils.s3_utils import upload_file_to_s3, download_file_from_s3, exists_in_s3
 from browser_use import Agent, Browser, BrowserConfig, AgentHistoryList, Controller
 from browser_use.browser.context import BrowserContextConfig, BrowserContext, BrowserContextWindowSize
-from utils.s3_utils import upload_file_to_s3
-# from test_run.tracing import initialize, extend_agent_history
-from fixtures.tools import TOOLS, get_prompt_list_of_tools
-from typing import Callable
-from healthchecks import get_prompt_list_of_healthchecks, HEALTHCHECKS
-from utils.dto import Test
-from langchain_core.messages import HumanMessage
-from utils.dto import TestStatus
+from utils.constants import LMNR_PROJECT_API_KEY
 
 
 SHARED_AGENT_LIMITATIONS = [
     "The agent cannot upload or download any type of file (including images, videos, documents, etc.).",
     "The agent cannot interact with OS file selectors, uploaders, or file dialogs.",
-    "The agent cannot leave the website to perform any search or action outside the website.",
+    "The agent cannot leave the website to perform any google search or action outside the website (except for google oauth).",
     "The agent cannot change the window size or viewport size.",
 ]
 
@@ -61,6 +66,9 @@ Consider the following limitations of the agent:
 Consider the following tools that the agent has access to:
 {{agent_tools}}
 
+Keep in mind that the agent will have access to the following credentials:
+{{secrets_names}}
+
 Analysis Process:
 1. Examine each aspect of the test (name, description, preconditions, steps, and assertions) separately.
 2. For each aspect:
@@ -69,6 +77,7 @@ Analysis Process:
    c. Analyze each limitation separately:
       - State whether there's a conflict and explain why or why not.
       - If a conflict is found, note which specific limitation it violates.
+      - If the test requires credentials, check if the agent has access to them.
    d. Summarize any conflicts found in this section.
 3. Keep a running count of any limitations encountered.
 
@@ -128,13 +137,16 @@ Please proceed with your analysis and decision.
 
 
 CHECK_FINAL_TEST_RESULT_PROMPT = """
-You are an AI assistant acting as a test automation engineer. Your task is to review a software test, the output from an agent that ran the test, and any additional healthcheck results. Based on this information, you need to determine if the test was successful and provide a detailed explanation of your conclusion.
+You are an AI assistant acting as a test automation engineer. Your task is to review a software test, the output from an agent that ran the test, the screenshot of the web-app's final state, and any additional healthcheck results. Based on this information, you need to determine if the test was successful and provide a detailed explanation of your conclusion.
+You're the one deciding of the final test result, not the agent.
 
 First, examine the agent's output from running the test:
 
 <agent_output>
 {{agent_output}}
 </agent_output>
+
+Then, examine the provided screenshot of the web-app's final state.
 
 Now, review the following test information:
 
@@ -154,6 +166,8 @@ Finally, review any additional healthcheck results (if available):
 {{healthcheck_results}}
 </healthcheck_results>
 
+If there's a conflict between the agent's output and the healthchecks, the healthcheck result is authoritative.
+
 Your task is to carefully analyze this information and determine the final result of the test. The possible outcomes are:
 
 {TEST_SUCCESSFUL}: The agent executed every step of the test script without errors, and all assertions passed.
@@ -162,47 +176,44 @@ Criteria:
 * No exceptions or timeouts occurred at runtime.
 * The page behaved exactly as the test expected (elements found, clicks succeeded, data matched).
 
-Example: Filling in a login form, submitting it, and seeing the “Welcome” message.
+Example: Filling in a login form, submitting it, and seeing the "Welcome" message.
 
 {TEST_FAILED}: The agent ran the test but one or more assertions did not hold true.
 
 Criteria:
+* A precondition was not met.
 * All steps up to the failure point completed without tool or environment errors.
-* At least one assertion (e.g. “element X is visible” or “text Y appears”) evaluated to false.
+* At least one assertion (e.g. "element X is visible" or "text Y appears") evaluated to false.
 
-Example: Clicking “Add to cart” succeeds, but the cart counter stays at zero.
+Example: Clicking "Add to cart" succeeds, but the cart counter stays at zero.
 
-{AGENT_LIMITATION}: The test couldn't even start or proceed because the agent itself hit a limitation—not because the site under test is broken or missing a feature.
+{AGENT_LIMITATION}: The test couldn't even start or proceed because the agent itself hit a limitation.
 
-Common causes:
+Criteria:
 * Unsupported action: The script asks the agent to do something it doesn't yet support (e.g. drag-and-drop, file upload, media playback).
-* Environment error: Browser crash, network timeout, or runtime exception in the agent's code.
-* Resource constraints: Out-of-memory or excessive CPU use prevented test continuation.
-* Configuration issues: Missing driver, incorrect browser version, wrong credentials for the test runner.
 
 Note: In all of these cases, the website may be perfectly fine—this status flags a gap in your automation layer.
 
-{NOT_FOUND}: The agent ran the script up to the point of looking for a site feature, but that feature wasn't found.
+{NOT_FOUND}: The agent could not find a UI element or feature required to perform a scripted action (e.g., click, type), thus preventing the test from proceeding. If an explicit test assertion fails because the element it refers to is not found, that should be categorized as {TEST_FAILED}.
 
 Criteria:
 * Locator lookups (by selector, text, etc.) return zero matches repeatedly.
-* No errors in the agent itself—only a “not found” result.
 
-Example: A test tries to click a “Help” link, but the page has no such link.
+Example: The test script needs to test the "Checkout" feature but the agent could not find how to start the checkout process.
 
-{BLOCKED_BY_CAPTCHA}: The agent is explicitly prevented from proceeding by an anti-bot measure.
+{BLOCKED_BY_CAPTCHA}: The test execution was halted because an anti-bot measure (e.g., a CAPTCHA) directly prevented the agent from starting or continuing the test. This status should be used only when the CAPTCHA is the primary reason the test could not run or proceed.
 
 Criteria:
-* A Captcha widget appears, or the page redirects to a challenge.
-* HTTP responses (e.g. 403) or Cloudflare blocks indicate a bot challenge.
+* A Captcha widget appears, or the page redirects to a challenge page preventing the agent from proceeding.
+* HTTP responses (e.g. 403) or Cloudflare blocks indicate a bot challenge preventing the agent from proceeding.
 
-Example: After login attempts, the agent is met with Google reCAPTCHA or a “verify you're human” interstitial.
+Example: After login attempts, the agent is met with Google reCAPTCHA or a "verify you're human" interstitial.
 
 Please follow these steps:
 1. Analyze the test information, agent output, and healthcheck results thoroughly.
 2. Consider how the agent's output aligns with the test's expectations and assertions.
 3. Look for any indications of test failure, agent limitations, missing features, or blocking factors like CAPTCHAs.
-4. Determine which of the possible outcomes best describes the test result.
+4. Determine which of the possible outcomes best describes the test result. You're strictly limited to the previously defined outcomes.
 5. Provide a short explanation for your decision.
 
 Wrap your analysis inside <analysis> tags to show your thought process before providing your final decision and explanation. Your analysis should include:
@@ -322,12 +333,16 @@ DESCRIPTION_HEALTHCHECK_RESULT = """
 OUTPUT_VALIDATION_LLM = ChatOpenAI(
     model="gpt-4.1-mini",
     temperature=0.0,
+    seed=SEED,
+    timeout=120,
 )
 
 
 LLM_CLIENT = ChatOpenAI(
     model="gpt-4.1",
     temperature=0.0,
+    seed=SEED,
+    timeout=120,
 )
 
 
@@ -336,11 +351,14 @@ AGENT_CLIENT = ChatOpenAI(
     temperature=0.0,
     timeout=120,
     frequency_penalty=0.3,
+    seed=SEED,
 )
 
 PLANNER_CLIENT = ChatOpenAI(
     model="gpt-4.1",
     temperature=0.0,
+    seed=SEED,
+    timeout=120,
 )
 
 
@@ -386,39 +404,77 @@ def _parse_select_additional_healthcheck_result(result: str) -> tuple[str, list[
 
 
 async def run_additional_healthcheck(
+    identifier: str | None,
     task_id: str,
     test: Test,
     existing_session: dict[str, dict[str, str]],
 ) -> dict[Callable, Any]:
 
-    logger.info(f"[{task_id}] Selecting additional healthcheck for {test.name}")
+    cache_key = f"{identifier}/selected_healthcheck.json"
 
-    result: str = LLM_CLIENT.invoke(
-        [
-            HumanMessage(
-                content=SELECT_ADDITIONAL_TEST_PROMPT.format(
-                    test=test,
-                    healthcheck_list=get_prompt_list_of_healthchecks(),
+    if identifier and exists_in_s3(cache_key):
+
+        logger.info(f"[{task_id}] Selecting additional healthcheck from cache")
+
+        with NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as selected_healthcheck_file:
+            download_file_from_s3(cache_key, selected_healthcheck_file.name)
+
+            with open(selected_healthcheck_file.name, "r") as f:
+                selected_healthchecks = json.load(f)
+
+    else:
+        logger.info(f"[{task_id}] No cached additional healthcheck found, selecting additional healthcheck")
+
+        result: str = (await LLM_CLIENT.ainvoke(
+            [
+                HumanMessage(
+                    content=SELECT_ADDITIONAL_TEST_PROMPT.format(
+                        test=test,
+                        healthcheck_list=get_prompt_list_of_healthchecks(),
+                    )
                 )
-            )
-        ]
-    ).content  # type: ignore
+            ]
+        )).content  # type: ignore
 
-    healthcheck_evaluation, selected_healthchecks = _parse_select_additional_healthcheck_result(result)
+        _, selected_healthchecks = _parse_select_additional_healthcheck_result(result)
 
-    logger.info(f"[{task_id}] Selected additional healthcheck(s): {selected_healthchecks} - Evaluation: {healthcheck_evaluation}")
+        if identifier:
+            with NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as selected_healthcheck_file:
+                with open(selected_healthcheck_file.name, "w") as f:
+                    json.dump(selected_healthchecks, f)
+
+                upload_file_to_s3(selected_healthcheck_file.name, cache_key)
 
     if not selected_healthchecks:
         return {}
 
+    # Create a list of coroutines to run
+    tasks_to_run = []
+
+    # Keep track of the healthcheck functions to map results back
+    healthcheck_fn_mapping = []
+
+    for _healthcheck_fn in HEALTHCHECKS:
+        if _healthcheck_fn.__name__ in selected_healthchecks:
+            tasks_to_run.append(
+                _healthcheck_fn(
+                    task_id=task_id,
+                    test=test,
+                    existing_session=existing_session,
+                )
+            )
+            healthcheck_fn_mapping.append(_healthcheck_fn)
+
+    if not tasks_to_run:  # Ensure we don't call gather with an empty list if no healthchecks match
+        return {}
+
+    # Run healthchecks concurrently
+    results = await asyncio.gather(*tasks_to_run)
+
+    # Map results back to their respective healthcheck functions
     return {
-        _healthcheck: await _healthcheck(
-            task_id=task_id,
-            test=test,
-            existing_session=existing_session,
-        )
-        for _healthcheck in HEALTHCHECKS
-        if _healthcheck.__name__ in selected_healthchecks
+        healthcheck_fn_mapping[i]: results[i]
+        for i in range(len(results))
     }
 
 
@@ -438,18 +494,37 @@ def _parse_check_final_test_result(result: str) -> tuple[TestStatus, str]:
 
     try:
         status = TestStatus[status]
-    except ValueError:
+    except KeyError:
         raise ValueError(f"Invalid status: {status}")
 
     return status, explanation
 
 
-def check_final_test_result(
+async def check_final_test_result(
     task_id: str,
     test: Test,
     agent_output: str,
+    screenshot_base64: str | None = None,
     healthcheck_results: dict[Callable, Any] | None = None,
 ) -> tuple[TestStatus, str]:
+    """
+    Determines the final result of a test based on agent output and healthcheck results.
+
+    Args:
+        task_id (str): The ID of the task.
+        test (Test): The test object containing details like name, description, steps, and assertions.
+        agent_output (str): The output generated by the agent while running the test.
+        screenshot_base64 (str | None, optional): A screenshot base64 encoded
+        healthcheck_results (dict[Callable, Any] | None, optional): A dictionary where keys are healthcheck functions
+                                                                  and values are their corresponding results. Defaults to None.
+
+    Raises:
+        ValueError: If the result from the language model is improperly formatted (e.g., missing status or explanation).
+
+    Returns:
+        tuple[TestStatus, str]: A tuple containing the final status of the test (e.g., PASSED, FAILED)
+                                and a string explanation for that status.
+    """
 
     logger.info(f"[{task_id}] Checking final test result for {test.name}")
 
@@ -464,23 +539,42 @@ def check_final_test_result(
         )
         for healthcheck, healthcheck_result in healthcheck_results.items()
     ])
-    logger.info(f"[{task_id}] Healthcheck results: {healthcheck_results_str=}")
 
-    logger.info(f"[{task_id}] Agent prompt: {CHECK_FINAL_TEST_RESULT_PROMPT.format(test=test, agent_output=agent_output, healthcheck_results=healthcheck_results_str).strip()}")
+    prompt = CHECK_FINAL_TEST_RESULT_PROMPT.format(
+        test=test,
+        agent_output=agent_output,
+        healthcheck_results=healthcheck_results_str,
+    ).strip()
 
-    result: str = OUTPUT_VALIDATION_LLM.invoke(
-        [
-            HumanMessage(
-                content=CHECK_FINAL_TEST_RESULT_PROMPT.format(
-                    test=test,
-                    agent_output=agent_output,
-                    healthcheck_results=healthcheck_results_str,
-                ).strip()
-            )
-        ]
-    ).content  # type: ignore
+    message: dict[str, Any] = {
+        "role": "user",
+        "content": [
+            {
+                "type": "text",
+                "text": prompt,
+            },
+        ],
+    }
 
-    status, explanation = _parse_check_final_test_result(result)
+    if screenshot_base64:
+        message["content"].append({
+            "type": "image_url",
+            "image_url": {"url": f"data:image/jpeg;base64,{screenshot_base64}"},
+        })
+
+    max_try = 3
+
+    for attempt in range(max_try):
+        try:
+            result: str = (await OUTPUT_VALIDATION_LLM.ainvoke([message])).content  # type: ignore
+            status, explanation = _parse_check_final_test_result(result)
+            break
+        except Exception as e:
+            logger.error(f"[{task_id}] Error parsing final test result (attempt {attempt + 1}/{max_try + 1}) ({e})")
+
+            if attempt >= max_try - 1:
+                logger.error("Reached max-try, raising error.")
+                raise RuntimeError(f"Failed to parse final test result: {e}")
 
     logger.info(f"[{task_id}] Final test result: {status} - {explanation}")
 
@@ -504,26 +598,28 @@ def _parse_is_agent_able_to_run_test_result(result: str) -> tuple[bool, str]:
     return decision == "AGENT ABLE", explanation
 
 
-def is_agent_able_to_run_test(
+async def is_agent_able_to_run_test(
     task_id: str,
     test: Test,
     agent_tools: list[Callable] | None = None,
     agent_limitations: list[str] | None = None,
+    secrets_names: list[str] | None = None,
 ) -> tuple[bool, str]:
 
     logger.info(f"[{task_id}] Running agent health check for {test.name}")
 
-    result: str = LLM_CLIENT.invoke(
+    result: str = (await LLM_CLIENT.ainvoke(
         [
             HumanMessage(
                 content=ABILITY_TO_RUN_TEST_PROMPT.format(
                     test=test,
                     agent_tools=get_prompt_list_of_tools(agent_tools or []),
                     agent_limitations="\n".join(agent_limitations or []),
+                    secrets_names=secrets_names or [],
                 )
             )
         ]
-    ).content  # type: ignore
+    )).content  # type: ignore
 
     is_able, explanation = _parse_is_agent_able_to_run_test_result(result)
 
@@ -545,7 +641,7 @@ def get_agent_actions(history: AgentHistoryList) -> list[dict[str, Any]]:
 
 def format_secrets(secrets: list[dict[str, Any]]) -> dict[str, str]:
     return {
-        f"{_secret['category']}:{_secret['name']}:{secret_name}": secret_value
+        f"{_secret['category'].strip()}:{_secret['name'].strip()}:{secret_name.strip()}".strip().replace(" ", "_"): secret_value
         for _secret in secrets
         for secret_name, secret_value in _secret['values'].items()
     }
@@ -604,11 +700,8 @@ async def _generate_and_upload_evidences(task_id: str, history: AgentHistoryList
             image.save(os.path.join(temp_dir, f"history-{idx}.png"))
             _evidence = upload_file_to_s3(
                 file_path=os.path.join(temp_dir, f"history-{idx}.png"),
-                job_id=task_id,
-                task_type="auth_check",
-                task_name=str(idx),
+                object_name=f"{task_id}/{idx}.png",
                 content_type="image/png",
-                extension="png",
             )
 
             if _evidence is not None:
@@ -617,18 +710,71 @@ async def _generate_and_upload_evidences(task_id: str, history: AgentHistoryList
     return evidences
 
 
+def _get_agent(context: BrowserContext, controller: Controller, prompt: str, sensitive_data: dict[str, str], url: str, **kwargs: Any) -> Agent:
+
+    rules_for_message_context = [
+        # Prevents issues when the agent store in memory the index of an element, scroll, and then try to interact with the wrong index
+        "Do never store any index in your memory. Elements' indexes are not stable, they can change as you scroll the page.",
+
+        # Prevents issues when the agent do not have the right element it needs to interact with, and press a random button
+        "If you do not have the right element you need to interact with in your list of interactive elements, scroll to find it.",
+    ]
+
+    agent_params = {
+        "task": prompt,
+
+        "llm": kwargs.get("llm", AGENT_CLIENT),
+        "use_vision": kwargs.get("use_vision", False),
+        "enable_memory": kwargs.get("enable_memory", False),
+
+        "initial_actions": [
+            {'go_to_url': {'url': url}}, {'go_to_url': {'url': url}},  # necessary to do it twice in some situations (i.e tickpick in-url auth in dev)
+            {'wait': {'seconds': 5}}
+        ],
+        "sensitive_data": sensitive_data,
+        "browser_context": context,
+        "controller": controller,
+        "max_actions_per_step": 1,
+        "injected_agent_state": kwargs.get("injected_agent_state", None),
+        # as long as we're using browser-use==0.41, please keep the space before the "Do never" as browser-use doesn't add it
+        "message_context": " " + "".join(["\n- " + rule for rule in rules_for_message_context]),
+    }
+
+    return Agent(**(agent_params))  # after try use vision (both for planner and agent)
+
+
+@observe()
 async def run_agent(
+    identifier: str,
     task_id: str,
     url: str,
     prompt: str,
     sensitive_data: dict[str, str],
     auth_session: dict[str, dict[str, str]] | None = None,
     tools: list[Callable] = TOOLS,
+    additional_task: str | None = None,
+    run_without_cache: bool = False,
     **kwargs: Any,
-) -> tuple[dict[str, dict[str, str]], AgentHistoryList, list[str]]:
+) -> tuple[dict[str, dict[str, str]], AgentHistoryList, list[str], bool]:
     """
     Signup to the webapp and return the generated cookies.
+
+    Args:
+        identifier: The identifier of the agent.
+        task_id: The task id of the agent.
+        url: The url of the webapp.
+        prompt: The prompt of the agent.
+        sensitive_data: The sensitive data of the agent.
+        auth_session: The auth session of the agent.
+        tools: The tools of the agent.
+        **kwargs: Any additional arguments.
+
+    Returns:
+        A tuple containing the session data, history, evidences and a boolean indicating if the agent was run from cache.
     """
+
+    if LMNR_PROJECT_API_KEY:
+        Laminar.set_session(session_id=task_id)
 
     evidences = []
 
@@ -668,31 +814,77 @@ async def run_agent(
             await context.navigate_to(url)  # allowing us to load the localStorage
             await _load_local_storage(context, auth_session["localStorage"])
 
-        # extend_agent_hsistory()
-
         controller = Controller()
 
         for tool in (tools or []):
-            controller.action(tool.__doc__ or "")(tool)
 
-        agent = Agent(
-            task=prompt,
+            if not tool.__doc__:
+                raise ValueError(f"Tool {tool.__name__} has no docstring")
 
-            llm=AGENT_CLIENT,
-            use_vision=False,
-            enable_memory=False,
+            controller.action(tool.__doc__.strip() or "")(tool)
 
-            # planner_llm=PLANNER_CLIENT,
-            # use_vision_for_planner=True,
+        logger.info(f"[{task_id}] Checking if history exists in S3 for {identifier}")
 
-            initial_actions=[{'go_to_url': {'url': url}}, {'go_to_url': {'url': url}}],  # twice cause it some case we have a redirect at the first try
-            sensitive_data=sensitive_data,
-            browser_context=context,
-            controller=controller,
-            max_actions_per_step=1,
-        )
+        run_agent = True
 
-        history = await agent.run(max_steps=50)
+        try:
+            if not run_without_cache and exists_in_s3(f"{identifier}/history.json"):
+
+                logger.info(f"[{task_id}] Running agent from cached history")
+
+                with NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as history_file:
+                    download_file_from_s3(f"{identifier}/history.json", history_file.name)
+
+                    logger.info(f"[{task_id}] Loading history from {history_file.name} for GIF generation.")
+
+                    agent: Agent = _get_agent(context, controller, prompt, sensitive_data, url, **kwargs)
+                    agent._task_id = task_id  # NOTE: we want to use a different agent for rerun_history and agent.run as rerun_history modifies the agent's controller
+
+                    history = await rerun_history(
+                        agent,
+                        AgentHistoryList.load_from_file(history_file.name, agent.AgentOutput),
+                        max_retries=3,
+                        skip_failures=False,
+                        delay_between_actions=2,  # leaves time for the page to load (otherwise leads to errors)
+                    )
+
+                    run_agent = False
+
+        except Exception as e:
+            logger.info(f"[{task_id}] Couldn't run cached history, running agent again. {e=}")
+
+        if run_agent:
+
+            logger.info(f"[{task_id}] Running agent for the first time")
+
+            agent = _get_agent(context, controller, prompt, sensitive_data, url, **kwargs)
+            agent._task_id = task_id
+
+            history = await agent.run(
+                max_steps=50,
+                on_step_start=on_step_start_hook,
+            )
+
+            if additional_task is not None and len(additional_task) > 0:
+                agent = _get_agent(context, controller, additional_task, sensitive_data, url, **kwargs | {"injected_agent_state": agent.state})
+                agent.add_new_task(additional_task)
+                history = await agent.run(
+                    max_steps=50,
+                    on_step_start=on_step_start_hook,
+                )
+
+            logger.info(f"[{task_id}] Agent finished running ({identifier=})")
+
+            with NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as history_file:
+
+                logger.info(f"[{task_id}] Saving history to {f'{identifier}/history.json'}")
+
+                history.save_to_file(history_file.name)
+
+                upload_file_to_s3(
+                    file_path=history_file.name,
+                    object_name=f"{identifier}/history.json",
+                )
 
         logger.info(f"[{task_id}] Finished running agent")
 
@@ -720,4 +912,4 @@ async def run_agent(
 
     logger.info(f"[{task_id}] Returning session data, history and evidences")
 
-    return session_data, history, evidences
+    return session_data, history, evidences, not run_agent

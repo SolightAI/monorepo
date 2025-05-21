@@ -11,6 +11,7 @@ from langchain_core.messages import HumanMessage
 from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 from utils.s3_utils import upload_file_to_s3
+from utils.constants import SEED
 
 
 USER_AUTHENTICATED = "USER_AUTHENTICATED"
@@ -54,10 +55,11 @@ Expected output format
 
 
 AGENT_CLIENT = ChatOpenAI(
-    model="gpt-4.1-mini",
+    model="gpt-4.1",  # gpt-4.1-mini is too stupid to handle the task (leads to false positives)
     temperature=0.0,
     timeout=120,
     frequency_penalty=0.3,
+    seed=SEED,
 )
 
 
@@ -105,8 +107,8 @@ def compare_html_files(file1_content: str, file2_content: str) -> str:
     cleaned_file2_content = clean_html_content(file2_content)
 
     # Split content into lines for difflib
-    file1_lines = cleaned_file1_content.splitlines()
-    file2_lines = cleaned_file2_content.splitlines()
+    file1_lines = [line for line in cleaned_file1_content.splitlines() if line.strip()]  # remove empty lines
+    file2_lines = [line for line in cleaned_file2_content.splitlines() if line.strip()]  # remove empty lines
 
     # Compare the cleaned files using unified_diff
     diff_generator = difflib.unified_diff(
@@ -153,18 +155,18 @@ async def check_is_logged_in_using_html_diff(
     if len(html_diff) == 0:
         return False  # no changes, so the user is not logged in
 
+    logger.info(f"[{task_id}] Length of HTML diff: {len(html_diff)}")
+
     if len(html_diff) > max_length:
         html_diff = html_diff[-max_length:]
 
-    result: str = AGENT_CLIENT.invoke(
+    result: str = (await AGENT_CLIENT.ainvoke(
         [
             HumanMessage(
                 content=PROMPT.format(html_diff=html_diff)
             )
         ]
-    ).content  # type: ignore
-
-    logger.info(f"[{task_id}] Login check result: {result}")
+    )).content  # type: ignore
 
     return _parse_result_from_html_diff(result)
 
@@ -220,10 +222,7 @@ async def check_is_logged_in(
                 temp_png.flush()
                 upload_file_to_s3(
                     file_path=temp_png.name,
-                    job_id=task_id,
-                    task_type="auth_check",
-                    task_name=f"{url}_before",
-                    extension="png",
+                    object_name=f"{task_id}/{url}_before.png",
                     content_type="image/png"
                 )
         except Exception as e:
@@ -283,10 +282,7 @@ async def check_is_logged_in(
                     temp_png.flush()
                     upload_file_to_s3(
                         file_path=temp_png.name,
-                        job_id=task_id,
-                        task_type="auth_check",
-                        task_name=f"{url}_after",
-                        extension="png",
+                        object_name=f"{task_id}/{url}_after.png",
                         content_type="image/png"
                     )
             except Exception as e:

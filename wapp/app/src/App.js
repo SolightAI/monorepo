@@ -88,69 +88,76 @@ function AppContent() {
   }, []);
 
   return (
-    <OnboardingProvider>
-      <OrganizationProvider>
-        <ProductProvider>
-          <SecretProvider>
-            {/* Render OnboardingModal at the top level */}
-            <OnboardingModal />
+    <Routes>
+      {/* Demo routes */}
+      <Route path="/demo/*" element={<DemoProvider><DemoLayout /></DemoProvider>}>
+        <Route index element={<Home />} />
+        <Route path={"processing"} element={<Processor />} />
+        <Route path="results" element={<Results />} />
+        <Route path="*" element={<NotFound />} />
+      </Route>
 
-            <div className="min-h-screen bg-gray-50">
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/reset-password/:token" element={<ResetPassword />} />
-                <Route path="/auth/callback" element={<OAuthCallbackPage />} />
-                <Route path="/join-organization/:code" element={<JoinOrganization />} />
+      <Route 
+        path="*"
+        element={
+          <OnboardingProvider>
+            <OrganizationProvider>
+              <ProductProvider>
+                <SecretProvider>
+                  {/* Render OnboardingModal at the top level */}
+                  <OnboardingModal />
 
-                {/* Demo routes */}
-                <Route path="/demo/*" element={<DemoProvider><DemoLayout /></DemoProvider>}>
-                  <Route index element={<Home />} />
-                  <Route path={"processing"} element={<Processor />} />
-                  <Route path="results" element={<Results />} />
-                  <Route path="*" element={<NotFound />} />
-                </Route>
+                  <div className="min-h-screen bg-gray-50">
+                    <Routes>
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/reset-password/:token" element={<ResetPassword />} />
+                      <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+                      <Route path="/join-organization/:code" element={<JoinOrganization />} />
 
-                {/* Organization Setup Route */}
-                <Route path="/organizations/create" element={
-                  <ProtectedRoute>
-                    <OrganizationCreate />
-                  </ProtectedRoute>
-                } />
-                <Route path="/organization/create" element={
-                  <ProtectedRoute>
-                    <OrganizationCreate />
-                  </ProtectedRoute>
-                } />
+                      {/* Organization Setup Route */}
+                      <Route path="/organizations/create" element={
+                        <ProtectedRoute>
+                          <OrganizationCreate />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/organization/create" element={
+                        <ProtectedRoute>
+                          <OrganizationCreate />
+                        </ProtectedRoute>
+                      } />
 
-                {/* Protected routes with Layout */}
-                <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                      {/* Protected routes with Layout */}
+                      <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
 
-                  {/* Test table page */}
-                  <Route path="/" element={<Navigate to="/tests" replace />} />  {/* Redirects to /tests*/}
+                        {/* Test table page */}
+                        <Route path="/" element={<Navigate to="/tests" replace />} />  {/* Redirects to /tests*/}
 
-                  {/* TestCredentials Management page */}
-                  <Route path="/secrets" element={<TestCredentials />} />
-                  {/* Tests Table page */}
-                  <Route path="/tests" element={<TestsTable />} />
-                  {/* Organization routes */}
-                  <Route path="/organizations/dashboard" element={<OrganizationDashboard />} />
-                  {/* Other protected routes */}
-                  <Route path="/settings" element={<Settings />} />
-                </Route>
+                        {/* TestCredentials Management page */}
+                        <Route path="/secrets" element={<TestCredentials />} />
+                        {/* Tests Table page */}
+                        <Route path="/tests" element={<TestsTable />} />
+                        {/* Organization routes */}
+                        <Route path="/organizations/dashboard" element={<OrganizationDashboard />} />
+                        {/* Other protected routes */}
+                        <Route path="/settings" element={<Settings />} />
+                      </Route>
 
-                {/* Admin routes with Layout */}
-                <Route element={<AdminRoute><Layout /></AdminRoute>}>
-                  <Route path="/admin/invitations" element={<AdminInvitations />} />
-                </Route>
+                      {/* Admin routes with Layout */}
+                      <Route element={<AdminRoute><Layout /></AdminRoute>}>
+                        <Route path="/admin/invitations" element={<AdminInvitations />} />
+                      </Route>
 
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </div>
-          </SecretProvider>
-        </ProductProvider>
-      </OrganizationProvider>
-    </OnboardingProvider>
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </div>
+                </SecretProvider>
+              </ProductProvider>
+            </OrganizationProvider>
+          </OnboardingProvider>
+        } 
+      />
+    </Routes>
   );
 }
 

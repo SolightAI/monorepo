@@ -1,0 +1,62 @@
+name: Lambdas Webhook CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'lambda_webhook/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'lambda_webhook/**'
+  # Manual trigger
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lambda-webhook-tests:
+    runs-on: self-hosted
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        working-directory: ./lambda_webhook
+
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        driver: docker
+
+    - name: Run Lambda tests
+      run: |
+        ./run-test.sh
+      env:
+        IMAGE_NAME: lambda-webhook-test:${{ github.event.pull_request.number || 'main' }}
+
+  lambda-webhook-lint:
+    runs-on: self-hosted
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ./lambda_webhook
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install Ruff without running check
+      uses: astral-sh/ruff-action@v3
+      with:
+        args: "--version"
+
+    - name: Run Ruff
+      run: ruff check
+      

@@ -1,0 +1,142 @@
+services:
+  app:
+    build:
+      context: ./wapp/app
+      dockerfile: Dockerfile
+    command: ["npm", "start"]
+    ports:
+      - "3001:3000"
+    environment:
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8001}
+
+  api:
+    build:
+      context: ./wapp/api
+      dockerfile: Dockerfile
+    command: ["fastapi", "dev", "--reload", "src/main.py", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8001:8000"
+    environment:
+      - APP_URL=${APP_URL:-http://localhost:3001}
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=db
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-defaultsecret}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_REDIRECT_URI=${AZURE_REDIRECT_URI}
+      - SECRET_ENCRYPTION_KEY=${SECRET_ENCRYPTION_KEY:-defaultsecret}
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - S3_BUCKET_NAME=task-manager
+      - AWS_REGION=us-east-1
+      - AWS_ENDPOINT_URL=http://minio:9000
+      # Redis Cache Configuration
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0 # Use DB 1 for API cache (task-manager uses 0)
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - SYMMETRIC_ENCRYPTION_KEY=${SYMMETRIC_ENCRYPTION_KEY:-S5ox-_h4p9NISVvQFPsAE5T-8K-SNp67GLQalO75rDI=}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  task-manager:
+    build:
+      context: task-manager
+      dockerfile: Dockerfile
+    volumes:
+      - playwright_browsers:/tmp/playwright-browsers
+    environment:
+      - MAX_JOBS=${MAX_JOBS:-4}
+      - ANONYMIZED_TELEMETRY=false
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - AZURE_OPENAI_KEY=${AZURE_OPENAI_KEY}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - PRIVATE_KEY_PATH=${PRIVATE_KEY_PATH:-/app/keys/private.pem}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - S3_BUCKET_NAME=task-manager
+      - AWS_ENDPOINT_URL=http://minio:9000
+      - PLAYGROUND_URL=http://playground:3000
+      - SYMMETRIC_ENCRYPTION_KEY=${SYMMETRIC_ENCRYPTION_KEY:-S5ox-_h4p9NISVvQFPsAE5T-8K-SNp67GLQalO75rDI=}
+      - PROD_AWS_LAMBDA_QUEUE_TRIGGER_ACCESS_KEY=${AWS_SQS_LAMBDA_TRIGGER_ACCESS_KEY:-}
+      - PROD_AWS_SQS_LAMBDA_QUEUE_TRIGGER_SECRET_ACCESS_KEY=${AWS_SQS_LAMBDA_TRIGGER_SECRET_ACCESS_KEY:-}
+      - PROD_AWS_LAMBDA_QUEUE_URL=${AWS_SQS_LAMBDA_URL:-}
+    depends_on:
+      - redis
+      - minio
+
+  lambda_webhook:
+    build:
+      context: lambda_webhook
+      dockerfile: Dockerfile
+    ports:
+      - "8086:8085"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - DEV_MODE=true
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9001:9000"  # MinIO API
+      - "9091:9090"  # MinIO Console
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9090"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  playwright_browsers:

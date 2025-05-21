@@ -3,15 +3,19 @@ import asyncio
 import logging
 
 from typing import Any
+from lmnr import Laminar
 from concurrent import futures
 from arq.worker import run_worker, func
 from arq.connections import RedisSettings
-from generation.test_generation import generate_tests
 from test_run.test_endpoint import run_test
-from validate_url.validate_url import validate_url
+from utils.constants import LMNR_PROJECT_API_KEY
+from generation.test_generation import generate_tests
+from lambda_invoker.validate_url import validate_url
+from improve_test_steps.endpoint import improve_test_steps
 
 
 logger = logging.getLogger(__name__)
+Laminar.initialize(project_api_key=LMNR_PROJECT_API_KEY)
 
 
 MAX_JOBS = int(os.getenv("MAX_JOBS", 4))
@@ -29,6 +33,7 @@ class WorkerSettings:
         func(generate_tests),
         func(run_test),  # we do not want to retry test runs
         func(validate_url),
+        func(improve_test_steps),
     ]
 
     on_startup = startup

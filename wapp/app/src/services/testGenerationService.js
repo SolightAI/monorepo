@@ -20,14 +20,19 @@ export const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, o
 
             if (response.status === TEST_STATUS.PASSED) {
                 clearInterval(intervalId);
-                onSuccess(
-                    `Successfully generated tests for feature "${featureName || featureId}". Status: ${formatStatus(TEST_STATUS.PASSED)}`
-                );
-                // setTimeout(() => window.location.reload(), 2000);
+                try {
+                    // Call onSuccess with message
+                    onSuccess({
+                        message: `Successfully generated tests for feature "${featureName || featureId}". Status: ${formatStatus(TEST_STATUS.PASSED)}`,
+                        featureId,
+                    });
+                } catch (fetchErr) {
+                    console.error('Error fetching generated tests:', fetchErr);
+                    onError('Tests were generated but could not be retrieved. Please refresh the page.');
+                }
             } else if (response.status === TEST_STATUS.ERROR || response.status === TEST_STATUS.FAILED) {
                 clearInterval(intervalId);
                 onError(response.status === TEST_STATUS.ERROR ? `Error generating tests for feature "${featureName || featureId}". Please try again.` : `Test generation failed for feature "${featureName || featureId}". Please try again.`);
-                // setTimeout(() => window.location.reload(), 2000);
             }
         } catch (pollErr) {
             console.error(`Error polling test generation status for Feature ${featureId}:`, pollErr);
@@ -42,19 +47,21 @@ export const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, o
  * Handles the logic for triggering and monitoring feature test generation.
  * @param {string} featureId - The ID of the feature to generate tests for.
  * @param {Array} secrets - Array of test credentials. Should not be empty.
- * @param {Function} onStart - Callback function when generation starts (receives featureId).
+ * @param {Array<string>} categories - Array of test categories to generate
  * @param {Function} onStatusUpdate - Callback function for status updates (receives status message).
  * @param {Function} onSuccess - Callback function on successful completion (receives success message).
  * @param {Function} onError - Callback function on error (receives error message).
+ * @param {string} featureName - The name of the feature.
  * @returns {Function} - A cleanup function to clear the polling interval.
  */
 export const handleFeatureTestGeneration = async (
     featureId,
-    secrets, // We only check for existence here, actual usage might be server-side
-    onStart,
+    secrets,
+    categories,
     onStatusUpdate,
     onSuccess,
-    onError
+    onError,
+    featureName
 ) => {
     if (!featureId || featureId === 'all') {
         onError('Please select a specific feature before generating tests.');
@@ -77,23 +84,19 @@ export const handleFeatureTestGeneration = async (
     let pollingIntervalId = null;
 
     try {
-        onStart(null); // Indicate start, featureId will follow
-        onStatusUpdate(`Starting test generation. Status: ${formatStatus(TEST_STATUS.PENDING)}`);
+        onStatusUpdate(`Starting test generation for "${featureName || featureId}"...`);
 
-        // Trigger test generation for the feature
-        await triggerFeatureTestGeneration(featureId);
-
-        onStart(featureId); // Update with the feature ID
+        // Trigger test generation for the feature with categories
+        await triggerFeatureTestGeneration(featureId, categories);
 
         // Start polling using the dedicated function
         pollingIntervalId = pollTestGenerationStatus(
             featureId,
             onStatusUpdate,
             // Wrap onSuccess to clear pollingIntervalId
-            (successMsg) => {
+            (result) => {
                 pollingIntervalId = null; // Mark interval as cleared
-                setTimeout(() => window.location.reload(), 2000);
-                onSuccess(successMsg);
+                onSuccess(result);
             },
             // Wrap onError to clear pollingIntervalId
             (errorMsg) => {
@@ -101,7 +104,7 @@ export const handleFeatureTestGeneration = async (
                 setTimeout(() => window.location.reload(), 2000);
                 onError(errorMsg);
             },
-            featureId
+            featureName // Pass the feature name to the polling function
         );
 
     } catch (err) {
@@ -110,8 +113,6 @@ export const handleFeatureTestGeneration = async (
         if (pollingIntervalId) clearInterval(pollingIntervalId);
         // Pass the specific error message if available
         onError(`Failed to start test generation: ${err.message || 'Please try again.'}`);
-        // Ensure start state is reset if we error out
-        onStart(null);
     }
 
     // Return a cleanup function

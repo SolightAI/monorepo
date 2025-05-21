@@ -70,7 +70,7 @@ async def test_create_test(client: AsyncClient, admin_user, test_feature, accept
         "name": "New Test Case",
         "description": "A test created through the API",
         "feature_id": str(test_feature.id),
-        "category": TestCategory.SMOKE,
+        "category": TestCategory.SMOKE.value,
         "preconditions": "System is in a stable state",
         "steps": "1. Navigate to the page\n2. Click the button",
         "assertions": "assert result == expected",

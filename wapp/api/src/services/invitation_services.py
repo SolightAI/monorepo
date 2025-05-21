@@ -1,6 +1,7 @@
 import uuid
 import random
 import string
+import logging
 
 from datetime import datetime, timezone
 from typing import Optional, List
@@ -102,17 +103,23 @@ async def get_all_invitations(organization_id: Optional[uuid.UUID] = None) -> Li
 async def validate_invitation(code: str, email: Optional[str] = None, check_used: bool = True) -> InvitationModel:
     """
     Validate an invitation code.
-    
+
     Args:
         code: The invitation code to validate
         email: Optional email to validate against
         check_used: Whether to check if the invitation has been used (default: True)
     """
+    processed_email = email
+    if processed_email:
+        processed_email = processed_email.rstrip('/')  # Remove trailing slash if present
+
+    logging.info(f"Validating invitation code: {code}, original_email: {email}, processed_email: {processed_email}, check_used: {check_used}")
     # Get the invitation
     invitation = await InvitationModel.get_or_none(code=code)
 
     # Check if invitation exists
     if not invitation:
+        logging.warning(f"Invitation code not found: {code}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Invalid invitation code"
@@ -120,6 +127,7 @@ async def validate_invitation(code: str, email: Optional[str] = None, check_used
 
     # Check if invitation has expired
     if invitation.expires_at and invitation.expires_at < datetime.now(timezone.utc):
+        logging.warning(f"Invitation code expired: {code}, expiry: {invitation.expires_at}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invitation code has expired"
@@ -127,18 +135,21 @@ async def validate_invitation(code: str, email: Optional[str] = None, check_used
 
     # Check if invitation has been used (only if check_used is True)
     if check_used and invitation.used:
+        logging.warning(f"Invitation code already used: {code}, used_at: {invitation.used_at}, used_by: {invitation.used_by_id}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invitation has already been used"
         )
 
     # If email is provided, validate it matches (but only for individual invitations)
-    if email and invitation.email and invitation.email.lower() != email.lower():
+    if processed_email and invitation.email and invitation.email.lower() != processed_email.lower():
+        logging.warning(f"Invitation email mismatch for code: {code}. Expected: {invitation.email}, Got (processed): {processed_email}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"This invitation is for {invitation.email}. Please use that email address."
         )
 
+    logging.info(f"Invitation code successfully validated: {code}")
     return invitation
 
 

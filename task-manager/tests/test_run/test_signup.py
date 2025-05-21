@@ -25,10 +25,12 @@ class TestTickPick():
         )
 
         result = await signup_agent(
+            identifier=None,
             task_id=task_id,
             test=test,
             secrets=[],
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == TestStatus.PASSED.value
@@ -49,10 +51,12 @@ class TestTickPick():
         )
 
         result = await signup_agent(
+            identifier=None,
             task_id=task_id,
             test=test,
             secrets=[],
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == TestStatus.AGENT_LIMITATION.value
@@ -73,10 +77,12 @@ class TestTickPick():
         )
 
         result = await signup_agent(
+            identifier=None,
             task_id=task_id,
             test=test,
             secrets=[],
             auth_session={},
+            run_without_cache=True,
         )
 
         assert result["status"] == TestStatus.AGENT_LIMITATION.value

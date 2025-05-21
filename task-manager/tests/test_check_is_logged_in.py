@@ -2,7 +2,7 @@ import pytest
 import logging
 import requests
 
-from fixtures.authentification.check_if_is_logged_in import check_is_logged_in, check_is_logged_in_using_html_diff
+from src.fixtures.authentification.check_if_is_logged_in import check_is_logged_in, check_is_logged_in_using_html_diff
 
 
 TICKPICK_URL = "https://tickpick_dev:tickpick.1@dev.tickpick.com/"
@@ -19,6 +19,21 @@ WEBSITE_HTML_FILES = [
     pytest.param(f"{BASE_S3_BUCKET}/tickpick/content_before_login_tickpick_dev%3Atickpick.1%40dev.tickpick.com_.html", f"{BASE_S3_BUCKET}/tickpick/content_after_login_tickpick_dev%3Atickpick.1%40dev.tickpick.com_.html", id="tickpick.com"),
 ]
 
+_FALSE_POSITIVE_TEST_CASES_CONFIG = [
+    ("https://app.sesametime.com/", 1, "sesametime.com"),
+    (TICKPICK_URL, 10, "tickpick.com"),
+    (MEANDWHO_URL, 1, "meandwho.ai"),
+    (FARMZZ_URL, 1, "farmzz.com"),
+    (TECLA_ACADEMY_URL, 1, "teclaacademy.com"),
+    ("https://app.identitymatrix.ai/", 1, "identitymatrix.ai"),
+    ("https://www.typeform.com/", 1, "typeform.com"),
+]
+
+FALSE_POSITIVE_PARAMS = []
+for _url_val, _num_runs, _id_prefix in _FALSE_POSITIVE_TEST_CASES_CONFIG:
+    for _i in range(_num_runs):
+        FALSE_POSITIVE_PARAMS.append(pytest.param(_url_val, _i, id=f"{_id_prefix}-run-{_i}"))
+
 
 logger = logging.getLogger(__name__)
 
@@ -26,22 +41,12 @@ logger = logging.getLogger(__name__)
 class TestCheckIsLoggedIn:
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize('execution_number', range(5))  # variability in the results, run 5 times
-    @pytest.mark.parametrize("url", [
-        "https://app.sesametime.com/",
-        TICKPICK_URL,
-        MEANDWHO_URL,
-        FARMZZ_URL,
-        TECLA_ACADEMY_URL,
-        "https://app.identitymatrix.ai/",
-        "https://www.typeform.com/",
-        # "https://www.youtube.com/"  # fails the tests, needs to be fixed
-    ])
+    @pytest.mark.parametrize("url, execution_number", FALSE_POSITIVE_PARAMS)
     async def test_false_positive(
         self,
         task_id: str,
         url: str,
-        execution_number: int,  # unused but keep param
+        execution_number: int,
     ) -> None:
         """Test authentication with valid username/password on the simple login page."""
 

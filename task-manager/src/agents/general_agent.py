@@ -14,6 +14,7 @@ from agents._base_agent import (
     SHARED_AGENT_LIMITATIONS,
 )
 from fixtures.tools import TOOLS
+from lmnr import observe
 
 
 PROMPT = """
@@ -46,25 +47,14 @@ Now, run the test.
 logger = getLogger(__name__)
 
 
-def get_parameters_for_general_agent(
-    task_id: str,
-    test: Test,
-    secrets: list[dict[str, Any]],
-    auth_session: dict[str, dict[str, str]],
-) -> dict[str, Any]:
-    return {
-        "task_id": task_id,
-        "test": test,
-        "secrets": secrets,
-        "auth_session": auth_session,
-    }
-
-
+@observe()
 async def general_agent(
+    identifier: str,
     task_id: str,
     test: Test,
     secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],
+    run_without_cache: bool = False,
 ) -> dict[str, Any]:
     """
     General test runner that should be used for most of the tests.
@@ -79,10 +69,11 @@ async def general_agent(
         A dictionary containing the status of the test, the results, and the tracing.
     """
 
-    is_able, explanation = is_agent_able_to_run_test(
+    is_able, explanation = await is_agent_able_to_run_test(
         task_id=task_id,
         test=test,
         agent_tools=TOOLS,
+        secrets_names=list(format_secrets(secrets).keys()),
     )
 
     if is_able is False:
@@ -91,7 +82,8 @@ async def general_agent(
             "results": explanation,
         }
 
-    session_data, history, evidences = await run_agent(
+    session_data, history, evidences, is_from_cache = await run_agent(
+        identifier=identifier,
         task_id=task_id,
         url=test.url,
         prompt=PROMPT.format(
@@ -102,11 +94,13 @@ async def general_agent(
         sensitive_data=format_secrets(secrets),
         auth_session=auth_session,
         tools=TOOLS,
+        run_without_cache=run_without_cache,
     )
 
     logger.info(f"[{task_id}] General agent finished running test.")
 
     additional_healthchecks_results = await run_additional_healthcheck(
+        identifier=identifier,
         task_id=task_id,
         test=test,
         existing_session=session_data,
@@ -114,10 +108,11 @@ async def general_agent(
 
     logger.info(f"[{task_id}] General agent finished running additional healthchecks.")
 
-    status, explanation = check_final_test_result(
+    status, explanation = await check_final_test_result(
         task_id=task_id,
         test=test,
-        agent_output=history.final_result(),
+        agent_output=history.final_result() or "None",
+        screenshot_base64=history.screenshots()[-1] if len(history.screenshots()) > 0 else None,
         healthcheck_results=additional_healthchecks_results,
     )
 
@@ -132,4 +127,5 @@ async def general_agent(
         # "tracing": history.get_logs(),
         "error": explanation if status != TestStatus.PASSED else "",
         "traceback": "",
+        "is_from_cache": is_from_cache,
     }

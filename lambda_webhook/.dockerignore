@@ -1,0 +1,11 @@
+# ASM sam build temporary artifacts
+**/.aws-sam
+
+# Pycache directories
+**/__pycache__
+
+# Ignore test files
+**/tests
+
+# Ignore build files
+**/build

@@ -7,22 +7,24 @@ import { v4 as uuidv4 } from 'uuid';
 
 const SecretTypes = {
   USERNAME_PASSWORD: 'username_password',
-  API_KEY: 'api_key',
-  ENVIRONMENT_VARIABLE: 'environment_variable',
-  CONNECTION_STRING: 'connection_string',
-  OAUTH_CREDENTIAL: 'oauth_credential',
+  GOOGLE_OAUTH: 'google_oauth',
 };
 
 // Constants for standard secret value keys
 const SecretFieldKeys = {
   USERNAME: 'username',
   PASSWORD: 'password',
-  PROVIDER: 'provider',
+  RECOVERY_PHONE_NUMBER: 'recovery_phone_number',
 };
 
-// Add constant for OAuth Providers
-const OAuthProviders = {
-  GOOGLE: 'Google',
+// Add constant for the default Google OAuth name
+const GoogleOAuthDefaultName = 'Google OAuth Credentials';
+
+// Mapping for pretty display names of secret keys
+const SecretFieldDisplayNames = {
+  [SecretFieldKeys.USERNAME]: 'Username',
+  [SecretFieldKeys.PASSWORD]: 'Password',
+  [SecretFieldKeys.RECOVERY_PHONE_NUMBER]: 'Recovery Phone Number',
 };
 
 // Mapping from SecretTypes to their default fields and initial values
@@ -31,10 +33,10 @@ const SecretTypeFields = {
     { key: SecretFieldKeys.USERNAME, value: '', placeholder: 'Enter username' },
     { key: SecretFieldKeys.PASSWORD, value: '', placeholder: 'Enter password' }
   ],
-  [SecretTypes.OAUTH_CREDENTIAL]: [
-    { key: SecretFieldKeys.PROVIDER, value: '', placeholder: 'Select Provider' },
+  [SecretTypes.GOOGLE_OAUTH]: [
     { key: SecretFieldKeys.USERNAME, value: '', placeholder: 'Enter username' },
     { key: SecretFieldKeys.PASSWORD, value: '', placeholder: 'Enter password' },
+    { key: SecretFieldKeys.RECOVERY_PHONE_NUMBER, value: '', placeholder: 'Enter recovery phone (MFA)' },
   ],
 };
 
@@ -71,12 +73,19 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
   const [error, setError] = useState(null);
   const [valuesToUpdate, setValuesToUpdate] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
+  const [isNameManuallySet, setIsNameManuallySet] = useState(false); // Track manual name changes
 
   // Set initial form data when editing starts or selected product/org changes
   useEffect(() => {
     if (isEditing && secret) {
+      const initialName = secret.name;
+      const isInitialNameDefault = initialName === 'My Credentials';
+      const isGoogleOAuthDefaultName = initialName === GoogleOAuthDefaultName;
+      const isInitialNameDerived = isGoogleOAuthDefaultName;
+      setIsNameManuallySet(!isInitialNameDefault && !isInitialNameDerived); // Set true if name is custom
+
       setFormData({
-        name: secret.name,
+        name: initialName,
         description: secret.description || '',
         type: secret.type,
         expires_at: secret.expires_at ? new Date(secret.expires_at).toISOString().split('T')[0] : '',
@@ -85,14 +94,15 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
       });
     } else if (!isEditing) {
       // Reset form for new secret, keeping org/product context
-      setFormData({
-        name: 'My Credentials', // Default name
+      setIsNameManuallySet(false); // Reset flag for new secret
+      setFormData(prev => ({
+        ...prev,
+        name: prev.type === SecretTypes.GOOGLE_OAUTH ? GoogleOAuthDefaultName : 'My Credentials', // Default name based on type
         description: '',
-        type: SecretTypes.USERNAME_PASSWORD, // Default type
         expires_at: '',
         organization_id: selectedOrganization?.id,
         product_id: selectedProduct?.id,
-      });
+      }));
        // Set default fields for the initial type when creating
        // This is handled by Effect 3 now
     }
@@ -171,12 +181,24 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
     loadSecretValues();
   }, [isEditing, secret?.id, secret?.type, getSecretWithValues, setDefaultFieldsForType]); // Fetch when secret ID/type changes
 
-  // Set default fields when type changes during *creation*
+  // Set default fields when type changes during *creation* or *editing*
   useEffect(() => {
-    if (!isEditing) {
-      setDefaultFieldsForType(formData.type);
+    setDefaultFieldsForType(formData.type);
+
+    // If type changes and name hasn't been manually set, update default name
+    if (!isNameManuallySet) {
+      if (formData.type === SecretTypes.GOOGLE_OAUTH) {
+        setFormData(prev => ({ ...prev, name: GoogleOAuthDefaultName }));
+      } else if (formData.type === SecretTypes.USERNAME_PASSWORD) {
+        // Only reset to "My Credentials" if it's not already a derived OAuth name being switched from
+        if (formData.name === GoogleOAuthDefaultName) {
+             setFormData(prev => ({ ...prev, name: 'My Credentials' }));
+        } else if (!formData.name.includes("OAuth Credentials")) { // Avoid clobbering user input if they typed "Something OAuth"
+            setFormData(prev => ({ ...prev, name: 'My Credentials' }));
+        }
+      }
     }
-  }, [isEditing, formData.type, setDefaultFieldsForType]);
+  }, [formData.type, setDefaultFieldsForType, isNameManuallySet, formData.name]); // Removed isEditing from dependencies
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -185,65 +207,33 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
       [name]: value
     }));
 
-    // If the type is changed *while editing*, reset the fields to match the new type
-    if (name === 'type' && isEditing) {
-        setDefaultFieldsForType(value);
+    // If user explicitly changes the name, mark it as manually set
+    if (name === 'name') {
+      setIsNameManuallySet(true);
     }
   };
 
   // Handle changes to secret value fields
   const handleValueChange = (id, field, value) => {
-    setSecretValues(prev => prev.map(item =>
+    // Update the specific key/value pair
+    let newSecretValues = secretValues.map(item =>
       item.id === id ? { ...item, [field]: value } : item
-    ));
+    );
 
-    // Update the values to be sent to the API
-    if (field === 'key' || field === 'value') {
-      setSecretValues(prev => {
-        const updatedValues = prev.map(item => item.id === id ? { ...item, [field]: value } : item);
+    const changedItemOriginal = secretValues.find(item => item.id === id);
 
-        // Create an object of key-value pairs
-        const valuesObj = {};
-        updatedValues.forEach(item => {
-          if (item.key) {
-            valuesObj[item.key] = item.value;
-          }
-        });
+    setSecretValues(newSecretValues);
 
-        setValuesToUpdate(valuesObj);
-        return updatedValues;
-      });
-    }
-  };
-
-  // Add a new key-value pair
-  const addKeyValuePair = () => {
-    setSecretValues(prev => [
-      ...prev,
-      { id: uuidv4(), key: '', value: '', revealed: false }
-    ]);
-  };
-
-  // Remove a key-value pair
-  const removeKeyValuePair = (id) => {
-    setSecretValues(prev => {
-      const filtered = prev.filter(item => item.id !== id);
-
-      // Update valuesToUpdate
-      const valuesObj = {};
-      filtered.forEach(item => {
-        if (item.key) {
-          valuesObj[item.key] = item.value;
-        }
-      });
-      setValuesToUpdate(valuesObj);
-
-      // If all rows removed, add an empty one
-      return filtered.length ? filtered : [{
-        id: uuidv4(), key: '', value: '', revealed: false
-      }];
+    // Update the valuesToUpdate object (key-value pairs for API)
+    const valuesObj = {};
+    newSecretValues.forEach(item => {
+      if (item.key) {
+        valuesObj[item.key] = item.value;
+      }
     });
+    setValuesToUpdate(valuesObj);
   };
+
 
   // Toggle password visibility
   const toggleReveal = (id) => {
@@ -281,6 +271,15 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
     if (!hasValidValue) {
       setError('At least one secret key-value pair is required');
       return;
+    }
+
+    // Validate OAuth provider selection if type is OAuth
+    if (formData.type === SecretTypes.GOOGLE_OAUTH) {
+      const recoveryPhoneNumber = valuesToUpdate[SecretFieldKeys.RECOVERY_PHONE_NUMBER];
+      if (!recoveryPhoneNumber) {
+        setError('Recovery phone number is required for Google OAuth (for MFA).');
+        return;
+      }
     }
 
     try {
@@ -325,7 +324,7 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
         </div>
 
         {/* Modal panel */}
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex justify-between items-center pb-3 border-b">
               <h3 className="text-lg leading-6 font-medium text-gray-900">
@@ -401,7 +400,7 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
                   required
                 >
                   <option value={SecretTypes.USERNAME_PASSWORD}>Username/Password</option>
-                  <option value={SecretTypes.OAUTH_CREDENTIAL}>OAuth Credentials</option>
+                  <option value={SecretTypes.GOOGLE_OAUTH}>Google OAuth</option>
                 </select>
               </div>
 
@@ -438,32 +437,52 @@ const SecretModal = ({ isOpen, onClose, secret, onRefresh }) => {
                         <input
                           type="text"
                           placeholder="Key"
-                          value={item.key}
+                          value={SecretFieldDisplayNames[item.key] || item.key}
                           onChange={(e) => handleValueChange(item.id, 'key', e.target.value)}
                           className="w-1/3 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                          readOnly={false}
+                          readOnly={Object.values(SecretFieldKeys).includes(item.key)}
                           disabled={false}
                         />
                         <div className="relative flex-1">
                           {/* Conditional rendering for OAuth provider */}
-                          {formData.type === SecretTypes.OAUTH_CREDENTIAL && item.key === SecretFieldKeys.PROVIDER ? (
-                            <select
-                              value={item.value}
-                              onChange={(e) => handleValueChange(item.id, 'value', e.target.value)}
-                              className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 pr-10 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                            >
-                              <option value="">Select Provider</option>
-                              {/* Map over OAuthProviders to generate options */}
-                              {Object.entries(OAuthProviders).map(([key, providerName]) => (
-                                <option key={key} value={providerName}>{providerName}</option>
-                              ))}
-                            </select>
+                          {formData.type === SecretTypes.GOOGLE_OAUTH && item.key === SecretFieldKeys.RECOVERY_PHONE_NUMBER ? (
+                            // Specific input for Recovery Phone Number with reveal and copy
+                            <>
+                              <input
+                                type={item.revealed ? 'text' : 'password'}
+                                placeholder={item.placeholder}
+                                value={item.value}
+                                onChange={(e) => handleValueChange(item.id, 'value', e.target.value)}
+                                className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 pr-16 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                              />
+                              <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleReveal(item.id)}
+                                  className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                                >
+                                  {item.revealed ? (
+                                    <HiEyeOff className="h-4 w-4" />
+                                  ) : (
+                                    <HiEye className="h-4 w-4" />
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboard(item.value)}
+                                  className="ml-1 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                  disabled={!item.value}
+                                >
+                                  <HiClipboardCopy className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </>
                           ) : (
                             // Original input for other fields or types
                             <>
                               <input
                                 type={item.revealed ? 'text' : 'password'}
-                                placeholder={item.placeholder || 'Enter value'}
+                                placeholder={item.placeholder}
                                 value={item.value}
                                 onChange={(e) => handleValueChange(item.id, 'value', e.target.value)}
                                 className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 pr-16 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"

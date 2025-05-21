@@ -29,7 +29,8 @@ import { getStatusInfo, formatStatus, getStatusDescription } from '@/utils/testE
 import { formatDate } from '@/utils/dateUtils';
 import { API_URL } from '@/constants/api';
 import { TEST_STATUS } from '@/utils/testExecutionUtils';
-import Tooltip from '@/components/common/Tooltip'; // Import the new component
+import Tooltip from '@/components/common/Tooltip';
+import TestCategorySelectionModal from '@/components/modals/TestCategorySelectionModal';
 
 /**
  * Displays all tests in a tabular format with sorting and filtering capabilities
@@ -66,6 +67,9 @@ const TestsTable = () => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // State for confirmation modal
   const [isConfirmFeatureDeleteModalOpen, setIsConfirmFeatureDeleteModalOpen] = useState(false); // State for feature delete confirmation
   const [featureToDeleteId, setFeatureToDeleteId] = useState(null); // ID of feature marked for deletion
+  const [isTestCategoryModalOpen, setIsTestCategoryModalOpen] = useState(false); // State for test category modal
+  const [isAddTestDropdownOpen, setIsAddTestDropdownOpen] = useState(false); // State for the new dropdown
+  const addTestDropdownRef = useRef(null); // Ref for the new dropdown
 
   // New state for latest execution data
   const [latestExecutionsMap, setLatestExecutionsMap] = useState({});
@@ -697,7 +701,11 @@ const TestsTable = () => {
   };
 
   // Function to handle test generation for the selected feature
-  const handleGenerateTests = async () => {
+  const handleGenerateTests = () => {
+    setIsTestCategoryModalOpen(true);
+  };
+
+  const handleTestCategoryGenerate = async (selectedCategories) => {
     // Clear previous messages/state
     setError(null);
     setSuccessMessage(null);
@@ -710,28 +718,59 @@ const TestsTable = () => {
 
     // Call the new service function
     pollingIntervalRef.current = await handleFeatureTestGeneration(
-      selectedFeature,
-      secrets,
-      (taskId) => { // onStart
-        // State already set, no need to set again
-      },
+      selectedFeature,  // featureId
+      secrets,         // secrets
+      selectedCategories, // categories
       (statusUpdate) => { // onStatusUpdate
         setSuccessMessage(statusUpdate);
       },
-      async (successMsg) => { // onSuccess
-        setIsGeneratingTests(false);
-        setGeneratingFeatures([]);
-        pollingIntervalRef.current = null;
-        setSuccessMessage(`Test generation completed successfully. ${successMsg}`);
+      async (result) => { // onSuccess
+        try {
+          // Fetch the newly generated tests
+          const tests = await getTestsByFeature(result.featureId);
+
+          // First update the tests list with the new data
+          if (tests && tests.length > 0) {
+            // Add feature name to each test for easier sorting/display
+            const testsWithFeatureName = tests.map(test => ({
+              ...test,
+              feature_name: featureName
+            }));
+
+            // Update the tests state
+            setTests(prevTests => {
+              // Filter out any existing tests for this feature
+              const otherTests = prevTests.filter(t => t.feature_id !== selectedFeature);
+              // Combine with new tests
+              return [...otherTests, ...testsWithFeatureName];
+            });
+
+            // Apply current filters to the new tests
+            applyFilters(testsWithFeatureName, selectedStatus, searchQuery);
+            // Fetch latest executions for the new tests
+            await fetchLatestExecutions(testsWithFeatureName);
+          }
+
+          // Then update the UI state
+          setIsGeneratingTests(false);
+          setGeneratingFeatures([]);
+          pollingIntervalRef.current = null;
+
+        } catch (err) {
+          console.error('Error updating tests after generation:', err);
+          setError('Tests were generated but could not be displayed. Please refresh the page.');
+          setIsGeneratingTests(false);
+          setGeneratingFeatures([]);
+          pollingIntervalRef.current = null;
+        }
       },
       (errorMsg) => { // onError
         setIsGeneratingTests(false);
         setGeneratingFeatures([]);
         setError(`Test generation failed. ${errorMsg}`);
         setSuccessMessage(null);
-        pollingIntervalRef.current = null;
       },
-      featureName
+      featureName // Pass the feature name to the service
     );
   };
 
@@ -834,6 +873,9 @@ const TestsTable = () => {
     function handleClickOutside(event) {
       if (featureDropdownRef.current && !featureDropdownRef.current.contains(event.target)) {
         setIsFeatureDropdownOpen(false);
+      }
+      if (addTestDropdownRef.current && !addTestDropdownRef.current.contains(event.target)) {
+        setIsAddTestDropdownOpen(false);
       }
     }
 
@@ -1104,12 +1146,19 @@ const TestsTable = () => {
         (statusMessage) => {
           setSuccessMessage(statusMessage);
         },
-        async (successMsg) => {
-          setTimeout(() => window.location.reload(), 2000);
+        async (result) => {
           setIsGeneratingTests(false);
           setGeneratingFeatures([]);
           pollingIntervalRef.current = null;
-          setSuccessMessage(`Test generation completed successfully. ${successMsg}`);
+          setSuccessMessage(result.message || 'Test generation completed successfully.');
+          if (selectedFeature === 'all') {
+            await fetchTestsByProduct(selectedProduct.id);
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
+          } else {
+            await fetchTestsWithCurrentFilters();
+          }
         },
         (errorMsg) => {
           setTimeout(() => window.location.reload(), 2000);
@@ -1342,6 +1391,13 @@ const TestsTable = () => {
         confirmButtonVariant="danger"
       />
 
+      {/* Test Category Selection Modal */}
+      <TestCategorySelectionModal
+        isOpen={isTestCategoryModalOpen}
+        onClose={() => setIsTestCategoryModalOpen(false)}
+        onGenerate={handleTestCategoryGenerate}
+      />
+
       {/* Error message display */}
       {error && (
         <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-start justify-between">
@@ -1359,8 +1415,7 @@ const TestsTable = () => {
 
       {/* ✅ NEW — success / completion banner */}
       {!isGeneratingTests && successMessage &&
-        !successMessage.includes('Test Generation in Progress') &&
-        !successMessage.includes('Status: PENDING') && (
+        !successMessage.includes('Test Generation in Progress') && (
         <div className="mb-6 p-4 bg-green-100 border border-green-200 text-green-700 rounded-lg flex items-start justify-between">
           <p className="break-words">{successMessage}</p>
           <button
@@ -1424,104 +1479,103 @@ const TestsTable = () => {
 
           {/* All filters in one row */}
           <div className="flex flex-col sm:flex-row gap-3 mb-6 items-center">
-            {/* Search input */}
-        <div className="relative w-full">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={18} className="text-gray-400" />
+            <div className="flex flex-col sm:flex-row gap-3 items-center flex-grow w-full">
+              {/* Search input */}
+              <div className="relative w-full">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search size={18} className="text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search tests..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    const newQuery = e.target.value;
+                    setSearchQuery(newQuery);
+                    // Pass the new query directly to applyFilters
+                    applyFilters(tests, selectedStatus, newQuery);
+                  }}
+                  className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
-              <input
-                type="text"
-                placeholder="Search tests..."
-                value={searchQuery}
-                onChange={(e) => {
-                  const newQuery = e.target.value;
-                  setSearchQuery(newQuery);
-                  // Pass the new query directly to applyFilters
-                  applyFilters(tests, selectedStatus, newQuery);
-                }}
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
 
-            {/* Status filter */}
-        <div className="relative w-full">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Filter size={18} className="text-gray-400" />
+              {/* Status filter */}
+              <div className="relative w-full">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Filter size={18} className="text-gray-400" />
+                </div>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => {
+                    const newStatus = e.target.value;
+                    setSelectedStatus(newStatus);
+                    // Pass the new status value directly to applyFilters
+                    applyFilters(tests, newStatus);
+                  }}
+                  className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+                >
+                  <option value="all">All Statuses</option>
+                  {/* Dynamically generate status options */}
+                  {Object.entries(TEST_STATUS).map(([key, value]) => (
+                    <option key={key} value={value}>
+                      {formatStatus(value)}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <select
-                value={selectedStatus}
-                onChange={(e) => {
-                  const newStatus = e.target.value;
-                  setSelectedStatus(newStatus);
-                  // Pass the new status value directly to applyFilters
-                  applyFilters(tests, newStatus);
-                }}
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
-              >
-                <option value="all">All Statuses</option>
-                {/* Dynamically generate status options */}
-                {Object.entries(TEST_STATUS).map(([key, value]) => (
-                  <option key={key} value={value}>
-                    {formatStatus(value)}
-                  </option>
-                ))}
-              </select>
-            </div>
 
-        {/* Feature filter and Add Feature button group */}
-        <div className="flex flex-col md:flex-row w-full gap-2">
-          {/* Feature filter - Custom dropdown */}
-          <div className="relative w-full md:w-56" ref={featureDropdownRef}>
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FileText size={18} className="text-gray-400" />
-              </div>
-            <button
-              onClick={() => setIsFeatureDropdownOpen(!isFeatureDropdownOpen)}
-                disabled={loadingFeatures}
-              className="flex w-full justify-between pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left"
-              data-feature-dropdown
-            >
-              <span className="block truncate">
-                {loadingFeatures
-                  ? 'Loading features...'
-                  : selectedFeature === 'all'
-                    ? (features.length > 0 ? 'All Features' : '--')
-                    : features.find(f => f.id === selectedFeature)?.name || 'Select Feature'
-                }
-              </span>
-              <ChevronDown size={18} className={`flex-shrink-0 ml-1 text-gray-400 transition-transform ${isFeatureDropdownOpen ? 'transform rotate-180' : ''}`} />
-            </button>
+              {/* Feature filter - Custom dropdown */}
+              <div className="relative w-full" ref={featureDropdownRef}>
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FileText size={18} className="text-gray-400" />
+                </div>
+                <button
+                  onClick={() => setIsFeatureDropdownOpen(!isFeatureDropdownOpen)}
+                    disabled={loadingFeatures}
+                  className="flex w-full justify-between pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left"
+                  data-feature-dropdown
+                >
+                  <span className="block truncate">
+                    {loadingFeatures
+                      ? 'Loading features...'
+                      : selectedFeature === 'all'
+                        ? (features.length > 0 ? 'All Features' : '--')
+                        : features.find(f => f.id === selectedFeature)?.name || 'Select Feature'
+                    }
+                  </span>
+                  <ChevronDown size={18} className={`flex-shrink-0 ml-1 text-gray-400 transition-transform ${isFeatureDropdownOpen ? 'transform rotate-180' : ''}`} />
+                </button>
 
-            {/* Custom dropdown menu */}
-            {isFeatureDropdownOpen && (
-              <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                {/* Create Feature button - only show when an Epic is selected */}
-                {selectedEpic !== 'all' && (
-                  <div className="py-2 px-4 hover:bg-blue-50 cursor-pointer">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsAddFeatureModalOpen(true);
-                        setIsFeatureDropdownOpen(false);
-                      }}
-                      className="w-full flex items-center text-blue-600 font-medium"
-                      title="Add new feature to selected epic"
-                      data-create-feature-button
-                    >
-                      <Plus size={18} className="mr-2" />
-                      Create Feature
-                    </button>
-            </div>
-                )}
+                {/* Custom dropdown menu */}
+                {isFeatureDropdownOpen && (
+                  <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {/* Create Feature button - only show when an Epic is selected */}
+                    {selectedEpic !== 'all' && (
+                      <div className="py-2 px-4 hover:bg-blue-50 cursor-pointer">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsAddFeatureModalOpen(true);
+                            setIsFeatureDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center text-blue-600 font-medium"
+                          title="Add new feature to selected epic"
+                          data-create-feature-button
+                        >
+                          <Plus size={18} className="mr-2" />
+                          Create Feature
+                        </button>
+                </div>
+                    )}
 
-                <div className="border-t border-gray-200"></div>
+                    <div className="border-t border-gray-200"></div>
 
-                { features.length > 0 && (
-                  <>
-                    <div
-                      className="py-2 px-4 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => {
-                        handleFeatureChange('all');
+                    { features.length > 0 && (
+                      <>
+                        <div
+                          className="py-2 px-4 hover:bg-gray-100 cursor-pointer"
+                          onClick={() => {
+                            handleFeatureChange('all');
                     setIsFeatureDropdownOpen(false);
                   }}
                 >
@@ -1579,57 +1633,81 @@ const TestsTable = () => {
                 )}
               </div>
             )}
+          </div> {/* End of Feature filter div */}
           </div>
 
-          {/* Action buttons */}
-          <div className="flex flex-col sm:flex-row gap-2">
-            {/* Generate Tests button */}
-            <button
-              onClick={handleGenerateTests}
-              disabled={isGeneratingTests || !secrets || secrets.length === 0 || selectedFeature === 'all'}
-              className="flex items-center justify-center px-3 py-2 bg-purple-600 text-white rounded-md shadow hover:bg-purple-700 transition duration-150 disabled:bg-purple-300 disabled:cursor-not-allowed"
-              title={
-                !secrets || secrets.length === 0 ? "Test credentials required to generate tests" :
-                selectedFeature === 'all' ? "Please select a specific feature first" :
-                isGeneratingTests ? "Generation in progress..." :
-                "Generate tests for selected feature using AI"
-              }
-            >
-              {isGeneratingTests ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Beaker size={18} className="mr-2" />
-                  <span className="whitespace-nowrap">Generate Tests with AI</span>
-                </>
+            {/* Action buttons group dropdown */}
+            <div className="relative w-full sm:w-auto" ref={addTestDropdownRef}>
+              <Tooltip
+                content={selectedFeature === 'all' ? "Select a feature first to add tests" : null}
+              >
+                {/* The div below is necessary for the Tooltip to correctly position itself when the button is disabled
+                    and to ensure the Tooltip HOC has a single child element if the button itself is conditionally rendered or has siblings.*/}
+                <div className={`${selectedFeature === 'all' ? 'cursor-not-allowed' : ''}`}>
+                  <button
+                    onClick={() => {
+                      if (selectedFeature === 'all') return; // Prevent opening if disabled
+                      setIsAddTestDropdownOpen(!isAddTestDropdownOpen);
+                    }}
+                    disabled={selectedFeature === 'all'} // Disable if no specific feature is selected
+                    className={`flex items-center justify-center w-full sm:w-auto px-3 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition duration-150 ${selectedFeature === 'all' ? 'opacity-50' : ''}`}
+                    title={selectedFeature !== 'all' ? "Add a new test manually or generate with AI" : ""} // Clear title when disabled and tooltip is active
+                  >
+                    <Plus size={18} className="mr-2" />
+                    <span className="whitespace-nowrap">Add Test</span>
+                    <ChevronDown size={18} className={`ml-1 flex-shrink-0 text-blue-300 transition-transform ${isAddTestDropdownOpen ? 'transform rotate-180' : ''}`} />
+                  </button>
+                </div>
+              </Tooltip>
+
+              {isAddTestDropdownOpen && selectedFeature !== 'all' && (
+                <div className="absolute z-20 mt-1 w-full sm:w-64 bg-white border border-gray-300 rounded-md shadow-lg right-0 sm:right-auto sm:left-0 py-1">
+                  {/* Generate Tests button (Dropdown Item 1) */}
+                  <button
+                    onClick={() => { // This onClick is for the item action
+                      handleGenerateTests();
+                      setIsAddTestDropdownOpen(false);
+                    }}
+                    disabled={isGeneratingTests || !secrets || secrets.length === 0}
+                    className="w-full flex items-center px-4 py-2.5 text-sm text-purple-700 hover:bg-purple-50 transition duration-150 disabled:text-gray-400 disabled:hover:bg-white disabled:cursor-not-allowed"
+                    title={
+                      !secrets || secrets.length === 0 ? "Test credentials required to generate tests" :
+                      isGeneratingTests ? "Generation in progress..." :
+                      "Generate tests for selected feature using AI"
+                    }
+                  >
+                    {isGeneratingTests ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-700 mr-2"></div>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Beaker size={16} className="mr-2 flex-shrink-0" />
+                        <span className="truncate">Generate Tests with AI</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="border-t border-gray-200 my-1"></div>
+
+                  {/* Add Test to Feature button (Dropdown Item 2) */}
+                  <button
+                    onClick={() => { // This onClick is for the item action
+                      setIsAddTestModalOpen(true);
+                      setIsAddTestDropdownOpen(false);
+                    }}
+                    // disabled={selectedFeature === 'all'} // Already handled
+                    className="w-full flex items-center px-4 py-2.5 text-sm text-blue-700 hover:bg-blue-50 transition duration-150 disabled:text-gray-400 disabled:hover:bg-white disabled:cursor-not-allowed"
+                    title={"Add new test to selected feature" // Simplified title as feature selection is guaranteed here
+                    }
+                  >
+                    <Plus size={16} className="mr-2 flex-shrink-0" />
+                    <span className="truncate">Add Test Manually</span>
+                  </button>
+                </div>
               )}
-            </button>
-
-            {/* Add Test button */}
-            <button
-              onClick={() => {
-                if (selectedFeature === 'all') {
-                  setError(
-                    <span>
-                      Please select a specific feature first
-                    </span>
-                  );
-                  return;
-                }
-                setIsAddTestModalOpen(true);
-              }}
-              disabled={selectedFeature === 'all'}
-              className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition duration-150 disabled:bg-blue-300 disabled:cursor-not-allowed"
-              title={selectedFeature === 'all' ? "Please select a specific feature first" : "Add new test to selected feature"}
-            >
-              <Plus size={18} className="mr-2" />
-              <span className="whitespace-nowrap">Add Test To Feature</span>
-            </button>
-          </div>
-        </div>
+            </div> {/* End of Add Test button div */}
           </div>
 
           <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -1847,8 +1925,8 @@ const TestsTable = () => {
                         <td colSpan="7" className="px-6 py-12 text-center text-lg text-gray-500">
                           {tests.length === 0 && selectedFeature === 'all' ? (
                             <div className="flex flex-col items-center">
-                              <p>No features or tests found for this product.</p>
-                              <p className="text-sm mt-2">Start by adding a Feature using the dropdown menu, then generate or add tests.</p>
+                              <p>No tests found for this product or feature.</p>
+                              <p className="text-sm mt-2">Start by adding adding a Feature using the dropdown menu or a test using the corresponding button.</p>
                           </div>
                           ) : tests.length === 0 && selectedFeature !== 'all' ? (
                               <div className="flex flex-col items-center">

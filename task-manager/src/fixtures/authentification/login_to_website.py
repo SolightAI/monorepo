@@ -50,7 +50,7 @@ Provide your final output in the following format:
 <login_result>Specify if the login was successful or if an error occurred</login_result>
 <error_message>Include the error message here if an error occurred, otherwise omit this tag</error_message>
 </login_attempt>
-""".strip().format(USERNAME_PASSWORD=LoginMethod.EMAIL.value, GOOGLE_OAUTH=LoginMethod.GOOGLE.value)
+""".strip().format(USERNAME_PASSWORD=LoginMethod.EMAIL.value, GOOGLE_OAUTH=LoginMethod.GOOGLE_OAUTH.value)
 
 
 logger = getLogger(__name__)
@@ -65,18 +65,30 @@ def _select_login_method(login_method: LoginMethod, secrets: list[dict[str, dict
         if method.value in [_secret.get('category') for _secret in secrets]:
             return method
 
-    raise ValueError("No matching login method found in secrets")
+    raise ValueError(f"No matching login method found in secrets: {secrets}")
 
 
 async def login_to_website(
+    identifier: str,
     task_id: str,
     url: str,
     login_method: LoginMethod,
     secrets: list[dict[str, Any]],
     **kwargs: Any,
-) -> tuple[dict[str, dict[str, str]] | None, AgentHistoryList, list[str]]:
+) -> tuple[dict[str, dict[str, str]] | None, AgentHistoryList, list[str], bool]:
     """
     Login to the webapp and return the generated cookies.
+
+    Args:
+        identifier: The identifier of the agent.
+        task_id: The task id of the agent.
+        url: The url of the webapp.
+        login_method: The login method to use.
+        secrets: The secrets to use.
+        **kwargs: Any additional arguments.
+
+    Returns:
+        A tuple containing the session data, history, evidences and a boolean indicating if the agent was run from cache.
     """
 
     evidences = []
@@ -95,16 +107,18 @@ async def login_to_website(
     login_methods = []
     if any(LoginMethod.EMAIL.value in _secret['category'] for _secret in secrets):
         login_methods.append(f"- {LoginMethod.EMAIL.value}")
-    if any(LoginMethod.GOOGLE.value in _secret['category'] for _secret in secrets):
-        login_methods.append(f"- {LoginMethod.GOOGLE.value}")
+    if any(LoginMethod.GOOGLE_OAUTH.value in _secret['category'] for _secret in secrets):
+        login_methods.append(f"- {LoginMethod.GOOGLE_OAUTH.value}")
 
-    session_data, history, evidences = await run_agent(
+    session_data, history, evidences, is_from_cache = await run_agent(
+        identifier=identifier,
         task_id=task_id,
         url=url,
         prompt=PROMPT.format(login_methods="\n".join(login_methods)),
         sensitive_data=sensitive_data,
         auth_session=None,
-        tools=None,
+        tools=[],
+        **kwargs,
     )
 
     logger.info(f"[{task_id}] Checking if agent is logged in")
@@ -122,6 +136,6 @@ async def login_to_website(
     logger.info(f"[{task_id}] Agent is logged in: {is_logged_in}")
 
     if not is_logged_in:
-        return None, history, evidences
+        return None, history, evidences, is_from_cache
 
-    return session_data, history, evidences
+    return session_data, history, evidences, is_from_cache

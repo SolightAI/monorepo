@@ -36,7 +36,11 @@ def generate_random_email_address() -> str:
 
     fake = Faker()
 
-    return fake.email(domain="solight-email.com")
+    random_id = str(uuid.uuid4())[:3]  # limit the risk of collision
+
+    email = fake.email(domain="solight-email.com")
+
+    return email.replace("@", f"{random_id}@")
 
 
 if __name__ == "__main__":

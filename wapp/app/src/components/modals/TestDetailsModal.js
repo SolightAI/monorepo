@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Loader, Play, Trash2, Edit, Server, AlertTriangle, Copy, Link } from 'lucide-react';
+import { X, Loader, Play, Trash2, Edit, Server, AlertTriangle, Copy, Link, Sparkles } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import TestExecutionHistory from '../test/TestExecutionHistory';
 import TestExecutionDetail from '../test/TestExecutionDetail';
 import { getTestExecutions, createTestExecution } from '@/services/testExecutionService';
-import { deleteTest, duplicateTest } from '@/services/testService';
+import { deleteTest, duplicateTest, improveTestSteps, getImproveTestStepsStatus } from '@/services/testService';
 import { useSecret } from '@/context/SecretContext';
 import EditTestModal from './EditTestModal';
 import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
@@ -103,7 +104,15 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [isDuplicating, setIsDuplicating] = useState(false);
+  const [isImprovingSteps, setIsImprovingSteps] = useState(false);
+  const improveStepsIntervalRef = useRef(null);
   const modalRef = useRef(null);
+  const [isStepsExpanded, setIsStepsExpanded] = useState(false); // State for steps expansion
+
+  // Toggle steps expansion
+  const toggleStepsExpansion = useCallback(() => {
+    setIsStepsExpanded(prev => !prev);
+  }, []);
 
   // Get secrets/credentials from the context
   const { secrets, fetchSecrets } = useSecret();
@@ -113,10 +122,95 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
     fetchSecrets();
   }, [fetchSecrets]);
 
-  // Update internal state when initialTest changes
+  // Function to fetch test data (can be used for refresh after improvement)
+  const fetchTestData = useCallback(async () => {
+    if (!testData || !testData.id) return; // Guard against missing ID
+    try {
+      if (typeof onTestUpdated === 'function') {
+          onTestUpdated();
+      }
+    } catch (err) {
+      console.error('Error refetching test data:', err);
+      // Handle error appropriately
+    }
+  }, [testData, onTestUpdated]);
+
+  // Function to start and manage polling for step improvement status
+  const pollImprovementStatus = useCallback((currentTestId) => {
+    // Clear existing interval just in case
+    if (improveStepsIntervalRef.current) {
+      clearInterval(improveStepsIntervalRef.current);
+    }
+
+    improveStepsIntervalRef.current = setInterval(async () => {
+      try {
+        const pollResponse = await getImproveTestStepsStatus(currentTestId);
+        const stillPending = pollResponse && pollResponse.status === TEST_STATUS.PENDING;
+
+        if (!stillPending) {
+          // Stop polling
+          clearInterval(improveStepsIntervalRef.current);
+          improveStepsIntervalRef.current = null;
+          setIsImprovingSteps(false);
+          setError(null); // Clear any previous status message
+          // Show final status message
+          if (pollResponse.status === TEST_STATUS.PASSED) {
+            fetchTestData(); // Refresh test data
+          } else if (pollResponse.status === TEST_STATUS.ERROR || pollResponse.status === TEST_STATUS.FAILED) {
+            setError('Failed to improve test steps. Please try again.');
+          }
+          setTimeout(() => setError(null), 5000);
+        }
+        // Keep isImprovingSteps true while pending
+      } catch (pollErr) {
+        console.error('Error during step improvement polling:', pollErr);
+        // Stop polling on error
+        clearInterval(improveStepsIntervalRef.current);
+        improveStepsIntervalRef.current = null;
+        setIsImprovingSteps(false);
+        setError('Error checking improvement status. Polling stopped.');
+        setTimeout(() => setError(null), 5000);
+      }
+    }, 5000); // Poll every 5 seconds
+  }, [fetchTestData]);
+
+  // Check Status on Load/Change
   useEffect(() => {
-    setTestData(initialTest);
-  }, [initialTest]);
+    setTestData(initialTest); // Update internal test data state
+
+    // Clear any previous interval when test changes
+    if (improveStepsIntervalRef.current) {
+      clearInterval(improveStepsIntervalRef.current);
+      improveStepsIntervalRef.current = null;
+    }
+
+    if (initialTest && initialTest.id) {
+      const checkInitialStatus = async () => {
+        try {
+          const statusResponse = await getImproveTestStepsStatus(initialTest.id);
+          const isPending = statusResponse && (statusResponse.status === TEST_STATUS.PENDING);
+
+          setIsImprovingSteps(isPending);
+
+          if (isPending) {
+            // Start polling if initially pending
+            pollImprovementStatus(initialTest.id);
+          }
+        } catch (err) {
+          console.error('Failed to check initial step improvement status:', err);
+          setIsImprovingSteps(false); // Ensure button is enabled on error
+        }
+      };
+      checkInitialStatus();
+    }
+
+    // Cleanup function to clear interval when component unmounts or initialTest changes
+    return () => {
+      if (improveStepsIntervalRef.current) {
+        clearInterval(improveStepsIntervalRef.current);
+      }
+    };
+  }, [initialTest, fetchTestData, pollImprovementStatus]);
 
   // Function to close modal and ensure updated test data is passed back
   const handleClose = useCallback(() => {
@@ -164,7 +258,11 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
-        handleClose();
+        if (isStepsExpanded) {
+          toggleStepsExpansion();
+        } else {
+          handleClose();
+        }
       }
     };
 
@@ -172,7 +270,7 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [handleClose]);
+  }, [handleClose, isStepsExpanded, toggleStepsExpansion]);
 
   // Handle click outside of modal
   useEffect(() => {
@@ -199,7 +297,7 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
   };
 
   // New function to directly run the test
-  const handleRunTest = async () => {
+  const handleRunTest = async (forceNoCache = false) => {
     // Check if credentials are available
     if (!secrets || secrets.length === 0) {
       setError('Cannot run test: No test credentials found. Please add credentials in the Test Credentials Management section.');
@@ -215,7 +313,8 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
         status: TEST_STATUS.PENDING,
         environment: 'development', // Default to development environment
         executor_type: 'MANUAL',
-        notes: null
+        notes: null,
+        run_without_cache: forceNoCache,
       };
 
       const execution = await createTestExecution(executionData);
@@ -264,7 +363,6 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
 
   // Handle test edit
   const handleTestEdited = (updatedTest) => {
-    console.log("Test edited, received updated data:", updatedTest);
     try {
       if (updatedTest && typeof updatedTest === 'object') {
         // Create a fresh object with updated test data
@@ -272,8 +370,6 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
           ...testData,  // Keep existing properties
           ...updatedTest, // Override with updated properties
         };
-
-        console.log("Setting new test data:", newTestData);
 
         // Update state with new test data
         setTestData(newTestData);
@@ -320,6 +416,29 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
     } finally {
       setIsDuplicating(false);
     }
+  };
+
+  // Function to handle improving the test steps
+  const handleImproveSteps = async () => {
+    if (!testData || !testData.id) return;
+    const currentTestId = testData.id;
+
+    setIsImprovingSteps(true);
+    setError(null); // Clear previous errors
+    try {
+      await improveTestSteps(currentTestId);
+      pollImprovementStatus(currentTestId);
+    } catch (err) {
+      console.error('Error triggering step improvement:', err);
+      setError(`Failed to trigger step improvement: ${err.response?.data?.detail || err.message || 'Please try again.'}`);
+      setIsImprovingSteps(false); // Re-enable button on trigger error
+      // Ensure polling is stopped if the trigger failed
+      if (improveStepsIntervalRef.current) {
+         clearInterval(improveStepsIntervalRef.current);
+         improveStepsIntervalRef.current = null;
+      }
+    }
+    // Polling function now handles setting isImprovingSteps to false
   };
 
   // Find the latest execution for the Last Execution component
@@ -486,11 +605,50 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
 
               {/* Steps and Expected Results */}
               <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-2">Steps</h3>
-                <div className="bg-gray-50 p-4 rounded-lg max-h-[200px] overflow-y-auto">
-                  <p className="text-gray-800 whitespace-pre-line break-words">{testData.steps}</p>
+                {/* Make the heading a flex container, align items to center */}
+                <div className="flex items-center mb-2">
+                  <h3 className="text-lg font-semibold">Steps</h3>
+                  {/* Move the button here, add left margin */}
+                  <button
+                    onClick={handleImproveSteps}
+                    className="px-3 py-1 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition duration-150 flex items-center disabled:opacity-50 disabled:cursor-not-allowed text-sm ml-3"
+                    disabled={isImprovingSteps}
+                    title="Automatically improve the test steps using AI"
+                  >
+                    {isImprovingSteps ? <Loader size={14} className="mr-1 animate-spin" /> : <Sparkles size={14} className="mr-1" />}
+                    {isImprovingSteps ? 'Improving...' : 'Improve Steps'}
+                  </button>
+                </div>
+                <div
+                  className={`bg-gray-50 p-4 rounded-lg max-h-[200px] overflow-y-auto prose prose-sm max-w-none text-gray-800 whitespace-pre-line break-words ${!isStepsExpanded ? 'cursor-pointer hover:bg-gray-100 transition-colors' : ''}`}
+                  onClick={!isStepsExpanded ? toggleStepsExpansion : undefined} // Only allow expanding
+                  title={!isStepsExpanded ? "Click to expand steps" : ""}
+                >
+                  <ReactMarkdown>
+                    {testData.steps}
+                  </ReactMarkdown>
                 </div>
               </div>
+
+              {/* Expanded Steps View */}
+              {isStepsExpanded && (
+                <div className="fixed inset-10 bg-white z-[60] p-8 overflow-y-auto rounded-lg shadow-xl">
+                   <div className="flex justify-between items-center mb-4">
+                     <h3 className="text-xl font-semibold">Test Steps</h3>
+                     <button
+                        onClick={toggleStepsExpansion} // Close button
+                        className="text-gray-500 hover:text-gray-700"
+                     >
+                       <X size={24} />
+                     </button>
+                   </div>
+                   <div className="prose prose-sm max-w-none text-gray-800 whitespace-pre-line break-words">
+                     <ReactMarkdown>
+                       {testData.steps}
+                     </ReactMarkdown>
+                   </div>
+                </div>
+              )}
 
               {/* Preconditions section */}
               {testData.preconditions && (
@@ -511,7 +669,7 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
               </div>
 
               {/* Action buttons */}
-              <div className="flex justify-end space-x-3 mt-6">
+              <div className="flex flex-wrap justify-end gap-3 mt-6">
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
                   className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition duration-150 flex items-center"
@@ -535,10 +693,19 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
                   Edit Test
                 </button>
                 <button
-                  onClick={handleRunTest}
+                  onClick={() => handleRunTest(true)}
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-150 flex items-center disabled:bg-yellow-300 disabled:cursor-not-allowed"
+                  disabled={runningTest || !secrets || secrets.length === 0}
+                  title={!secrets || secrets.length === 0 ? "Test credentials required to run tests" : "Force run this test (bypasses cache)"}
+                >
+                  <Play size={16} className="mr-1" />
+                  Run without cache
+                </button>
+                <button
+                  onClick={() => handleRunTest(false)}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-150 flex items-center disabled:bg-green-300 disabled:cursor-not-allowed"
                   disabled={runningTest || !secrets || secrets.length === 0}
-                  title={!secrets || secrets.length === 0 ? "Test credentials required to run tests" : "Run this test"}
+                  title={!secrets || secrets.length === 0 ? "Test credentials required to run tests" : "Run this test (uses cache if available)"}
                 >
                   {runningTest ? (
                     <Loader size={16} className="mr-1 animate-spin" />
@@ -546,11 +713,6 @@ const TestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUpdate
                     <Play size={16} className="mr-1" />
                   )}
                   {runningTest ? 'Starting...' : 'Run Test'}
-                  {secrets && secrets.length > 0 && (
-                    <span className="ml-1.5 flex items-center justify-center bg-green-800 text-white text-xs rounded-full h-5 min-w-5 px-1">
-                      {secrets.length}
-                    </span>
-                  )}
                 </button>
               </div>
             </>

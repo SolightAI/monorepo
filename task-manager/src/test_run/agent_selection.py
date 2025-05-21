@@ -1,33 +1,39 @@
 import re
+import os
 import typing
 import types
 import enum
 import traceback
 
+from lmnr import observe
 from typing import Any, Callable
 from utils.dto import Test
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
-from agents.general_agent import general_agent, get_parameters_for_general_agent
-from agents.login_agent import login_agent, get_parameters_for_login_agent
-from agents.signup_agent import signup_agent, get_parameters_for_signup_agent
+from agents.general_agent import general_agent
+from agents.login_agent import login_agent
+from agents.signup_agent import signup_agent
 from inspect import getfullargspec, isclass
 from logging import getLogger
+from utils.constants import SEED
+from utils.s3_utils import exists_in_s3, download_file_from_s3, upload_file_to_s3
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 
 logger = getLogger(__name__)
 
 
-AGENTS: dict[Callable, Callable] = {
-    general_agent: get_parameters_for_general_agent,
-    login_agent: get_parameters_for_login_agent,
-    signup_agent: get_parameters_for_signup_agent,
+AGENTS: set[Callable] = {
+    general_agent,
+    login_agent,
+    signup_agent,
 }
 
 
 LLM_CLIENT = ChatOpenAI(
     model="gpt-4.1-mini",
     temperature=0.0,
+    seed=SEED,
 )
 
 
@@ -207,39 +213,80 @@ def get_type_description(_type: type) -> str:
     return description
 
 
-def select_agent_to_use(test: Test) -> Callable:
+async def select_agent_to_use(test: Test) -> Callable:
 
     query = HumanMessage(
         content=PROMPT_AGENT_SELECTOR.format(
             test=get_test_prompt_description(test),
             agents="\n---\n".join([
-                "<agent>\n" + get_agent_prompt_description(agent) + "\n</agent>" for agent in AGENTS.keys()
+                "<agent>\n" + get_agent_prompt_description(agent) + "\n</agent>" for agent in AGENTS
             ])
         )
     )
 
-    response: str = LLM_CLIENT.invoke([query]).content  # type: ignore
+    response: str = (await LLM_CLIENT.ainvoke([query])).content  # type: ignore
 
     agent_name = parse_agent_selection(response)
 
-    for _agent in AGENTS.keys():
+    for _agent in AGENTS:
         if _agent.__name__ == agent_name:
             return _agent
 
     raise ValueError(f"Agent {agent_name} not found")
 
 
+@observe()
 async def select_and_call_agent(
+    identifier: str,
     task_id: str,
     test: Test,
     secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],
+    run_without_cache: bool = False,
 ) -> dict:
 
     logger.info(f"[{task_id}] Selecting agent for test {test.name}")
 
-    agent = select_agent_to_use(test)
+    cache_key = f"{identifier}/selected_agent.txt"
+
+    agent = None
+    agent_was_newly_selected = False
+
+    if exists_in_s3(cache_key):
+
+        logger.info(f"[{task_id}] Selecting agent from cache")
+
+        with TemporaryDirectory() as temp_dir:
+
+            logger.info(f"[{task_id}] Downloading agent name from s3: {cache_key}")
+            download_file_from_s3(cache_key, os.path.join(temp_dir, "selected_agent.txt"))
+
+            with open(os.path.join(temp_dir, "selected_agent.txt"), "r") as f:
+                agent_name = f.read().strip()
+
+            for _agent in AGENTS:
+                if _agent.__name__ == agent_name:
+                    agent = _agent
+                    break
+
+            if agent is None:
+                logger.warning(f"[{task_id}] Cached agent {agent_name=} not found in the list of available agents")
+    else:
+        logger.info(f"[{task_id}] No cached agent found, selecting agent")
+
+    if not agent:
+        agent = await select_agent_to_use(test)
+        agent_was_newly_selected = True
 
     logger.info(f"[{task_id}] Calling agent {agent.__name__}")
 
-    return await agent(**AGENTS[agent](task_id, test, secrets, auth_session))
+    if identifier and agent_was_newly_selected:
+        with NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as selected_agent_file:
+            logger.info(f"[{task_id}] Uploading agent name '{agent.__name__}' to cache: {cache_key}")
+            selected_agent_file.write(agent.__name__)
+            selected_agent_file.flush()
+            selected_agent_file.seek(0)
+
+            upload_file_to_s3(selected_agent_file.name, cache_key)
+
+    return await agent(identifier, task_id, test, secrets, auth_session, run_without_cache)

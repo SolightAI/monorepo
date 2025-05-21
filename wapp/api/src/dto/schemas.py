@@ -1,5 +1,5 @@
 from __future__ import annotations
-from pydantic import BaseModel, UUID4, Field, ConfigDict, HttpUrl
+from pydantic import BaseModel, UUID4, Field, ConfigDict, HttpUrl, EmailStr
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -324,12 +324,7 @@ class Test(TestBase):
 class SecretType(str, Enum):
     """Type of secret for categorization and handling."""
     USERNAME_PASSWORD = "username_password"
-    # OAUTH_CREDENTIAL = "oauth_credential"
-    GOOGLE = "oauth_credential:google"
-    # API_KEY = "api_key"
-    # ENVIRONMENT_VARIABLE = "environment_variable"
-    # CONNECTION_STRING = "connection_string"
-    # OTHER = "other"
+    GOOGLE_OAUTH = "google_oauth"
 
 
 class SecretBase(BaseModel):
@@ -442,6 +437,7 @@ class TestExecutionCreate(BaseModel):
     notes: Optional[str] = None
     evidence: List[str] = []
     metadata: Dict[str, Any] = {}
+    run_without_cache: Optional[bool] = False
 
 
 class TestExecutionUpdate(BaseModel):
@@ -508,3 +504,15 @@ class DemoTestGenerateResponse(BaseModel):
     """Schema for the response containing demo tests generation details"""
     feature_id: UUID4
     task_id: UUID4
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+    invitation_code: Optional[str] = None
+
+
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    invitation_code: Optional[str] = None

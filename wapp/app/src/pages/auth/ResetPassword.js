@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { HelpCircle, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -123,12 +123,6 @@ export default function ResetPassword() {
           <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
             Remember your password? Sign in here
           </Link>
-          <div>
-            <Link to="/faq" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700">
-              <HelpCircle className="w-4 h-4 mr-1" />
-              Need help? Check our FAQ
-            </Link>
-          </div>
         </div>
       </div>
     </div>

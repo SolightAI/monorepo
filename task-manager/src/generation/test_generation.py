@@ -2,6 +2,7 @@ import os
 import re
 import json
 
+from lmnr import Laminar, observe
 from typing import Optional, Any
 from logging import getLogger
 from tempfile import NamedTemporaryFile
@@ -13,6 +14,7 @@ from crypto.crypto import crypto_service
 from utils.history_validator import validate_agent_history
 from utils.s3_utils import upload_file_to_s3
 from fixtures.authentification.get_auth_session import get_auth_session
+from utils.constants import SEED
 
 
 PROMPT = """
@@ -90,6 +92,7 @@ LLM_CLIENT = ChatOpenAI(
     timeout=120,
     temperature=0,
     frequency_penalty=0.3,
+    seed=SEED,
 )
 
 logger = getLogger(__name__)
@@ -114,6 +117,7 @@ def _parse_test_cases(test_case_text: str) -> list[dict[str, str]]:
     return test_cases
 
 
+@observe()
 async def _generate_test_category_for_feature(
     job_id: str,
     product: Product,
@@ -172,7 +176,7 @@ async def _generate_test_category_for_feature(
                 epic=epic,
                 feature=feature,
                 url=feature.urls[0],
-                category_of_test=category_of_test,
+                category_of_test=category_of_test.value,
                 test_categories_description="- ".join([f"{k}: {v}" for k, v in TEST_CATEGORIES_DESCRIPTION.items()]),
             ),
             llm=LLM_CLIENT,
@@ -204,12 +208,9 @@ async def _generate_test_category_for_feature(
 
         # Upload GIF to S3
         s3_url = upload_file_to_s3(
-            job_id=job_id,
             file_path=temp_gif.name,
-            task_type="test",
-            task_name=feature.name,
+            object_name=f"{job_id}/{feature.name}.gif",
             additional_params=feature.model_dump(),
-            extension="gif",
             content_type="image/gif",
         )
         if s3_url:
@@ -249,12 +250,14 @@ async def _generate_test_category_for_feature(
     return tests
 
 
+@observe()
 async def generate_tests(
     ctx: dict[Any, Any],
     product: Product,
     epic: Epic,
     feature: Feature,
     secrets: Optional[list[dict[str, Any]]] = None,
+    categories: Optional[list[str]] = None,
 ) -> dict[str, Any]:
     """
     Endpoint to generate tests for a feature.
@@ -266,10 +269,15 @@ async def generate_tests(
         background_task: Background tasks handler
         secrets: List of secret dictionaries for authentication
                  (expected to be encrypted if provided)
+        categories: List of test categories to generate. If None, defaults to [TestCategory.SMOKE].
+                    If an empty list is provided, no tests will be generated.
 
     Returns:
         Task ID for tracking the test generation process
     """
+
+    Laminar.set_session(session_id=ctx['job_id'])
+    Laminar.set_metadata({"task_id": ctx['job_id'], "job": generate_tests.__name__})
 
     product = Product(**product)
     epic = Epic(**epic)
@@ -290,20 +298,30 @@ async def generate_tests(
             }
             return output
 
-    # List of test categories to generate
-    categories = [
-        TestCategory.SMOKE,
-    ]
+    # Convert string categories to TestCategory enum values
+    categories_to_generate = []
+    if categories is not None:
+        for _category in categories:
+            try:
+                category_enum = TestCategory(_category)
+                categories_to_generate.append(category_enum)
+            except ValueError as e:
+                raise ValueError(f"Invalid test category: {_category}") from e
+    else:
+        # No categories provided, defaulting to SMOKE
+        categories_to_generate = [TestCategory.SMOKE]
 
     auth_session = dict()
     if feature.access_conditions is not None and feature.access_conditions.get("must_be_logged_in") is True:
         auth_session = await get_auth_session(
+            identifier=None,
             task_id=ctx['job_id'],
             url=product.url,
             secrets=decrypted_secrets,  # Use decrypted secrets here
         )
 
-    tests = []
+    # Generate tests for each category
+    all_tests = []
     with NamedTemporaryFile(suffix=".json", mode="w+") as cookies_file:
         cookies_file.write(json.dumps(auth_session.get('cookies')))
         cookies_file.flush()
@@ -312,20 +330,23 @@ async def generate_tests(
         local_storage_data = auth_session.get('localStorage')
         local_storage_json = json.dumps(local_storage_data) if local_storage_data is not None else None
 
-        for category in categories:
-            category_tests = await _generate_test_category_for_feature(
-                job_id=ctx['job_id'],
-                product=product,
-                epic=epic,
-                feature=feature,
-                category_of_test=category,
-                cookies_file=cookies_file.name if auth_session.get('cookies') is not None else None,
-                localStorage=local_storage_json,
-            )
-            tests.extend(category_tests)
+        for category in categories_to_generate:
+            try:
+                tests = await _generate_test_category_for_feature(
+                    job_id=ctx['job_id'],
+                    product=product,
+                    epic=epic,
+                    feature=feature,
+                    category_of_test=category,
+                    cookies_file=cookies_file.name if auth_session.get('cookies') is not None else None,
+                    localStorage=local_storage_json,
+                )
+                all_tests.extend(tests)
+            except Exception as e:
+                raise ValueError(f"Error generating {category} tests: {e}") from e
 
     output = {
-        "results": [_test.model_dump() | {'category': _test.category.value} for _test in tests],
+        "results": [_test.model_dump() | {'category': _test.category.value} for _test in all_tests],
         "status": TestStatus.PASSED.value,
     }
 

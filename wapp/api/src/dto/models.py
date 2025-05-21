@@ -7,6 +7,7 @@ class User(models.Model):
 
     username = fields.CharField(max_length=255, unique=False)
     email = fields.CharField(max_length=255, unique=True)
+    hashed_password = fields.CharField(max_length=255, null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     is_admin = fields.BooleanField(default=False)
     onboarding_completed = fields.BooleanField(default=False)
@@ -146,7 +147,6 @@ class Test(models.Model):
     preconditions = fields.TextField()
     steps = fields.TextField()
     assertions = fields.TextField()
-
     category = fields.CharEnumField(TestCategory, max_length=255)
 
     feature = fields.ForeignKeyField("models.Feature", related_name="tests")

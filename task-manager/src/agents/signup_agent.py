@@ -13,6 +13,7 @@ from agents._base_agent import (
     format_secrets,
     SHARED_AGENT_LIMITATIONS,
 )
+from lmnr import observe
 
 
 AGENT_LIMITATIONS = [
@@ -57,25 +58,14 @@ Now, run the test.
 logger = getLogger(__name__)
 
 
-def get_parameters_for_signup_agent(
-    task_id: str,
-    test: Test,
-    secrets: dict[str, dict[str, str]],
-    auth_session: dict[str, dict[str, str]],
-) -> dict[str, Any]:
-    return {
-        "task_id": task_id,
-        "test": test,
-        "secrets": secrets,
-        "auth_session": auth_session,
-    }
-
-
+@observe()
 async def signup_agent(
+    identifier: str,
     task_id: str,
     test: Test,
     secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],  # unused
+    run_without_cache: bool = False,
 ) -> dict[str, Any]:
     """
     Agent used to test the signup feature of a website.
@@ -92,11 +82,12 @@ async def signup_agent(
 
     del auth_session  # making sure we don't use the auth session
 
-    is_able, explanation = is_agent_able_to_run_test(
+    is_able, explanation = await is_agent_able_to_run_test(
         task_id=task_id,
         test=test,
         agent_tools=TOOLS,
         agent_limitations=AGENT_LIMITATIONS,
+        secrets_names=list(format_secrets(secrets).keys()),
     )
 
     if is_able is False:
@@ -105,7 +96,8 @@ async def signup_agent(
             "results": explanation,
         }
 
-    session_data, history, evidences = await run_agent(
+    session_data, history, evidences, is_from_cache = await run_agent(
+        identifier=identifier,
         task_id=task_id,
         url=test.url,
         prompt=PROMPT.format(
@@ -116,18 +108,21 @@ async def signup_agent(
         sensitive_data=format_secrets(secrets),
         auth_session=None,
         tools=TOOLS,
+        run_without_cache=run_without_cache,
     )
 
     additional_healthchecks_results = await run_additional_healthcheck(
+        identifier=identifier,
         task_id=task_id,
         test=test,
         existing_session=session_data,
     )
 
-    status, explanation = check_final_test_result(
+    status, explanation = await check_final_test_result(
         task_id=task_id,
         test=test,
         agent_output=history.final_result(),
+        screenshot_base64=history.screenshots()[-1] if len(history.screenshots()) > 0 else None,
         healthcheck_results=additional_healthchecks_results,
     )
 
@@ -140,4 +135,5 @@ async def signup_agent(
         # "tracing": history.get_logs(),
         "error": explanation if status != TestStatus.PASSED else "",
         "traceback": "",
+        "is_from_cache": is_from_cache,
     }

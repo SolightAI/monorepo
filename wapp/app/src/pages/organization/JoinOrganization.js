@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { XCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -129,6 +129,7 @@ const JoinOrganization = () => {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           {loading ? (
             <div className="text-center">
@@ -150,6 +151,37 @@ const JoinOrganization = () => {
                 </p>
               </div>
 
+              {/* Email/Password Sign In Button Link */}
+              <div>
+                <Link
+                  to={`/login?invitation_code=${code}`}
+                  className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Sign in
+                </Link>
+              </div>
+
+              {/* Email/Password Sign Up Button Link */}
+              <div>
+                <Link
+                  to={`/register?invitation_code=${code}`}
+                  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mt-3"
+                >
+                  Sign up
+                </Link>
+              </div>
+
+              {/* Separator */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Or</span>
+                </div>
+              </div>
+
+              {/* Google */ }
               <div className="space-y-4">
                 <button
                   onClick={() => handleJoin('google')}
@@ -166,7 +198,8 @@ const JoinOrganization = () => {
                     Continue with Google
                   </span>
                 </button>
-                
+
+                {/* Azure */}
                 <button
                   onClick={() => handleJoin('azure')}
                   className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -181,6 +214,7 @@ const JoinOrganization = () => {
                     Continue with Microsoft
                   </span>
                 </button>
+
               </div>
             </div>
           ) : null}

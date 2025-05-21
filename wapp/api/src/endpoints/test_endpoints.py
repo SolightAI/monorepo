@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Body, Query
 from dto.schemas import TestCreate as TestCreateSchema, Test as TestSchema, TestUpdate as TestUpdateSchema, TestSecretCreate, TestSecret, TestExecution as TestExecutionSchema
 from services.test_execution_services import get_test_executions_by_test
 import traceback
@@ -19,9 +19,12 @@ from services.test_services import (
     get_feature,
     get_epic,
     get_product,
+    trigger_improve_test_steps,
+    poll_improve_test_steps_status,
+    get_improve_test_steps_status,
 )
-from pydantic import UUID4
-from typing import List
+from pydantic import UUID4, BaseModel
+from typing import List, Optional
 
 from dependencies import get_current_user_dependency
 from dto.models import User
@@ -31,6 +34,10 @@ from logging import getLogger
 
 router = APIRouter(prefix="/tests", tags=["tests"])
 logger = getLogger(__name__)
+
+
+class TestGenerationRequest(BaseModel):
+    categories: Optional[List[str]] = None
 
 
 @router.get("/")
@@ -100,9 +107,33 @@ async def delete_test_endpoint(test_id: UUID4) -> dict:
     return {"success": deleted, "message": "Test deleted successfully"}
 
 
+@router.post("/{test_id}/steps")
+async def improve_test_steps(
+    test_id: UUID4,
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    current_user: User = Depends(get_current_user_dependency),
+) -> str:
+    test_model = await get_test(test_id=test_id)
+
+    job_id = await trigger_improve_test_steps(test_model=test_model)
+
+    background_tasks.add_task(
+        poll_improve_test_steps_status,
+        test_id=test_id,
+    )
+
+    return job_id
+
+
+@router.get("/{test_id}/steps/status")
+async def get_improve_test_steps_status_endpoint(test_id: UUID4) -> dict:
+    return await get_improve_test_steps_status(test_id=test_id)
+
+
 @router.post("/generate")
 async def generate_test(
-    feature_id: UUID4,
+    feature_id: UUID4 = Query(...),
+    categories: Optional[List[str]] = Body(default=None),
     current_user: User = Depends(get_current_user_dependency),
     background_tasks: BackgroundTasks = BackgroundTasks()
 ) -> dict:
@@ -110,7 +141,8 @@ async def generate_test(
     Generate tests for a feature.
 
     Args:
-        feature_id: The ID of the feature to generate tests for
+        feature_id: The ID of the feature to generate tests for (query parameter)
+        categories: A list of category names to guide test generation (request body)
         current_user: The current authenticated user
 
     Returns:
@@ -130,9 +162,9 @@ async def generate_test(
         if not await organization_services.verify_organization_access(product.organization_id, current_user.id):
             raise HTTPException(status_code=403, detail="Access denied to organization")
 
-        # Trigger test generation
-        response_data = await trigger_test_generation(feature_id=feature_id)
-        logger.info(f"Triggering test generation for feature {feature_id}. Response data: {response_data}")
+        # Trigger test generation with categories
+        response_data = await trigger_test_generation(feature_id=feature_id, categories=categories)
+        logger.info(f"Triggering test generation for feature {feature_id} with categories {categories}. Response data: {response_data}")
         background_tasks.add_task(
             poll_test_generation_status,
             task_id=response_data["task_id"],

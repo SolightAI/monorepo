@@ -36,12 +36,16 @@ export const AuthProvider = ({ children }) => {
   // Validate invitation code
   const validateInvitationCode = async (code, email) => {
     try {
-      const url = `${API_URL}/invitations/validate/${code}` + (email ? `?email=${email}/` : '/' );
+      let url = `${API_URL}/invitations/validate/${code}/`;
+      if (email) {
+        url += `?email=${email}`;
+      }
       const response = await axios.get(url);
-      return { isValid: true, data: response.data };
+      const result = { isValid: true, data: response.data };
+      return result;
     } catch (error) {
-      console.error('Error validating invitation code:', error);
-      return { isValid: false, error: error.response?.data?.detail || 'Invalid invitation code' };
+      const result = { isValid: false, error: error.response?.data?.detail || 'Invalid invitation code' };
+      return result;
     }
   };
 
@@ -273,45 +277,43 @@ export const AuthProvider = ({ children }) => {
   }, [checkAuthStatus, refreshAccessToken, setTokenData]);
 
   // Login function
-  const login = async (username, password) => {
+  const login = async (email, password, invitationCode) => {
+    setLoading(true);
     setError(null);
     try {
-      const formData = new URLSearchParams();
-      formData.append('username', username);
-      formData.append('password', password);
-
-      const response = await axios.post(
-        `${API_URL}/auth/login`,
-        formData,
-        {
-          withCredentials: true,
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        }
+      await axios.post(
+        `${API_URL}/auth/login/password`,
+        { email, password, invitation_code: invitationCode },
+        { withCredentials: true }
       );
 
-      setIsAuthenticated(true);
-      localStorage.setItem('isAuthenticated', 'true');
-
-      if (response.data.access_token) {
-        setTokenData(
-          response.data.access_token,
-          response.data.expires_in || ACCESS_TOKEN_EXPIRE_MINUTES * 60
-        );
-      }
-
+      // Backend sets HttpOnly cookies on successful login.
+      // Refresh frontend auth state and ensure token mechanisms are primed.
       await checkAuthStatus();
+      await refreshAccessToken();
 
-      return response.data;
-    } catch (error) {
-      setError(error.response?.data?.detail || 'Login failed');
-      throw error;
+      console.log('Login successful, auth status updated.');
+      return true; // Indicate success
+    } catch (err) {
+      console.error('Login error:', err.response?.data?.detail || err.message);
+      setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
+      setIsAuthenticated(false);
+      setUser(null);
+      setIsAdmin(false);
+      setTokens({ accessToken: null, refreshToken: null, expiresAt: null });
+      localStorage.removeItem('tokenExpiresAt');
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('isAdmin');
+      localStorage.removeItem('onboardingCompleted');
+      return false; // Indicate failure
+    } finally {
+      setLoading(false);
     }
   };
 
   // Register function
   const register = async (username, email, password, invitation_code) => {
+    setLoading(true);
     setError(null);
     try {
       const response = await axios.post(
@@ -320,14 +322,30 @@ export const AuthProvider = ({ children }) => {
         { withCredentials: true }
       );
 
-      // Update authentication state
-      setIsAuthenticated(true);
-      localStorage.setItem('isAuthenticated', 'true');
+      if (response.data && response.data.user) {
+        // Backend sets HttpOnly cookies and returns user data.
+        // Refresh frontend auth state and ensure token mechanisms are primed.
+        await checkAuthStatus();
+        await refreshAccessToken();
 
-      return response.data;
-    } catch (error) {
-      setError(error.response?.data?.detail || 'Registration failed');
-      throw error;
+        console.log('Registration successful, user logged in.', response.data.user);
+        return response.data;
+      } else {
+        throw new Error('Registration response did not include user data.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Registration failed. Please try again.');
+      setIsAuthenticated(false);
+      setUser(null);
+      setIsAdmin(false);
+      setTokens({ accessToken: null, refreshToken: null, expiresAt: null });
+      localStorage.removeItem('tokenExpiresAt');
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('isAdmin');
+      localStorage.removeItem('onboardingCompleted');
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
