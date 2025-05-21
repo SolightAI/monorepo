@@ -5,12 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { useDemo } from "@/context/DemoContext";
 import axios from "axios";
 import { API_URL } from "@/constants/api";
-import { triggerFeatureTestGeneration } from "@/services/testService";
 import { useEffect, useState } from "react";
 
 export function Home() {
   const navigate = useNavigate();
-  const { updateUrl, updateFeature, updateEpic, updateProduct, updateOrganization, reset } = useDemo();
+  const { updateUrl, updateFeature, reset } = useDemo();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 

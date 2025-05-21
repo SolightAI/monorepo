@@ -129,7 +129,10 @@ export const triggerFeatureTestGeneration = async (featureId, categories) => {
  */
 export const getTestGenerationStatus = async (featureId, demo = false) => {
   try {
-    const response = await axios.get(`${API_URL}${demo ? '/demo' : ''}/tests/generate/status/${featureId}`, 
+    const url = demo 
+      ? `${API_URL}/demo/tests/generate/status/${featureId}`
+      : `${API_URL}/tests/generate/status/${featureId}`;
+    const response = await axios.get(url, 
     !demo ? {
       withCredentials: true
     } : {});
