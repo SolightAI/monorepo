@@ -1,7 +1,7 @@
 from logging import getLogger, INFO, StreamHandler
 import sys
 from typing import List, Dict
-from utils.dto import TestStatus
+from src.utils.dto import TestStatus
 
 # Configure logging
 logger = getLogger(__name__)

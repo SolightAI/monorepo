@@ -2,7 +2,6 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
 import json
-from src.utils.dto import TestCategory
 from logging import getLogger, INFO, StreamHandler
 import sys
 from langchain_openai import ChatOpenAI

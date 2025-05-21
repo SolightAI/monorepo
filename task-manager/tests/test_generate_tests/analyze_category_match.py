@@ -4,6 +4,7 @@ import sys
 from typing import List, Dict
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
+from src.utils.dto import TEST_CATEGORIES_DESCRIPTION
 
 # Configure logging
 logger = getLogger(__name__)
@@ -11,12 +12,6 @@ logger.setLevel(INFO)
 handler = StreamHandler(sys.stdout)
 handler.setLevel(INFO)
 logger.addHandler(handler)
-
-# Category descriptions
-TEST_CATEGORIES_DESCRIPTION = {
-    "smoke": "aka (Happy path): testing the functionality of a feature, making sure it works as expected.",
-    "negative": "aka (Unhappy path): testing scenarios where the user is suppposed to encounter errors, making sure the feature behaves as expected with invalid data, inputs or actions."
-}
 
 def analyze_category_match(tests: List[Dict], requested_category: str) -> Dict:
     """
