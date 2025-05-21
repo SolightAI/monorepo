@@ -66,19 +66,51 @@ cleanup() {
 trap cleanup SIGINT SIGTERM
 
 # Run test in container
-docker run \
-  --rm \
-  --network $UNIT_TEST_NETWORK_NAME \
-  --entrypoint pytest \
-  -v ./tests:/var/task/tests \
-  -v ./pytest.ini:/var/task/pytest.ini \
-  -e OPENAI_API_KEY=${OPENAI_API_KEY} \
-  -e HEADLESS=true \
-  -e REDIS_HOST=agent-job-test-redis \
-  -e REDIS_PORT=6379 \
-  -e S3_ACCESS_KEY_ID=minio \
-  -e S3_SECRET_ACCESS_KEY=minio123 \
-  -e S3_ENDPOINT_URL=http://agent-job-test-minio:9000 \
-  -e PLAYGROUND_URL=http://agent-job-test-playground:3000 \
-  $IMAGE_NAME -n 4
+# Base docker run command
+CMD=(
+  docker run
+  --rm
+  --network "$UNIT_TEST_NETWORK_NAME"
+  --entrypoint pytest
+  -v ./tests:/var/task/tests
+  -v ./pytest.ini:/var/task/pytest.ini
+  -e OPENAI_API_KEY="$OPENAI_API_KEY"
+  -e HEADLESS=true
+  -e REDIS_HOST=agent-job-test-redis
+  -e REDIS_PORT=6379
+  -e S3_ACCESS_KEY_ID=minio
+  -e S3_SECRET_ACCESS_KEY=minio123
+  -e S3_ENDPOINT_URL=http://agent-job-test-minio:9000
+  -e PLAYGROUND_URL=http://agent-job-test-playground:3000
+)
 
+# List of environment variable names to conditionally include if they exist
+ADDITIONAL_TEST_ENV_VARS=(
+  FARMZZ_USERNAME
+  FARMZZ_PASSWORD
+  TECLA_ACADEMY_USERNAME
+  TECLA_ACADEMY_PASSWORD
+  SESAME_HR_USERNAME
+  SESAME_HR_PASSWORD
+  MEANDWHO_USERNAME
+  MEANDWHO_PASSWORD
+  SOLIGHT_USERNAME
+  SOLIGHT_PASSWORD
+  SOLIGHT_RECOVERY_PHONE_NUMBER
+  TICKPICK_USERNAME
+  TICKPICK_PASSWORD
+  TWOCAPTCHA_API_KEY
+)
+
+# Loop through and append defined ones to CMD
+for var_name in "${ADDITIONAL_TEST_ENV_VARS[@]}"; do
+  value="${!var_name}"
+  if [[ -n "$value" ]]; then
+    CMD+=(-e "$var_name=$value")
+  fi
+done
+# Add the image and arguments
+CMD+=("$IMAGE_NAME" -n 4)
+
+# Execute the command
+"${CMD[@]}"
