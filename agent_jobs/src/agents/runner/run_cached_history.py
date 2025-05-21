@@ -13,6 +13,7 @@ from langchain_core.messages import HumanMessage
 from browser_use.agent.prompts import AgentMessagePrompt
 from tempfile import NamedTemporaryFile
 
+from src.agents.get_agent import AgentParam, get_agent
 from src.config import Config
 
 from ..tools import TOOLS
@@ -523,7 +524,8 @@ async def try_rerun_from_history(
     config: Config,
     task_id: str,
     identifier: str,
-    agent_params: dict[str, Any],
+    agent_params: AgentParam,
+    **kwargs: Any,
 ) -> tuple[AgentHistoryList | None, bool]:
     logger.info(f"[{task_id}] Running agent from cached history")
 
@@ -534,7 +536,7 @@ async def try_rerun_from_history(
             f"[{task_id}] Loading history from {history_file.name} for GIF generation."
         )
 
-        agent = Agent(**agent_params)
+        agent = get_agent(agent_params, **kwargs)
         agent._task_id = task_id  # type: ignore # NOTE: we want to use a different agent for rerun_history and agent.run as rerun_history modifies the agent's controller
 
         try:

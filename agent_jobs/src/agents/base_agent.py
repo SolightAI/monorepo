@@ -15,6 +15,7 @@ from browser_use.browser.context import (
     BrowserContextWindowSize,
 )
 
+from agent_jobs.src.agents.get_agent import AgentParam
 from src.common.s3_client import S3Client
 from src.config import Config
 
@@ -82,12 +83,13 @@ async def run_agent(
             context,
             controller,
             sensitive_data,
-            **kwargs,
         )
 
         ran_from_cache = False
 
-        if not run_without_cache and config.s3_client.exists(f"{identifier}/history.json"):
+        if not run_without_cache and config.s3_client.exists(
+            f"{identifier}/history.json"
+        ):
             logger.info(f"[{task_id}] Try Running agent from cached history")
 
             history, ran_from_cache = await try_rerun_from_history(
@@ -95,15 +97,12 @@ async def run_agent(
                 task_id=task_id,
                 identifier=identifier,
                 agent_params=agent_params,
+                **kwargs,
             )
 
         if ran_from_cache is False:
             history = await run_uncached_history(
-                config=config,
-                task_id=task_id,
-                identifier=identifier,
-                agent_params=agent_params,
-                additional_task=additional_task,
+                config, task_id, identifier, agent_params, additional_task, **kwargs
             )
 
         logger.info(f"[{task_id}] Agent finished running ({identifier=})")
@@ -142,32 +141,14 @@ def _create_agent_params(
     browser_context: BrowserContext,
     controller: Controller,
     sensitive_data: dict[str, str] | None = None,
-    **kwargs: Any,
-) -> dict[str, Any]:
-    agent_client = ChatOpenAI(
-        model="gpt-4.1",
-        temperature=0.0,
-        timeout=120,
-        frequency_penalty=0.3,
+) -> AgentParam:
+    return AgentParam(
+        context=browser_context,
+        controller=controller,
+        prompt=prompt,
+        sensitive_data=sensitive_data,
+        url=url,
     )
-
-    return {
-        "task": prompt,
-        "llm": kwargs.get("llm", agent_client),
-        "use_vision": kwargs.get("use_vision", False),
-        "enable_memory": kwargs.get("enable_memory", False),
-        "initial_actions": [
-            {"go_to_url": {"url": url}},
-            {
-                "go_to_url": {"url": url}
-            },  # necessary to do it twice in some situations (i.e tickpick in-url auth in dev)
-            {"wait": {"seconds": 5}},
-        ],
-        "sensitive_data": sensitive_data,
-        "browser_context": browser_context,
-        "controller": controller,
-        "max_actions_per_step": 1,
-    }
 
 
 async def _generate_and_upload_evidences(

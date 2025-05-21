@@ -4,6 +4,7 @@ from typing import Any
 from tempfile import NamedTemporaryFile
 from browser_use import Agent, AgentHistoryList
 
+from src.agents.get_agent import AgentParam, get_agent
 from src.config import Config
 
 from ..hooks import on_step_start_hook
@@ -15,12 +16,13 @@ async def run_uncached_history(
     config: Config,
     task_id: str,
     identifier: str,
-    agent_params: dict[str, Any],
+    agent_params: AgentParam,
     additional_task: str | None,
+    **kwargs: Any,
 ) -> AgentHistoryList:
     logger.info(f"[{task_id}] Running agent for the first time")
 
-    agent = Agent(**agent_params)
+    agent = get_agent(agent_params, **kwargs)
     agent._task_id = task_id  # type: ignore
 
     history = await agent.run(
@@ -31,14 +33,12 @@ async def run_uncached_history(
     if additional_task is not None and len(additional_task) > 0:
         injected_agent_state = agent.state
 
-        agent = Agent(
-            **(
-                agent_params
-                | {
-                    "injected_agent_state": injected_agent_state,
-                    "task": additional_task,
-                }
-            )
+        agent = get_agent(
+            agent_params,
+            **kwargs | {
+                "injected_agent_state": injected_agent_state,
+                "task": additional_task,
+            }
         )
 
         agent.add_new_task(additional_task)

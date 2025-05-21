@@ -7,7 +7,7 @@ from src.agents.general_agent import general_agent
 from src.common.dto import Test, TestCategory, TestStatus
 
 
-TICK_PICK_URL = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=889809849&quantity=1&listingType=TEVO&price=28&dt=e&dv=2&e=7089570&s=109&r=4"
+TICK_PICK_URL = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=889809948&quantity=1&listingType=TEVO&price=16&dt=f&dv=2&e=7089570&s=GA%20Supporter%20Terrace&r=9"
 
 
 @pytest.mark.skip(
@@ -25,16 +25,14 @@ class TestTickPickHighLevelSteps:
         config: Config,
     ) -> None:
         """Helper method to run a checkout test case."""
-        steps = dedent(
-            f"""
+        steps = dedent(f"""
             1. Fill a random email address.
             2. Select credit card as payment method
             {credit_card_step}
-            3. Fill contact informations.Use a US phone number.
-            4. Select "No, don't make my ticket reimbursable"
-            5. Click "Place order"
-        """.strip()
-        )
+            4. Fill contact informations.
+            5. Select "No, don't make my ticket reimbursable"
+            6. Click "Place order"
+        """).strip()
 
         test = Test(
             category=TestCategory.NEGATIVE,
@@ -162,18 +160,16 @@ class TestTickPickStandardSteps:
         expected_status: TestStatus,
     ) -> None:
         """Helper method to run a checkout test case."""
-        steps = dedent(
-            f"""
+        steps = dedent(f"""
             1. Wait for the page to load
             2. At the top of the page, fill a random email address as "Buyer Information".
             3. Select (new) credit card as payment method at the top of the page
             {credit_card_step}
-            4. Scroll down and fill all the contact informations (first name, last name, address, city, state, zip code, country, phone number). For the phone number, enter a US one with the +1 country code.
-            5. Scroll down and select "No, don't make my ticket reimbursable"
-            6. Scroll down and click "Place order"
-            7. Wait for the "Processing" to finish until you have a final message
-        """.strip()
-        )  # NOTE: if we don't provide the fields to fill for "contact informations", the agent will often skip the "city", "state" and "zip code" fields
+            5. Scroll down and fill all the contact informations (first name, last name, address, city, state, zip code, country, phone number). For the phone number, enter a US one with the +1 country code.
+            6. Scroll down and select "No, don't make my ticket reimbursable"
+            7. Scroll down and click "Place order"
+            8. Wait for the "Processing" to finish until you have a final message
+        """).strip()  # NOTE: if we don't provide the fields to fill for "contact informations", the agent will often skip the "city", "state" and "zip code" fields
 
         test = Test(
             category=TestCategory.NEGATIVE,
@@ -326,8 +322,8 @@ class TestTickPickDetailedSteps:
             6. Leave any additional checkboxes such as SMS opt-in checked or unchecked according to their default state unless otherwise specified by requirements.
             7. In the 'Make Your Tickets Reimbursable' section, select the radio button labelled "No, don't make my ticket reimbursable".
             8. Scroll down if necessary to locate and click on the main 'Place Order' button at the bottom of the form.
-        """.strip()
-        )
+        """
+        ).strip()
 
         test = Test(
             category=TestCategory.NEGATIVE,

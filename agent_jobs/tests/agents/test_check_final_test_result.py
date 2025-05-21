@@ -132,8 +132,8 @@ class TestTickPick:
         1. Enter valid payment information (credit card or Klarna).
         2. Agree to user agreement/privacy policy by checking required box.
         3. Click 'Place Order' or equivalent button.
-        """.strip()
-        )
+        """
+        ).strip()
 
         test_params = {
             "category": TestCategory.SMOKE,
@@ -207,8 +207,8 @@ class TestTickPick:
         8. Click on the main checkout button labeled 'Place Order' to submit your order.
 
         9. Wait for any processing indicator or loading spinner to finish after submitting your order.
-        """.strip()
-        )
+        """
+        ).strip()
 
         test_params = {
             "category": TestCategory.SMOKE,
@@ -284,8 +284,8 @@ class TestTickPick:
         8. Click on the main checkout button labeled 'Place Order' to submit your order.
 
         9. Wait for any processing indicator or loading spinner to finish after submitting your order.
-        """.strip()
-        )
+        """
+        ).strip()
 
         test_params = {
             "category": TestCategory.SMOKE,
