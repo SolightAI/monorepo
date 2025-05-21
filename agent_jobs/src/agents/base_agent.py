@@ -15,7 +15,7 @@ from browser_use.browser.context import (
     BrowserContextWindowSize,
 )
 
-from agent_jobs.src.agents.get_agent import AgentParam
+from src.agents.get_agent import AgentParam
 from src.common.s3_client import S3Client
 from src.config import Config
 
