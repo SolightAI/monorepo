@@ -497,7 +497,7 @@ class LatestTestExecutionResponse(BaseModel):
     ended_at: Optional[datetime] = None
 
 class DemoTestGenerateRequest(BaseModel):
-    """Schema for generating tests in a using demo"""
+    """Schema for generating tests using a demo"""
     url: HttpUrl
 
 class DemoTestGenerateResponse(BaseModel):
