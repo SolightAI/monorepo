@@ -132,10 +132,8 @@ export const getTestGenerationStatus = async (featureId, demo = false) => {
     const url = demo 
       ? `${API_URL}/demo/tests/generate/status/${featureId}`
       : `${API_URL}/tests/generate/status/${featureId}`;
-    const response = await axios.get(url, 
-    !demo ? {
-      withCredentials: true
-    } : {});
+    const config = demo ? {} : { withCredentials: true };
+    const response = await axios.get(url, config);
     return response.data;
   } catch (error) {
     console.error(`Error checking test generation status for feature ${featureId}:`, error);

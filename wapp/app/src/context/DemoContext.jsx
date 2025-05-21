@@ -23,13 +23,13 @@ export function DemoProvider({ children }) {
     setUrl(newUrl);
   };
 
-  const updateTests = (newTests) => {
+  const updateTests = useCallback((newTests) => {
     setTests(newTests);
-  };
+  }, []);
   
-  const updateFeature = (newFeature) => {
+  const updateFeature = useCallback((newFeature) => {
     setFeature(newFeature);
-  };
+  }, []);
 
   const reset = useCallback(() => {
     setUrl('');

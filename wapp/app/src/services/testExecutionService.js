@@ -23,6 +23,7 @@ export const getTestExecutions = async (testId) => {
  * Get a specific test execution by ID
  *
  * @param {string} executionId - The UUID of the test execution
+ * @param {boolean} [demo] - Whether to use demo mode
  * @returns {Promise<Object>} Promise with the test execution data
  */
 export const getTestExecution = async (executionId, demo = false) => {
@@ -49,6 +50,7 @@ export const getTestExecution = async (executionId, demo = false) => {
  * @param {string} [executionData.notes] - Optional notes about the execution
  * @param {Array} [executionData.evidence] - Optional list of evidence URLs
  * @param {boolean} [executionData.run_without_cache] - Optional flag to run test without cache
+ * @param {boolean} [demo] - Whether to use demo mode
  * @returns {Promise<Object>} Promise with the created test execution data
  */
 export const createTestExecution = async (executionData, demo = false) => {
@@ -60,7 +62,7 @@ export const createTestExecution = async (executionData, demo = false) => {
       payload.run_without_cache = false;
     }
 
-    const response = await axios.post(`${API_URL}${demo ? '/demo' : ''}/test-executions/`, executionData, {
+    const response = await axios.post(`${API_URL}${demo ? '/demo' : ''}/test-executions/`, payload, {
       withCredentials: true
     });
     return response.data;

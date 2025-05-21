@@ -92,7 +92,7 @@ function AppContent() {
       {/* Demo routes */}
       <Route path="/demo/*" element={<DemoProvider><DemoLayout /></DemoProvider>}>
         <Route index element={<Home />} />
-        <Route path={"processing"} element={<Processor />} />
+        <Route path="processing" element={<Processor />} />
         <Route path="results" element={<Results />} />
         <Route path="*" element={<NotFound />} />
       </Route>
