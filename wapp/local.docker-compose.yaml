@@ -47,6 +47,7 @@ services:
       - S3_BUCKET_NAME=task-manager
       - AWS_REGION=us-east-1
       - AWS_ENDPOINT_URL=http://localhost:9000
+      - DEMO_ACCOUNT_EMAIL=${DEMO_ACCOUNT_EMAIL:-demo@solight.ai}
       # Redis Cache Configuration
       - REDIS_HOST=redis
       - REDIS_PORT=6379

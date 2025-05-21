@@ -88,6 +88,11 @@ The API provides the following endpoints:
   - Get aggregate statistics
   - Generate reports
 
+- `/demo`: Demo endpoints
+  - Generate tests for demo
+  - Execute tests for demo
+  - Poll generation & execution test status
+
 ## Acceptance Criteria Generation API
 
 ### Generate Acceptance Criteria
@@ -189,6 +194,9 @@ SECRET_ENCRYPTION_SALT=your_secure_salt
 
 # Application
 APP_URL=http://localhost:3000
+
+# Demo
+DEMO_ACCOUNT_EMAIL=demo@solight.ai
 ```
 
 ## Development Setup

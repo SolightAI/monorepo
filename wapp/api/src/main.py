@@ -35,6 +35,7 @@ required_env_vars = {
     "AZURE_TENANT_ID": None,
     "AZURE_REDIRECT_URI": None,
     "APP_URL": None,  # Frontend URL needed for redirects
+    "DEMO_ACCOUNT_EMAIL": None,
     # Add any other essential variables here
 }
 
