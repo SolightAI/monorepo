@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate-url-lambda-tests:
+  lambda-tests:
     runs-on: self-hosted
     timeout-minutes: 60
 
@@ -55,6 +55,6 @@ jobs:
       run: |
         ./run-test.sh
       env:
-        IMAGE_NAME: validate-url-test:${{ github.event.pull_request.number || 'main' }}
+        IMAGE_NAME: lambda-test:${{ github.event.pull_request.number || 'main' }}
 
 
