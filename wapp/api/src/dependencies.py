@@ -15,5 +15,11 @@ async def get_current_user_dependency(access_token: str = Cookie(None)) -> User:
     return await auth_services.get_current_user(access_token)
 
 async def get_demo_account_dependency() -> User:
-    demo_account = await user_services.get_user(email=os.getenv("DEMO_ACCOUNT_EMAIL"))
+    demo_email = os.getenv("DEMO_ACCOUNT_EMAIL")
+    if not demo_email:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    demo_account = await user_services.get_user(email=demo_email)
+    if not demo_account:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     return demo_account
