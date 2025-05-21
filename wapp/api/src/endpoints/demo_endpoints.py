@@ -76,7 +76,7 @@ async def demo_get_tests(feature_id: UUID4) -> List[TestSchema]:
 
 # GET /demo/test-executions/executionId
 @router.get("/test-executions/{test_execution_id}", response_model=TestExecutionSchema)
-async def demo_get_tests_generation_status(test_execution_id: str) -> TestExecutionSchema:
+async def demo_get_test_execution_status(test_execution_id: str) -> TestExecutionSchema:
     """
     Get a specific test execution by ID.
     """
