@@ -52,6 +52,19 @@ docker run \
   playground:test
 
 
+## Define the cleanup function
+cleanup() {
+  echo "Cleaning up resources..."
+  # Cleanup tests resources
+  docker rm -f agent-job-test-redis
+  docker rm -f agent-job-test-minio
+  docker rm -f agent-job-test-playground
+  docker network rm $UNIT_TEST_NETWORK_NAME
+}
+
+## Register the cleanup function to be executed on script interruption
+trap cleanup SIGINT SIGTERM
+
 # Run test in container
 docker run \
   --rm \
@@ -67,10 +80,5 @@ docker run \
   -e S3_SECRET_ACCESS_KEY=minio123 \
   -e S3_ENDPOINT_URL=http://agent-job-test-minio:9000 \
   -e PLAYGROUND_URL=http://agent-job-test-playground:3000 \
-  $IMAGE_NAME -n 4|| true
+  $IMAGE_NAME -n 4
 
-# Cleanup tests resources
-docker rm -f agent-job-test-redis
-docker rm -f agent-job-test-minio
-docker rm -f agent-job-test-playground
-docker network rm $UNIT_TEST_NETWORK_NAME
