@@ -187,7 +187,7 @@ async def rerun_history(
     max_retries: int = 3,
     skip_failures: bool = False,
     fallback_to_llm: bool = True,
-    max_failures: int = 5,
+    max_fallbacks: int = 5,
     delay_between_actions: float = 2.0,
 ) -> AgentHistoryList:
     """
@@ -198,12 +198,14 @@ async def rerun_history(
             max_retries: Maximum number of retries per action
             skip_failures: Whether to skip failed actions or stop execution
             fallback_to_llm: Whether to fallback to LLM if the action fails
-            max_failures: Maximum number of actions allowed to fallback to llm before stopping execution
+            max_fallbacks: Maximum number of actions allowed to fallback to llm before stopping execution
             delay_between_actions: Delay between actions in seconds
 
     Returns:
             List of action results
     """
+
+    logger.info(f"[{agent._task_id}] Replaying history with {len(history.history)} steps ({max_retries=}, {skip_failures=}, {fallback_to_llm=}, {max_fallbacks=}, {delay_between_actions=})")
 
     task_id = agent._task_id if hasattr(agent, "_task_id") else None
 
@@ -234,7 +236,7 @@ async def rerun_history(
 
         retry_count = 0
         skip_action = False
-        while skip_action is False and retry_count < max_retries and number_of_failures < max_failures:
+        while skip_action is False and retry_count < max_retries and number_of_failures < max_fallbacks:
             try:
                 # Capture browser state before executing the actions for this history_item
                 browser_state_before_action = await agent.browser_context.get_state(cache_clickable_elements_hashes=True)
@@ -312,8 +314,8 @@ async def rerun_history(
 
                 number_of_failures += 1
 
-                if max_failures > 0 and number_of_failures >= max_failures:
-                    raise RuntimeError(f"Reached the maximum number of failures: ({number_of_failures}/{max_failures})")
+                if max_fallbacks > 0 and number_of_failures >= max_fallbacks:
+                    raise RuntimeError(f"Reached the maximum number of failures: ({number_of_failures}/{max_fallbacks})")
 
                 error_msg = f'[{task_id}] Step {i + 1} failed after {max_retries} attempts: {str(e)}'
                 logger.error(error_msg)
