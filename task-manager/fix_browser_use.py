@@ -361,11 +361,11 @@ def prevent_agent_to_use_content_from_extract_page_to_click_element() -> None:
 
 
 if __name__ == "__main__":
-    # remove_debug_port()
-    # limit_max_scroll()
-    # prevent_screenshot_to_modify_dom()
-    # replace_invoke_by_ainvoke_in_get_next_action()
-    # replace_invoke_by_ainvoke_in_extract_content()
-    # wait_for_page_to_load_on_page_change()
-    # replace_click_element_by_click_element_by_index()
+    remove_debug_port()
+    limit_max_scroll()
+    prevent_screenshot_to_modify_dom()
+    replace_invoke_by_ainvoke_in_get_next_action()
+    replace_invoke_by_ainvoke_in_extract_content()
+    wait_for_page_to_load_on_page_change()
+    replace_click_element_by_click_element_by_index()
     prevent_agent_to_use_content_from_extract_page_to_click_element()
