@@ -152,7 +152,7 @@ def _build_lambda_environment_variables() -> Any:
     vars = {
         "HEADLESS": "true",
         "OPENAI_API_KEY": openai_api_key,
-        "LAMBDA_WEBHOOK_URL": _format_lambda_webhook_url(),
+        "WEBHOOK_URL": _format_lambda_webhook_url(),
         "S3_ACCESS_KEY_ID": s3_access_key_id,
         "S3_SECRET_ACCESS_KEY": s3_secret_access_key,
         "S3_BUCKET_NAME": s3_bucket_name,
@@ -176,16 +176,16 @@ def _build_lambda_environment_variables() -> Any:
 
 
 # Create the AWS lambda function for validate URL job.
-agent_lambda_validate_url_function = lambda_.Function(
-    _format_rss_name("agent-lambda-function-validate-url"),
-    name=_format_rss_name("agent-lambda-function-validate-url"),
+agent_lambda_function = lambda_.Function(
+    _format_rss_name("agent-lambda-function"),
+    name=_format_rss_name("agent-lambda-function"),
     package_type="Image",
     image_uri=lambda_docker_image.image_uri,
     role=agent_lambda_execution_role.arn,
     timeout=1 * 60 * 15,  # 15 minutes
     memory_size=2048,
     image_config={
-        "commands": ["src.validate_url.handler.lambda_handler"],
+        "commands": ["src.main.lambda_handler"],
     },
     environment=lambda_.FunctionEnvironmentArgs(
         variables=_build_lambda_environment_variables()
@@ -198,7 +198,7 @@ agent_lambda_validate_url_function = lambda_.Function(
 event_mapping = lambda_.EventSourceMapping(
     "sqs-trigger",
     event_source_arn=agent_trigger_sqs_queue.arn,
-    function_name=agent_lambda_validate_url_function.name,
+    function_name=agent_lambda_function.name,
     batch_size=1,
 )
 
@@ -206,5 +206,5 @@ pulumi.export("lambda_ecr_repo", lambda_ecr_repo.url)
 pulumi.export("lambda_docker_image", lambda_docker_image.image_uri)
 pulumi.export("agent_trigger_sqs_queue", agent_trigger_sqs_queue.arn)
 pulumi.export(
-    "agent_lambda_validate_url_function", agent_lambda_validate_url_function.name
+    "agent_lambda_function", agent_lambda_function.name
 )
