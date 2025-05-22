@@ -54,6 +54,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       TWOCAPTCHA_API_KEY: ${{ secrets.TWOCAPTCHA_API_KEY }}
+      LMNR_PROJECT_API_KEY: ${{ secrets.LMNR_PROJECT_API_KEY }}
       # Create unique identifiers for this run
       RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
       NETWORK_NAME: test-network-${{ github.run_id }}-${{ github.run_attempt }}
