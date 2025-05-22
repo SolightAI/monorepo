@@ -720,7 +720,7 @@ def _get_agent(context: BrowserContext, controller: Controller, prompt: str, sen
         "task": prompt,
 
         "llm": kwargs.get("llm", AGENT_CLIENT),
-        "use_vision": True,
+        "use_vision": kwargs.get("use_vision", False),
         "enable_memory": kwargs.get("enable_memory", False),
 
         "initial_actions": [
