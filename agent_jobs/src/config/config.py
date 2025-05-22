@@ -92,7 +92,7 @@ def get_config() -> Config:
                 env.get_string("REDIS_HOST"),
                 env.get_int("REDIS_PORT"),
                 env.get_int("REDIS_DB", 0),
-                env.get_string("REDIS_PASSWORD"),
+                env.get_string("REDIS_PASSWORD", required=False),
             ),
         )
     except Exception as e:
