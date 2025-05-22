@@ -79,7 +79,7 @@ async def trigger_lambda(config: Config, job: Job) -> None:
         endpoint_url="https://sqs.us-west-1.amazonaws.com",
         aws_access_key_id=config.prod_aws_lambda_queue_trigger_access_key,
         aws_secret_access_key=config.prod_aws_lambda_queue_trigger_secret_key,
-        region_name="us-west-1ƒ",
+        region_name="us-west-1",
     )
 
     queue_url = config.prod_aws_lambda_queue_url

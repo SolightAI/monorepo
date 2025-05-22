@@ -23,8 +23,6 @@ if not openai_api_key:
     raise ValueError("OPENAI_API_KEY environment variable not set")
 
 lambda_webhook_url = os.getenv("LAMBDA_WEBHOOK_URL")
-if not lambda_webhook_url:
-    raise ValueError("LAMBDA_WEBHOOK_URL environment variable not set")
 
 s3_access_key_id = os.getenv("S3_ACCESS_KEY_ID")
 s3_secret_access_key = os.getenv("S3_SECRET_ACCESS_KEY")
@@ -47,7 +45,7 @@ redis_port = os.getenv("REDIS_PORT")
 redis_db = os.getenv("REDIS_DB")
 redis_password = os.getenv("REDIS_PASSWORD")
 
-if not redis_host or not redis_port or not redis_db or not redis_password:
+if not redis_host or not redis_port or not redis_db:
     raise ValueError(
         "REDIS_HOST, REDIS_PORT, REDIS_DB, or REDIS_PASSWORD environment variable not set"
     )
