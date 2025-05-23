@@ -41,7 +41,6 @@ docker run \
   --network $UNIT_TEST_NETWORK_NAME \
   -d \
   -p 9000 \
- # -p 9001:9001 \
   -e MINIO_ROOT_USER=minio \
   -e MINIO_ROOT_PASSWORD=minio123 \
   minio/minio server /data #--console-address ":9001"
@@ -127,6 +126,3 @@ CMD+=($@)
 
 # Execute the command
 "${CMD[@]}"
-
-# Cleanup at the end (in case of no interuption)
-cleanup
