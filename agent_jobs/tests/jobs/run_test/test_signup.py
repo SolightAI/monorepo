@@ -36,7 +36,7 @@ class TestTickPick:
             run_without_cache=True,
         )
 
-        assert result["status"] == TestStatus.PASSED.value
+        assert result.status.value == TestStatus.PASSED.value
 
     @pytest.mark.asyncio
     async def test_verify_sign_up_with_apple(
@@ -65,7 +65,7 @@ class TestTickPick:
             run_without_cache=True,
         )
 
-        assert result["status"] == TestStatus.AGENT_LIMITATION.value
+        assert result.status.value == TestStatus.AGENT_LIMITATION.value
 
     @pytest.mark.asyncio
     async def test_verify_sign_up_with_google(
@@ -94,4 +94,4 @@ class TestTickPick:
             run_without_cache=True,
         )
 
-        assert result["status"] == TestStatus.AGENT_LIMITATION.value
+        assert result.status.value == TestStatus.AGENT_LIMITATION.value

@@ -7,7 +7,7 @@ from src.agents.general_agent import general_agent
 from src.common.dto import Test, TestCategory, TestStatus
 
 
-TICK_PICK_URL = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=889809948&quantity=1&listingType=TEVO&price=16&dt=f&dv=2&e=7089570&s=GA%20Supporter%20Terrace&r=9"
+TICK_PICK_URL = "https://dev.tickpick.com/checkout?listingId=856528202&quantity=1&listingType=TEVO&price=11&dt=f&dv=13&e=6576221&s=127&r=12"
 
 
 @pytest.mark.skip(
@@ -56,7 +56,7 @@ class TestTickPickHighLevelSteps:
         )
 
         assert (
-            result.status == expected_status.value
+            result.status.value == expected_status.value
         ), f"Expected {expected_status.value} but got {result.status} ({task_id})"
 
     @pytest.mark.asyncio
@@ -193,7 +193,7 @@ class TestTickPickStandardSteps:
         )
 
         assert (
-            result.status == expected_status.value
+            result.status.value == expected_status.value
         ), f"Expected {expected_status.value} but got {result.status} ({task_id})"
 
     @pytest.mark.asyncio
@@ -347,7 +347,7 @@ class TestTickPickDetailedSteps:
         )
 
         assert (
-            result.status == expected_status.value
+            result.status.value == expected_status.value
         ), f"Expected {expected_status.value} but got {result.status} ({task_id})"
 
     @pytest.mark.asyncio

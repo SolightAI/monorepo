@@ -101,7 +101,7 @@ async def run(
 
     _, history, *__ = await run_agent(
         config=config,
-        identifier=None,
+        identifier=None, # type: ignore
         task_id=task_id,
         url=test.url,
         prompt=prompt,

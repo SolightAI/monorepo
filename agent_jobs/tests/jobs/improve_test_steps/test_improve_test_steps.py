@@ -88,7 +88,7 @@ class TestTickPick:
         )
 
         assert (
-            new_test_steps.status == TestStatus.PASSED.value
+            new_test_steps.status.value == TestStatus.PASSED.value
         ), f"Expected {TestStatus.PASSED.value} but got {new_test_steps.status}"
         assert (
             "assertion" not in new_test_steps.results.lower()
@@ -107,7 +107,7 @@ class TestTickPick:
         )
 
         assert (
-            result.status == TestStatus.PASSED.value
+            result.status.value == TestStatus.PASSED.value
         ), f"Expected {TestStatus.PASSED.value} but got {result.status}: {result.results}"
 
     @pytest.mark.asyncio
@@ -160,7 +160,7 @@ class TestTickPick:
         )
 
         assert (
-            new_test_steps.status == TestStatus.PASSED.value
+            new_test_steps.status.value == TestStatus.PASSED.value
         ), f"Expected {TestStatus.PASSED.value} but got {new_test_steps.status}"
         assert (
             "assertion" not in new_test_steps.results.lower()
@@ -178,7 +178,7 @@ class TestTickPick:
         )
 
         assert (
-            result.status == TestStatus.PASSED.value
+            result.status.value == TestStatus.PASSED.value
         ), f"Expected {TestStatus.PASSED.value} but got {result.status}: {result.results}"
 
     @pytest.mark.asyncio
@@ -231,7 +231,7 @@ class TestTickPick:
         )
 
         assert (
-            new_test_steps.status == TestStatus.PASSED.value
+            new_test_steps.status.value == TestStatus.PASSED.value
         ), f"Expected {TestStatus.PASSED.value} but got {new_test_steps.status}"
         assert (
             "assertion" not in new_test_steps.results.lower()
@@ -250,7 +250,7 @@ class TestTickPick:
         )
 
         assert (
-            result.status == TestStatus.PASSED.value
+            result.status.value == TestStatus.PASSED.value
         ), f"Expected {TestStatus.PASSED.value} but got {result.status}: {result.results}"
 
     @pytest.mark.asyncio
@@ -287,7 +287,7 @@ class TestTickPick:
         )
 
         assert (
-            new_test_steps.status == TestStatus.PASSED.value
+            new_test_steps.status.value == TestStatus.PASSED.value
         ), f"Expected {TestStatus.PASSED.value} but got {new_test_steps.status}"
         assert (
             "assertion" not in new_test_steps.results.lower()
@@ -306,5 +306,5 @@ class TestTickPick:
         )
 
         assert (
-            result.status == TestStatus.PASSED.value
+            result.status.value == TestStatus.PASSED.value
         ), f"Expected {TestStatus.PASSED.value} but got {result.status}: {result.results}"

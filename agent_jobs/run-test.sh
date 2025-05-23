@@ -41,9 +41,10 @@ docker run \
   --network $UNIT_TEST_NETWORK_NAME \
   -d \
   -p 9000 \
+ # -p 9001:9001 \
   -e MINIO_ROOT_USER=minio \
   -e MINIO_ROOT_PASSWORD=minio123 \
-  minio/minio server /data
+  minio/minio server /data #--console-address ":9001"
 
 # Build & run playground
 docker build -f tests/playground/Dockerfile -t playground:test tests/playground
@@ -115,7 +116,17 @@ for var_name in "${ADDITIONAL_TEST_ENV_VARS[@]}"; do
   fi
 done
 # Add the image and arguments
-CMD+=("$IMAGE_NAME" -n 4)
+CMD+=("$IMAGE_NAME" -n 6)
+
+# Add positional arguments from the CLI
+# - Run a specific test `./run-test.sh tests/jobs/test_job_parser.py``
+# - Make it verboke `./run-test.sh -v`
+# - Both `./run-test.sh -v tests/jobs/test_job_parser.py`
+# ...
+CMD+=($@)
 
 # Execute the command
 "${CMD[@]}"
+
+# Cleanup at the end (in case of no interuption)
+cleanup

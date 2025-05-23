@@ -39,7 +39,7 @@ class TestTickPick:
             run_without_cache=True,
         )
 
-        assert result.status == TestStatus.PASSED.value
+        assert result.status.value == TestStatus.PASSED.value
 
     @pytest.mark.asyncio
     async def test_validate_password_field_input(
@@ -68,7 +68,7 @@ class TestTickPick:
             run_without_cache=True,
         )
 
-        assert result.status == TestStatus.PASSED.value
+        assert result.status.value == TestStatus.PASSED.value
 
     @pytest.mark.asyncio
     async def test_verify_email_and_password_login(
@@ -113,7 +113,7 @@ class TestTickPick:
             run_without_cache=True,
         )
 
-        assert result.status == TestStatus.PASSED.value
+        assert result.status.value == TestStatus.PASSED.value
 
     @pytest.mark.asyncio
     async def test_apple_login(self, task_id: str, config: Config) -> None:
@@ -140,7 +140,7 @@ class TestTickPick:
             run_without_cache=True,
         )
 
-        assert result.status == TestStatus.AGENT_LIMITATION.value
+        assert result.status.value == TestStatus.AGENT_LIMITATION.value
 
     @pytest.mark.asyncio
     async def test_google_login(self, task_id: str, config: Config) -> None:
@@ -193,7 +193,7 @@ class TestTickPick:
             run_without_cache=True,
         )
 
-        assert result.status == TestStatus.PASSED.value
+        assert result.status.value == TestStatus.PASSED.value
 
 
 class TestSolight:
@@ -261,4 +261,4 @@ class TestSolight:
             run_without_cache=True,
         )
 
-        assert result.status == TestStatus.PASSED.value
+        assert result.status.value == TestStatus.PASSED.value
