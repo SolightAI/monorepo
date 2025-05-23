@@ -8,6 +8,7 @@ on:
   pull_request:
     branches: [ main ]
     paths:
+      - '.github/workflows/lambdas-tests.yaml'
       - 'agent_jobs/**'
   # Manual trigger
   workflow_dispatch:
@@ -53,6 +54,7 @@ jobs:
         driver: docker
 
     - name: Run Lambda tests
+      timeout-minutes: 60
       run: |
         ./run-test.sh
       env:
