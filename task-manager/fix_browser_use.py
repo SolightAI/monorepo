@@ -237,6 +237,8 @@ def wait_for_page_to_load_on_page_change() -> None:
 					if initial_url != new_url:
 						await new_page.wait_for_load_state()
 						logger.info(f'URL changed from {initial_url} to {new_url}, waited for page load state.')
+						await asyncio.sleep(10)
+						logger.info(f'Waiting an extra 10s just to be safe.')  # useful in case of slow page loading
 
 					if isinstance(result, str):
 						return ActionResult(extracted_content=result)
@@ -360,6 +362,54 @@ def prevent_agent_to_use_content_from_extract_page_to_click_element() -> None:
     print(f"Successfully prevented agent to use content from extract_page to click_element in {file_to_change}")
 
 
+# NOTE: while potentially useful, extract_content often return misleading results as it's not aware of what's in the viewport and what's not, so we deactivate it
+def deactivate_extract_content_function() -> None:
+
+    dir_path = get_base_dir()
+    temp_file = tempfile.mktemp()
+    file_to_change = os.path.join(dir_path, "controller", "service.py")
+
+    to_remove = """@self.registry.action(
+			'Extract page content to retrieve specific information from the page, e.g. all company names, a specific description, all information about, links with companies in structured format or simply links',
+		)"""
+
+    with open(file_to_change, 'r') as input_file, open(temp_file, 'w') as output_file:
+        content = input_file.read()
+
+        if to_remove not in content:
+            raise RuntimeError(f"Couldn't find target to remove in {file_to_change}")
+
+        content = content.replace(to_remove, "")
+
+        output_file.write(content)
+
+    shutil.move(temp_file, file_to_change)
+
+    temp_file = tempfile.mktemp()
+    file_to_change = os.path.join(dir_path, "agent", "system_prompt.md")
+
+    to_remove = """9. Extraction:
+
+- If your task is to find information - call extract_content on the specific pages to get and store the information.
+  Your responses must be always JSON with the specified format.
+"""
+
+    with open(file_to_change, 'r') as input_file, open(temp_file, 'w') as output_file:
+        content = input_file.read()
+
+        if to_remove not in content:
+            raise RuntimeError(f"Couldn't find target to remove in {file_to_change}")
+
+        content = content.replace(to_remove, "")
+
+        output_file.write(content)
+
+    shutil.move(temp_file, file_to_change)
+
+    print("Successfully deactivated extract_content function")
+
+
+
 if __name__ == "__main__":
     remove_debug_port()
     limit_max_scroll()
@@ -369,3 +419,4 @@ if __name__ == "__main__":
     wait_for_page_to_load_on_page_change()
     replace_click_element_by_click_element_by_index()
     prevent_agent_to_use_content_from_extract_page_to_click_element()
+    deactivate_extract_content_function()

@@ -5,10 +5,9 @@ from src.agents.general_agent import general_agent
 from src.utils.dto import Test, TestCategory, TestStatus
 
 
-TICK_PICK_URL = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=856528228&quantity=1&listingType=TEVO&price=3&dt=f&dv=13&e=6576223&s=214&r=8"
+TICK_PICK_URL = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=889808860&quantity=1&listingType=TEVO&price=3&dt=f&dv=13&e=7089569&s=107&r=D"
 
 
-@pytest.mark.skip(reason="Our agent is not able to handle long tests with only high level steps (yet)")
 class TestTickPickHighLevelSteps():
 
     async def _run_checkout_test(
