@@ -325,7 +325,7 @@ DESCRIPTION_HEALTHCHECK_RESULT = """
 
 
 OUTPUT_VALIDATION_LLM = ChatOpenAI(
-    model="gpt-4.1-mini",
+    model="gpt-4.1",
     temperature=0.0,
     seed=SEED,
     timeout=120,
@@ -893,7 +893,7 @@ async def run_agent(
         logger.info(f"[{task_id}] Retrieved cookies and localStorage data")
 
     except Exception as e:
-        raise e
+        raise
 
     finally:
         await context.close()

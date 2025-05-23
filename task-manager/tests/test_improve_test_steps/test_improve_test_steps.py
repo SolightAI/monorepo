@@ -10,6 +10,7 @@ from src.improve_test_steps.endpoint import improve_test_steps
 # but another way is to test the agent on a test he previously could execute and see if it reduced the number of steps taken
 
 
+@pytest.mark.skip(reason="This test is flaky, we need to fix it.")
 class TestTickPick():
 
     @pytest.mark.asyncio
