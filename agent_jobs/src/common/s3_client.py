@@ -10,7 +10,7 @@ import boto3
 logger = logging.getLogger(__name__)
 
 
-class S3Client():
+class S3Client:
     bucket_name: str
     endpoint_url: str
     client: Any
@@ -22,7 +22,7 @@ class S3Client():
         bucket_name: str,
         bucket_endpoint_url: str,
         region: str = "us-east-1",
-    ) -> None:        
+    ) -> None:
         """
         Initialize the S3 client and create the bucket if it doesn't exist.
 
@@ -155,6 +155,8 @@ class S3Client():
             self.client.upload_file(
                 file_path, self.bucket_name, object_name, ExtraArgs=extra_args
             )
+            
+            logger.info(f"Uploaded file to S3: {self.endpoint_url}/{self.bucket_name}/{object_name}")
 
             # URL of the uploaded file
             return f"{self.endpoint_url}/{self.bucket_name}/{object_name}"

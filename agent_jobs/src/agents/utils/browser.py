@@ -5,9 +5,13 @@ DEFAULT_EXTRA_BROWSER_ARGS = [
     "--no-sandbox",
     "--disable-dev-shm-usage",
     "--disable-gpu",
-    "--single-process",
     "--no-zygote",
     "--disable-setuid-sandbox",
+    "--disable-dev-tools",
+    "--disable-extensions",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-background-networking",
 ]
 
 

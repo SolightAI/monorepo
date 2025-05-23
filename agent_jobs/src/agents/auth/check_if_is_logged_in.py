@@ -1,4 +1,3 @@
-import os
 import re
 import json
 import difflib
@@ -8,9 +7,10 @@ import logging
 from tempfile import NamedTemporaryFile
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
-from browser_use import Agent, Browser, BrowserConfig
+from browser_use import Agent
 from browser_use.browser.context import BrowserContextConfig, BrowserContext
 
+from src.agents.utils.browser import create_browser
 from src.config import Config
 
 
@@ -201,11 +201,7 @@ async def check_is_logged_in(
         cookies_file.flush()
         cookies_file.seek(0)
 
-        browser = Browser(
-            config=BrowserConfig(
-                headless=os.getenv("HEADLESS", "true").lower() == "true",
-            )
-        )
+        browser = create_browser(config.headless)
 
         logger.info(f"[{task_id}] Creating temporary browser context without cookies")
         context = BrowserContext(

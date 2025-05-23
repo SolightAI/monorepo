@@ -10,7 +10,7 @@ from src.common.dto import Product, Feature, Test
 from src.agents.auth.get_auth_session import get_auth_session
 
 from .agent import run
-
+from .dto import RunTestResult
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ async def handler(
     test: Test,
     secrets: Optional[list[dict[str, Any]]],
     run_without_cache: bool | None = None,
-) -> Any:  # TODO(TomChv): This should be a RunTestResult
+) -> RunTestResult:
     decrypted_secrets: list[dict[str, Any]] = list()
 
     if secrets:
@@ -32,9 +32,9 @@ async def handler(
     identifier = md5(
         json.dumps(
             {
-                "product": product,
-                "test": test,
-                "feature": feature,
+                "product": product.model_dump(),
+                "test": test.model_dump(),
+                "feature": feature.model_dump(),
                 "decrypted_secrets": decrypted_secrets,  # TODO (later): should be based only on the used secrets
             }
         ).encode()
@@ -65,9 +65,18 @@ async def handler(
         run_without_cache=run_without_cache is False,
     )
 
-    result["tracing"] = {}  # deactivated for now
+    result.tracing = {}  # deactivated for now
 
-    logger.info(f"[{job_id}] Ran tests for {test.url}")
-    logger.info(f"[{job_id}] Test ran successfully")
+    logger.info(f"[{job_id}] Tests for {test.url} ran successfully")
 
-    return result
+    return RunTestResult(
+        status=result.status,
+        results=result.results,
+        evidence=result.evidence,
+        is_from_cache=result.is_from_cache,
+        error=result.error,
+        traceback=result.traceback,
+        agent_thoughts=result.agent_thoughts,
+        agent_actions=result.agent_actions,
+        tracing=result.tracing,
+    )

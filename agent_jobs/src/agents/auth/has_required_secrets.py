@@ -6,6 +6,7 @@ class LoginMethod(str, Enum):
     """
     Enum of all possible login methods.
     """
+
     ANY = "any"
     EMAIL = "username_password"
     GOOGLE_OAUTH = "google_oauth"
@@ -20,10 +21,11 @@ REQUIRED_FIELDS = {
 }
 
 
-def has_required_secrets(login_method: LoginMethod, secrets: list[dict[str, Any]]) -> tuple[bool, str | None]:
-
+def has_required_secrets(
+    login_method: LoginMethod, secrets: list[dict[str, Any]]
+) -> tuple[bool, str | None]:
     # Filter secrets matching the login method category
-    matching_secrets = [s for s in secrets if s.get('category') == login_method.value]
+    matching_secrets = [s for s in secrets if s.get("category") == login_method.value]
 
     if not matching_secrets:
         return False, f"No secrets found for {login_method.name}"
@@ -37,7 +39,7 @@ def has_required_secrets(login_method: LoginMethod, secrets: list[dict[str, Any]
 
     # Check if any matching secret contains all required fields
     for secret in matching_secrets:
-        secret_values = secret.get('values', {})
+        secret_values = secret.get("values", {})
         if all(field in secret_values for field in required_fields):
             # Found at least one secret with all required fields
             return True, None
@@ -46,7 +48,7 @@ def has_required_secrets(login_method: LoginMethod, secrets: list[dict[str, Any]
     # Construct a helpful error message showing required vs found fields across all matching secrets
     fields_found: set[str] = set()
     for secret in matching_secrets:
-        fields_found.update(secret.get('values', {}).keys())
+        fields_found.update(secret.get("values", {}).keys())
     missing_fields = [field for field in required_fields if field not in fields_found]
 
     return False, f"No secret for {login_method.name}, missing fields: {missing_fields}"

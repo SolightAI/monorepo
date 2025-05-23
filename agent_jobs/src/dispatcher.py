@@ -1,6 +1,7 @@
 import logging
 
-from typing import Any
+from pydantic import BaseModel
+
 from .config import Config
 from .job_parser import Job, JobType
 
@@ -20,7 +21,7 @@ class DispatchError(Exception):
 
 
 async def dispatch_job(config: Config, job: Job) -> None:
-    result: Any = {}
+    result: BaseModel | None = None
 
     try:
         match job.job_type:
@@ -63,7 +64,11 @@ async def dispatch_job(config: Config, job: Job) -> None:
             raise e
 
         config.webhook_client.send_error(job.job_id, str(e))
-        logger.error(f"[{job.job_id}] Job failed ; sending error back to webhook")
+        logger.error(
+            f"[{job.job_id}] Job failed {str(e)}; sending error back to webhook"
+        )
+
+        return
 
     config.webhook_client.send_success(job.job_id, result.model_dump_json())
     logger.info(f"[{job.job_id}] Job completed ; sending result back to webhook")

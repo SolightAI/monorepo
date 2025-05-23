@@ -56,8 +56,8 @@ class TestTickPickHighLevelSteps:
         )
 
         assert (
-            result["status"] == expected_status.value
-        ), f"Expected {expected_status.value} but got {result['status']} ({task_id})"
+            result.status == expected_status.value
+        ), f"Expected {expected_status.value} but got {result.status} ({task_id})"
 
     @pytest.mark.asyncio
     async def test_valid_credit_card(self, task_id: str, config: Config) -> None:
@@ -193,8 +193,8 @@ class TestTickPickStandardSteps:
         )
 
         assert (
-            result["status"] == expected_status.value
-        ), f"Expected {expected_status.value} but got {result['status']} ({task_id})"
+            result.status == expected_status.value
+        ), f"Expected {expected_status.value} but got {result.status} ({task_id})"
 
     @pytest.mark.asyncio
     async def test_valid_credit_card(self, task_id: str, config: Config) -> None:
@@ -347,8 +347,8 @@ class TestTickPickDetailedSteps:
         )
 
         assert (
-            result["status"] == expected_status.value
-        ), f"Expected {expected_status.value} but got {result['status']} ({task_id})"
+            result.status == expected_status.value
+        ), f"Expected {expected_status.value} but got {result.status} ({task_id})"
 
     @pytest.mark.asyncio
     async def test_valid_credit_card(self, task_id: str, config: Config) -> None:

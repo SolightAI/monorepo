@@ -9,13 +9,13 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 logger = logging.getLogger(__name__)
 
 
-class CryptoService():
+class CryptoService:
     key: Optional[bytes] = None
     key_loaded: bool = False
-    
+
     """Service for symmetric encryption/decryption using AES-GCM."""
 
-    def __init__(self, symmetric_encryption_key: str) -> None:        
+    def __init__(self, symmetric_encryption_key: str) -> None:
         """Initialize the crypto service."""
         try:
             # Expecting a base64 encoded key

@@ -7,7 +7,7 @@ from src.common.dto import Test, TestStatus
 from src.config import Config
 
 from .healthchecks import is_agent_able_to_run_test, run_additional_healthcheck
-from .base_agent import run_agent
+from .base_agent import BaseAgentResult, run_agent
 from .tools import TOOLS, get_prompt_list_of_tools
 from .utils import format_secrets, get_agent_thoughts, get_agent_actions
 from .shared_limitations import SHARED_AGENT_LIMITATIONS
@@ -56,6 +56,10 @@ Now, run the test.
 logger = logging.getLogger(__name__)
 
 
+class SignupAgentResult(BaseAgentResult):
+    pass
+
+
 @observe()
 async def signup_agent(
     config: Config,
@@ -65,7 +69,7 @@ async def signup_agent(
     secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],  # unused
     run_without_cache: bool = False,
-) -> dict[str, Any]:
+) -> SignupAgentResult:
     """
     Agent used to test the signup feature of a website.
 
@@ -90,10 +94,10 @@ async def signup_agent(
     )
 
     if is_able is False:
-        return {
-            "status": TestStatus.AGENT_LIMITATION.value,
-            "results": explanation,
-        }
+        return SignupAgentResult(
+            status=TestStatus.AGENT_LIMITATION,
+            results=explanation,
+        )
 
     session_data, history, evidences, is_from_cache = await run_agent(
         config=config,
@@ -129,14 +133,14 @@ async def signup_agent(
         healthcheck_results=additional_healthchecks_results,
     )
 
-    return {
-        "agent_thoughts": get_agent_thoughts(history=history),
-        "agent_actions": get_agent_actions(history=history),
-        "evidence": evidences,
-        "status": status.value,
-        "results": explanation,
-        # "tracing": history.get_logs(),
-        "error": explanation if status != TestStatus.PASSED else "",
-        "traceback": "",
-        "is_from_cache": is_from_cache,
-    }
+    return SignupAgentResult(
+        agent_thoughts=get_agent_thoughts(history=history),
+        agent_actions=get_agent_actions(history=history),
+        evidence=evidences,
+        status=status,
+        results=explanation,
+        # tracing=history.get_logs(),
+        error=explanation if status != TestStatus.PASSED else "",
+        traceback="",
+        is_from_cache=is_from_cache,
+    )

@@ -31,12 +31,20 @@ TOOL_DESCRIPTION = """
 
 def _get_tool_description(tool: Callable) -> str:
     spec = getfullargspec(tool)
-    parameters = "\n".join([f"- {name}: {spec.annotations[name]}" for name in spec.args])
-    return TOOL_DESCRIPTION.format(name=tool.__name__, description=tool.__doc__, parameters=parameters)
+    parameters = "\n".join(
+        [f"- {name}: {spec.annotations[name]}" for name in spec.args]
+    )
+    return TOOL_DESCRIPTION.format(
+        name=tool.__name__, description=tool.__doc__, parameters=parameters
+    )
 
 
 def get_prompt_list_of_tools(tools: list[Callable]) -> str:
-    return "<tools>\n" + "\n".join([_get_tool_description(tool) for tool in tools]) + "\n</tools>"
+    return (
+        "<tools>\n"
+        + "\n".join([_get_tool_description(tool) for tool in tools])
+        + "\n</tools>"
+    )
 
 
 __all__ = ["TOOLS", "get_prompt_list_of_tools"]

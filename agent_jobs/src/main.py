@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import sys
 
 import aws_lambda_typing.events as AWSEvents
 from aws_lambda_typing.context import Context as LambdaContext
@@ -10,15 +11,39 @@ from .config import ConfigError, get_config
 from .job_parser import parse_job
 from .dispatcher import dispatch_job
 
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stdout,
+    format='{"time": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s"}',
+    force=True,
+)
 
 logger = logging.getLogger(__name__)
+
+logger.info("Starting agent job handler")
 
 
 def lambda_handler(
     event: AWSEvents.SQSEvent,
     context: LambdaContext,
 ) -> None:
-    return asyncio.run(_async_lambda_handler(event, context))
+    # Try to manually handle the lambda process event loop to avoid
+    # to aggressive closing that may make the program crash and trigger
+    # an unwanted retry.
+    loop = asyncio.get_event_loop()
+    if loop.is_closed():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    try:
+        return loop.run_until_complete(_async_lambda_handler(event, context))
+    finally:
+        # Optionally, cancel lingering tasks
+        tasks = [t for t in asyncio.all_tasks(loop) if not t.done()]
+        if tasks:
+            for t in tasks:
+                t.cancel()
+            loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
 
 
 async def _async_lambda_handler(
@@ -46,10 +71,10 @@ async def _async_lambda_handler(
     try:
         # Get the configuration
         config = get_config()
-        
+
         # Parse the job from the payload
         job = parse_job(body_payload_json)
-        
+
         # Dispatch the job
         await dispatch_job(config, job)
     except ValidationError as e:

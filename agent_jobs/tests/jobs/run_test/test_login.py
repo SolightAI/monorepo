@@ -9,12 +9,13 @@ from src.common.dto import Test, TestCategory, TestStatus
 from src.agents.auth.has_required_secrets import LoginMethod
 
 
-class TestTickPick():
-
+class TestTickPick:
     url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/"
 
     @pytest.mark.asyncio
-    async def test_validate_email_field_input(self, task_id: str, config: Config) -> None:
+    async def test_validate_email_field_input(
+        self, task_id: str, config: Config
+    ) -> None:
         """Test validation of the Email field input."""
 
         test = Test(
@@ -30,7 +31,7 @@ class TestTickPick():
 
         result = await login_agent(
             config=config,
-            identifier=None, # type: ignore
+            identifier=None,  # type: ignore
             task_id=task_id,
             test=test,
             secrets=[],
@@ -38,10 +39,12 @@ class TestTickPick():
             run_without_cache=True,
         )
 
-        assert result["status"] == TestStatus.PASSED.value
+        assert result.status == TestStatus.PASSED.value
 
     @pytest.mark.asyncio
-    async def test_validate_password_field_input(self, task_id: str, config: Config) -> None:
+    async def test_validate_password_field_input(
+        self, task_id: str, config: Config
+    ) -> None:
         """Test validation of the Password field input."""
 
         test = Test(
@@ -57,7 +60,7 @@ class TestTickPick():
 
         result = await login_agent(
             config=config,
-            identifier=None, # type: ignore
+            identifier=None,  # type: ignore
             task_id=task_id,
             test=test,
             secrets=[],
@@ -65,10 +68,12 @@ class TestTickPick():
             run_without_cache=True,
         )
 
-        assert result["status"] == TestStatus.PASSED.value
+        assert result.status == TestStatus.PASSED.value
 
     @pytest.mark.asyncio
-    async def test_verify_email_and_password_login(self, task_id: str, config: Config) -> None:
+    async def test_verify_email_and_password_login(
+        self, task_id: str, config: Config
+    ) -> None:
         """Test authentication with valid email and password credentials."""
 
         username = os.getenv("TICKPICK_USERNAME")
@@ -79,21 +84,20 @@ class TestTickPick():
         if not password:
             raise ValueError("TICKPICK_PASSWORD is not set")
 
-        secrets = [{
-            "name": "Credentials",
-            "category": LoginMethod.EMAIL.value,
-            "values": {
-                "username": username,
-                "password": password
+        secrets = [
+            {
+                "name": "Credentials",
+                "category": LoginMethod.EMAIL.value,
+                "values": {"username": username, "password": password},
             }
-        }]
+        ]
 
         test = Test(
             category=TestCategory.SMOKE,
             name="Verify Email and Password Login",
             url=self.url,
             description="Ensure users can log in using valid email and password credentials.",
-            steps="1. Navigate to the login page.\n2. Enter a valid email in the Email field.\n3. Enter a valid password in the Password field.\n4. Click the \"Log In\" button.",
+            steps='1. Navigate to the login page.\n2. Enter a valid email in the Email field.\n3. Enter a valid password in the Password field.\n4. Click the "Log In" button.',
             preconditions="User has a valid account with email and password.",
             assertions="- Verify the user is successfully logged in and redirected to the dashboard.",
             feature_id=task_id,
@@ -101,7 +105,7 @@ class TestTickPick():
 
         result = await login_agent(
             config=config,
-            identifier=None, # type: ignore
+            identifier=None,  # type: ignore
             task_id=task_id,
             test=test,
             secrets=secrets,
@@ -109,7 +113,7 @@ class TestTickPick():
             run_without_cache=True,
         )
 
-        assert result["status"] == TestStatus.PASSED.value
+        assert result.status == TestStatus.PASSED.value
 
     @pytest.mark.asyncio
     async def test_apple_login(self, task_id: str, config: Config) -> None:
@@ -120,7 +124,7 @@ class TestTickPick():
             name="Verify Sign Up with Apple",
             url=self.url,
             description="Ensure users can log in using valid Apple credentials.",
-            steps="1. Navigate to the login page.\n2. Click the \"Sign in with Apple\" button.",
+            steps='1. Navigate to the login page.\n2. Click the "Sign in with Apple" button.',
             preconditions="User has an active Apple account.",
             assertions="- Verify the user is successfully logged in and redirected to the dashboard.",
             feature_id=task_id,
@@ -128,7 +132,7 @@ class TestTickPick():
 
         result = await login_agent(
             config=config,
-            identifier=None, # type: ignore
+            identifier=None,  # type: ignore
             task_id=task_id,
             test=test,
             secrets=[],
@@ -136,7 +140,7 @@ class TestTickPick():
             run_without_cache=True,
         )
 
-        assert result["status"] == TestStatus.AGENT_LIMITATION.value
+        assert result.status == TestStatus.AGENT_LIMITATION.value
 
     @pytest.mark.asyncio
     async def test_google_login(self, task_id: str, config: Config) -> None:
@@ -147,13 +151,15 @@ class TestTickPick():
             name="Verify Google Login",
             url=self.url,
             description="Ensure users can log in using valid Google credentials.",
-            steps="1. Click on the \"Log In\" button.\n2. Click the \"Continue with Google\" button.",
+            steps='1. Click on the "Log In" button.\n2. Click the "Continue with Google" button.',
             preconditions="User has an active Google account.",
             assertions="- Verify the user is successfully logged in and redirected to the dashboard.",
             feature_id=task_id,
         )
 
-        username = os.getenv("SOLIGHT_USERNAME")  # we use the same google account for all tests
+        username = os.getenv(
+            "SOLIGHT_USERNAME"
+        )  # we use the same google account for all tests
         if not username:
             raise ValueError("SOLIGHT_USERNAME is not set")
 
@@ -165,19 +171,21 @@ class TestTickPick():
         if not recovery_phone_number:
             raise ValueError("SOLIGHT_RECOVERY_PHONE_NUMBER is not set")
 
-        secrets = [{
-            "name": "Google OAuth Credentials",
-            "category": LoginMethod.GOOGLE_OAUTH.value,
-            "values": {
-                "username": username,
-                "password": password,
-                "recovery_phone_number": recovery_phone_number
+        secrets = [
+            {
+                "name": "Google OAuth Credentials",
+                "category": LoginMethod.GOOGLE_OAUTH.value,
+                "values": {
+                    "username": username,
+                    "password": password,
+                    "recovery_phone_number": recovery_phone_number,
+                },
             }
-        }]
+        ]
 
         result = await login_agent(
             config=config,
-            identifier=None, # type: ignore
+            identifier=None,  # type: ignore
             task_id=task_id,
             test=test,
             secrets=secrets,
@@ -185,16 +193,19 @@ class TestTickPick():
             run_without_cache=True,
         )
 
-        assert result["status"] == TestStatus.PASSED.value
+        assert result.status == TestStatus.PASSED.value
 
 
-class TestSolight():
-
+class TestSolight:
     url = "https://app.solight.ai/"
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("repeat", [i for i in range(5)])  # reduce chances of flaky test
-    async def test_login_with_google(self, task_id: str, repeat: int, config: Config) -> None:
+    @pytest.mark.parametrize(
+        "repeat", [i for i in range(5)]
+    )  # reduce chances of flaky test
+    async def test_login_with_google(
+        self, task_id: str, repeat: int, config: Config
+    ) -> None:
         """Test authentication with valid Google OAuth credentials."""
 
         username = os.getenv("SOLIGHT_USERNAME")
@@ -209,15 +220,17 @@ class TestSolight():
         if not recovery_phone_number:
             raise ValueError("SOLIGHT_RECOVERY_PHONE_NUMBER is not set")
 
-        secrets = [{
-            "name": "Google OAuth Credentials",
-            "category": LoginMethod.GOOGLE_OAUTH.value,
-            "values": {
-                "username": username,
-                "password": password,
-                "recovery_phone_number": recovery_phone_number
+        secrets = [
+            {
+                "name": "Google OAuth Credentials",
+                "category": LoginMethod.GOOGLE_OAUTH.value,
+                "values": {
+                    "username": username,
+                    "password": password,
+                    "recovery_phone_number": recovery_phone_number,
+                },
             }
-        }]
+        ]
 
         test = Test(
             category=TestCategory.SMOKE,
@@ -240,7 +253,7 @@ class TestSolight():
 
         result = await login_agent(
             config=config,
-            identifier=None, # type: ignore
+            identifier=None,  # type: ignore
             task_id=task_id,
             test=test,
             secrets=secrets,
@@ -248,4 +261,4 @@ class TestSolight():
             run_without_cache=True,
         )
 
-        assert result["status"] == TestStatus.PASSED.value
+        assert result.status == TestStatus.PASSED.value

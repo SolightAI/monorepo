@@ -1,13 +1,13 @@
 import requests
 
 
-class WebhookClient():
+class WebhookClient:
     _url: str
 
-    def __init__(self, url: str):        
+    def __init__(self, url: str):
         self._url = url
 
-    def send_success(self, job_id: str,result: str):
+    def send_success(self, job_id: str, result: str):
         return requests.post(
             self._url,
             json={"status": "success", "job_id": job_id, "result": result},

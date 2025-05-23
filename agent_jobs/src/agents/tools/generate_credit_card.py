@@ -48,10 +48,18 @@ def generate_credit_card(
     }
 
     if type not in card_numbers_by_type:
-        raise ValueError(f"Invalid credit card type. Expected one of {card_numbers_by_type.keys()}")
+        raise ValueError(
+            f"Invalid credit card type. Expected one of {card_numbers_by_type.keys()}"
+        )
 
-    if error_type is not None and error_type != "none" and error_type not in card_numbers_by_error_type:
-        raise ValueError(f"Invalid error type. Expected one of {card_numbers_by_error_type.keys()}")
+    if (
+        error_type is not None
+        and error_type != "none"
+        and error_type not in card_numbers_by_error_type
+    ):
+        raise ValueError(
+            f"Invalid error type. Expected one of {card_numbers_by_error_type.keys()}"
+        )
 
     base_output["number"] = card_numbers_by_type[type]
 
@@ -60,7 +68,9 @@ def generate_credit_card(
 
     credit_card_info = "\n".join(f"{k}: {v}" for (k, v) in base_output.items())
 
-    logger.info(f"Generated credit card information: **{str(base_output['number'])[-2:]} {base_output['expiration_month']}/{base_output['expiration_year']}")
+    logger.info(
+        f"Generated credit card information: **{str(base_output['number'])[-2:]} {base_output['expiration_month']}/{base_output['expiration_year']}"
+    )
 
     return credit_card_info  # NOTE: we cannot return a dict here because it would crash browser-use at runtime
 

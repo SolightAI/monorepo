@@ -200,11 +200,10 @@ event_mapping = lambda_.EventSourceMapping(
     event_source_arn=agent_trigger_sqs_queue.arn,
     function_name=agent_lambda_function.name,
     batch_size=1,
+    maximum_retry_attempts=3,
 )
 
 pulumi.export("lambda_ecr_repo", lambda_ecr_repo.url)
 pulumi.export("lambda_docker_image", lambda_docker_image.image_uri)
 pulumi.export("agent_trigger_sqs_queue", agent_trigger_sqs_queue.arn)
-pulumi.export(
-    "agent_lambda_function", agent_lambda_function.name
-)
+pulumi.export("agent_lambda_function", agent_lambda_function.name)

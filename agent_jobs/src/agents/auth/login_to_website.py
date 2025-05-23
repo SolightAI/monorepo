@@ -8,7 +8,11 @@ from ..base_agent import run_agent
 from ..utils import format_secrets
 
 from .check_if_is_logged_in import check_is_logged_in
-from .has_required_secrets import has_required_secrets, LoginMethod, SUPPORTED_LOGIN_METHODS
+from .has_required_secrets import (
+    has_required_secrets,
+    LoginMethod,
+    SUPPORTED_LOGIN_METHODS,
+)
 
 
 PROMPT = """
@@ -55,19 +59,23 @@ Provide your final output in the following format:
 <login_result>Specify if the login was successful or if an error occurred</login_result>
 <error_message>Include the error message here if an error occurred, otherwise omit this tag</error_message>
 </login_attempt>
-""".strip().format(USERNAME_PASSWORD=LoginMethod.EMAIL.value, GOOGLE_OAUTH=LoginMethod.GOOGLE_OAUTH.value)
+""".strip().format(
+    USERNAME_PASSWORD=LoginMethod.EMAIL.value,
+    GOOGLE_OAUTH=LoginMethod.GOOGLE_OAUTH.value,
+)
 
 
 logger = getLogger(__name__)
 
 
-def _select_login_method(login_method: LoginMethod, secrets: list[dict[str, dict[str, str]]]) -> LoginMethod:
-
+def _select_login_method(
+    login_method: LoginMethod, secrets: list[dict[str, dict[str, str]]]
+) -> LoginMethod:
     if login_method != LoginMethod.ANY:
         return login_method
 
     for method in LoginMethod:
-        if method.value in [_secret.get('category') for _secret in secrets]:
+        if method.value in [_secret.get("category") for _secret in secrets]:
             return method
 
     raise ValueError(f"No matching login method found in secrets: {secrets}")
@@ -104,16 +112,20 @@ async def login_to_website(
 
     login_method = _select_login_method(login_method=login_method, secrets=secrets)
 
-    success, error_message = has_required_secrets(login_method=login_method, secrets=secrets)
+    success, error_message = has_required_secrets(
+        login_method=login_method, secrets=secrets
+    )
     if not success:
         raise ValueError(error_message)
 
     sensitive_data = format_secrets(secrets)
 
     login_methods = []
-    if any(LoginMethod.EMAIL.value in _secret['category'] for _secret in secrets):
+    if any(LoginMethod.EMAIL.value in _secret["category"] for _secret in secrets):
         login_methods.append(f"- {LoginMethod.EMAIL.value}")
-    if any(LoginMethod.GOOGLE_OAUTH.value in _secret['category'] for _secret in secrets):
+    if any(
+        LoginMethod.GOOGLE_OAUTH.value in _secret["category"] for _secret in secrets
+    ):
         login_methods.append(f"- {LoginMethod.GOOGLE_OAUTH.value}")
 
     session_data, history, evidences, is_from_cache = await run_agent(
@@ -125,7 +137,7 @@ async def login_to_website(
         sensitive_data=sensitive_data,
         auth_session=None,
         tools=[],
-        **kwargs
+        **kwargs,
     )
 
     logger.info(f"[{task_id}] Checking if agent is logged in")

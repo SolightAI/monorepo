@@ -29,7 +29,7 @@ async def test_text_captcha_login_agent(task_id: str, config: Config) -> None:
 
     result = await login_agent(
         config=config,
-        identifier=None, # type: ignore
+        identifier=None,  # type: ignore
         task_id=task_id,
         test=test,
         secrets=[],
@@ -37,7 +37,7 @@ async def test_text_captcha_login_agent(task_id: str, config: Config) -> None:
         run_without_cache=True,
     )
 
-    assert result["status"] == TestStatus.PASSED.value
+    assert result.status == TestStatus.PASSED.value
 
 
 @pytest.mark.asyncio
@@ -61,7 +61,7 @@ async def test_image_captcha_login_agent(task_id: str, config: Config) -> None:
 
     result = await login_agent(
         config=config,
-        identifier=None, # type: ignore
+        identifier=None,  # type: ignore
         task_id=task_id,
         test=test,
         secrets=[],
@@ -69,4 +69,4 @@ async def test_image_captcha_login_agent(task_id: str, config: Config) -> None:
         run_without_cache=True,
     )
 
-    assert result["status"] == TestStatus.AGENT_LIMITATION.value
+    assert result.status == TestStatus.AGENT_LIMITATION.value

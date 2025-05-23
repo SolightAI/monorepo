@@ -39,7 +39,9 @@ Provide your solution to the captcha based on the image description given.
 """
 
 
-async def _solve_using_twocaptcha(twocaptcha_api_key: str, captcha_image_src: str) -> str:
+async def _solve_using_twocaptcha(
+    twocaptcha_api_key: str, captcha_image_src: str
+) -> str:
     """Solve a captcha using the capsolver API"""
 
     async with httpx.AsyncClient() as client:
@@ -104,7 +106,9 @@ async def _solve_using_twocaptcha(twocaptcha_api_key: str, captcha_image_src: st
     raise Exception("Failed to solve captcha using twocaptcha (timeout)")
 
 
-async def get_text_from_captcha(twocaptcha_api_key: str, browser: BrowserContext) -> str:
+async def get_text_from_captcha(
+    twocaptcha_api_key: str, browser: BrowserContext
+) -> str:
     """Get the text of a captcha.
 
     The text returned is the text to type to solve the captcha.
@@ -162,10 +166,10 @@ async def get_text_from_captcha(twocaptcha_api_key: str, browser: BrowserContext
 async def check_for_captcha(twocaptcha_api_key: str, agent: Agent) -> None:
     """Check if a captcha is present on the page"""
 
-    task_id = agent._task_id if hasattr(agent, "_task_id") else "?" # type: ignore
+    task_id = agent._task_id if hasattr(agent, "_task_id") else "?"  # type: ignore
 
     # We don't try to use locator before the browser context is created
-    if agent._current_step == 1: # type: ignore
+    if agent._current_step == 1:  # type: ignore
         logger.info(f"[{task_id}] Captcha check skipped (first step)")
         return
 
@@ -203,7 +207,7 @@ async def check_for_captcha(twocaptcha_api_key: str, agent: Agent) -> None:
     if captcha_image_src is None:
         return
 
-    if hasattr(agent, "_found_captcha") and agent._found_captcha: # type: ignore
+    if hasattr(agent, "_found_captcha") and agent._found_captcha:  # type: ignore
         content = "You already tried to solve this captcha, it failed. End all your actions and inform the user of the failure."
         logger.info(f"[{task_id}] Adding to agent's history: {content}")
 
@@ -211,13 +215,15 @@ async def check_for_captcha(twocaptcha_api_key: str, agent: Agent) -> None:
         agent.message_manager._add_message_with_tokens(agent_message)
         return
 
-    agent._found_captcha = True # type: ignore
+    agent._found_captcha = True  # type: ignore
 
     logger.info(
         f"[{task_id}] Found a captcha on the page, solving it and informing the agent"
     )
 
-    captcha_text = await get_text_from_captcha(twocaptcha_api_key, agent.browser_context)
+    captcha_text = await get_text_from_captcha(
+        twocaptcha_api_key, agent.browser_context
+    )
 
     content = f"There is a captcha on the page, the text to type is: {captcha_text}"
     logger.info(f"[{task_id}] Adding to agent's history: {content}")

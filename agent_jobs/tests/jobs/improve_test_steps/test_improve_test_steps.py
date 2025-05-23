@@ -107,8 +107,8 @@ class TestTickPick:
         )
 
         assert (
-            result["status"] == TestStatus.PASSED.value
-        ), f"Expected {TestStatus.PASSED.value} but got {result['status']}: {result['results']}"
+            result.status == TestStatus.PASSED.value
+        ), f"Expected {TestStatus.PASSED.value} but got {result.status}: {result.results}"
 
     @pytest.mark.asyncio
     async def test_checkout_slightly_detailed_steps(
@@ -178,8 +178,8 @@ class TestTickPick:
         )
 
         assert (
-            result["status"] == TestStatus.PASSED.value
-        ), f"Expected {TestStatus.PASSED.value} but got {result['status']}: {result['results']}"
+            result.status == TestStatus.PASSED.value
+        ), f"Expected {TestStatus.PASSED.value} but got {result.status}: {result.results}"
 
     @pytest.mark.asyncio
     async def test_checkout_slightly_detailed_steps_missing_one_step(
@@ -250,8 +250,8 @@ class TestTickPick:
         )
 
         assert (
-            result["status"] == TestStatus.PASSED.value
-        ), f"Expected {TestStatus.PASSED.value} but got {result['status']}: {result['results']}"
+            result.status == TestStatus.PASSED.value
+        ), f"Expected {TestStatus.PASSED.value} but got {result.status}: {result.results}"
 
     @pytest.mark.asyncio
     async def test_checkout_broader_steps(self, task_id: str, config: Config) -> None:
@@ -306,5 +306,5 @@ class TestTickPick:
         )
 
         assert (
-            result["status"] == TestStatus.PASSED.value
-        ), f"Expected {TestStatus.PASSED.value} but got {result['status']}: {result['results']}"
+            result.status == TestStatus.PASSED.value
+        ), f"Expected {TestStatus.PASSED.value} but got {result.status}: {result.results}"

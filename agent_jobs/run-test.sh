@@ -1,11 +1,16 @@
 #!/bin/bash
 
+if [ -z "$RUN_ID" ]; then
+  echo "RUN_ID environment variable not set, setting to local"
+  RUN_ID=local
+fi
+ 
 if [ -z "$OPENAI_API_KEY" ]; then
   echo "OPENAI_API_KEY environment variable not set"
   exit 1
 fi
 
-UNIT_TEST_NETWORK_NAME=solight_agent_job_test_shared_network
+UNIT_TEST_NETWORK_NAME=solight_agent_job_test_shared_network-$RUN_ID
 
 # Create the shared network if it doesn't exist yet
 if ! docker network inspect $UNIT_TEST_NETWORK_NAME &>/dev/null; then
@@ -16,7 +21,7 @@ else
 fi
 
 if [ -z $IMAGE_NAME ]; then
-  IMAGE_NAME=agent-job-test:local
+  IMAGE_NAME=agent-job-test:$RUN_ID
   echo "Using default image name: $IMAGE_NAME"
 fi
 
@@ -24,7 +29,7 @@ docker build -f Dockerfile -t $IMAGE_NAME .
 
 # Run redis container
 docker run \
-  --name agent-job-test-redis \
+  --name agent-job-test-redis-$RUN_ID \
   --network $UNIT_TEST_NETWORK_NAME \
   -d \
   -p 6379 \
@@ -32,7 +37,7 @@ docker run \
 
 # Run Minio container
 docker run \
-  --name agent-job-test-minio \
+  --name agent-job-test-minio-$RUN_ID \
   --network $UNIT_TEST_NETWORK_NAME \
   -d \
   -p 9000 \
@@ -45,7 +50,7 @@ docker build -f tests/playground/Dockerfile -t playground:test tests/playground
 
 docker run \
   --rm \
-  --name agent-job-test-playground \
+  --name agent-job-test-playground-$RUN_ID \
   --network $UNIT_TEST_NETWORK_NAME \
   -p 3000 \
   -d \
@@ -56,9 +61,9 @@ docker run \
 cleanup() {
   echo "Cleaning up resources..."
   # Cleanup tests resources
-  docker rm -f agent-job-test-redis
-  docker rm -f agent-job-test-minio
-  docker rm -f agent-job-test-playground
+  docker rm -f agent-job-test-redis-$RUN_ID
+  docker rm -f agent-job-test-minio-$RUN_ID
+  docker rm -f agent-job-test-playground-$RUN_ID
   docker network rm $UNIT_TEST_NETWORK_NAME
 }
 
@@ -76,12 +81,12 @@ CMD=(
   -v ./pytest.ini:/var/task/pytest.ini
   -e OPENAI_API_KEY="$OPENAI_API_KEY"
   -e HEADLESS=true
-  -e REDIS_HOST=agent-job-test-redis
+  -e REDIS_HOST=agent-job-test-redis-$RUN_ID
   -e REDIS_PORT=6379
   -e S3_ACCESS_KEY_ID=minio
   -e S3_SECRET_ACCESS_KEY=minio123
-  -e S3_ENDPOINT_URL=http://agent-job-test-minio:9000
-  -e PLAYGROUND_URL=http://agent-job-test-playground:3000
+  -e S3_ENDPOINT_URL=http://agent-job-test-minio-$RUN_ID:9000
+  -e PLAYGROUND_URL=http://agent-job-test-playground-$RUN_ID:3000
 )
 
 # List of environment variable names to conditionally include if they exist

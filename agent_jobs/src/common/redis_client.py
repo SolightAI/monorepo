@@ -20,7 +20,7 @@ class RedisClient:
         db: int,
         password: str | None = None,
         default_ttl: int = 86400,
-    ) -> None:        
+    ) -> None:
         self._client = Redis(host=host, port=port, db=db, password=password)
         self._default_ttl = default_ttl
 

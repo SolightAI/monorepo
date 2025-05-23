@@ -2,7 +2,7 @@ import logging
 
 from typing import Any
 from tempfile import NamedTemporaryFile
-from browser_use import Agent, AgentHistoryList
+from browser_use import AgentHistoryList
 
 from src.agents.get_agent import AgentParam, get_agent
 from src.config import Config
@@ -35,10 +35,11 @@ async def run_uncached_history(
 
         agent = get_agent(
             agent_params,
-            **kwargs | {
+            **kwargs
+            | {
                 "injected_agent_state": injected_agent_state,
                 "task": additional_task,
-            }
+            },
         )
 
         agent.add_new_task(additional_task)

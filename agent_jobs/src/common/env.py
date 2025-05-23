@@ -9,10 +9,13 @@ from typing import Literal, overload
 
 class InvalidValueException(Exception):
     """Exception raised when an invalid value is provided."""
+
     pass
+
 
 class MissingValueException(Exception):
     """Exception raised when a required value is missing."""
+
     pass
 
 
@@ -110,6 +113,7 @@ def get_bool(
         f"Invalid value for {name}: Must be either 'true' or 'false', not {value}"
     )
 
+
 @overload
 def get_int(
     name: str, default: int | None = None, required: Literal[True] = True
@@ -150,6 +154,8 @@ def get_int(name: str, default: int | None = None, required: bool = True) -> int
         return None
 
     if value.isdigit() is False:
-        raise InvalidValueException(f"Invalid value for {name}: Must be an integer, not {value}")
+        raise InvalidValueException(
+            f"Invalid value for {name}: Must be an integer, not {value}"
+        )
 
     return int(value)

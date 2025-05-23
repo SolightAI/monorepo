@@ -24,9 +24,21 @@ HEALTHCHECK_DESCRIPTION = """
 
 def get_healthcheck_description(healthcheck: Callable) -> str:
     spec = getfullargspec(healthcheck)
-    parameters = "".join([f"\n- {name}: {spec.annotations[name]}" for name in spec.args])
-    return HEALTHCHECK_DESCRIPTION.format(name=healthcheck.__name__, description=healthcheck.__doc__, parameters=parameters)
+    parameters = "".join(
+        [f"\n- {name}: {spec.annotations[name]}" for name in spec.args]
+    )
+    return HEALTHCHECK_DESCRIPTION.format(
+        name=healthcheck.__name__,
+        description=healthcheck.__doc__,
+        parameters=parameters,
+    )
 
 
 def get_prompt_list_of_healthchecks() -> str:
-    return "<healthchecks>\n" + "\n".join([get_healthcheck_description(healthcheck) for healthcheck in HEALTHCHECKS]) + "\n</healthchecks>"
+    return (
+        "<healthchecks>\n"
+        + "\n".join(
+            [get_healthcheck_description(healthcheck) for healthcheck in HEALTHCHECKS]
+        )
+        + "\n</healthchecks>"
+    )

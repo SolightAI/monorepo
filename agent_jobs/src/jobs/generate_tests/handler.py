@@ -54,7 +54,7 @@ async def handler(
     ):
         auth_session = await get_auth_session(
             config=config,
-            identifier=None, # type: ignore
+            identifier=None,  # type: ignore
             task_id=job_id,
             url=product.url,
             secrets=decrypted_secrets,  # Use decrypted secrets here # type: ignore
@@ -103,5 +103,5 @@ async def handler(
     logger.info(
         f"[{job_id}] Successfully generated tests for {epic.name}/{product.name}/{feature.name}"
     )
-    
+
     return result

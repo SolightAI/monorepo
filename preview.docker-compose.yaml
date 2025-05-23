@@ -36,7 +36,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=minioadmin
       - S3_BUCKET_NAME=task-manager
       - AWS_REGION=us-east-1
-      - AWS_ENDPOINT_URL=http://minio:9000
+      - AWS_ENDPOINT_URL=https://preview.storage.solight.ai
       # Redis Cache Configuration
       - REDIS_HOST=redis
       - REDIS_PORT=6379

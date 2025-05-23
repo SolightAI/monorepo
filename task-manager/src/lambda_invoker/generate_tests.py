@@ -48,6 +48,8 @@ async def generate_tests(
     config = get_config()
 
     try:
+        logger.info(f"[{ctx['job_id']}] Generating tests for {feature.name}")
+        
         await lambda_waiter.create_lambda_waiter_job(ctx["job_id"])
         await trigger_lambda(
             config,

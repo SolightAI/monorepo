@@ -7,12 +7,13 @@ import types
 import traceback
 
 from tempfile import NamedTemporaryFile, TemporaryDirectory
-from typing import Any, Callable
+from typing import Any, Callable, Coroutine
 from lmnr import observe, Laminar
 from inspect import getfullargspec, isclass
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
+from src.agents.base_agent import BaseAgentResult
 from src.agents.general_agent import general_agent
 from src.agents.login_agent import login_agent
 from src.agents.signup_agent import signup_agent
@@ -22,7 +23,7 @@ from src.config import Config
 logger = logging.getLogger(__name__)
 
 
-AGENTS: set[Callable] = {
+AGENTS: set[Callable[..., Coroutine[Any, Any, BaseAgentResult]]] = {
     general_agent,
     login_agent,
     signup_agent,
@@ -253,7 +254,7 @@ async def run(
     secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],
     run_without_cache: bool = False,
-) -> dict:
+) -> BaseAgentResult:
     Laminar.set_session(session_id=task_id)
     Laminar.set_metadata({"task_id": task_id, "job": "run_test.run"})
 
@@ -307,6 +308,8 @@ async def run(
 
             config.s3_client.upload_file(selected_agent_file.name, cache_key)
 
+            logger.info(f"[{task_id}] Uploaded'{agent.__name__}' to cache: {cache_key}")
+
     return await agent(
-        identifier, task_id, test, secrets, auth_session, run_without_cache
+        config, identifier, task_id, test, secrets, auth_session, run_without_cache
     )

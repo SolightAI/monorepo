@@ -92,6 +92,7 @@ For each test case, you should write the following informations in the <test_cas
 Make sure to close each XML tag you open.
 """.strip()
 
+
 @observe()
 async def run(
     job_id: str,
@@ -105,8 +106,8 @@ async def run(
     headless: bool = True,
 ) -> list[Test]:
     Laminar.set_session(session_id=job_id)
-    Laminar.set_metadata({"task_id": job_id, "job": "generate_tests.run"})    
-    
+    Laminar.set_metadata({"task_id": job_id, "job": "generate_tests.run"})
+
     logger.info(f"Setting up agent to run on {epic.name}/{product.name}/{feature.name}")
 
     agent_client = ChatOpenAI(
@@ -157,9 +158,10 @@ async def run(
         await browser.close()
 
     with NamedTemporaryFile(suffix=".gif", delete=True) as temp_gif:  # type: ignore
-        from browser_use.agent.gif import create_history_gif  # import here to avoid thread blocking
-        
-        
+        from browser_use.agent.gif import (
+            create_history_gif,
+        )  # import here to avoid thread blocking
+
         create_history_gif(
             task="unused",
             history=history,

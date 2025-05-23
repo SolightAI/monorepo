@@ -1,6 +1,7 @@
 from typing import Any, Optional
 from pydantic import BaseModel
 
+from src.agents.base_agent import BaseAgentResult
 from src.common.dto import Feature, Product, Test
 
 
@@ -20,3 +21,7 @@ class RunTestPayload(BaseModel):
     test: Test
     secrets: Optional[list[dict[str, Any]]]
     run_without_cache: Optional[bool]
+
+
+class RunTestResult(BaseAgentResult):
+    pass

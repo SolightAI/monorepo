@@ -7,7 +7,7 @@ from src.common.dto import Test, TestStatus
 from src.config import Config
 
 from .healthchecks import is_agent_able_to_run_test, run_additional_healthcheck
-from .base_agent import run_agent
+from .base_agent import run_agent, BaseAgentResult
 from .tools import TOOLS, get_prompt_list_of_tools
 from .utils import format_secrets, get_agent_thoughts, get_agent_actions
 from .shared_limitations import SHARED_AGENT_LIMITATIONS
@@ -51,6 +51,10 @@ Now, run the test.
 logger = logging.getLogger(__name__)
 
 
+class LoginAgentResult(BaseAgentResult):
+    pass
+
+
 @observe()
 async def login_agent(
     config: Config,
@@ -60,7 +64,7 @@ async def login_agent(
     secrets: list[dict[str, Any]],
     auth_session: dict[str, dict[str, str]],  # unused
     run_without_cache: bool = False,
-) -> dict[str, Any]:
+) -> LoginAgentResult:
     """
     Agent specialized into testing the login feature of a website.
 
@@ -74,6 +78,8 @@ async def login_agent(
         A dictionary containing the status of the test, the results, and the tracing.
     """
 
+    logger.info(f"[{task_id}] Running login agent for {test.name}")
+
     del auth_session
 
     is_able, explanation = await is_agent_able_to_run_test(
@@ -85,10 +91,16 @@ async def login_agent(
     )
 
     if is_able is False:
-        return {
-            "status": TestStatus.AGENT_LIMITATION.value,
-            "results": explanation,
-        }
+        logger.warning(
+            f"[{task_id}] Login agent failed because of agent limitations: {explanation}"
+        )
+
+        return LoginAgentResult(
+            status=TestStatus.AGENT_LIMITATION,
+            results=explanation,
+        )
+
+    logger.info(f"[{task_id}] Login agent is able to run test: {test.name}")
 
     session_data, history, evidences, is_from_cache = await run_agent(
         config=config,
@@ -124,14 +136,14 @@ async def login_agent(
         healthcheck_results=additional_healthchecks_results,
     )
 
-    return {
-        "agent_thoughts": get_agent_thoughts(history=history),
-        "agent_actions": get_agent_actions(history=history),
-        "evidence": evidences,
-        "status": status.value,
-        "results": explanation,
-        # "tracing": history.get_logs(),
-        "error": explanation if status != TestStatus.PASSED else "",
-        "traceback": "",
-        "is_from_cache": is_from_cache,
-    }
+    return LoginAgentResult(
+        agent_thoughts=get_agent_thoughts(history=history),
+        agent_actions=get_agent_actions(history=history),
+        evidence=evidences,
+        status=status,
+        results=explanation,
+        # tracing=history.get_logs(),
+        error=explanation if status != TestStatus.PASSED else "",
+        traceback="",
+        is_from_cache=is_from_cache,
+    )

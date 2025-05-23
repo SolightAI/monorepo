@@ -569,14 +569,16 @@ async def test_generate_auth_session_farmzz(task_id: str, config: Config) -> Non
     assert session["localStorage"].get("jwt") is not None
 
     # Verify cookies contains the expected auth data
-    assert "XSRF-TOKEN" in [cookie["name"] for cookie in session["cookies"]] # type: ignore
-    assert [cookie for cookie in session["cookies"] if cookie["name"] == "XSRF-TOKEN"][ # type: ignore
+    assert "XSRF-TOKEN" in [cookie["name"] for cookie in session["cookies"]]  # type: ignore
+    assert [cookie for cookie in session["cookies"] if cookie["name"] == "XSRF-TOKEN"][  # type: ignore
         0
     ]["value"] is not None
 
 
 @pytest.mark.asyncio
-async def test_generate_auth_session_tecla_academy(task_id: str, config: Config) -> None:
+async def test_generate_auth_session_tecla_academy(
+    task_id: str, config: Config
+) -> None:
     """Test authentication with valid username/password on the simple login page."""
 
     url = "https://teclaacademy.com/logins"
@@ -609,9 +611,11 @@ async def test_generate_auth_session_tecla_academy(task_id: str, config: Config)
     assert "localStorage" in session
 
     # Verify cookies contains the expected auth data
-    assert "AUTH_SESSION_ID" in [cookie["name"] for cookie in session["cookies"]] # type: ignore
+    assert "AUTH_SESSION_ID" in [cookie["name"] for cookie in session["cookies"]]  # type: ignore
     assert [
-        cookie for cookie in session["cookies"] if cookie["name"] == "AUTH_SESSION_ID" # type: ignore
+        cookie
+        for cookie in session["cookies"]
+        if cookie["name"] == "AUTH_SESSION_ID"  # type: ignore
     ][0]["value"] is not None
 
 
@@ -649,8 +653,8 @@ async def test_generate_auth_session_tickpick(task_id: str, config: Config) -> N
     assert "localStorage" in session
 
     # Verify cookies contains the expected auth data
-    assert "apiToken" in [cookie["name"] for cookie in session["cookies"]] # type: ignore
-    assert [cookie for cookie in session["cookies"] if cookie["name"] == "apiToken"][0][ # type: ignore
+    assert "apiToken" in [cookie["name"] for cookie in session["cookies"]]  # type: ignore
+    assert [cookie for cookie in session["cookies"] if cookie["name"] == "apiToken"][0][  # type: ignore
         "value"
     ] is not None
 
@@ -691,10 +695,10 @@ async def test_generate_auth_session_sesame_hr(task_id: str, config: Config) -> 
     assert session["localStorage"].get("sesame-auth") is not None
 
     # Verify cookies contains the expected auth data
-    assert "USID" in [cookie["name"] for cookie in session["cookies"]] # type: ignore
-    assert [cookie for cookie in session["cookies"] if cookie["name"] == "USID"][0][ # type: ignore
+    assert "USID" in [cookie["name"] for cookie in session["cookies"]]  # type: ignore
+    assert [cookie for cookie in session["cookies"] if cookie["name"] == "USID"][0][  # type: ignore
         "value"
-    ] is not None # type: ignore
+    ] is not None  # type: ignore
 
 
 @pytest.mark.asyncio
@@ -731,10 +735,10 @@ async def test_generate_auth_session_meandwho(task_id: str, config: Config) -> N
     assert "localStorage" in session
 
     # Verify cookies contains the expected auth data
-    assert "__client" in [cookie["name"] for cookie in session["cookies"]] # type: ignore
-    assert [cookie for cookie in session["cookies"] if cookie["name"] == "__client"][0][ # type: ignore
+    assert "__client" in [cookie["name"] for cookie in session["cookies"]]  # type: ignore
+    assert [cookie for cookie in session["cookies"] if cookie["name"] == "__client"][0][  # type: ignore
         "value"
-    ] is not None # type: ignore
+    ] is not None  # type: ignore
 
 
 @pytest.mark.asyncio

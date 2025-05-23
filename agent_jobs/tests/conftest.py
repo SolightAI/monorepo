@@ -1,6 +1,4 @@
 import pytest
-import sys
-import os
 
 from typing import Any
 from uuid import uuid4
@@ -55,6 +53,7 @@ def playground_url() -> str:
     """Get the playground URL."""
     return get_string("PLAYGROUND_URL")
 
+
 @pytest.fixture
 def valid_username_password_credentials() -> list[dict[str, Any]]:
     """Fixture for valid username/password credentials."""
@@ -62,10 +61,7 @@ def valid_username_password_credentials() -> list[dict[str, Any]]:
         {
             "category": LoginMethod.EMAIL.value,
             "name": "Credentials",
-            "values": {
-                "username": "testuser",
-                "password": "password123"
-            }
+            "values": {"username": "testuser", "password": "password123"},
         }
     ]
 
@@ -81,7 +77,7 @@ def valid_google_credentials() -> list[dict[str, Any]]:
                 "username": "testuser@gmail.com",
                 "password": "password123",
                 "recovery_phone_number": "+11234567890",
-            }
+            },
         }
     ]
 
@@ -93,10 +89,7 @@ def invalid_username_password_credentials() -> list[dict[str, Any]]:
         {
             "category": LoginMethod.EMAIL.value,
             "name": "marina",
-            "values": {
-                "username": "marina",
-                "password": "marinapassword"
-            }
+            "values": {"username": "marina", "password": "marinapassword"},
         }
     ]
 
@@ -112,6 +105,6 @@ def invalid_google_credentials() -> list[dict[str, Any]]:
                 "username": "this-is-not-a-valid-email@fake-domain.com",
                 "password": "this-is-not-a-valid-password",
                 "recovery_phone_number": "+11234567890",
-            }
+            },
         }
     ]

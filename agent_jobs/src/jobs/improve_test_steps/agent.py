@@ -82,6 +82,7 @@ Example of final output:
 ...
 """)
 
+
 @observe()
 async def run(
     config: Config,
@@ -92,7 +93,7 @@ async def run(
 ) -> ImproveTestStepsResult:
     Laminar.set_session(session_id=task_id)
     Laminar.set_metadata({"task_id": task_id, "job": "improve_test_steps.run"})
-    
+
     prompt = IMPROVE_STEPS_PROMPT.format(
         test=test,
         tools=get_prompt_list_of_tools(TOOLS),

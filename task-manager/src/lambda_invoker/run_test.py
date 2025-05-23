@@ -51,6 +51,8 @@ async def run_test(
     config = get_config()
 
     try:
+        logger.info(f"[{ctx['job_id']}] Running test {test_obj.name} for {test_obj.url}")
+        
         await lambda_waiter.create_lambda_waiter_job(ctx["job_id"])
         await trigger_lambda(
             config,

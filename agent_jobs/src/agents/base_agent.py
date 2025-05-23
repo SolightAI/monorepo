@@ -4,8 +4,8 @@ import os
 
 from typing import Callable, Any
 
+from pydantic import BaseModel
 from PIL import Image
-from langchain_openai import ChatOpenAI
 from lmnr import observe
 from tempfile import _TemporaryFileWrapper, NamedTemporaryFile, TemporaryDirectory
 from browser_use import Browser, AgentHistoryList, Controller
@@ -18,6 +18,7 @@ from browser_use.browser.context import (
 from src.agents.get_agent import AgentParam
 from src.common.s3_client import S3Client
 from src.config import Config
+from src.common.dto import TestStatus
 
 from .runner import run_uncached_history, try_rerun_from_history
 from .utils import load_local_storage, get_local_storage, create_browser
@@ -25,6 +26,24 @@ from .tools import TOOLS
 
 
 logger = logging.getLogger(__name__)
+
+
+class BaseAgentResult(BaseModel):
+    status: TestStatus
+    results: str
+    evidence: list[str] | None = None
+    is_from_cache: bool | None = None
+    error: str | None = None
+    traceback: str | None = None
+    agent_thoughts: list[dict[str, Any]] | None = None
+    agent_actions: list[dict[str, Any]] | None = None
+    tracing: Any | None = None
+
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
 
 
 @observe()

@@ -23,7 +23,12 @@ def generate_password(
         str: The generated password.
     """
 
-    if not small_letters and not capital_letters and not numbers and not special_characters:
+    if (
+        not small_letters
+        and not capital_letters
+        and not numbers
+        and not special_characters
+    ):
         raise ValueError("At least one character type must be included")
 
     if length < 1:
