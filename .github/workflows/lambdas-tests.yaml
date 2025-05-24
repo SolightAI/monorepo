@@ -60,4 +60,12 @@ jobs:
       env:
         IMAGE_NAME: lambda-test:${{ github.event.pull_request.number || 'main' }}
 
-
+    - name: Cleanup tests containers
+      if: always()
+      run: |
+        # The run-test script should have already cleaned up the resources
+        # but just in case, let's do it here too
+        docker container rm -f agent-job-test-redis-$RUN_ID || true
+        docker container rm -f agent-job-test-minio-$RUN_ID || true
+        docker container rm -f agent-job-test-playground-$RUN_ID || true
+        docker network rm solight_agent_job_test_shared_network-$RUN_ID || true

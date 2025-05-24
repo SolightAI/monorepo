@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ -z "$RUN_ID" ]; then
   echo "RUN_ID environment variable not set, setting to local"
   RUN_ID=local
@@ -61,14 +63,14 @@ docker run \
 cleanup() {
   echo "Cleaning up resources..."
   # Cleanup tests resources
-  docker rm -f agent-job-test-redis-$RUN_ID
-  docker rm -f agent-job-test-minio-$RUN_ID
-  docker rm -f agent-job-test-playground-$RUN_ID
-  docker network rm $UNIT_TEST_NETWORK_NAME
+  docker rm -f agent-job-test-redis-$RUN_ID || true
+  docker rm -f agent-job-test-minio-$RUN_ID || true
+  docker rm -f agent-job-test-playground-$RUN_ID || true
+  docker network rm $UNIT_TEST_NETWORK_NAME || true
 }
 
 ## Register the cleanup function to be executed on script interruption
-trap cleanup SIGINT SIGTERM
+trap cleanup EXIT SIGINT SIGTERM
 
 # Run test in container
 # Base docker run command
