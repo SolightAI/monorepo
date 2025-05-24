@@ -147,6 +147,7 @@ First, examine the agent's output from running the test:
 </agent_output>
 
 Then, examine the provided screenshot of the web-app's final state.
+If there's a conflict between the screenshot and the agent's output, the screenshot is authoritative.
 
 Now, review the following test information:
 
@@ -208,13 +209,6 @@ Criteria:
 * HTTP responses (e.g. 403) or Cloudflare blocks indicate a bot challenge preventing the agent from proceeding.
 
 Example: After login attempts, the agent is met with Google reCAPTCHA or a "verify you're human" interstitial.
-
-Please follow these steps:
-1. Analyze the test information, agent output, and healthcheck results thoroughly.
-2. Consider how the agent's output aligns with the test's expectations and assertions.
-3. Look for any indications of test failure, agent limitations, missing features, or blocking factors like CAPTCHAs.
-4. Determine which of the possible outcomes best describes the test result. You're strictly limited to the previously defined outcomes.
-5. Provide a short explanation for your decision.
 
 Wrap your analysis inside <analysis> tags to show your thought process before providing your final decision and explanation. Your analysis should include:
 
@@ -331,7 +325,7 @@ DESCRIPTION_HEALTHCHECK_RESULT = """
 
 
 OUTPUT_VALIDATION_LLM = ChatOpenAI(
-    model="gpt-4.1-mini",
+    model="gpt-4.1",
     temperature=0.0,
     seed=SEED,
     timeout=120,
@@ -717,19 +711,25 @@ def _get_agent(context: BrowserContext, controller: Controller, prompt: str, sen
         "Do never store any index in your memory. Elements' indexes are not stable, they can change as you scroll the page.",
 
         # Prevents issues when the agent do not have the right element it needs to interact with, and press a random button
-        "If you do not have the right element you need to interact with in your list of interactive elements, scroll to find it.",
+        "If you do not have the right element you need to interact with in your list of interactive elements, scroll to find it (scroll_up/scroll_down). If you reached the end of the page, the element you're looking for is not on the page.",
+
+        # This fixes the problem with tickpick's phone number input field that can contain a country code included in the input field
+        "If you need to type a phone number, try first without the country code, if it doesn't work, try with the country code but without the leading +, if it still doesn't work, try with the country code and with the leading +.",
+
+        # Prevent the agent to finish the test using the done action when he should just have waited
+        "If you have to wait, wait for 5s for up to 12 times for a total of 60s (unless explicitly stated otherwise by the user). If the expected element still doesn't load, use the done action to inform the user of the failure.",
     ]
 
     agent_params = {
         "task": prompt,
 
         "llm": kwargs.get("llm", AGENT_CLIENT),
-        "use_vision": kwargs.get("use_vision", False),
+        "use_vision": True,
         "enable_memory": kwargs.get("enable_memory", False),
 
         "initial_actions": [
             {'go_to_url': {'url': url}}, {'go_to_url': {'url': url}},  # necessary to do it twice in some situations (i.e tickpick in-url auth in dev)
-            {'wait': {'seconds': 5}}
+            {'wait': {'seconds': 12}}  # Allows page to load (i.e tickpick checkout is pretty slow)
         ],
         "sensitive_data": sensitive_data,
         "browser_context": context,
@@ -840,12 +840,15 @@ async def run_agent(
                     agent: Agent = _get_agent(context, controller, prompt, sensitive_data, url, **kwargs)
                     agent._task_id = task_id  # NOTE: we want to use a different agent for rerun_history and agent.run as rerun_history modifies the agent's controller
 
+                    history = AgentHistoryList.load_from_file(history_file.name, agent.AgentOutput)
+
                     history = await rerun_history(
                         agent,
-                        AgentHistoryList.load_from_file(history_file.name, agent.AgentOutput),
+                        history,
                         max_retries=3,
                         skip_failures=False,
                         delay_between_actions=2,  # leaves time for the page to load (otherwise leads to errors)
+                        max_fallbacks=max(5, int(len(history.history) * 0.33))  # 1/3 of the actions or 5, whichever is greater
                     )
 
                     run_agent = False
@@ -894,7 +897,7 @@ async def run_agent(
         logger.info(f"[{task_id}] Retrieved cookies and localStorage data")
 
     except Exception as e:
-        raise e
+        raise
 
     finally:
         await context.close()

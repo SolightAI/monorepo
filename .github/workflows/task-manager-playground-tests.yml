@@ -54,6 +54,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       TWOCAPTCHA_API_KEY: ${{ secrets.TWOCAPTCHA_API_KEY }}
+      LMNR_PROJECT_API_KEY: ${{ secrets.LMNR_PROJECT_API_KEY }}
       # Create unique identifiers for this run
       RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
       NETWORK_NAME: test-network-${{ github.run_id }}-${{ github.run_attempt }}
@@ -176,6 +177,7 @@ jobs:
         SOLIGHT_USERNAME=$SOLIGHT_USERNAME
         SOLIGHT_PASSWORD=$SOLIGHT_PASSWORD
         SOLIGHT_RECOVERY_PHONE_NUMBER=$SOLIGHT_RECOVERY_PHONE_NUMBER
+        LMNR_PROJECT_API_KEY=$LMNR_PROJECT_API_KEY
         EOF
 
         docker run \
@@ -186,7 +188,7 @@ jobs:
           --user $(id -u):$(id -g) \
           -e PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright \
           ${{ env.PLAYWRIGHT_IMAGE }} \
-          bash -c "cd /app && python -m pytest -vvvs -n 8 -W ignore::RuntimeWarning:pydantic.main"
+          bash -c "cd /app && python -m pytest -vvvs -n 6 -W ignore::RuntimeWarning:pydantic.main"
 
         # Clean up env file
         rm .env.test
