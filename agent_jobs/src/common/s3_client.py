@@ -155,8 +155,10 @@ class S3Client:
             self.client.upload_file(
                 file_path, self.bucket_name, object_name, ExtraArgs=extra_args
             )
-            
-            logger.info(f"Uploaded file to S3: {self.endpoint_url}/{self.bucket_name}/{object_name}")
+
+            logger.info(
+                f"Uploaded file to S3: {self.endpoint_url}/{self.bucket_name}/{object_name}"
+            )
 
             # URL of the uploaded file
             return f"{self.endpoint_url}/{self.bucket_name}/{object_name}"

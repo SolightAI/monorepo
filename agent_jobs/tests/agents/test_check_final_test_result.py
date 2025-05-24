@@ -4,7 +4,7 @@ import base64
 from textwrap import dedent
 from tempfile import NamedTemporaryFile
 
-from src.config import Config
+from src.common.s3_client import S3Client
 from src.agents._check_final_test_result import check_final_test_result
 from src.agents.healthchecks import get_login_status
 from src.common.dto import Test, TestCategory, TestStatus
@@ -80,9 +80,7 @@ class TestTickPick:
 
     @pytest.mark.asyncio
     async def test_initiate_checkout_for_selected_tickets_negative(
-        self,
-        task_id: str,
-        config: Config,
+        self, task_id: str, prod_bucket: S3Client | None
     ) -> None:
         url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=889809938&quantity=1&listingType=TEVO&price=3&dt=e&dv=2&e=7089570&s=111&r=13"
 
@@ -96,8 +94,12 @@ class TestTickPick:
             "assertions": "1. Two tickets are selected and reflected in cart/order summary.\n2. Ticket price(s) are displayed with no hidden fees.",
         }
 
+        if not prod_bucket:
+            pytest.skip("No prod bucket configured")
+            return
+
         with NamedTemporaryFile(suffix=".png") as temp_file:
-            config.s3_client.download_file(
+            prod_bucket.download_file(
                 object_name="tickpick_ticket_not_displayed.png",
                 output_path=temp_file.name,
                 overwrite_bucket="test-data",
@@ -121,9 +123,7 @@ class TestTickPick:
 
     @pytest.mark.asyncio
     async def test_preconditions_not_met_failed_to_start_test(
-        self,
-        task_id: str,
-        config: Config,
+        self, task_id: str, prod_bucket: S3Client | None
     ) -> None:
         url = "https://tickpick_dev:tickpick.1@dev.tickpick.com"
 
@@ -147,8 +147,12 @@ class TestTickPick:
 
         agent_output = "Test Case: Complete Purchase with Payment and Agreement\n\nResult: NOT EXECUTED FULLY (Preconditions Not Met)\n\nFindings:\n- Navigated to the Diana Krall event ticket page on TickPick.\n- No tickets were available for selection; message displayed: 'No seats match the quantity you've selected.'\n- Only 'Any Quantity' was available in the quantity filter dropdown.\n- Attempted to interact with filters and event tracking, but no ticket options appeared.\n- Could not proceed to checkout, payment, or agreement steps as required by the test case.\n\nConclusion: The test could not be executed because no Diana Krall tickets were available for purchase. Preconditions (user at checkout with 2 selected tickets) were not met. Please retry when tickets become available."
 
+        if not prod_bucket:
+            pytest.skip("No prod bucket configured")
+            return
+
         with NamedTemporaryFile(suffix=".png") as temp_file:
-            config.s3_client.download_file(
+            prod_bucket.download_file(
                 object_name="test_preconditions_not_met_failed_to_start_test.png",
                 output_path=temp_file.name,
                 overwrite_bucket="test-data",
@@ -170,7 +174,9 @@ class TestTickPick:
 
     @pytest.mark.asyncio
     async def test_valid_credit_card_succeed(
-        self, task_id: str, config: Config
+        self,
+        task_id: str,
+        prod_bucket: S3Client | None,
     ) -> None:
         url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=889809938&quantity=1&listingType=TEVO&price=3&dt=e&dv=2&e=7089570&s=111&r=13"
 
@@ -222,8 +228,12 @@ class TestTickPick:
 
         agent_output = "Test Case: Valid Credit Card\n\nResult: PASS\n\n- The user was able to use a valid credit card as a payment method.\n- All form fields were filled as required (buyer info, credit card details, billing/contact info).\n- The correct options were selected for payment method and ticket reimbursement.\n- The final terms were reviewed before submission.\n- After clicking 'Place Order', the page displayed an 'Order Placed' confirmation with a check icon and instructions not to refresh or go back.\n- This confirms that payment succeeded and the order was placed as expected.\n\nAll steps of the test case were executed successfully. No errors or unexpected issues occurred that would prevent completion of the scenario."
 
+        if not prod_bucket:
+            pytest.skip("No prod bucket configured")
+            return
+
         with NamedTemporaryFile(suffix=".png") as temp_file:
-            config.s3_client.download_file(
+            prod_bucket.download_file(
                 object_name="test_valid_credit_card_succeed.png",
                 output_path=temp_file.name,
                 overwrite_bucket="test-data",
@@ -247,7 +257,7 @@ class TestTickPick:
     async def test_valid_credit_card_succeed_but_agent_fails_bcs_of_result_msg(
         self,
         task_id: str,
-        config: Config,
+        prod_bucket: S3Client | None,
     ) -> None:
         url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=889809938&quantity=1&listingType=TEVO&price=3&dt=e&dv=2&e=7089570&s=111&r=13"
 
@@ -299,8 +309,12 @@ class TestTickPick:
 
         agent_output = "Test Case: Valid Credit Card\n\nResult: FAILED\n\n- The user was able to use a valid credit card as a payment method.\n- All form fields were filled as required (buyer info, credit card details, billing/contact info).\n- The correct options were selected for payment method and ticket reimbursement.\n- The final terms were reviewed before submission.\n- After clicking 'Place Order', the page displayed a check icon and instructions not to refresh or go back.\n- This does not confirm that payment succeeded and the order was placed as expected."
 
+        if not prod_bucket:
+            pytest.skip("No prod bucket configured")
+            return
+
         with NamedTemporaryFile(suffix=".png") as temp_file:
-            config.s3_client.download_file(
+            prod_bucket.download_file(
                 object_name="test_valid_credit_card_succeed.png",
                 output_path=temp_file.name,
                 overwrite_bucket="test-data",

@@ -18,7 +18,9 @@ def pytest_configure(config):
 
 
 def pytest_addoption(parser):
-    parser.addoption('--repeat', action='store', help='Number of times to repeat each test')
+    parser.addoption(
+        "--repeat", action="store", help="Number of times to repeat each test"
+    )
 
 
 def pytest_generate_tests(metafunc):
@@ -28,12 +30,12 @@ def pytest_generate_tests(metafunc):
         # We're going to duplicate these tests by parametrizing them,
         # which requires that each test has a fixture to accept the parameter.
         # We can add a new fixture like so:
-        metafunc.fixturenames.append('tmp_ct')
+        metafunc.fixturenames.append("tmp_ct")
 
         # Now we parametrize. This is what happens when we do e.g.,
         # @pytest.mark.parametrize('tmp_ct', range(count))
         # def test_foo(): pass
-        metafunc.parametrize('tmp_ct', range(count))
+        metafunc.parametrize("tmp_ct", range(count))
 
 
 @pytest.fixture
@@ -64,6 +66,18 @@ def config() -> Config:
             db=0,
             password=None,
         ),
+    )
+
+
+@pytest.fixture
+def prod_bucket() -> S3Client | None:
+    """Fixture to create a s3 client connected to the prod bucket."""
+    return S3Client(
+        access_key_id=get_string("PROD_S3_ACCESS_KEY_ID"),
+        secret_access_key=get_string("PROD_S3_SECRET_ACCESS_KEY"),
+        region="us-east-1",
+        bucket_endpoint_url=get_string("PROD_S3_ENDPOINT_URL"),
+        bucket_name=get_string("PROD_S3_BUCKET_NAME"),
     )
 
 

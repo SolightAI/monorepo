@@ -212,93 +212,100 @@ async def check_is_logged_in(
             ),
         )
 
-        await context.navigate_to(url)
-        content_before_login = await (await context.get_current_page()).content()
-        base64_screenshot_before_login = await context.take_screenshot()
-
-        logger.info(f"[{task_id}] Closing temporary browser context without cookies")
-        await context.close()
-
-        # Upload before_login screenshot
         try:
-            with NamedTemporaryFile(suffix=".png", delete=True) as temp_png:
-                temp_png.write(base64.b64decode(base64_screenshot_before_login))
-                temp_png.flush()
-                config.s3_client.upload_file(
-                    file_path=temp_png.name,
-                    object_name=f"{task_id}/{url}_before.png",
-                    content_type="image/png",
-                )
-        except Exception as e:
-            logger.error(f"[{task_id}] Failed to upload 'before login' screenshot: {e}")
+            await context.navigate_to(url)
+            content_before_login = await (await context.get_current_page()).content()
+            base64_screenshot_before_login = await context.take_screenshot()
 
-        # First navigate to the URL to initialize the session
-        logger.info(f"[{task_id}] Creating browser context with cookies")
-        context = BrowserContext(
-            browser=browser,
-            config=BrowserContextConfig(
-                cookies_file=cookies_file.name,
-                minimum_wait_page_load_time=1,
-                maximum_wait_page_load_time=10,
-                wait_for_network_idle_page_load_time=3,
-                wait_between_actions=3,
-                viewport_expansion=0,
-            ),
-        )
-        await context.navigate_to(url)  # this is required to initialize the session
+            logger.info(
+                f"[{task_id}] Closing temporary browser context without cookies"
+            )
+            await context.close()
 
-        # Apply existing session data if available
-        if existing_session is not None:
-            # Set cookies
-            if "cookies" in existing_session:
-                await context.session.context.add_cookies(existing_session["cookies"])  # type: ignore
-                # Navigate again to apply cookies
-                await context.navigate_to(url)
-
-            # Set localStorage
-            if "localStorage" in existing_session:
-                load_script = """
-                (storage => {
-                    Object.keys(storage).forEach(key => {
-                        localStorage.setItem(key, storage[key]);
-                    });
-                    return localStorage.length;
-                })(%s)
-                """ % json.dumps(existing_session["localStorage"])
-                await context.execute_javascript(load_script)
-
-        agent = Agent(  # required to refresh the page
-            task="exit immediately",
-            llm=AGENT_CLIENT,
-            initial_actions=[{"go_to_url": {"url": url}}],
-            browser_context=context,
-            enable_memory=False,
-            use_vision=True,
-        )
-
-        try:
-            await agent.run(max_steps=1)
-        finally:
-            base64_screenshot_after_login = await context.take_screenshot()
-            content_after_login = await (
-                await agent.browser_context.get_current_page()
-            ).content()
-
-            # Upload after_login screenshot
+            # Upload before_login screenshot
             try:
                 with NamedTemporaryFile(suffix=".png", delete=True) as temp_png:
-                    temp_png.write(base64.b64decode(base64_screenshot_after_login))
+                    temp_png.write(base64.b64decode(base64_screenshot_before_login))
                     temp_png.flush()
                     config.s3_client.upload_file(
                         file_path=temp_png.name,
-                        object_name=f"{task_id}/{url}_after.png",
+                        object_name=f"{task_id}/{url}_before.png",
                         content_type="image/png",
                     )
             except Exception as e:
                 logger.error(
-                    f"[{task_id}] Failed to upload 'after login' screenshot: {e}"
+                    f"[{task_id}] Failed to upload 'before login' screenshot: {e}"
                 )
 
+            # First navigate to the URL to initialize the session
+            logger.info(f"[{task_id}] Creating browser context with cookies")
+            context = BrowserContext(
+                browser=browser,
+                config=BrowserContextConfig(
+                    cookies_file=cookies_file.name,
+                    minimum_wait_page_load_time=1,
+                    maximum_wait_page_load_time=10,
+                    wait_for_network_idle_page_load_time=3,
+                    wait_between_actions=3,
+                    viewport_expansion=0,
+                ),
+            )
+            await context.navigate_to(url)  # this is required to initialize the session
+
+            # Apply existing session data if available
+            if existing_session is not None:
+                # Set cookies
+                if "cookies" in existing_session:
+                    await context.session.context.add_cookies( # type: ignore
+                        existing_session["cookies"] # type: ignore
+                    )
+                    # Navigate again to apply cookies
+                    await context.navigate_to(url)
+
+                # Set localStorage
+                if "localStorage" in existing_session:
+                    load_script = """
+                    (storage => {
+                        Object.keys(storage).forEach(key => {
+                            localStorage.setItem(key, storage[key]);
+                        });
+                        return localStorage.length;
+                    })(%s)
+                    """ % json.dumps(existing_session["localStorage"])
+                    await context.execute_javascript(load_script)
+
+            agent = Agent(  # required to refresh the page
+                task="exit immediately",
+                llm=AGENT_CLIENT,
+                initial_actions=[{"go_to_url": {"url": url}}],
+                browser_context=context,
+                enable_memory=False,
+                use_vision=True,
+            )
+
+            try:
+                await agent.run(max_steps=1)
+            finally:
+                base64_screenshot_after_login = await context.take_screenshot()
+                content_after_login = await (
+                    await agent.browser_context.get_current_page()
+                ).content()
+
+                # Upload after_login screenshot
+                try:
+                    with NamedTemporaryFile(suffix=".png", delete=True) as temp_png:
+                        temp_png.write(base64.b64decode(base64_screenshot_after_login))
+                        temp_png.flush()
+                        config.s3_client.upload_file(
+                            file_path=temp_png.name,
+                            object_name=f"{task_id}/{url}_after.png",
+                            content_type="image/png",
+                        )
+                except Exception as e:
+                    logger.error(
+                        f"[{task_id}] Failed to upload 'after login' screenshot: {e}"
+                    )
+        finally:
             await context.close()
             await browser.close()
 

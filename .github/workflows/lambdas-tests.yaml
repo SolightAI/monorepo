@@ -42,6 +42,10 @@ jobs:
       TICKPICK_USERNAME: ${{ secrets.TICKPICK_USERNAME }}
       TICKPICK_PASSWORD: ${{ secrets.TICKPICK_PASSWORD }}
       TWOCAPTCHA_API_KEY: ${{ secrets.TWOCAPTCHA_API_KEY }}
+      PROD_S3_BUCKET_NAME: task-manager-github-actions
+      PROD_S3_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
+      PROD_S3_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      PROD_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
@@ -67,5 +71,5 @@ jobs:
         # but just in case, let's do it here too
         docker container rm -f agent-job-test-redis-$RUN_ID || true
         docker container rm -f agent-job-test-minio-$RUN_ID || true
-        docker container rm -f agent-job-test-playground-$RUN_ID || true
-        docker network rm solight_agent_job_test_shared_network-$RUN_ID || true
+        docker container rm -f agent-job-test-playground-$RUN_ID || true
+        docker network rm solight_agent_job_test_shared_network-$RUN_ID || true
