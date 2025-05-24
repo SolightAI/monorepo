@@ -29,6 +29,7 @@ First, examine the agent's output from running the test:
 </agent_output>
 
 Then, examine the provided screenshot of the web-app's final state.
+If there's a conflict between the screenshot and the agent's output, the screenshot is authoritative.
 
 Now, review the following test information:
 
@@ -90,13 +91,6 @@ Criteria:
 * HTTP responses (e.g. 403) or Cloudflare blocks indicate a bot challenge preventing the agent from proceeding.
 
 Example: After login attempts, the agent is met with Google reCAPTCHA or a "verify you're human" interstitial.
-
-Please follow these steps:
-1. Analyze the test information, agent output, and healthcheck results thoroughly.
-2. Consider how the agent's output aligns with the test's expectations and assertions.
-3. Look for any indications of test failure, agent limitations, missing features, or blocking factors like CAPTCHAs.
-4. Determine which of the possible outcomes best describes the test result. You're strictly limited to the previously defined outcomes.
-5. Provide a short explanation for your decision.
 
 Wrap your analysis inside <analysis> tags to show your thought process before providing your final decision and explanation. Your analysis should include:
 
@@ -195,7 +189,7 @@ async def check_final_test_result(
     max_try = 3
 
     llm_client = ChatOpenAI(
-        model="gpt-4.1-mini",
+        model="gpt-4.1",
         temperature=0.0,
         timeout=120,
     )

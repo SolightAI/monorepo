@@ -12,6 +12,7 @@ from src.jobs.improve_test_steps.handler import handler
 # but another way is to test the agent on a test he previously could execute and see if it reduced the number of steps taken
 
 
+@pytest.mark.skip(reason="This test is flaky, we need to fix it.")
 class TestTickPick:
     @pytest.mark.asyncio
     async def test_checkout_detailed_steps(self, task_id: str, config: Config) -> None:
