@@ -314,7 +314,6 @@ async def generate_tests(
     auth_session = dict()
     if feature.access_conditions is not None and feature.access_conditions.get("must_be_logged_in") is True:
         auth_session = await get_auth_session(
-            identifier=None,
             task_id=ctx['job_id'],
             url=product.url,
             secrets=decrypted_secrets,  # Use decrypted secrets here
