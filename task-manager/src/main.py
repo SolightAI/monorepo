@@ -7,24 +7,27 @@ from lmnr import Laminar
 from concurrent import futures
 from arq.worker import run_worker, func
 from arq.connections import RedisSettings
-from test_run.test_endpoint import run_test
 from utils.constants import LMNR_PROJECT_API_KEY
-from generation.test_generation import generate_tests
+
+from lambda_invoker.run_test import run_test
 from lambda_invoker.validate_url import validate_url
-from improve_test_steps.endpoint import improve_test_steps
+from lambda_invoker.generate_tests import generate_tests
+from lambda_invoker.improve_test_steps import improve_test_steps
 
 
 logger = logging.getLogger(__name__)
-Laminar.initialize(project_api_key=LMNR_PROJECT_API_KEY)
+
+if LMNR_PROJECT_API_KEY is not None:
+    Laminar.initialize(project_api_key=LMNR_PROJECT_API_KEY)
 
 
 MAX_JOBS = int(os.getenv("MAX_JOBS", 4))
 
 
 async def startup(ctx: dict[str, Any]) -> None:
-    ctx['pool'] = futures.ProcessPoolExecutor(
+    ctx["pool"] = futures.ProcessPoolExecutor(
         max_workers=MAX_JOBS,  # one per job
-        max_tasks_per_child=1
+        max_tasks_per_child=1,
     )
 
 
@@ -59,7 +62,9 @@ class WorkerSettings:
     allow_abort_jobs = True
 
     job_timeout = 60 * 15  # 15 minutes in process before being timed out
-    expires_extra_ms = 1000 * 60 * 15  # 60 minutes max in the queue before being timed out
+    expires_extra_ms = (
+        1000 * 60 * 15
+    )  # 60 minutes max in the queue before being timed out
 
     keep_result = 60
 

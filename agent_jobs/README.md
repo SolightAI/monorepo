@@ -17,8 +17,10 @@ pulumi login # Ask for your Pulumi access token
 ngrok http http://localhost:<lambda_webhook_port>
 
 # Setup a .envrc with your AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY that pulumi can use to deploy.
+# You will also need to provide the env variables to forward to the lambda
+# described in deploy.sh line 5.
 
-PREVIEW=1 CURRENT_PR_NUMBER=xxx LAMBDA_WEBHOOK_URL=<ngrok url> pulumi up --stack preview
+PREVIEW=1 CURRENT_PR_NUMBER=xxx ./deploy.sh
 ```
 
 ## Run Tests
