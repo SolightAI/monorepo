@@ -108,6 +108,7 @@ async def run(
         sensitive_data=format_secrets(secrets) if secrets is not None else dict(),
         auth_session=auth_session,
         tools=TOOLS,
+        run_without_cache=True,
     )
 
     final_result = history.final_result()

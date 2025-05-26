@@ -83,12 +83,10 @@ def _select_login_method(
 
 async def login_to_website(
     config: Config,
-    identifier: str,
     task_id: str,
     url: str,
     login_method: LoginMethod,
     secrets: list[dict[str, Any]],
-    **kwargs: Any,
 ) -> tuple[dict[str, dict[str, str]] | None, AgentHistoryList, list[str], bool]:
     """
     Login to the webapp and return the generated cookies.
@@ -130,28 +128,23 @@ async def login_to_website(
 
     session_data, history, evidences, is_from_cache = await run_agent(
         config,
-        identifier=identifier,
+        identifier=None,  # type: ignore
         task_id=task_id,
         url=url,
         prompt=PROMPT.format(login_methods="\n".join(login_methods)),
         sensitive_data=sensitive_data,
         auth_session=None,
         tools=[],
-        **kwargs,
+        run_without_cache=True,
     )
 
     logger.info(f"[{task_id}] Checking if agent is logged in")
-
-    if kwargs.get("no_verify", False) is True:
-        logger.info(f"[{task_id}] Skipping verification of login status")
-        is_logged_in = True
-    else:
-        is_logged_in = await check_is_logged_in(
-            config,
-            task_id=task_id,
-            url=url,
-            existing_session=session_data,
-        )
+    is_logged_in = await check_is_logged_in(
+        config,
+        task_id=task_id,
+        url=url,
+        existing_session=session_data,
+    )
 
     logger.info(f"[{task_id}] Agent is logged in: {is_logged_in}")
 

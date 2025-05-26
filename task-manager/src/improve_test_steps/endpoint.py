@@ -65,14 +65,6 @@ Help yourself from the provided draft to make sure you don't forget any actions 
 """)
 
 
-LLM_FORMAT = ChatOpenAI(
-    model="gpt-4.1-mini",
-    temperature=0.0,
-    timeout=120,
-    seed=SEED,
-)
-
-
 @observe()
 async def improve_test_steps(
     ctx: dict[Any, Any],

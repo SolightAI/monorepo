@@ -176,6 +176,7 @@ class TestTickPick:
             test=test_params,
             secrets=[],
             auth_session={},
+            run_without_cache=True,
         )
 
         assert (

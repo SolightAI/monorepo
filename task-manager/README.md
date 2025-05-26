@@ -24,9 +24,9 @@ flowchart LR
       GeneralAgent --> GeneralHealthCheck["HealthChecks"]:::gpt-4.1-mini
     end
 
-    SignupHealthCheck --> CheckResult["Check Result"]:::gpt-4.1-mini
-    LoginHealthCheck --> CheckResult["Check Result"]:::gpt-4.1-mini
-    GeneralHealthCheck --> CheckResult["Check Result"]:::gpt-4.1-mini
+    SignupHealthCheck --> CheckResult["Check Result"]:::gpt-4.1
+    LoginHealthCheck --> CheckResult["Check Result"]:::gpt-4.1
+    GeneralHealthCheck --> CheckResult["Check Result"]:::gpt-4.1
 
     %% Legend
     subgraph Legend ["Models"]
