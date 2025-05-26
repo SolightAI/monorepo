@@ -106,7 +106,7 @@ async def run_agent(
 
         ran_from_cache = False
 
-        if not run_without_cache and config.s3_client.exists(
+        if not run_without_cache and identifier is not None and config.s3_client.exists(
             f"{identifier}/history.json"
         ):
             logger.info(f"[{task_id}] Try Running agent from cached history")
