@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
 @observe()
 async def generate_tests(
     ctx: dict[Any, Any],
-    product: Product,
-    epic: Epic,
-    feature: Feature,
+    product: dict[str, Any],
+    epic: dict[str, Any],
+    feature: dict[str, Any],
     secrets: Optional[list[dict[str, Any]]] = None,
     categories: Optional[list[TestCategory]] = None,
 ) -> dict[str, Any]:
@@ -43,12 +43,16 @@ async def generate_tests(
     Laminar.set_session(session_id=ctx["job_id"])
     Laminar.set_metadata({"task_id": ctx["job_id"], "job": generate_tests.__name__})
 
+    product_obj: Product = Product(**product)
+    epic_obj: Epic = Epic(**epic)
+    feature_obj: Feature = Feature(**feature)
+
     # TODO(TomChv): This should be refactored to a global config loaded
     # when the binary starts instead of fetching env vars on every call.
     config = get_config()
 
     try:
-        logger.info(f"[{ctx['job_id']}] Generating tests for {feature.name}")
+        logger.info(f"[{ctx['job_id']}] Generating tests for {feature_obj.name}")
         
         await lambda_waiter.create_lambda_waiter_job(ctx["job_id"])
         await trigger_lambda(
@@ -57,9 +61,9 @@ async def generate_tests(
                 job_type=JobType.GENERATE_TESTS,
                 job_id=ctx["job_id"],
                 payload=GenerateTestsPayload(
-                    product=product,
-                    epic=epic,
-                    feature=feature,
+                    product=product_obj,
+                    epic=epic_obj,
+                    feature=feature_obj,
                     categories=categories,
                     secrets=secrets,
                 ),
