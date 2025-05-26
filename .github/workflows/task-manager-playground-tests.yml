@@ -66,147 +66,147 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      with:
-        driver: docker
-
-    - name: Cache Playwright Browsers
-      uses: actions/cache@v3
-      id: playwright-cache
-      with:
-        path: ~/.cache/ms-playwright
-        key: playwright-${{ runner.os }}-${{ hashFiles('task-manager/Dockerfile') }}
-        restore-keys: |
-          playwright-${{ runner.os }}-
-
-    - name: Build test Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./task-manager
-        file: ./task-manager/Dockerfile
-        push: false
-        load: true
-        tags: ${{ env.TEST_IMAGE }}
-        build-args: |
-          SKIP_PLAYWRIGHT_INSTALL=true
-
-    - name: Build playground Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./task-manager/tests/playground
-        file: ./task-manager/tests/playground/Dockerfile
-        push: false
-        load: true
-        tags: ${{ env.PLAYGROUND_IMAGE }}
-
-    - name: Install Playwright in Docker
-      env:
-        PLAYWRIGHT_SETUP_CONTAINER: playwright-setup-${{ env.RUN_ID }}
-      run: |
-        # Create directories for cache with correct permissions
-        mkdir -p ~/.cache/ms-playwright
-
-        # Check if Playwright browsers are already installed
-        if [ -d ~/.cache/ms-playwright/chromium* ]; then
-          echo "Playwright browsers already installed, skipping installation"
-          # Just create the container with the existing cache
-          docker run --name ${{ env.PLAYWRIGHT_SETUP_CONTAINER }} \
-            -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
-            ${{ env.TEST_IMAGE }} \
-            bash -c "cd /app && pip install playwright && ls -la /root/.cache/ms-playwright"
-        else
-          echo "Installing Playwright and browsers..."
-          # Create a container to install Playwright and save its state
-          docker run --name ${{ env.PLAYWRIGHT_SETUP_CONTAINER }} \
-            -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
-            ${{ env.TEST_IMAGE }} \
-            bash -c "cd /app && pip install playwright && PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright install --with-deps"
-        fi
-
-        # Commit the container with installed Playwright to a new image
-        docker commit ${{ env.PLAYWRIGHT_SETUP_CONTAINER }} ${{ env.PLAYWRIGHT_IMAGE }}
-
-        # Remove the temporary container
-        docker rm ${{ env.PLAYWRIGHT_SETUP_CONTAINER }}
-
-    - name: Create Docker network
-      run: |
-        # Create the network with unique name
-        echo "Creating network: ${{ env.NETWORK_NAME }}"
-        docker network create ${{ env.NETWORK_NAME }}
-
-    - name: Run playground container
-      run: |
-        # Use unique name based on run ID
-        CONTAINER_NAME="playground-${{ env.RUN_ID }}"
-        echo "Starting container: $CONTAINER_NAME"
-
-        docker run -d \
-          --name $CONTAINER_NAME \
-          --network ${{ env.NETWORK_NAME }} \
-          ${{ env.PLAYGROUND_IMAGE }}
-
-        # Update environment variable to point to the new container name
-        echo "PLAYGROUND_URL=http://$CONTAINER_NAME:3000" >> $GITHUB_ENV
-
-    - name: Run auth session tests
-      timeout-minutes: 60
-      run: |
-        cat > .env.test << EOF
-        OPENAI_API_KEY=$OPENAI_API_KEY
-        AZURE_OPENAI_KEY=$AZURE_OPENAI_KEY
-        AZURE_OPENAI_ENDPOINT=$AZURE_OPENAI_ENDPOINT
-        PLAYGROUND_URL=$PLAYGROUND_URL
-        TEST_MODE=$TEST_MODE
-        FARMZZ_PASSWORD=$FARMZZ_PASSWORD
-        FARMZZ_USERNAME=$FARMZZ_USERNAME
-        TECLA_ACADEMY_PASSWORD=$TECLA_ACADEMY_PASSWORD
-        TECLA_ACADEMY_USERNAME=$TECLA_ACADEMY_USERNAME
-        SESAME_HR_PASSWORD=$SESAME_HR_PASSWORD
-        SESAME_HR_USERNAME=$SESAME_HR_USERNAME
-        MEANDWHO_USERNAME=$MEANDWHO_USERNAME
-        MEANDWHO_PASSWORD=$MEANDWHO_PASSWORD
-        TICKPICK_USERNAME=$TICKPICK_USERNAME
-        TICKPICK_PASSWORD=$TICKPICK_PASSWORD
-        S3_BUCKET_NAME=$S3_BUCKET_NAME
-        AWS_ENDPOINT_URL=$AWS_ENDPOINT_URL
-        AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-        AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-        TWOCAPTCHA_API_KEY=$TWOCAPTCHA_API_KEY
-        SOLIGHT_USERNAME=$SOLIGHT_USERNAME
-        SOLIGHT_PASSWORD=$SOLIGHT_PASSWORD
-        SOLIGHT_RECOVERY_PHONE_NUMBER=$SOLIGHT_RECOVERY_PHONE_NUMBER
-        LMNR_PROJECT_API_KEY=$LMNR_PROJECT_API_KEY
-        EOF
-
-        docker run \
-          --network ${{ env.NETWORK_NAME }} \
-          --env-file .env.test \
-          -v ${{ github.workspace }}/task-manager:/app \
-          -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
-          --user $(id -u):$(id -g) \
-          -e PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright \
-          ${{ env.PLAYWRIGHT_IMAGE }} \
-          bash -c "cd /app && python -m pytest -vvvs -n 6 -W ignore::RuntimeWarning:pydantic.main"
-
-        # Clean up env file
-        rm .env.test
-
-#ignore::RuntimeWarning:pydantic.main
-# /usr/local/lib/python3.11/site-packages/pydantic/main.py:901: RuntimeWarning: coroutine 'Agent._verify_llm_connection' was never awaited
-#     _object_setattr(self, name, value)
-#   Enable tracemalloc to get traceback where the object was allocated.
-#   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
-# -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-
-    - name: Cleanup
-      if: always()
-      run: |
-        # Use variables for container and network names
-        CONTAINER_NAME="playground-${{ env.RUN_ID }}"
-        echo "Cleaning up container: $CONTAINER_NAME"
-        docker rm -f $CONTAINER_NAME || true
-
-        echo "Cleaning up network: ${{ env.NETWORK_NAME }}"
-        docker network rm ${{ env.NETWORK_NAME }} || true
+#    - name: Set up Docker Buildx
+#      uses: docker/setup-buildx-action@v3
+#      with:
+#        driver: docker
+#
+#    - name: Cache Playwright Browsers
+#      uses: actions/cache@v3
+#      id: playwright-cache
+#      with:
+#        path: ~/.cache/ms-playwright
+#        key: playwright-${{ runner.os }}-${{ hashFiles('task-manager/Dockerfile') }}
+#        restore-keys: |
+#          playwright-${{ runner.os }}-
+#
+#    - name: Build test Docker image
+#      uses: docker/build-push-action@v5
+#      with:
+#        context: ./task-manager
+#        file: ./task-manager/Dockerfile
+#        push: false
+#        load: true
+#        tags: ${{ env.TEST_IMAGE }}
+#        build-args: |
+#          SKIP_PLAYWRIGHT_INSTALL=true
+#
+#    - name: Build playground Docker image
+#      uses: docker/build-push-action@v5
+#      with:
+#        context: ./task-manager/tests/playground
+#        file: ./task-manager/tests/playground/Dockerfile
+#        push: false
+#        load: true
+#        tags: ${{ env.PLAYGROUND_IMAGE }}
+#
+#    - name: Install Playwright in Docker
+#      env:
+#        PLAYWRIGHT_SETUP_CONTAINER: playwright-setup-${{ env.RUN_ID }}
+#      run: |
+#        # Create directories for cache with correct permissions
+#        mkdir -p ~/.cache/ms-playwright
+#
+#        # Check if Playwright browsers are already installed
+#        if [ -d ~/.cache/ms-playwright/chromium* ]; then
+#          echo "Playwright browsers already installed, skipping installation"
+#          # Just create the container with the existing cache
+#          docker run --name ${{ env.PLAYWRIGHT_SETUP_CONTAINER }} \
+#            -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+#            ${{ env.TEST_IMAGE }} \
+#            bash -c "cd /app && pip install playwright && ls -la /root/.cache/ms-playwright"
+#        else
+#          echo "Installing Playwright and browsers..."
+#          # Create a container to install Playwright and save its state
+#          docker run --name ${{ env.PLAYWRIGHT_SETUP_CONTAINER }} \
+#            -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+#            ${{ env.TEST_IMAGE }} \
+#            bash -c "cd /app && pip install playwright && PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright install --with-deps"
+#        fi
+#
+#        # Commit the container with installed Playwright to a new image
+#        docker commit ${{ env.PLAYWRIGHT_SETUP_CONTAINER }} ${{ env.PLAYWRIGHT_IMAGE }}
+#
+#        # Remove the temporary container
+#        docker rm ${{ env.PLAYWRIGHT_SETUP_CONTAINER }}
+#
+#    - name: Create Docker network
+#      run: |
+#        # Create the network with unique name
+#        echo "Creating network: ${{ env.NETWORK_NAME }}"
+#        docker network create ${{ env.NETWORK_NAME }}
+#
+#    - name: Run playground container
+#      run: |
+#        # Use unique name based on run ID
+#        CONTAINER_NAME="playground-${{ env.RUN_ID }}"
+#        echo "Starting container: $CONTAINER_NAME"
+#
+#        docker run -d \
+#          --name $CONTAINER_NAME \
+#          --network ${{ env.NETWORK_NAME }} \
+#          ${{ env.PLAYGROUND_IMAGE }}
+#
+#        # Update environment variable to point to the new container name
+#        echo "PLAYGROUND_URL=http://$CONTAINER_NAME:3000" >> $GITHUB_ENV
+#
+#    - name: Run auth session tests
+#      timeout-minutes: 60
+#      run: |
+#        cat > .env.test << EOF
+#        OPENAI_API_KEY=$OPENAI_API_KEY
+#        AZURE_OPENAI_KEY=$AZURE_OPENAI_KEY
+#        AZURE_OPENAI_ENDPOINT=$AZURE_OPENAI_ENDPOINT
+#        PLAYGROUND_URL=$PLAYGROUND_URL
+#        TEST_MODE=$TEST_MODE
+#        FARMZZ_PASSWORD=$FARMZZ_PASSWORD
+#        FARMZZ_USERNAME=$FARMZZ_USERNAME
+#        TECLA_ACADEMY_PASSWORD=$TECLA_ACADEMY_PASSWORD
+#        TECLA_ACADEMY_USERNAME=$TECLA_ACADEMY_USERNAME
+#        SESAME_HR_PASSWORD=$SESAME_HR_PASSWORD
+#        SESAME_HR_USERNAME=$SESAME_HR_USERNAME
+#        MEANDWHO_USERNAME=$MEANDWHO_USERNAME
+#        MEANDWHO_PASSWORD=$MEANDWHO_PASSWORD
+#        TICKPICK_USERNAME=$TICKPICK_USERNAME
+#        TICKPICK_PASSWORD=$TICKPICK_PASSWORD
+#        S3_BUCKET_NAME=$S3_BUCKET_NAME
+#        AWS_ENDPOINT_URL=$AWS_ENDPOINT_URL
+#        AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+#        AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+#        TWOCAPTCHA_API_KEY=$TWOCAPTCHA_API_KEY
+#        SOLIGHT_USERNAME=$SOLIGHT_USERNAME
+#        SOLIGHT_PASSWORD=$SOLIGHT_PASSWORD
+#        SOLIGHT_RECOVERY_PHONE_NUMBER=$SOLIGHT_RECOVERY_PHONE_NUMBER
+#        LMNR_PROJECT_API_KEY=$LMNR_PROJECT_API_KEY
+#        EOF
+#
+#        docker run \
+#          --network ${{ env.NETWORK_NAME }} \
+#          --env-file .env.test \
+#          -v ${{ github.workspace }}/task-manager:/app \
+#          -v ~/.cache/ms-playwright:/root/.cache/ms-playwright \
+#          --user $(id -u):$(id -g) \
+#          -e PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright \
+#          ${{ env.PLAYWRIGHT_IMAGE }} \
+#          bash -c "cd /app && python -m pytest -vvvs -n 6 -W ignore::RuntimeWarning:pydantic.main"
+#
+#        # Clean up env file
+#        rm .env.test
+#
+##ignore::RuntimeWarning:pydantic.main
+## /usr/local/lib/python3.11/site-packages/pydantic/main.py:901: RuntimeWarning: coroutine 'Agent._verify_llm_connection' was never awaited
+##     _object_setattr(self, name, value)
+##   Enable tracemalloc to get traceback where the object was allocated.
+##   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+## -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+#
+#    - name: Cleanup
+#      if: always()
+#      run: |
+#        # Use variables for container and network names
+#        CONTAINER_NAME="playground-${{ env.RUN_ID }}"
+#        echo "Cleaning up container: $CONTAINER_NAME"
+#        docker rm -f $CONTAINER_NAME || true
+#
+#        echo "Cleaning up network: ${{ env.NETWORK_NAME }}"
+#        docker network rm ${{ env.NETWORK_NAME }} || true
