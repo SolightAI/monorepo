@@ -31,7 +31,7 @@ AGENTS: set[Callable[..., Coroutine[Any, Any, BaseAgentResult]]] = {
 
 
 LLM_CLIENT = ChatOpenAI(
-    model="gpt-4.1-mini",
+    model="gpt-4.1",
     temperature=0.0,
 )
 
