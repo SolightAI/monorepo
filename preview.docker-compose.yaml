@@ -36,7 +36,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=minioadmin
       - S3_BUCKET_NAME=task-manager
       - AWS_REGION=us-east-1
-      - AWS_ENDPOINT_URL=http://minio:9000
+      - AWS_ENDPOINT_URL=https://preview.storage.solight.ai
       # Redis Cache Configuration
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -115,7 +115,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -127,7 +127,6 @@ services:
     image: minio/minio:latest
     ports:
       - "9001:9000"  # MinIO API
-      - "9091:9090"  # MinIO Console
     environment:
       - MINIO_ROOT_USER=minioadmin
       - MINIO_ROOT_PASSWORD=minioadmin

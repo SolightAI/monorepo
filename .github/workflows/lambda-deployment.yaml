@@ -20,7 +20,21 @@ env:
   AWS_REGION: us-west-1
   PULUMI_STACK_NAME: solight_ai/aws-infra/prod
   PULUMI_WORKING_DIRECTORY: agent_jobs/deployment
+
+  # Deployment variables
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  S3_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  S3_BUCKET_NAME: task-manager
+  S3_BUCKET_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
+  S3_REGION: us-east-1
+  REDIS_HOST: ${{ secrets.REDIS_HOST }}
+  REDIS_PORT: ${{ secrets.REDIS_PORT }}
+  REDIS_DB: ${{ secrets.REDIS_DB }}
+  REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+  SYMMETRIC_ENCRYPTION_KEY: ${{ secrets.SYMMETRIC_ENCRYPTION_KEY }}
+  TWOCAPTCHA_API_KEY: ${{ secrets.TWOCAPTCHA_API_KEY }}
+  LAMINAR_API_KEY: ${{ secrets.LAMINAR_API_KEY }}
 
 jobs:
   pulumi:
