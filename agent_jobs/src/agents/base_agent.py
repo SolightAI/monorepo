@@ -62,7 +62,7 @@ async def run_agent(
     **kwargs: Any,
 ) -> tuple[dict[str, dict[str, str]], AgentHistoryList, list[str], bool]:
 
-    if os.environ["NODE_OPTIONS"] is None:
+    if os.environ.get("NODE_OPTIONS") is None:
         os.environ["NODE_OPTIONS"] = ""
 
     report_directory = f"/tmp/{task_id}"
