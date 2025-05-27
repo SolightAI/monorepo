@@ -86,7 +86,7 @@ export function Results() {
       // Run each filtered test that is NOT already running
       for (const test of testsToRun) { // Iterate over testsToRun instead of filteredTests
         // Skip if already running (double-check, though filtering should handle this)
-        if (runningTests[test.id] || maxTestsToRun === 0) continue;
+        if (maxTestsToRun === 0) continue;
 
         try {
           // Mark test as running
