@@ -47,7 +47,6 @@ async def handler(
     ):
         auth_session = await get_auth_session(
             config=config,
-            identifier=identifier,
             task_id=job_id,
             url=product.url,
             secrets=decrypted_secrets,
