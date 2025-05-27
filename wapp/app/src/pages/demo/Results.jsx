@@ -304,7 +304,7 @@ export function Results() {
 
     const handleBeforeUnload = (e) => {
       e.preventDefault();
-      return "Are you sure ?";
+      return "The tests are currently being executed. Are you sure you want to quit ?";
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
