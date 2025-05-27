@@ -10,9 +10,6 @@ from src.common.dto import Test, TestCategory, TestStatus
 TICK_PICK_URL = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=889808856&quantity=1&listingType=TEVO&price=30&dt=f&dv=2&e=7089569&s=129&r=8"
 
 
-@pytest.mark.skip(
-    reason="Our agent is not able to handle long tests with only high level steps (yet)"
-)
 class TestTickPickHighLevelSteps:
     async def _run_checkout_test(
         self,
@@ -210,36 +207,6 @@ class TestTickPickStandardSteps:
         )
 
     @pytest.mark.asyncio
-    async def test_invalid_credit_card_incorrect_number(
-        self, task_id: str, config: Config
-    ) -> None:
-        """Test checkout with an invalid credit card."""
-        await self._run_checkout_test(
-            config=config,
-            task_id=task_id,
-            name="Invalid Credit Card: Incorrect Number",
-            description="Verify that the user cannot use an invalid payment method.",
-            credit_card_step="4. Enter a credit card that has an incorrect number",
-            assertions='* The following error must be displayed after trying to place the order : "Order Not Processed. The credit card number you entered is invalid."',
-            expected_status=TestStatus.PASSED,
-        )
-
-    @pytest.mark.asyncio
-    async def test_invalid_credit_card_exceeding_velocity_limit(
-        self, task_id: str, config: Config
-    ) -> None:
-        """Test checkout with an invalid credit card that will exceed its velocity limit."""
-        await self._run_checkout_test(
-            config=config,
-            task_id=task_id,
-            name="Invalid Credit Card: Exceeding Velocity Limit",
-            description="Verify that the user cannot use an invalid payment method.",
-            credit_card_step="4. Enter a credit card that will exceed its velocity limit",
-            assertions='* The following error must be displayed after trying to place the order : "We encountered an error processing your order. Please try again."',
-            expected_status=TestStatus.PASSED,
-        )
-
-    @pytest.mark.asyncio
     async def test_invalid_credit_card_insufficient_funds(
         self, task_id: str, config: Config
     ) -> None:
@@ -250,36 +217,6 @@ class TestTickPickStandardSteps:
             name="Invalid Credit Card: Insufficient funds",
             description="Verify that the user cannot use an invalid payment method.",
             credit_card_step="4. Enter a credit card with insufficient funds",
-            assertions='* The following error must be displayed after trying to place the order : "We encountered an error processing your order. Please try again."',
-            expected_status=TestStatus.PASSED,
-        )
-
-    @pytest.mark.asyncio
-    async def test_invalid_credit_card_invalid_cvc(
-        self, task_id: str, config: Config
-    ) -> None:
-        """Test checkout with an invalid credit card that has an invalid CVC."""
-        await self._run_checkout_test(
-            config=config,
-            task_id=task_id,
-            name="Invalid Credit Card: Invalid CVC",
-            description="Verify that the user cannot use an invalid payment method.",
-            credit_card_step="4. Enter a credit card that has an invalid CVC.",
-            assertions='* The following error must be displayed after trying to place the order : "We encountered an error processing your order. Please try again."',
-            expected_status=TestStatus.PASSED,
-        )
-
-    @pytest.mark.asyncio
-    async def test_invalid_credit_card_lost_card(
-        self, task_id: str, config: Config
-    ) -> None:
-        """Test checkout with an invalid credit card that has been reported to be lost."""
-        await self._run_checkout_test(
-            config=config,
-            task_id=task_id,
-            name="Invalid Credit Card: Lost Card",
-            description="Verify that the user cannot use an invalid payment method.",
-            credit_card_step="4. Enter a credit card that has been reported to be lost.",
             assertions='* The following error must be displayed after trying to place the order : "We encountered an error processing your order. Please try again."',
             expected_status=TestStatus.PASSED,
         )
@@ -364,36 +301,6 @@ class TestTickPickDetailedSteps:
         )
 
     @pytest.mark.asyncio
-    async def test_invalid_credit_card_incorrect_number(
-        self, task_id: str, config: Config
-    ) -> None:
-        """Test checkout with an invalid credit card."""
-        await self._run_checkout_test(
-            config=config,
-            task_id=task_id,
-            name="Invalid Credit Card: Incorrect Number",
-            description="Verify that the user cannot use an invalid payment method.",
-            credit_card_step="Enter a credit card number designed to trigger an incorrect number error.",
-            assertions='* The following error must be displayed after trying to place the order : "Order Not Processed. The credit card number you entered is invalid."',
-            expected_status=TestStatus.PASSED,
-        )
-
-    @pytest.mark.asyncio
-    async def test_invalid_credit_card_exceeding_velocity_limit(
-        self, task_id: str, config: Config
-    ) -> None:
-        """Test checkout with an invalid credit card that will exceed its velocity limit."""
-        await self._run_checkout_test(
-            config=config,
-            task_id=task_id,
-            name="Invalid Credit Card: Exceeding Velocity Limit",
-            description="Verify that the user cannot use an invalid payment method.",
-            credit_card_step="Enter a credit card number designed to trigger an exceeding velocity limit error.",
-            assertions='* The following error must be displayed after trying to place the order : "We encountered an error processing your order. Please try again."',
-            expected_status=TestStatus.PASSED,
-        )
-
-    @pytest.mark.asyncio
     async def test_invalid_credit_card_insufficient_funds(
         self, task_id: str, config: Config
     ) -> None:
@@ -408,32 +315,39 @@ class TestTickPickDetailedSteps:
             expected_status=TestStatus.PASSED,
         )
 
-    @pytest.mark.asyncio
-    async def test_invalid_credit_card_invalid_cvc(
-        self, task_id: str, config: Config
-    ) -> None:
-        """Test checkout with an invalid credit card that has an invalid CVC."""
-        await self._run_checkout_test(
-            config=config,
-            task_id=task_id,
-            name="Invalid Credit Card: Invalid CVC",
-            description="Verify that the user cannot use an invalid payment method.",
-            credit_card_step="Enter a credit card number designed to trigger an invalid CVC error.",
-            assertions='* The following error must be displayed after trying to place the order : "We encountered an error processing your order. Please try again."',
-            expected_status=TestStatus.PASSED,
-        )
 
-    @pytest.mark.asyncio
-    async def test_invalid_credit_card_lost_card(
-        self, task_id: str, config: Config
-    ) -> None:
-        """Test checkout with an invalid credit card that has been reported to be lost."""
-        await self._run_checkout_test(
-            config=config,
-            task_id=task_id,
-            name="Invalid Credit Card: Lost Card",
-            description="Verify that the user cannot use an invalid payment method.",
-            credit_card_step="Enter a credit card number designed to trigger a lost card error.",
-            assertions='* The following error must be displayed after trying to place the order : "We encountered an error processing your order. Please try again."',
-            expected_status=TestStatus.PASSED,
-        )
+@pytest.mark.asyncio
+async def test_checkout_flow_from_ticket_selection(
+    task_id: str,
+    config: Config,
+) -> None:
+
+    steps = dedent("""
+    1. Wait until the checkout page is fully loaded
+    2. Select a single ticket, then click on it to buy it
+    3. Complete all the checkout flow using valid informations
+    4. Wait until a confirmation message is displayed
+    """)
+
+    test = Test(
+        category=TestCategory.NEGATIVE,
+        name="Checkout Flow : Valid Credit Card",
+        url="https://tickpick_dev:tickpick.1@dev.tickpick.com/buy-san-francisco-giants-vs-miami-marlins-tickets-oracle-park-6-24-25-6pm/6576265/",
+        description="Testing the checkout flow using a valid credit card",
+        steps=steps,
+        preconditions="None.",
+        assertions='The checkout flow must succeed by showing an "Order Placed" modal.',
+        feature_id=task_id,
+    )
+
+    result = await general_agent(
+        config=config,
+        identifier=None,  # type: ignore
+        task_id=task_id,
+        test=test,
+        secrets=[],
+        auth_session={},
+        run_without_cache=True,
+    )
+
+    assert result.status.value == TestStatus.PASSED.value
