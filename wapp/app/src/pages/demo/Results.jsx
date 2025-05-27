@@ -454,25 +454,25 @@ export function Results() {
                         <div className="text-sm text-gray-500 truncate max-w-md">{test.description}</div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-center text-sm font-medium">
-                    <div className="flex justify-center items-center space-x-2">
-                      <button
-                        className={`text-green-600 hover:text-green-900 flex items-center ${runningTests[test.id] || testRunsRemaining === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRunSingleTest(test.id);
-                        }}
-                        title={runningTests[test.id] ? `Test is ${formatStatus(RUNNING_STATUS)}` : testRunsRemaining === 0 ? 'No more tests to run' : `Run this test`}
-                        disabled={runningTests[test.id] || testRunsRemaining === 0}
-                      >
-                        {runningTests[test.id] ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-1"></div>
-                        ) : testRunsRemaining === 0 ? (
-                          <Lock size={16} />
-                        ) : (
-                          <Play size={16} />
-                        )}
-                      </button>
-                    </div>
+                        <div className="flex justify-center items-center space-x-2">
+                          <button
+                            className={`text-green-600 hover:text-green-900 flex items-center ${runningTests[test.id] || testRunsRemaining === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRunSingleTest(test.id);
+                            }}
+                            title={runningTests[test.id] ? `Test is ${formatStatus(RUNNING_STATUS)}` : testRunsRemaining === 0 ? 'No more tests to run' : `Run this test`}
+                            disabled={runningTests[test.id] || testRunsRemaining === 0}
+                          >
+                            {runningTests[test.id] ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-1"></div>
+                            ) : testRunsRemaining === 0 ? (
+                              <Lock size={16} />
+                            ) : (
+                              <Play size={16} />
+                            )}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
