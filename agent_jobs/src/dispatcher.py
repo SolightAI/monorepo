@@ -63,6 +63,9 @@ async def dispatch_job(config: Config, job: Job) -> None:
         if isinstance(e, DispatchError):
             raise e
 
+        # Log the error with full stack trace inside the lambda before sending it to the webhook
+        logger.error(e, exc_info=True)
+
         config.webhook_client.send_error(job.job_id, str(e))
         logger.error(
             f"[{job.job_id}] Job failed {str(e)}; sending error back to webhook"

@@ -53,7 +53,9 @@ def config() -> Config:
         twocaptcha_api_key=get_string("TWOCAPTCHA_API_KEY", ""),
         crypto=CryptoService("LcfRw7-UwHF3a8A-Wpy3GVYTvseJuer6EBs6SGQNnZ0="),
         webhook_client=mock_webhook_client(),
-        s3_client=S3Client(
+        # Create a S3 client to the prod bucket or fallback to the local S3 if not available.
+        s3_client=prod_bucket()
+        or S3Client(
             access_key_id=get_string("S3_ACCESS_KEY_ID"),
             secret_access_key=get_string("S3_SECRET_ACCESS_KEY"),
             region="us-east-1",
@@ -72,6 +74,9 @@ def config() -> Config:
 @pytest.fixture
 def prod_bucket() -> S3Client | None:
     """Fixture to create a s3 client connected to the prod bucket."""
+    if not get_string("PROD_S3_ACCESS_KEY_ID", required=False):
+        return None
+
     return S3Client(
         access_key_id=get_string("PROD_S3_ACCESS_KEY_ID"),
         secret_access_key=get_string("PROD_S3_SECRET_ACCESS_KEY"),
