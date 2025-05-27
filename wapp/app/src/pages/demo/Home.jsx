@@ -68,7 +68,7 @@ export function Home() {
                 Try it out !
               </Typography>
               <Typography variant="body2" paragraph>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus tincidunt maximus volutpat. Donec non iaculis leo. Nam in nulla sed dui aliquet volutpat quis feugiat ipsum. Donec id porta arcu, id tempor mauris. Mauris sit amet nisl a est posuere lacinia elementum quis ligula. Integer magna ipsum, volutpat non aliquet non, rhoncus at nulla.
+                Solight.ai is your AI-powered QA co-pilot, designed to keep your digital experience flawless. It automatically tests your website or app, catching bugs before your users ever see them. No scripts, no setup—just intelligent, continuous quality assurance that helps your team move faster and build better.
               </Typography>
               <Typography variant="body2" paragraph>
                 Processing will take approximately 3–5 minutes
