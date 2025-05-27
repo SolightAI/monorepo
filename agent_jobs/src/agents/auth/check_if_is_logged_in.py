@@ -232,7 +232,7 @@ async def check_is_logged_in(
                     temp_png.flush()
                     config.s3_client.upload_file(
                         file_path=temp_png.name,
-                        object_name=f"{task_id}/{url}_before.png",
+                        object_name=f"{task_id}/{url.replace('/', '_').replace(':', '_').replace('.', '_')}_before.png",
                         content_type="image/png",
                     )
             except Exception as e:
@@ -301,7 +301,7 @@ async def check_is_logged_in(
                         temp_png.flush()
                         config.s3_client.upload_file(
                             file_path=temp_png.name,
-                            object_name=f"{task_id}/{url}_after.png",
+                            object_name=f"{task_id}/{url.replace('/', '_').replace(':', '_').replace('.', '_')}_after.png",
                             content_type="image/png",
                         )
                 except Exception as e:
