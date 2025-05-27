@@ -3,7 +3,6 @@ import { X, Server, AlertTriangle, Link } from 'lucide-react';
 import TestExecutionHistory from '../test/TestExecutionHistory';
 import TestExecutionDetail from '../test/TestExecutionDetail';
 import { getTestExecutions } from '@/services/testExecutionService';
-import { useSecret } from '@/context/SecretContext';
 import usePendingStatusPolling from '@/hooks/usePendingStatusPolling';
 import { getStatusInfo, getExecutorIcon, formatExecutionDate, formatStatus, TEST_STATUS } from '@/utils/testExecutionUtils';
 
