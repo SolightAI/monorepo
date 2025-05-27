@@ -1,0 +1,851 @@
+import pytest
+import logging
+import os
+
+from typing import Any
+
+from src.config import Config
+from src.agents.auth.get_auth_session import get_auth_session
+from src.agents.auth.has_required_secrets import LoginMethod
+
+
+# Auth paths in the playground
+BANNER_EMAIL_PASSWORD_SIMPLE_PATH = "/privacy/banner/auth_email_password_simple"
+MODAL_EMAIL_PASSWORD_SIMPLE_PATH = "/privacy/modal/auth_email_password_simple"
+EMAIL_PASSWORD_SIMPLE_PATH = "/auth/email_password/simple"
+EMAIL_PASSWORD_MESSY_PATH = "/auth/email_password/messy"
+GOOGLE_SIMPLE_PATH = "/auth/google/simple"
+GOOGLE_MESSY_PATH = "/auth/google/messy"
+STAGED_SIMPLE_PATH = "/auth/staged/simple"
+STAGED_MESSY_PATH = "/auth/staged/messy"
+INSTANT_SIMPLE_PATH = "/auth/instant/simple"
+INSTANT_MESSY_PATH = "/auth/instant/messy"
+COMBINED_EMAIL_GOOGLE_SIMPLE_PATH = "/auth/combined/classic_google/simple"
+COMBINED_EMAIL_GOOGLE_MESSY_PATH = "/auth/combined/classic_google/messy"
+COMBINED_EMAIL_INSTANT_SIMPLE_PATH = "/auth/combined/classic_instant/simple"
+COMBINED_INSTANT_GOOGLE_MESSY_PATH = "/auth/combined/classic_instant/messy"
+
+
+logger = logging.getLogger(__name__)
+
+
+@pytest.mark.asyncio
+async def test_privacy_banner_email_password_simple(
+    task_id: str,
+    valid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with valid username/password on the simple login page."""
+    url = f"{playground_url}{BANNER_EMAIL_PASSWORD_SIMPLE_PATH}"
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_username_password_credentials,
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("isLoggedIn") == "true"
+    assert session["localStorage"].get("username") == "testuser"
+
+
+@pytest.mark.asyncio
+async def test_privacy_modal_email_password_simple(
+    task_id: str,
+    valid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with valid username/password on the simple login page."""
+    url = f"{playground_url}{MODAL_EMAIL_PASSWORD_SIMPLE_PATH}"
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_username_password_credentials,
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("isLoggedIn") == "true"
+    assert session["localStorage"].get("username") == "testuser"
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_simple_login(
+    task_id: str,
+    valid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with valid username/password on the simple login page."""
+    url = f"{playground_url}{EMAIL_PASSWORD_SIMPLE_PATH}"
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_username_password_credentials,
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("isLoggedIn") == "true"
+    assert session["localStorage"].get("username") == "testuser"
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_google_login(
+    task_id: str,
+    valid_google_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with valid Google OAuth credentials on the simple login page."""
+    url = f"{playground_url}{GOOGLE_SIMPLE_PATH}"
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_google_credentials,
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("isLoggedIn") == "true"
+    assert session["localStorage"].get("username") == "Test User"
+    assert session["localStorage"].get("authProvider") == "google"
+
+
+@pytest.mark.skip(reason="Messy logins are too unpredictable to test")
+@pytest.mark.asyncio
+async def test_generate_auth_session_messy_login(
+    task_id: str,
+    valid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with valid username/password on the messy login page."""
+    url = f"{playground_url}{EMAIL_PASSWORD_MESSY_PATH}"
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_username_password_credentials,
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("isLoggedIn") == "true"
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_staged_login(
+    task_id: str,
+    valid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with valid username/password on the staged login page."""
+    url = f"{playground_url}{STAGED_SIMPLE_PATH}"
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_username_password_credentials,
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("isLoggedIn") == "true"
+
+
+@pytest.mark.skip(reason="Messy logins are too unpredictable to test")
+@pytest.mark.asyncio
+async def test_generate_auth_session_staged_messy_login(
+    task_id: str,
+    valid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with valid username/password on the messy staged login page."""
+    url = f"{playground_url}{STAGED_MESSY_PATH}"
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_username_password_credentials,
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("isLoggedIn") == "true"
+
+
+@pytest.mark.skip(reason="We do not support instant login yet")
+@pytest.mark.asyncio
+async def test_generate_auth_session_instant_simple_login(
+    task_id: str,
+    valid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with valid credentials on the simple instant login page."""
+    url = f"{playground_url}{INSTANT_SIMPLE_PATH}"
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_username_password_credentials,
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("isLoggedIn") == "true"
+
+
+@pytest.mark.skip(reason="We do not support instant login yet")
+@pytest.mark.asyncio
+async def test_generate_auth_session_instant_messy_login(
+    task_id: str,
+    valid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with valid credentials on the messy instant login page."""
+    url = f"{playground_url}{INSTANT_MESSY_PATH}"
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_username_password_credentials,
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("isLoggedIn") == "true"
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_combined_email_google_simple(
+    task_id: str,
+    valid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with valid username/password on the simple combined email/Google login page."""
+    url = f"{playground_url}{COMBINED_EMAIL_GOOGLE_SIMPLE_PATH}"
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_username_password_credentials,
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("isLoggedIn") == "true"
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_combined_email_google_google_auth(
+    task_id: str,
+    valid_google_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with valid Google credentials on the simple combined email/Google login page."""
+    url = f"{playground_url}{COMBINED_EMAIL_GOOGLE_SIMPLE_PATH}"
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_google_credentials,
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("isLoggedIn") == "true"
+    assert session["localStorage"].get("authProvider") == "google"
+
+
+@pytest.mark.skip(reason="Messy logins are too unpredictable to test")
+@pytest.mark.asyncio
+async def test_generate_auth_session_combined_email_google_messy(
+    task_id: str,
+    valid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with valid username/password on the messy combined email/Google login page."""
+    url = f"{playground_url}{COMBINED_EMAIL_GOOGLE_MESSY_PATH}"
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_username_password_credentials,
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("isLoggedIn") == "true"
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_combined_email_instant_simple(
+    task_id: str,
+    valid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with valid username/password on the simple combined email/instant login page."""
+    url = f"{playground_url}{COMBINED_EMAIL_INSTANT_SIMPLE_PATH}"
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_username_password_credentials,
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("isLoggedIn") == "true"
+
+
+@pytest.mark.skip(reason="We do not support instant login yet")
+@pytest.mark.asyncio
+async def test_generate_auth_session_combined_instant_google_messy(
+    task_id: str,
+    valid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with valid username/password on the messy combined instant/Google login page."""
+    url = f"{playground_url}{COMBINED_INSTANT_GOOGLE_MESSY_PATH}"
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_username_password_credentials,
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("isLoggedIn") == "true"
+
+
+@pytest.mark.skip(reason="Messy logins are too unpredictable to test")
+@pytest.mark.asyncio
+async def test_generate_auth_session_combined_instant_google_messy_google_auth(
+    task_id: str,
+    valid_google_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with valid Google credentials on the messy combined instant/Google login page."""
+    url = f"{playground_url}{COMBINED_INSTANT_GOOGLE_MESSY_PATH}"
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_google_credentials,
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify localStorage contains the expected auth data
+    assert session["localStorage"].get("isLoggedIn") == "true"
+    assert session["localStorage"].get("authProvider") == "google"
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_invalid_credentials(
+    task_id: str,
+    invalid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with invalid username/password credentials."""
+    url = f"{playground_url}{EMAIL_PASSWORD_SIMPLE_PATH}"
+
+    with pytest.raises(Exception) as excinfo:
+        await get_auth_session(
+            config,
+            identifier=None,
+            task_id=task_id,
+            url=url,
+            secrets=invalid_username_password_credentials,
+            reuse_session=False,
+        )
+    assert "Login failed for" in str(excinfo.value)
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_invalid_google_credentials(
+    task_id: str,
+    invalid_google_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with invalid Google credentials."""
+    url = f"{playground_url}{GOOGLE_SIMPLE_PATH}"
+
+    with pytest.raises(Exception) as excinfo:
+        session = await get_auth_session(
+            config,
+            identifier=None,
+            task_id=task_id,
+            url=url,
+            secrets=invalid_google_credentials,
+            reuse_session=False,
+        )
+        logger.error(
+            f"[{task_id}] Returned session but should have raised an error: {session}"
+        )
+
+    assert "Login failed for" in str(excinfo.value)
+
+
+@pytest.mark.skip(reason="Requires a Redis instance to be running")
+@pytest.mark.asyncio
+async def test_session_reuse(
+    task_id: str,
+    valid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test that sessions can be reused."""
+    url = f"{playground_url}{EMAIL_PASSWORD_SIMPLE_PATH}"
+
+    # Generate a session first
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_username_password_credentials,
+        reuse_session=False,
+    )
+
+    # Now check if reuse_session=True returns the cached session
+    reused_session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=valid_username_password_credentials,
+        reuse_session=True,
+    )
+
+    # The sessions should be the same (note: localStorage timestamps might differ slightly)
+    assert session["cookies"] == reused_session["cookies"]
+    assert "isLoggedIn" in reused_session["localStorage"]
+    assert reused_session["localStorage"]["isLoggedIn"] == "true"
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_farmzz(task_id: str, config: Config) -> None:
+    """Test authentication with valid username/password on the simple login page."""
+
+    url = "https://farmzz.com/admin/profile"
+
+    username = os.getenv("FARMZZ_USERNAME")
+    if not username:
+        raise ValueError("FARMZZ_USERNAME is not set")
+
+    password = os.getenv("FARMZZ_PASSWORD")
+    if not password:
+        raise ValueError("FARMZZ_PASSWORD is not set")
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=[
+            {
+                "name": "Credentials",
+                "category": LoginMethod.EMAIL.value,
+                "values": {"username": username, "password": password},
+            }
+        ],
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    assert session["localStorage"].get("jwt") is not None
+
+    # Verify cookies contains the expected auth data
+    assert "XSRF-TOKEN" in [cookie["name"] for cookie in session["cookies"]]  # type: ignore
+    assert [cookie for cookie in session["cookies"] if cookie["name"] == "XSRF-TOKEN"][  # type: ignore
+        0
+    ]["value"] is not None
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_tecla_academy(
+    task_id: str, config: Config
+) -> None:
+    """Test authentication with valid username/password on the simple login page."""
+
+    url = "https://teclaacademy.com/logins"
+
+    username = os.getenv("TECLA_ACADEMY_USERNAME")
+    if not username:
+        raise ValueError("TECLA_ACADEMY_USERNAME is not set")
+
+    password = os.getenv("TECLA_ACADEMY_PASSWORD")
+    if not password:
+        raise ValueError("TECLA_ACADEMY_PASSWORD is not set")
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=[
+            {
+                "name": "Credentials",
+                "category": LoginMethod.EMAIL.value,
+                "values": {"username": username, "password": password},
+            }
+        ],
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify cookies contains the expected auth data
+    assert "AUTH_SESSION_ID" in [cookie["name"] for cookie in session["cookies"]]  # type: ignore
+    assert [
+        cookie
+        for cookie in session["cookies"]
+        if cookie["name"] == "AUTH_SESSION_ID"  # type: ignore
+    ][0]["value"] is not None
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_tickpick(task_id: str, config: Config) -> None:
+    """Test authentication with valid username/password on the simple login page."""
+
+    url = "https://tickpick_dev:tickpick.1@dev.tickpick.com/"
+
+    username = os.getenv("TICKPICK_USERNAME")
+    if not username:
+        raise ValueError("TICKPICK_USERNAME is not set")
+
+    password = os.getenv("TICKPICK_PASSWORD")
+    if not password:
+        raise ValueError("TICKPICK_PASSWORD is not set")
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=[
+            {
+                "name": "Credentials",
+                "category": LoginMethod.EMAIL.value,
+                "values": {"username": username, "password": password},
+            }
+        ],
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify cookies contains the expected auth data
+    assert "apiToken" in [cookie["name"] for cookie in session["cookies"]]  # type: ignore
+    assert [cookie for cookie in session["cookies"] if cookie["name"] == "apiToken"][0][  # type: ignore
+        "value"
+    ] is not None
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_sesame_hr(task_id: str, config: Config) -> None:
+    """Test authentication with valid username/password on the simple login page."""
+
+    url = "https://app.sesametime.com/"
+
+    username = os.getenv("SESAME_HR_USERNAME")
+    if not username:
+        raise ValueError("SESAME_HR_USERNAME is not set")
+
+    password = os.getenv("SESAME_HR_PASSWORD")
+    if not password:
+        raise ValueError("SESAME_HR_PASSWORD is not set")
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=[
+            {
+                "name": "Credentials",
+                "category": LoginMethod.EMAIL.value,
+                "values": {"username": username, "password": password},
+            }
+        ],
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    assert session["localStorage"].get("sesame-auth") is not None
+
+    # Verify cookies contains the expected auth data
+    assert "USID" in [cookie["name"] for cookie in session["cookies"]]  # type: ignore
+    assert [cookie for cookie in session["cookies"] if cookie["name"] == "USID"][0][  # type: ignore
+        "value"
+    ] is not None  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_meandwho(task_id: str, config: Config) -> None:
+    """Test authentication with valid username/password on the simple login page."""
+
+    url = "https://me.andwho.ai/"
+
+    username = os.getenv("MEANDWHO_USERNAME")
+    if not username:
+        raise ValueError("MEANDWHO_USERNAME is not set")
+
+    password = os.getenv("MEANDWHO_PASSWORD")
+    if not password:
+        raise ValueError("MEANDWHO_PASSWORD is not set")
+
+    session = await get_auth_session(
+        config,
+        identifier=None,
+        task_id=task_id,
+        url=url,
+        secrets=[
+            {
+                "name": "Credentials",
+                "category": LoginMethod.EMAIL.value,
+                "values": {"username": username, "password": password},
+            }
+        ],
+        reuse_session=False,
+    )
+
+    # Verify the session data structure
+    assert "cookies" in session
+    assert "localStorage" in session
+
+    # Verify cookies contains the expected auth data
+    assert "__client" in [cookie["name"] for cookie in session["cookies"]]  # type: ignore
+    assert [cookie for cookie in session["cookies"] if cookie["name"] == "__client"][0][  # type: ignore
+        "value"
+    ] is not None  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_invalid_staged_login_credentials(
+    task_id: str,
+    invalid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with invalid username/password credentials on staged login."""
+    url = f"{playground_url}{STAGED_SIMPLE_PATH}"
+
+    with pytest.raises(Exception) as excinfo:
+        await get_auth_session(
+            config,
+            identifier=None,
+            task_id=task_id,
+            url=url,
+            secrets=invalid_username_password_credentials,
+            reuse_session=False,
+        )
+    assert "Login failed for" in str(excinfo.value)
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_invalid_instant_login_credentials(
+    task_id: str,
+    invalid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with invalid credentials on instant login."""
+    url = f"{playground_url}{INSTANT_SIMPLE_PATH}"
+
+    with pytest.raises(Exception) as excinfo:
+        await get_auth_session(
+            config,
+            identifier=None,
+            task_id=task_id,
+            url=url,
+            secrets=invalid_username_password_credentials,
+            reuse_session=False,
+        )
+    assert "Login failed for" in str(excinfo.value)
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_invalid_combined_email_google_credentials(
+    task_id: str,
+    invalid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with invalid username/password credentials on combined email/Google login."""
+    url = f"{playground_url}{COMBINED_EMAIL_GOOGLE_SIMPLE_PATH}"
+
+    with pytest.raises(Exception) as excinfo:
+        await get_auth_session(
+            config,
+            identifier=None,
+            task_id=task_id,
+            url=url,
+            secrets=invalid_username_password_credentials,
+            reuse_session=False,
+        )
+    assert "Login failed for" in str(excinfo.value)
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_invalid_combined_google_credentials(
+    task_id: str,
+    invalid_google_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with invalid Google credentials on combined email/Google login."""
+    url = f"{playground_url}{COMBINED_EMAIL_GOOGLE_SIMPLE_PATH}"
+
+    with pytest.raises(Exception) as excinfo:
+        await get_auth_session(
+            config,
+            identifier=None,
+            task_id=task_id,
+            url=url,
+            secrets=invalid_google_credentials,
+            reuse_session=False,
+        )
+    assert "Login failed for" in str(excinfo.value)
+
+
+@pytest.mark.asyncio
+async def test_generate_auth_session_invalid_combined_email_instant_credentials(
+    task_id: str,
+    invalid_username_password_credentials: list[dict[str, Any]],
+    playground_url: str,
+    config: Config,
+) -> None:
+    """Test authentication with invalid username/password credentials on combined email/instant login."""
+    url = f"{playground_url}{COMBINED_EMAIL_INSTANT_SIMPLE_PATH}"
+
+    with pytest.raises(Exception) as excinfo:
+        await get_auth_session(
+            config,
+            identifier=None,
+            task_id=task_id,
+            url=url,
+            secrets=invalid_username_password_credentials,
+            reuse_session=False,
+        )
+    assert "Login failed for" in str(excinfo.value)

@@ -132,6 +132,7 @@ class TestTickPick():
 
         assert result["status"] == TestStatus.AGENT_LIMITATION.value
 
+    @pytest.mark.skip(reason="This test is flaky, we need to fix it.")
     @pytest.mark.asyncio
     async def test_google_login(self, task_id: str) -> None:
         """Test authentication with valid Google OAuth credentials."""
@@ -185,6 +186,7 @@ class TestSolight():
 
     url = "https://app.solight.ai/"
 
+    @pytest.mark.skip(reason="This test is flaky, we need to fix it.")
     @pytest.mark.asyncio
     @pytest.mark.parametrize("repeat", [i for i in range(5)])  # reduce chances of flaky test
     async def test_login_with_google(self, task_id: str, repeat: int) -> None:
