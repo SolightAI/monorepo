@@ -139,8 +139,8 @@ async def run_agent(
 
         logger.info(f"[{task_id}] Retrieved cookies and localStorage data")
 
-    except Exception as e:
-        raise e
+    except Exception:
+        raise
 
     finally:
         await context.close()
