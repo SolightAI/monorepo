@@ -61,6 +61,7 @@ logger = logging.getLogger(__name__)
 
 
 class TestCheckIsLoggedIn:
+
     @pytest.mark.asyncio
     @pytest.mark.parametrize("url, execution_number", FALSE_POSITIVE_PARAMS)
     async def test_false_positive(
@@ -79,6 +80,44 @@ class TestCheckIsLoggedIn:
             existing_session={
                 "cookies": [],  # type: ignore
                 "localStorage": {},
+            },
+        )
+
+        assert is_logged_in is False
+
+    @pytest.mark.asyncio
+    async def test_missing_cookies_key(
+        self,
+        task_id: str,
+        config: Config,
+    ) -> None:
+        """Test authentication with valid username/password on the simple login page."""
+
+        is_logged_in = await check_is_logged_in(
+            config=config,
+            task_id=task_id,
+            url="https://app.identitymatrix.ai/",
+            existing_session={
+                "localStorage": {},
+            },
+        )
+
+        assert is_logged_in is False
+
+    @pytest.mark.asyncio
+    async def test_missing_local_storage_key(
+        self,
+        task_id: str,
+        config: Config,
+    ) -> None:
+        """Test authentication with valid username/password on the simple login page."""
+
+        is_logged_in = await check_is_logged_in(
+            config=config,
+            task_id=task_id,
+            url="https://app.identitymatrix.ai/",
+            existing_session={
+                "cookies": [],  # type: ignore
             },
         )
 

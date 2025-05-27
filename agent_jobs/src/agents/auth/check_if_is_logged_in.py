@@ -197,7 +197,10 @@ async def check_is_logged_in(
     with NamedTemporaryFile(
         suffix="_check_login.json", delete=True, mode="w+"
     ) as cookies_file:
-        json.dump(existing_session["cookies"], cookies_file)
+
+        if "cookies" in existing_session:
+            json.dump(existing_session["cookies"], cookies_file)
+
         cookies_file.flush()
         cookies_file.seek(0)
 
@@ -242,7 +245,7 @@ async def check_is_logged_in(
             context = BrowserContext(
                 browser=browser,
                 config=BrowserContextConfig(
-                    cookies_file=cookies_file.name,
+                    cookies_file=cookies_file.name if "cookies" in existing_session else None,
                     minimum_wait_page_load_time=1,
                     maximum_wait_page_load_time=10,
                     wait_for_network_idle_page_load_time=3,
@@ -256,8 +259,8 @@ async def check_is_logged_in(
             if existing_session is not None:
                 # Set cookies
                 if "cookies" in existing_session:
-                    await context.session.context.add_cookies( # type: ignore
-                        existing_session["cookies"] # type: ignore
+                    await context.session.context.add_cookies(  # type: ignore
+                        existing_session["cookies"]  # type: ignore
                     )
                     # Navigate again to apply cookies
                     await context.navigate_to(url)
