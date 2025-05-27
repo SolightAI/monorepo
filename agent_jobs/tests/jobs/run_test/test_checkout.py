@@ -7,7 +7,7 @@ from src.agents.general_agent import general_agent
 from src.common.dto import Test, TestCategory, TestStatus
 
 
-TICK_PICK_URL = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=889808856&quantity=1&listingType=TEVO&price=30&dt=f&dv=2&e=7089569&s=129&r=8"
+TICK_PICK_URL = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=856529347&quantity=1&listingType=TEVO&price=93&dt=f&dv=2&e=6576265&s=101&r=AM"
 
 
 class TestTickPickHighLevelSteps:
