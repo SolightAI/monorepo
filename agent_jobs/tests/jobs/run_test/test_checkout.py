@@ -7,7 +7,7 @@ from src.agents.general_agent import general_agent
 from src.common.dto import Test, TestCategory, TestStatus
 
 
-TICK_PICK_URL = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=889808860&quantity=1&listingType=TEVO&price=3&dt=f&dv=13&e=7089569&s=107&r=D"
+TICK_PICK_URL = "https://tickpick_dev:tickpick.1@dev.tickpick.com/checkout?listingId=889808856&quantity=1&listingType=TEVO&price=30&dt=f&dv=2&e=7089569&s=129&r=8"
 
 
 @pytest.mark.skip(

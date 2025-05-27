@@ -40,11 +40,9 @@ async def test_validate_url_login_farmzz(task_id: str, config: Config) -> None:
     assert validation_result.confidence in [
         "high",
         "medium",
-    ], f"Expected confidence in ['high', 'medium'], got {validation_result.confidence}"
+    ]
 
-    assert (
-        validation_result.source == "validation"
-    ), f"Expected source='validation', got {validation_result.source}"
+    assert validation_result.source == "validation"
 
     logger.info(
         f"[{task_id}] ✅ Successfully validated URL and authenticated on: {validation_result.login_url}"
