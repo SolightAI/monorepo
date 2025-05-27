@@ -143,6 +143,9 @@ async def run_category_scenario(ctx: Dict, product: Product, epic: Epic, feature
         print(f"Confidence Score: {test_analysis['confidence_score']:.2f}")
         print(f"Reasoning: {test_analysis['reasoning']}")
     
+    # Calculate category score using the same analysis
+    category_score = category_summary.get('match_percentage', 0)
+    
     # Analyze redundancy
     redundancy_analysis = analyze_redundancy(generated_tests)
     
@@ -210,14 +213,6 @@ async def run_category_scenario(ctx: Dict, product: Product, epic: Epic, feature
     total_unique_interactions = unique_elements + unique_selectors
     interaction_coverage = (total_unique_interactions / total_possible_interactions) * 100
     interaction_coverage = min(interaction_coverage, 100)
-    
-    # Calculate category score as average of all requested categories
-    category_scores = []
-    for category in categories:
-        category_analysis = analyze_category_match(generated_tests, category)
-        category_score = category_analysis.get('category_match_summary', {}).get('match_percentage', 0)
-        category_scores.append(category_score)
-    category_score = sum(category_scores) / len(category_scores) if category_scores else 0
     
     redundancy_penalty = redundancy_analysis.get('redundancy_summary', {}).get('overall_redundancy_score', 0)
     intent_score = intent_summary.get('average_relevance_score', 0) * 100

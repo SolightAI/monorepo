@@ -34,9 +34,6 @@ def analyze_category_match(tests: List[Dict], requested_category: str) -> Dict:
     # Create the system prompt
     system_prompt = dedent(f"""\
         You are an expert test category analyzer. Your task is to analyze if the generated test cases match the requested category: {requested_category}.
-
-        Category Description:
-        {category_description}
         
         For each test, analyze:
         1. Test Category: The category assigned to the test
