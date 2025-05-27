@@ -68,8 +68,8 @@ async def generate_demo_tests(
       response_data = DemoTestGenerateResponse(feature_id=feature.id, task_id=task["task_id"])
 
       return response_data
-    except HTTPException as e:
-      raise e
+    except HTTPException:
+      raise
     except Exception as e:
         logger.error(f"Error generating tests: {str(e)}")
         logger.error(traceback.format_exc())
