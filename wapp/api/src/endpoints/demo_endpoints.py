@@ -95,8 +95,4 @@ async def demo_create_test_execution(
     This endpoint creates a record of a test being run, including information about
     who ran it, in which environment, and other execution details.
     """
-    # If this is a manual test execution, set the executor name to the current user
-    # if test_execution.executor_type == ExecutorType.MANUAL and not test_execution.executor_name:
-    #     test_execution.executor_name = current_user.username
-
     return await create_test_execution(test_execution, background_tasks)
