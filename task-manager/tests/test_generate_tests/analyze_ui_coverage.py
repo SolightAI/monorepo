@@ -14,7 +14,7 @@ logger.addHandler(handler)
 
 def analyze_ui_coverage(tests: List[Dict]) -> Dict:
     """
-    Analyze UI coverage from generated tests using GPT-4.
+    Analyze UI coverage from generated tests using GPT-4.1.
     
     Args:
         tests: List of test dictionaries containing test details
@@ -22,8 +22,8 @@ def analyze_ui_coverage(tests: List[Dict]) -> Dict:
     Returns:
         Dictionary containing coverage analysis results
     """
-    # Initialize GPT-4
-    llm = ChatOpenAI(model="gpt-4", temperature=0)
+    # Initialize GPT-4.1
+    llm = ChatOpenAI(model="gpt-4.1", temperature=0)
     
     # Create the system prompt
     system_prompt = """You are an expert UI test coverage analyzer. Your task is to analyze a set of test cases and extract information about UI coverage.
@@ -62,21 +62,12 @@ def analyze_ui_coverage(tests: List[Dict]) -> Dict:
     
     You must return a valid JSON object in the following format:
     {
-        "total_tests": number,
         "unique_selectors": [list of unique selectors],
         "unique_pages": [list of unique pages/sections],
         "unique_ui_elements": [list of unique UI elements],
         "selector_usage": {"selector": count},
         "page_usage": {"page": count},
-        "element_usage": {"element": count},
-        "metrics": {
-            "selector_coverage": number,
-            "page_coverage": number,
-            "element_coverage": number,
-            "average_selectors_per_test": number,
-            "average_pages_per_test": number,
-            "average_elements_per_test": number
-        }
+        "element_usage": {"element": count}
     }
     
     Be thorough in identifying UI elements, pages, and selectors from the test descriptions, steps, and assertions. Look for both explicit mentions and implicit references to UI components."""
@@ -130,45 +121,24 @@ You must return a valid JSON object in the specified format. Do not include any 
             raise ValueError("Invalid JSON response from GPT")
         
         # Ensure all required fields are present
-        if not all(key in analysis for key in ["total_tests", "unique_selectors", "unique_pages", "unique_ui_elements", "metrics"]):
+        if not all(key in analysis for key in ["unique_selectors", "unique_pages", "unique_ui_elements","selector_usage", "page_usage", "element_usage"]):
             raise ValueError("Missing required fields in analysis")
             
-        # Calculate metrics if not provided or invalid
+        # Calculate metrics manually
         total_tests = len(tests)
-        if not analysis.get("metrics") or not all(key in analysis["metrics"] for key in [
-            "selector_coverage", "page_coverage", "element_coverage",
-            "average_selectors_per_test", "average_pages_per_test", "average_elements_per_test"
-        ]):
-            analysis["metrics"] = {
-                "selector_coverage": len(analysis.get("unique_selectors", [])) / total_tests * 100 if total_tests > 0 else 0,
-                "page_coverage": len(analysis.get("unique_pages", [])) / total_tests * 100 if total_tests > 0 else 0,
-                "element_coverage": len(analysis.get("unique_ui_elements", [])) / total_tests * 100 if total_tests > 0 else 0,
-                "average_selectors_per_test": len(analysis.get("unique_selectors", [])) / total_tests if total_tests > 0 else 0,
-                "average_pages_per_test": len(analysis.get("unique_pages", [])) / total_tests if total_tests > 0 else 0,
-                "average_elements_per_test": len(analysis.get("unique_ui_elements", [])) / total_tests if total_tests > 0 else 0
-            }
+        analysis["total_tests"] = total_tests
+        analysis["metrics"] = {
+            "selector_coverage": len(analysis.get("unique_selectors", [])) / total_tests * 100 if total_tests > 0 else 0,
+            "page_coverage": len(analysis.get("unique_pages", [])) / total_tests * 100 if total_tests > 0 else 0,
+            "element_coverage": len(analysis.get("unique_ui_elements", [])) / total_tests * 100 if total_tests > 0 else 0,
+            "average_selectors_per_test": sum(analysis.get("selector_usage", {}).values()) / total_tests if total_tests > 0 else 0,
+            "average_pages_per_test": sum(analysis.get("page_usage", {}).values()) / total_tests if total_tests > 0 else 0,
+            "average_elements_per_test": sum(analysis.get("element_usage", {}).values()) / total_tests if total_tests > 0 else 0
+        }
             
         return analysis
         
     except Exception as e:
         logger.error(f"Failed to analyze UI coverage: {str(e)}")
-        
-        # Provide a default analysis
-        return {
-            "total_tests": len(tests),
-            "unique_selectors": [],
-            "unique_pages": [],
-            "unique_ui_elements": [],
-            "selector_usage": {},
-            "page_usage": {},
-            "element_usage": {},
-            "metrics": {
-                "selector_coverage": 0,
-                "page_coverage": 0,
-                "element_coverage": 0,
-                "average_selectors_per_test": 0,
-                "average_pages_per_test": 0,
-                "average_elements_per_test": 0
-            }
-        }
+        raise ValueError(f"Failed to analyze UI coverage: {str(e)}")
 

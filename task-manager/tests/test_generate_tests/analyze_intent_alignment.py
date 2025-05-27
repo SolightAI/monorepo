@@ -35,88 +35,60 @@ class IntentAlignmentResult:
 
 def analyze_intent_alignment(
     test: Dict[str, Any],
-    user_request: str,
+    feature_name: str,
+    feature_description: str,
     category: Optional[str] = None
 ) -> IntentAlignmentResult:
     """
-    Analyze the alignment between a generated test and the user's intent using GPT-4.
+    Analyze if a generated test properly covers the feature scope using GPT-4.1.
     
     Args:
         test: The generated test case
-        user_request: The original user request for test generation
+        feature_name: Name of the feature being tested
+        feature_description: Description of the feature being tested
         category: Optional test category that was requested
         
     Returns:
         IntentAlignmentResult containing the analysis
     """
-    # Initialize GPT-4
-    llm = ChatOpenAI(model="gpt-4", temperature=0)
+    # Initialize GPT-4.1
+    llm = ChatOpenAI(model="gpt-4.1", temperature=0)
     
     # Create the system prompt
-    system_prompt = """You are a senior QA analyst specializing in test intent analysis. Your task is to evaluate if a generated test case accurately reflects the user's intent.
+    system_prompt = f"""You are an expert test scope analyzer. Your task is to analyze if the generated test cases properly cover the specific feature: {feature_name}.
 
+    Feature Description:
+    {feature_description}
+    
     For each test, analyze:
-    1. Test Name: Does it clearly indicate the test's purpose?
-    2. Test Description: Does it align with the user's request?
-    3. Test Steps: Do they cover the intended functionality?
-    4. Test Assertions: Do they verify the right outcomes?
+    1. Test Scope: Whether the test is within the feature's boundaries
+    2. Test Coverage: How well the test covers the feature's functionality
+    3. Out of Scope: Any test steps or assertions that go beyond the feature's scope
     
-    Consider the following when analyzing alignment:
-    - Whether the test matches the intent behind the request
-    - What key concepts from the request are covered
-    - What is missing or off-target
-    - Whether the test should be kept, improved, or discarded
+    Focus on verifying that tests:
+    - Stay within the feature's boundaries
+    - Cover the feature's core functionality
+    - Don't test unrelated features
+    - Don't miss critical feature aspects
     
-    Important Guidelines:
-    1. Widget-specific tests are valid and should be evaluated based on their individual merit
-    2. A test that focuses on one widget is acceptable if it's well-structured and tests important scenarios
-    3. Consider the test's depth and quality rather than just its scope
-    4. Tests with clear steps and assertions should be preferred over broad but vague tests
-    5. If a test needs improvement, it should still get a reasonable score based on its potential
-    6. Only completely unreadable or invalid tests should get a score of 0
-    7. If test steps or assertions are broken into individual characters but the test name and description are clear:
-       - Score based on the test's intent and structure
-       - Consider the test name and description as indicators of the test's purpose
-       - Do not penalize heavily for broken steps/assertions if the overall intent is clear
-    8. For tests with broken content:
-       - If test name and description are clear: minimum score of 0.4
-       - If test name is clear but description is broken: minimum score of 0.3
-       - If test name is broken: minimum score of 0.2
+    You MUST return a valid JSON object with EXACTLY these fields:
+    {{
+        "alignment": string,  # MUST be one of: "Yes", "Partial", "No"
+        "relevance_score": number,  # MUST be between 0 and 1
+        "covers": [string],  # MUST be a list of aspects covered
+        "missing": [string],  # MUST be a list of missing aspects
+        "recommendation": string,  # MUST be one of: "Keep", "Improve", "Discard"
+        "reasoning": string  # MUST be a string explaining the analysis
+    }}
     
-    You must return a valid JSON object in the following format:
-    {
-        "alignment": "Yes" | "Partial" | "No",
-        "relevance_score": number (0.0 to 1.0),
-        "covers": [string],
-        "missing": [string],
-        "recommendation": "Keep" | "Improve" | "Discard",
-        "reasoning": string
-    }
+    IMPORTANT:
+    - All fields are required
+    - Do not add any additional fields
+    - Do not modify the field names
+    - Do not include any text before or after the JSON object
+    - The JSON must be valid and properly formatted
     
-    Use the following guidelines for alignment levels:
-    - Yes: Test fully matches user intent (60%+ alignment)
-    - Partial: Test partially matches user intent (30-60% alignment)
-    - No: Test does not match user intent (<30% alignment)
-    
-    Scoring Guidelines:
-    - Well-structured widget-specific test: 0.8-1.0
-    - Test with minor issues (needs improvement): 0.6-0.8
-    - Test with major issues but has potential: 0.4-0.6
-    - Test with significant issues but shows intent: 0.2-0.4
-    - Completely unreadable or invalid test: 0.0-0.2
-    
-    When a test needs improvement:
-    - If it has clear purpose but needs better steps: score 0.6-0.7
-    - If it has good steps but needs better assertions: score 0.5-0.6
-    - If it has good structure but needs more coverage: score 0.4-0.5
-    - If it's readable but needs significant work: score 0.2-0.4
-    
-    Special Cases for Broken Content:
-    - Clear test name and description but broken steps/assertions: 0.4-0.6
-    - Clear test name but broken description and steps/assertions: 0.3-0.5
-    - Broken test name but clear intent from description: 0.2-0.4
-    
-    Do not include any text before or after the JSON object."""
+    Be thorough in analyzing each test's alignment with the feature's scope."""
     
     # Extract test components
     test_name = test.get('name', '')
@@ -126,10 +98,7 @@ def analyze_intent_alignment(
     test_category = test.get('category', '')
     
     # Create the human prompt
-    human_prompt = f"""Please analyze the alignment between this test case and the user's request:
-
-User Request:
-"{user_request}"
+    human_prompt = f"""Please analyze the alignment between this test case and the feature scope:
 
 Test:
 Name: "{test_name}"
@@ -141,12 +110,22 @@ Assertions:
 {chr(10).join(f"{i+1}. {assertion}" for i, assertion in enumerate(test_assertions))}
 
 Focus on:
-1. Whether the test accurately reflects the user's intent
-2. What key aspects of the request are covered
+1. Whether the test stays within the feature's boundaries
+2. What key aspects of the feature are covered
 3. What important aspects are missing
 4. Whether the test should be kept, improved, or discarded
 
-Return the analysis in the specified JSON format. Do not include any text before or after the JSON object."""
+You MUST return a valid JSON object with EXACTLY these fields:
+{{
+    "alignment": string,  # MUST be one of: "Yes", "Partial", "No"
+    "relevance_score": number,  # MUST be between 0 and 1
+    "covers": [string],  # MUST be a list of aspects covered
+    "missing": [string],  # MUST be a list of missing aspects
+    "recommendation": string,  # MUST be one of: "Keep", "Improve", "Discard"
+    "reasoning": string  # MUST be a string explaining the analysis
+}}
+
+Do not include any text before or after the JSON object."""
     
     # Get analysis from GPT-4
     messages = [
@@ -166,12 +145,29 @@ Return the analysis in the specified JSON format. Do not include any text before
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse GPT response as JSON: {str(e)}")
             logger.error(f"Raw response: {content}")
-            raise ValueError("Invalid JSON response from GPT")
+            raise ValueError(f"Invalid JSON response from GPT: {str(e)}")
         
         # Ensure all required fields are present
         required_fields = ["alignment", "relevance_score", "covers", "missing", "recommendation", "reasoning"]
-        if not all(field in analysis for field in required_fields):
-            raise ValueError("Missing required fields in analysis")
+        missing_fields = [field for field in required_fields if field not in analysis]
+        if missing_fields:
+            logger.error(f"Missing required fields in analysis: {', '.join(missing_fields)}")
+            logger.error(f"Raw response: {content}")
+            raise ValueError(f"Missing required fields in analysis: {', '.join(missing_fields)}")
+        
+        # Validate field types and values
+        if not isinstance(analysis["alignment"], str) or analysis["alignment"] not in ["Yes", "Partial", "No"]:
+            raise ValueError(f"Invalid alignment value: {analysis['alignment']}")
+        if not isinstance(analysis["relevance_score"], (int, float)) or not 0 <= analysis["relevance_score"] <= 1:
+            raise ValueError(f"Invalid relevance_score value: {analysis['relevance_score']}")
+        if not isinstance(analysis["covers"], list) or not all(isinstance(x, str) for x in analysis["covers"]):
+            raise ValueError(f"Invalid covers value: {analysis['covers']}")
+        if not isinstance(analysis["missing"], list) or not all(isinstance(x, str) for x in analysis["missing"]):
+            raise ValueError(f"Invalid missing value: {analysis['missing']}")
+        if not isinstance(analysis["recommendation"], str) or analysis["recommendation"] not in ["Keep", "Improve", "Discard"]:
+            raise ValueError(f"Invalid recommendation value: {analysis['recommendation']}")
+        if not isinstance(analysis["reasoning"], str):
+            raise ValueError(f"Invalid reasoning value: {analysis['reasoning']}")
         
         # Convert string values to enums
         try:
@@ -179,7 +175,7 @@ Return the analysis in the specified JSON format. Do not include any text before
             recommendation = Recommendation(analysis["recommendation"])
         except ValueError as e:
             logger.error(f"Invalid enum value in analysis: {str(e)}")
-            raise ValueError("Invalid alignment or recommendation value")
+            raise ValueError(f"Invalid alignment or recommendation value: {str(e)}")
         
         return IntentAlignmentResult(
             alignment=alignment,
@@ -192,28 +188,21 @@ Return the analysis in the specified JSON format. Do not include any text before
         
     except Exception as e:
         logger.error(f"Failed to analyze intent alignment: {str(e)}")
-        
-        # Return default analysis with error message
-        return IntentAlignmentResult(
-            alignment=AlignmentLevel.PARTIAL,
-            relevance_score=0.5,
-            covers=["test functionality"],
-            missing=["intent alignment analysis failed"],
-            recommendation=Recommendation.IMPROVE,
-            reasoning=f"Failed to analyze intent alignment: {str(e)}"
-        )
+        raise ValueError(f"Failed to analyze intent alignment: {str(e)}")
 
 def analyze_intent_alignment_batch(
     tests: List[Dict[str, Any]],
-    user_request: str,
+    feature_name: str,
+    feature_description: str,
     category: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Analyze intent alignment for a batch of generated tests.
+    Analyze feature scope coverage for a batch of generated tests.
     
     Args:
         tests: List of generated test cases
-        user_request: The original user request for test generation
+        feature_name: Name of the feature being tested
+        feature_description: Description of the feature being tested
         category: Optional test category that was requested
         
     Returns:
@@ -226,7 +215,7 @@ def analyze_intent_alignment_batch(
     discard_count = 0
     
     for test in tests:
-        analysis = analyze_intent_alignment(test, user_request, category)
+        analysis = analyze_intent_alignment(test, feature_name, feature_description, category)
         results.append({
             "test_name": test.get('name', ''),
             "alignment": analysis.alignment.value,

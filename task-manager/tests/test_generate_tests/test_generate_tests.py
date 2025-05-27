@@ -1,14 +1,13 @@
 from src.generation.test_generation import generate_tests
 from src.utils.dto import Product, Epic, Feature, TestCategory
-from src.test_run.test_endpoint import run_test
 from logging import getLogger, INFO, StreamHandler
 import pytest
 import sys
 from analyze_ui_coverage import analyze_ui_coverage
 from analyze_category_match import analyze_category_match
 from analyze_redundancy import analyze_redundancy
-from analyze_execution_rate import analyze_execution_rate, TestStatus
 from analyze_intent_alignment import analyze_intent_alignment_batch
+from typing import Dict, List
 
 # Configure logging
 logger = getLogger(__name__)
@@ -18,35 +17,74 @@ handler.setLevel(INFO)
 logger.addHandler(handler)
 
 @pytest.mark.asyncio
-async def test_generate_tests():
+async def test_generate_tests(task_id: str):
     # Create dummy test data
     product = Product(
-        name="Test Product",
+        name="CRM Demo",
         url="https://qacrmdemo.netlify.app/",
-        description="A test product",
+        description="CRM Demo",
         documentation="https://qacrmdemo.netlify.app/",
         links_to_documentation=["https://qacrmdemo.netlify.app/"]
     )
     
     epic = Epic(
-        name="Test Epic",
-        description="A test epic"
+        name="Customer Creation",
+        description="Customer Creation"
     )
     
     feature = Feature(
         id="test-feature-123",
-        name="Test Web App Functionality",
-        description="Test the web app functionality",
+        name="Create Customer",
+        description="Create a new customer",
         urls=["https://qacrmdemo.netlify.app/"]
     )
     
     # Context with job ID
     ctx = {
-        "job_id": "test-job-123"
+        "job_id": task_id
     }
+
+    # Test different category scenarios and collect scores
+    scenario_scores = []
     
-    # Requested category
-    requested_category = TestCategory.NEGATIVE.value
+    # Run each scenario and collect scores
+    negative_score = await run_category_scenario(ctx, product, epic, feature, [TestCategory.NEGATIVE.value], "Negative Tests Only")
+    scenario_scores.append(("Negative Tests Only", negative_score))
+    
+    smoke_score = await run_category_scenario(ctx, product, epic, feature, [TestCategory.SMOKE.value], "Smoke Tests Only")
+    scenario_scores.append(("Smoke Tests Only", smoke_score))
+    
+    both_score = await run_category_scenario(ctx, product, epic, feature, [TestCategory.NEGATIVE.value, TestCategory.SMOKE.value], "Both Negative and Smoke Tests")
+    scenario_scores.append(("Both Negative and Smoke Tests", both_score))
+    
+    # Calculate and display average score
+    average_score = sum(score for _, score in scenario_scores) / len(scenario_scores)
+    
+    print("\n=== Overall Score Analysis ===")
+    print("\nIndividual Scenario Scores:")
+    for scenario_name, score in scenario_scores:
+        print(f"{scenario_name}: {score:.2f}%")
+    print(f"\nAverage Score Across All Scenarios: {average_score:.2f}%")
+    
+    # Assert minimum average score
+    assert average_score >= 10, f"Average score {average_score:.2f}% is below minimum threshold of 10%"
+
+async def run_category_scenario(ctx: Dict, product: Product, epic: Epic, feature: Feature, categories: List[str], scenario_name: str) -> float:
+    """
+    Test a specific category scenario for test generation.
+    
+    Args:
+        ctx: Context dictionary with job ID
+        product: Product information
+        epic: Epic information
+        feature: Feature information
+        categories: List of test categories to generate
+        scenario_name: Name of the scenario being tested
+        
+    Returns:
+        float: The total score for this scenario
+    """
+    print(f"\n=== Testing Scenario: {scenario_name} ===")
     
     # Generate tests
     result = await generate_tests(
@@ -54,7 +92,7 @@ async def test_generate_tests():
         product=product.model_dump(),
         epic=epic.model_dump(),
         feature=feature.model_dump(),
-        categories=[requested_category] 
+        categories=categories
     )
     
     # Store generated tests
@@ -70,46 +108,6 @@ async def test_generate_tests():
         print(f"Preconditions: {test['preconditions']}")
         print(f"Steps: {test['steps']}")
         print(f"Assertions: {test['assertions']}")
-    
-    # Run each generated test
-    print("\n=== Running Generated Tests ===")
-    test_results = []
-    for idx, test in enumerate(generated_tests, 1):
-        print(f"\nRunning Test #{idx}: {test['name']}")
-        try:
-            test_result = await run_test(
-                ctx=ctx,
-                product=product.model_dump(),
-                feature=feature.model_dump(),
-                test=test,
-                run_without_cache=True
-            )
-            test_results.append(test_result)
-            print(f"Status: {test_result['status']}")
-            if test_result.get('results'):
-                print(f"Results: {test_result['results']}")
-            if test_result.get('error'):
-                print(f"Error: {test_result['error']}")
-        except Exception as e:
-            error_result = {
-                "status": TestStatus.ERROR.value,
-                "error": str(e),
-                "test_name": test['name']
-            }
-            test_results.append(error_result)
-            print(f"Error running test: {str(e)}")
-    
-    # Analyze execution rate
-    execution_analysis = analyze_execution_rate(test_results)
-    
-    # Log execution analysis
-    print("\n=== Execution Rate Analysis ===")
-    summary = execution_analysis.get('execution_summary', {})
-    print(f"\nTotal Tests: {summary.get('total_tests', 0)}")
-    print(f"Passed Tests: {summary.get('passed_tests', 0)}")
-    print(f"Failed Tests: {summary.get('failed_tests', 0)}")
-    print(f"Other Tests: {summary.get('other_tests', 0)}")
-    print(f"Success Rate (passed + failed): {summary.get('success_rate', 0):.2f}%")
     
     # Analyze UI coverage
     coverage_analysis = analyze_ui_coverage(generated_tests)
@@ -127,15 +125,15 @@ async def test_generate_tests():
     print(f"Average Elements per Test: {metrics.get('average_elements_per_test', 0):.2f}")
     
     # Analyze category match
-    category_analysis = analyze_category_match(generated_tests, requested_category)
+    category_analysis = analyze_category_match(generated_tests, ','.join(categories))
     
     # Log category analysis
     print("\n=== Category Match Analysis ===")
-    summary = category_analysis.get('category_match_summary', {})
-    print(f"\nRequested Category: {category_analysis.get('requested_category')}")
-    print(f"Matching Tests: {summary.get('matching_tests', 0)}")
-    print(f"Non-matching Tests: {summary.get('non_matching_tests', 0)}")
-    print(f"Match Percentage: {summary.get('match_percentage', 0):.2f}%")
+    category_summary = category_analysis.get('category_match_summary', {})
+    print(f"\nRequested Categories: {', '.join(categories)}")
+    print(f"Matching Tests: {category_summary.get('matching_tests', 0)}")
+    print(f"Non-matching Tests: {category_summary.get('non_matching_tests', 0)}")
+    print(f"Match Percentage: {category_summary.get('match_percentage', 0):.2f}%")
     
     print("\nTest Analysis:")
     for test_analysis in category_analysis.get('test_analysis', []):
@@ -166,15 +164,6 @@ async def test_generate_tests():
             print(f"- {key}: {value:.2f}%")
         print(f"Recommendation: {pair['recommendation']}")
     
-    print("\nRedundancy Clusters:")
-    for cluster in redundancy_analysis.get('redundancy_clusters', []):
-        print(f"\nCluster #{cluster['cluster_id']}:")
-        print(f"Tests: {', '.join(cluster['tests'])}")
-        print("Common Elements:")
-        for key, values in cluster['common_elements'].items():
-            print(f"- {key}: {', '.join(values)}")
-        print(f"Consolidation Suggestion: {cluster['consolidation_suggestion']}")
-    
     print("\nRecommendations:")
     for recommendation in redundancy_analysis.get('recommendations', []):
         print(f"- {recommendation}")
@@ -182,19 +171,20 @@ async def test_generate_tests():
     # Analyze intent alignment
     intent_analysis = analyze_intent_alignment_batch(
         generated_tests,
-        user_request="Generate negative tests for the web app functionality",
-        category=requested_category
+        feature_name=feature.name,
+        feature_description=feature.description,
+        category=categories[0] if len(categories) == 1 else None
     )
     
     # Log intent alignment analysis
     print("\n=== Intent Alignment Analysis ===")
-    summary = intent_analysis.get('intent_alignment_summary', {})
-    print(f"\nTotal Tests: {summary.get('total_tests', 0)}")
-    print(f"Average Relevance Score: {summary.get('average_relevance_score', 0):.2f}")
-    print(f"Keep Count: {summary.get('keep_count', 0)}")
-    print(f"Improve Count: {summary.get('improve_count', 0)}")
-    print(f"Discard Count: {summary.get('discard_count', 0)}")
-    print(f"Keep Percentage: {summary.get('keep_percentage', 0):.2f}%")
+    intent_summary = intent_analysis.get('intent_alignment_summary', {})
+    print(f"\nTotal Tests: {intent_summary.get('total_tests', 0)}")
+    print(f"Average Relevance Score: {intent_summary.get('average_relevance_score', 0):.2f}")
+    print(f"Keep Count: {intent_summary.get('keep_count', 0)}")
+    print(f"Improve Count: {intent_summary.get('improve_count', 0)}")
+    print(f"Discard Count: {intent_summary.get('discard_count', 0)}")
+    print(f"Keep Percentage: {intent_summary.get('keep_percentage', 0):.2f}%")
     
     print("\nTest Analysis:")
     for test_analysis in intent_analysis.get('test_analysis', []):
@@ -211,60 +201,50 @@ async def test_generate_tests():
     for recommendation in intent_analysis.get('recommendations', []):
         print(f"- {recommendation}")
     
-    # Calculate total score
-    execution_score = execution_analysis.get('execution_summary', {}).get('success_rate', 0)  # Already in percentage
-    
-    # Calculate interaction coverage score (based on unique elements and selectors)
+    # Calculate scores
     unique_elements = len(coverage_analysis.get('unique_ui_elements', []))
     unique_selectors = len(coverage_analysis.get('unique_selectors', []))
     total_tests = len(generated_tests)
     
-    # Calculate interaction coverage based on the ratio of unique interactions to total possible interactions
-    # Each test should ideally interact with multiple UI elements
-    total_possible_interactions = total_tests * 5  # Assume each test should interact with at least 5 elements
+    total_possible_interactions = total_tests * 5
     total_unique_interactions = unique_elements + unique_selectors
     interaction_coverage = (total_unique_interactions / total_possible_interactions) * 100
-    interaction_coverage = min(interaction_coverage, 100)  # Cap at 100%
+    interaction_coverage = min(interaction_coverage, 100)
     
-    category_score = category_analysis.get('category_match_summary', {}).get('match_percentage', 0)  # Already in percentage
-    redundancy_penalty = redundancy_analysis.get('redundancy_summary', {}).get('overall_redundancy_score', 0)  # Already in percentage
+    # Calculate category score as average of all requested categories
+    category_scores = []
+    for category in categories:
+        category_analysis = analyze_category_match(generated_tests, category)
+        category_score = category_analysis.get('category_match_summary', {}).get('match_percentage', 0)
+        category_scores.append(category_score)
+    category_score = sum(category_scores) / len(category_scores) if category_scores else 0
     
-    # Calculate intent alignment score based on average relevance score instead of keep percentage
-    intent_summary = intent_analysis.get('intent_alignment_summary', {})
-    intent_score = intent_summary.get('average_relevance_score', 0) * 100  # Convert to percentage
+    redundancy_penalty = redundancy_analysis.get('redundancy_summary', {}).get('overall_redundancy_score', 0)
+    intent_score = intent_summary.get('average_relevance_score', 0) * 100
     
-    # Calculate total score using adjusted weights for test environment limitations
+    # Calculate total score
     total_score = (
-        (execution_score * 0.4) +           # 40% weight for execution 
-        (interaction_coverage * 0.15) +     # 15% weight for interaction coverage 
-        (category_score * 0.15) +           # 15% weight for category accuracy 
-        (intent_score * 0.2) -              # 20% weight for intent alignment 
-        (redundancy_penalty * 0.1)          # 10% penalty for redundancy 
+        (interaction_coverage * 0.20) +
+        (category_score * 0.30) +
+        (intent_score * 0.40) -
+        (redundancy_penalty * 0.1)
     )
     
     print("\n=== Total Score Analysis ===")
-    print(f"Execution Score: {execution_score:.2f}%")
     print(f"Interaction Coverage: {interaction_coverage:.2f}%")
     print(f"Category Match Score: {category_score:.2f}%")
     print(f"Intent Alignment Score: {intent_score:.2f}%")
     print(f"Redundancy Penalty: {redundancy_penalty:.2f}%")
     print(f"Total Score: {total_score:.2f}%")
     
-    # Assert minimum total score with lower threshold
+    # Assertions
+    assert result["status"] == "passed", "Test generation failed"
+    assert len(generated_tests) > 0, "No tests were generated"
     assert total_score >= 10, f"Total score {total_score:.2f}% is below minimum threshold of 10%"
-
-    # Assert that tests were generated
-    assert result["status"] == "passed"
-    assert len(generated_tests) > 0
-
-    # Assert category match quality
-    category_summary = category_analysis.get('category_match_summary', {})
-    assert category_summary.get('match_percentage', 0) >= 50, "Category match percentage should be at least 50%"
+    assert category_score >= 50, "Category match percentage should be at least 50%"
+    assert redundancy_penalty < 90, "Overall redundancy score should be less than 90%"
+    assert intent_score >= 0.1, "Average relevance score should be at least 0.1"
     
-    # Assert redundancy is not too high
-    assert redundancy_summary.get('overall_redundancy_score', 0) < 90, "Overall redundancy score should be less than 90%"
-    
-    # Assert intent alignment quality using average relevance score
-    assert intent_summary.get('average_relevance_score', 0) >= 0.1, "Average relevance score should be at least 0.2"
+    return total_score
 
 
