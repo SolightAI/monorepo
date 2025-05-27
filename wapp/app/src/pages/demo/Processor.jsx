@@ -28,7 +28,7 @@ const steps = [
     time: 60_000,
   },
   {
-    label: ' Generating Test Scenarios',
+    label: 'Generating Test Scenarios',
     description: `Creating user journey simulations to cover key actions`,
     time: 70_000,
   },

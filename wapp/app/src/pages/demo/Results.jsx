@@ -297,7 +297,7 @@ export function Results() {
  
     fetchDemoTests();
 
-  }, [feature, navigate]);
+  }, [feature, navigate, fetchDemoTests]);
 
   useEffect(() => {
     if (!hasRunningTests()) return;
