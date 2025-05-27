@@ -149,13 +149,13 @@ function ProgressStepper() {
     const initialize = async () => {
       if (!isMounted) return;
 
-      if (!feature) {
-        navigate('/demo', { replace: true });
-        return;
-      }
-      // Then check for existing task ID in the background
-      await checkExistingTaskId();
-      startDemoTestGenerationPolling();
+      // if (!feature) {
+      //   navigate('/demo', { replace: true });
+      //   return;
+      // }
+      // // Then check for existing task ID in the background
+      // await checkExistingTaskId();
+      // startDemoTestGenerationPolling();
     };
 
     // Use a smaller timeout to ensure the component is fully mounted
@@ -277,16 +277,17 @@ export function Processor() {
       
       {/* Right section  */}
       <div className="col-span-2 md:col-span-1 items-center flex flex-col gap-4 py-12 bg-blue-500">
-        <iframe 
-          width="500"
-          height="415"
-          className="w-full max-w-[700px] aspect-[1.77]"
-          src="https://www.youtube.com/embed/kyqpSycLASY?si=B9UinO_OWMQfG_QM"
-          title="YouTube video player"
-          frameBorder="0"
-          allow="encrypted-media; gyroscope; autoplay;" 
-          referrerPolicy="strict-origin-when-cross-origin">
-        </iframe>
+        <div className="relative w-full h-full max-md:min-h-[640px]">
+          <iframe
+            src="https://player.vimeo.com/video/1085526306?h=b6b351fe9d&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479"
+            frameborder="0"
+            allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
+            // style="position:absolute;top:0;left:0;width:100%;height:100%;"
+            className="absolute w-full h-full"
+            title="Solight - Ship Products Fast">
+          </iframe>
+        </div>
+        <script src="https://player.vimeo.com/api/player.js"></script>
       </div>
     </div>
   )
