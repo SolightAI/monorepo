@@ -42,6 +42,8 @@ async def generate_demo_tests(
           organization_id=organization.id
       )
       product_with_epics = await create_product(product_data)
+      if not product_with_epics.epics:
+          raise HTTPException(status_code=500, detail="Product creation failed to generate epic")
       epic_id = product_with_epics.epics[0].id
 
       # Create feature
