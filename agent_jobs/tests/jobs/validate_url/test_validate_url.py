@@ -32,18 +32,17 @@ async def test_validate_url_login_farmzz(task_id: str, config: Config) -> None:
         validation_result.valid is True
     ), f"Expected valid=True, got {validation_result.valid}"
 
+    expected_login_url = "https://farmzz.com/fr#/auth/login"
     assert (
-        validation_result.login_url == "https://farmzz.com/fr#/auth/login"
-    ), f"Expected login_url='https://farmzz.com/fr#/auth/login', got {validation_result.login_url}"
+        validation_result.login_url == expected_login_url
+    ), f"Expected login_url='{expected_login_url}', got {validation_result.login_url}"
 
     assert validation_result.confidence in [
         "high",
         "medium",
-    ], f"Expected confidence in ['high', 'medium'], got {validation_result.confidence}"
+    ]
 
-    assert (
-        validation_result.source == "validation"
-    ), f"Expected source='validation', got {validation_result.source}"
+    assert validation_result.source == "validation"
 
     logger.info(
         f"[{task_id}] ✅ Successfully validated URL and authenticated on: {validation_result.login_url}"
