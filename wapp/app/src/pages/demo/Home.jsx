@@ -32,7 +32,6 @@ export function Home() {
           url: data.url.trim(),
         },
       );
-      console.log("Test generation running", testsGenerationData);
 
       // Save data to context
       updateUrl(data.url.trim());
