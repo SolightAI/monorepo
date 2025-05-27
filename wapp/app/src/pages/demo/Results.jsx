@@ -30,12 +30,6 @@ export function Results() {
 
   const RUNNING_STATUS = 'Running';
 
-  // Add a function to check if ALL filtered tests are running
-  const allAllowedTestsRunning = () => {
-    if (sortedTests.length === 0) return false; // Cannot run if no tests
-    return sortedTests.every(test => runningTests[test.id]);
-  };
-
   const decountTestRunsRemaining = () => {
     setTestRunsRemaining(prev => {
       if (prev > 0) {
@@ -54,98 +48,6 @@ export function Results() {
 
   const handleTestSelect = (test) => {
     setSelectedTest(test);
-  };  
-  
-  // Run tests the remaining tests allowed to run for the demo
-  const handleRunRemainingTests = async () => {
-    let maxTestsToRun = testRunsRemaining;
-
-    if (maxTestsToRun === 0) {
-      setError('No test runs remaining.');
-      return;
-    };
-
-    try {
-
-      // Filter out tests that are already running
-      const testsToRun = tests.filter(test => !runningTests[test.id]);
-
-      if (testsToRun.length === 0) {
-        setError('All selected tests are already running or starting.');
-        // Clear error after a delay
-        setTimeout(() => setError(null), 3000);
-        return;
-      }
-
-      setError(null);
-      setLoading(true); // Consider a more specific loading state like setIsRunningSelected
-
-      let testCount = 0;
-      const testExecutions = [];
-
-      // Run each filtered test that is NOT already running
-      for (const test of testsToRun) { // Iterate over testsToRun instead of filteredTests
-        // Skip if already running (double-check, though filtering should handle this)
-        if (maxTestsToRun === 0) continue;
-
-        try {
-          // Mark test as running
-          setRunningTests(prev => ({ ...prev, [test.id]: true }));
-
-          const executionData = {
-            test_id: test.id,
-            status: TEST_STATUS.PENDING,
-            environment: 'demo',
-            executor_type: 'MANUAL',
-            notes: null
-          };
-
-          const response = await createTestExecution(executionData);
-          testExecutions.push({ testId: test.id, executionId: response.id });
-
-          // Update tests list immediately to show pending
-          setTests(prevTests => prevTests.map(t =>
-            t.id === test.id ? {
-              ...t,
-              // Don't overwrite status if it's already running from a previous action
-              last_execution_id: response.id,
-            } : t
-          ));
-
-          decountTestRunsRemaining();
-
-          maxTestsToRun--;
-          testCount++;
-        } catch (testErr) {
-          console.error(`Error starting test ${test.id}:`, testErr);
-
-          // Remove from running tests only if starting failed
-          setRunningTests(prev => {
-            const updated = { ...prev };
-            delete updated[test.id];
-            return updated;
-          });
-
-          // Continue with other tests
-        }
-      }
-
-      // Show appropriate message based on results
-      if (testCount > 0) {
-        // Start polling for each test execution that was just started
-        testExecutions.forEach(({ testId, executionId }) => {
-          pollTestExecutionStatus(testId, executionId);
-        });
-      } else {
-        // This case might happen if all attempts failed
-        setError('Failed to start any tests. Please check the console and try again.');
-        setTimeout(() => setError(null), 5000);
-      }
-    } catch (err) {
-      handleFetchError('run selected tests', err);
-    } finally {
-      setLoading(false); // Reset general loading or specific running state
-    }
   };
   
   // Handle running a single test
@@ -359,33 +261,13 @@ export function Results() {
 
       <div className="w-full bg-white rounded-lg shadow overflow-hidden mt-14">
         {/* Add "Run Selected Tests" button above the table */}
-        <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+        <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-start">
           <div className="text-sm text-gray-500">
             {testRunsRemaining === 0 ? (
               <span>No test runs remaining</span>
             ) : 
             `${testRunsRemaining} of ${maxTestRuns} test run${testRunsRemaining > 1 ? 's' : ''} remaining`
           }
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleRunRemainingTests}
-              disabled={sortedTests.length === 0 || allAllowedTestsRunning() || testRunsRemaining === 0}
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-150 disabled:bg-green-300 disabled:cursor-not-allowed"
-              title={sortedTests.length === 0 ? "No tests to run" : "Run all remaining tests for the demo"}
-            >
-              {allAllowedTestsRunning() ? ( // Show spinner and 'Running...' only if ALL are running
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Running...
-                </>
-              ) : (
-                <>
-                  <Play size={18} className="mr-2" />
-                  Run Tests
-                </>
-              )}
-            </button>
           </div>
         </div>
 
@@ -505,20 +387,6 @@ export function Results() {
       </div>
 
       <hr className="w-full my-8 border"/>
-
-      <div className="flex flex-col gap-4 mt-8 items-center">
-        <p>Want to try generating tests for another URL ?</p>
-        
-        <button
-          onClick={() => {
-            reset();
-            navigate("/demo")
-          }}
-          className="w-fit flex items-center px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
-        >
-          New tests generation
-        </button>
-      </div>
     </div>
   )
 }
