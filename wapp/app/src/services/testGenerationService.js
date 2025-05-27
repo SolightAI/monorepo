@@ -8,6 +8,7 @@ import { TEST_STATUS, formatStatus } from '@/utils/testExecutionUtils';
  * @param {Function} onSuccess - Callback for successful completion.
  * @param {Function} onError - Callback for errors.
  * @param {string} featureName - The name of the feature.
+ * @param {boolean} [demo=false] - Whether to run in demo mode.
  * @returns {number} - The interval ID for clearing.
  */
 export const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, onError, featureName, demo = false) => {
