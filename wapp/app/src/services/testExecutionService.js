@@ -5,13 +5,14 @@ import { API_URL } from '@/constants/api';
  * Get all executions for a specific test
  *
  * @param {string} testId - The UUID of the test
+ * @param {boolean} [demo] - Whether to use demo mode
  * @returns {Promise<Array>} Promise with the test executions data
  */
-export const getTestExecutions = async (testId) => {
+export const getTestExecutions = async (testId, demo = false) => {
   try {
-    const response = await axios.get(`${API_URL}/test-executions/by-test/${testId}`, {
-      withCredentials: true
-    });
+    const response = await axios.get(`${API_URL}${demo ? '/demo' : ''}/test-executions/by-test/${testId}`,
+      demo ? { withCredentials: true } : {}
+    );
     return response.data;
   } catch (error) {
     console.error(`Error fetching test executions for test ${testId}:`, error);
@@ -28,9 +29,9 @@ export const getTestExecutions = async (testId) => {
  */
 export const getTestExecution = async (executionId, demo = false) => {
   try {
-    const response = await axios.get(`${API_URL}${demo ? '/demo' : ''}/test-executions/${executionId}`, {
-      withCredentials: true
-    });
+    const response = await axios.get(`${API_URL}${demo ? '/demo' : ''}/test-executions/${executionId}`,
+      demo ? { withCredentials: true } : {}
+    );
     return response.data;
   } catch (error) {
     console.error(`Error fetching test execution ${executionId}:`, error);

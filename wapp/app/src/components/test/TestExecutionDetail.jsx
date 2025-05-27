@@ -51,7 +51,7 @@ const TestExecutionDetail = ({ execution: initialExecution, onBack }) => {
 
     try {
       refreshingRef.current = true;
-      const updatedExecution = await getTestExecution(execution.id);
+      const updatedExecution = await getTestExecution(execution.id, true);
 
       // Only update if there's actually a change
       if (updatedExecution &&

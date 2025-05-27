@@ -119,7 +119,7 @@ const DemoTestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUp
     try {
       setIsLoading(true);
       setError(null);
-      const data = await getTestExecutions(testData.id);
+      const data = await getTestExecutions(testData.id, true);
 
       // Sort executions by started_at date descending (newest first)
       const sortedExecutions = data.sort((a, b) =>
@@ -185,7 +185,9 @@ const DemoTestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUp
   };
 
   // Find the latest execution for the Last Execution component
-  const latestExecution = executions.length > 0 ? executions[0] : null;
+  const latestExecution = executions.length > 0
+    ? executions.sort((a, b) => new Date(b.started_at) - new Date(a.started_at))[0]
+    : null;
 
   // Handle view details for last execution
   const handleViewLastExecutionDetails = (execution) => {
