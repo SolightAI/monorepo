@@ -185,9 +185,7 @@ const DemoTestDetailsModal = ({ test: initialTest, featureUrl, onClose, onTestUp
   };
 
   // Find the latest execution for the Last Execution component
-  const latestExecution = executions.length > 0
-    ? executions.sort((a, b) => new Date(b.started_at) - new Date(a.started_at))[0]
-    : null;
+  const latestExecution = executions.length > 0 ? executions[0] : null;
 
   // Handle view details for last execution
   const handleViewLastExecutionDetails = (execution) => {
