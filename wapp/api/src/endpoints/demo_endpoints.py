@@ -20,10 +20,6 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-# POST /features - Create Feature
-# GET /tests/by-feature/${featureId} - Get tests
-# GET /test-executions/${executionId} - Get a specific test execution by ID
-# POST /test-executions - Create test execution
 
 # ------
 
