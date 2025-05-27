@@ -34,7 +34,7 @@ else
     exit 1
   fi
 
-  echo "Deploying to preview environment, waiting 3 before deploying..."
+  echo "Deploying to preview environment, waiting 3s before deploying..."
   sleep 3
 
   pulumi stack select solight_ai/preview
