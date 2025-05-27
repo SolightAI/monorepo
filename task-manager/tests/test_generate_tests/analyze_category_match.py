@@ -5,6 +5,7 @@ from typing import List, Dict
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 from src.utils.dto import TEST_CATEGORIES_DESCRIPTION
+from textwrap import dedent
 
 # Configure logging
 logger = getLogger(__name__)
@@ -31,52 +32,54 @@ def analyze_category_match(tests: List[Dict], requested_category: str) -> Dict:
     category_description = TEST_CATEGORIES_DESCRIPTION.get(requested_category.lower(), "")
     
     # Create the system prompt
-    system_prompt = f"""You are an expert test category analyzer. Your task is to analyze if the generated test cases match the requested category: {requested_category}.
+    system_prompt = dedent(f"""\
+        You are an expert test category analyzer. Your task is to analyze if the generated test cases match the requested category: {requested_category}.
 
-    Category Description:
-    {category_description}
-    
-    For each test, analyze:
-    1. Test Category: The category assigned to the test
-    2. Test Content: The actual content of the test (steps, assertions, etc.)
-    3. Category Match: Whether the test content aligns with the requested category
-    
-    Follow {category_description} to analyze the test content.
-    
-    Return the analysis in the following JSON format:
-    {{
-        "test_analysis": [
-            {{
-                "test_name": string,
-                "reasoning": string,
-                "assigned_category": string,
-                "matches_requested": boolean,
-                "confidence_score": number,
-                "suggested_category": string,
-                "improvement_suggestions": string
-            }}
-        ],
-        "recommendations": [
-            string
-        ]
-    }}
-    
-    Be thorough in analyzing each test's content and category alignment."""
+        Category Description:
+        {category_description}
+        
+        For each test, analyze:
+        1. Test Category: The category assigned to the test
+        2. Test Content: The actual content of the test (steps, assertions, etc.)
+        3. Category Match: Whether the test content aligns with the requested category
+        
+        Follow {category_description} to analyze the test content.
+        
+        Return the analysis in the following JSON format:
+        {{
+            "test_analysis": [
+                {{
+                    "test_name": string,
+                    "reasoning": string,
+                    "assigned_category": string,
+                    "matches_requested": boolean,
+                    "confidence_score": number,
+                    "suggested_category": string,
+                    "improvement_suggestions": string
+                }}
+            ],
+            "recommendations": [
+                string
+            ]
+        }}
+        
+        Be thorough in analyzing each test's content and category alignment.""")
     
     # Create the human prompt with test data
     test_data = json.dumps(tests, indent=2)
-    human_prompt = f"""Please analyze if the following test cases match the requested category '{requested_category}':
+    human_prompt = dedent(f"""\
+        Please analyze if the following test cases match the requested category '{requested_category}':
 
-{test_data}
+        {test_data}
 
-Focus on:
-1. Whether each test's content aligns with the requested category
-2. The confidence level of the category match
-3. Specific reasons why a test may or may not match the category
-4. If a test doesn't match, suggest the correct category
-5. Provide specific suggestions for improving test alignment with the requested category
+        Focus on:
+        1. Whether each test's content aligns with the requested category
+        2. The confidence level of the category match
+        3. Specific reasons why a test may or may not match the category
+        4. If a test doesn't match, suggest the correct category
+        5. Provide specific suggestions for improving test alignment with the requested category
 
-Return the analysis in the specified JSON format."""
+        Return the analysis in the specified JSON format.""")
     
     # Get analysis from GPT-4
     messages = [
