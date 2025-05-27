@@ -24,7 +24,7 @@ const steps = [
   },
   {
     label: 'Detecting Functional Elements',
-    description: `Finding interactive components like buttons, forms, and navigation links to test for functionalit.`,
+    description: `Finding interactive components like buttons, forms, and navigation links to test for functionality`,
     time: 60_000,
   },
   {
