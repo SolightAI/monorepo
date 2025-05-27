@@ -87,6 +87,7 @@ async def demo_get_test_execution_status(test_execution_id: str) -> TestExecutio
 async def demo_create_test_execution(
     test_execution: TestExecutionCreateSchema,
     background_tasks: BackgroundTasks,
+    _: User = Depends(get_demo_account_dependency)
 ) -> TestExecutionSchema:
     """
     Create a new test execution.
