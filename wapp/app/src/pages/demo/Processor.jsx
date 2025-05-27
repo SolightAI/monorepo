@@ -153,10 +153,9 @@ function ProgressStepper() {
         navigate('/demo', { replace: true });
         return;
       }
-
-      startDemoTestGenerationPolling();
       // Then check for existing task ID in the background
       await checkExistingTaskId();
+      startDemoTestGenerationPolling();
     };
 
     // Use a smaller timeout to ensure the component is fully mounted
