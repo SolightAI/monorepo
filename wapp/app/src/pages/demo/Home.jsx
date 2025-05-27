@@ -41,6 +41,7 @@ export function Home() {
     } catch (error) {
       console.error("Error while initiate test generation", error);
       setError("An error occurred while initiating the test generation. Please try again.");
+    setIsLoading(false);
     }
   };
 
