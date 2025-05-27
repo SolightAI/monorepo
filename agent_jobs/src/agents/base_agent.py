@@ -150,7 +150,8 @@ async def run_agent(
         os.remove(cookies_file.name)
 
         if len((_files := os.listdir(report_directory))) > 0:
-            report = json.load(open(os.path.join(report_directory, _files[0])))
+            with open(os.path.join(report_directory, _files[0])) as f:
+                report = json.load(f)
             error_message = f"{report.get('trigger')} - {report.get('event')}"
             logger.info(f"[{task_id}] - {error_message}")
             raise RuntimeError(error_message)
