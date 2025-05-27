@@ -14,7 +14,8 @@ def _raise_if_fatal_report_exists(task_id: str, report_directory: str) -> None:
         return
 
     if len((_files := os.listdir(report_directory))) > 0:
-        report = json.load(open(os.path.join(report_directory, _files[0])))
+        with open(os.path.join(report_directory, _files[0])) as f:
+            report = json.load(f)
         error_message = f"{report.get('trigger')} - {report.get('event')}"
         logger.info(f"[{task_id}] - {error_message}")
         raise RuntimeError(error_message)
