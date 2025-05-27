@@ -61,6 +61,14 @@ async def run_agent(
     headless: bool = True,
     **kwargs: Any,
 ) -> tuple[dict[str, dict[str, str]], AgentHistoryList, list[str], bool]:
+
+    if os.environ["NODE_OPTIONS"] is None:
+        os.environ["NODE_OPTIONS"] = ""
+
+    report_directory = f"/tmp/{task_id}"
+    os.environ["NODE_OPTIONS"] += f" --report-on-fatalerror --report-directory={report_directory}"
+    os.makedirs(report_directory, exist_ok=True)  # TODO: try without this
+
     with NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as cookies_file:
         if auth_session is None:
             json.dump([], cookies_file)
@@ -130,14 +138,22 @@ async def run_agent(
         local_storage_data = await get_local_storage(context)
 
         logger.info(f"[{task_id}] Retrieved cookies and localStorage data")
+
     except Exception as e:
         raise e
+
     finally:
         await context.close()
         await browser.close()
         logger.info(f"[{task_id}] Closed browser context and browser")
 
         os.remove(cookies_file.name)
+
+        if len((_files := os.listdir(report_directory))) > 0:
+            report = json.load(open(os.path.join(report_directory, _files[0])))
+            error_message = f"{report.get('trigger')} - {report.get('event')}"
+            logger.info(f"[{task_id}] - {error_message}")
+            raise RuntimeError(error_message)
 
     session_data = {"cookies": cookies, "localStorage": local_storage_data}
 

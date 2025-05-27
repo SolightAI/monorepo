@@ -255,6 +255,7 @@ async def run(
     auth_session: dict[str, dict[str, str]],
     run_without_cache: bool = False,
 ) -> BaseAgentResult:
+
     Laminar.set_session(session_id=task_id)
     Laminar.set_metadata({"task_id": task_id, "job": "run_test.run"})
 
