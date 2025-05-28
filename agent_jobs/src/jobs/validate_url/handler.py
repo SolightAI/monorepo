@@ -23,7 +23,7 @@ async def handler(config: Config, job_id: str, url: str) -> ValidateURLResult:
 
         result = await run(config, job_id, url)
 
-        logger.info(f"[{job_id}] URL validated successfully: {url}")
+        logger.info(f"[{job_id}] URL validation completed: {url} valid={result.valid}")
 
         return result
     except Exception as e:

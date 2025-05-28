@@ -39,9 +39,6 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/bin/playwright-browsers
 
 COPY requirements.txt ./
 
-# Add RIE (Lambda Runtime Interface Emulator)
-ADD https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/aws-lambda-rie /usr/local/bin/aws-lambda-rie
-RUN chmod +x /usr/local/bin/aws-lambda-rie
 
 # Install requirements
 RUN pip install --no-cache-dir -r requirements.txt
@@ -53,4 +50,4 @@ RUN python /var/task/fix_browser_use.py
 COPY src src
 
 # Use AWS Lambda Runtime Interface Client as entrypoint
-ENTRYPOINT [ "/usr/local/bin/aws-lambda-rie", "/usr/local/bin/python3", "-m", "awslambdaric" ]
+ENTRYPOINT [ "fastapi", "dev", "--host", "0.0.0.0", "--port", "8090", "/var/task/src/api_main.py" ]

@@ -1,0 +1,7 @@
+# Root docker-compose file that includes all services
+name: solight
+
+include:
+  - path: ./wapp/local.docker-compose.yaml
+  - path: ./task-manager/local.docker-compose.yaml
+  - path: ./lambda_webhook/local.docker-compose.yaml

@@ -3,9 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
-    command: src.main.lambda_handler
     ports:
-      - "8081:8080"
+      - "8090:8090"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - HEADLESS=true
@@ -23,8 +22,6 @@ services:
     networks:
       - default
       - api-tm_shared_network
-    mem_limit: 2048M
-    cpu_count: 1.0
 
 networks:
   default:

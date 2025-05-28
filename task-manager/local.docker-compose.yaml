@@ -9,7 +9,7 @@ services:
       - ./tests/:/app/tests
       - playwright_browsers:/tmp/playwright-browsers
     environment:
-      - MAX_JOBS=${MAX_JOBS:-4}
+      - MAX_JOBS=${MAX_JOBS:-50}
       - ANONYMIZED_TELEMETRY=false
       - DEV_MODE=true
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -28,7 +28,7 @@ services:
       - SYMMETRIC_ENCRYPTION_KEY=${SYMMETRIC_ENCRYPTION_KEY:-S5ox-_h4p9NISVvQFPsAE5T-8K-SNp67GLQalO75rDI=}
       - TWOCAPTCHA_API_KEY=${TWOCAPTCHA_API_KEY:-}
       # Only useful for testing locally
-      - TEST_AWS_LAMBDA_VALIDATE_URL_ENDPOINT=http://lambda_jobs:8080/2015-03-31/functions/function/invocations
+      - TEST_AWS_LAMBDA_VALIDATE_URL_ENDPOINT=${TEST_AWS_LAMBDA_URL:-http://lambda_jobs:8090}
       - PROD_AWS_LAMBDA_QUEUE_TRIGGER_ACCESS_KEY=${AWS_SQS_LAMBDA_TRIGGER_ACCESS_KEY:-}
       - PROD_AWS_SQS_LAMBDA_QUEUE_TRIGGER_SECRET_ACCESS_KEY=${AWS_SQS_LAMBDA_TRIGGER_SECRET_ACCESS_KEY:-}
       - PROD_AWS_LAMBDA_QUEUE_URL=${AWS_SQS_LAMBDA_URL:-}
