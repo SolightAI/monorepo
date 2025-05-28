@@ -65,14 +65,6 @@ Help yourself from the provided draft to make sure you don't forget any actions 
 """)
 
 
-LLM_FORMAT = ChatOpenAI(
-    model="gpt-4.1-mini",
-    temperature=0.0,
-    timeout=120,
-    seed=SEED,
-)
-
-
 @observe()
 async def improve_test_steps(
     ctx: dict[Any, Any],
@@ -95,7 +87,6 @@ async def improve_test_steps(
     auth_session = dict()
     if test_obj.access_conditions and test_obj.access_conditions.get("must_be_logged_in") is True:
         auth_session = await get_auth_session(
-            identifier=None,
             task_id=ctx['job_id'],
             url=product_obj.url,
             secrets=decrypted_secrets,

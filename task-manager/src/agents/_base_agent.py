@@ -828,14 +828,14 @@ async def run_agent(
         run_agent = True
 
         try:
-            if not run_without_cache and exists_in_s3(f"{identifier}/history.json"):
+            if not run_without_cache and identifier is not None and exists_in_s3(f"{identifier}/history.json"):
 
                 logger.info(f"[{task_id}] Running agent from cached history")
 
                 with NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as history_file:
                     download_file_from_s3(f"{identifier}/history.json", history_file.name)
 
-                    logger.info(f"[{task_id}] Loading history from {history_file.name} for GIF generation.")
+                    logger.info(f"[{task_id}] Loading history from {history_file.name} to rerun the test.")
 
                     agent: Agent = _get_agent(context, controller, prompt, sensitive_data, url, **kwargs)
                     agent._task_id = task_id  # NOTE: we want to use a different agent for rerun_history and agent.run as rerun_history modifies the agent's controller

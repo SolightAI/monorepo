@@ -17,6 +17,8 @@ from src.agents.get_agent import AgentParam, get_agent
 from src.config import Config
 
 from ..tools import TOOLS
+from ..hooks import _raise_if_fatal_report_exists
+
 
 logger = getLogger(__name__)
 
@@ -281,6 +283,7 @@ async def _rerun_history(
     Returns:
             List of action results
     """
+
     task_id = agent._task_id if hasattr(agent, "_task_id") else None  # type: ignore
 
     logger.info(
@@ -301,6 +304,9 @@ async def _rerun_history(
     results: list[ActionResult] = []
 
     for i, history_item in enumerate(history.history):
+
+        _raise_if_fatal_report_exists(task_id, f"/tmp/{task_id}")  # type: ignore
+
         goal = (
             history_item.model_output.current_state.next_goal
             if history_item.model_output

@@ -61,6 +61,14 @@ async def run_agent(
     headless: bool = True,
     **kwargs: Any,
 ) -> tuple[dict[str, dict[str, str]], AgentHistoryList, list[str], bool]:
+
+    if os.environ.get("NODE_OPTIONS") is None:
+        os.environ["NODE_OPTIONS"] = ""
+
+    report_directory = f"/tmp/{task_id}"
+    os.environ["NODE_OPTIONS"] += f" --report-on-fatalerror --report-directory={report_directory}"
+    os.makedirs(report_directory, exist_ok=True)  # TODO: try without this
+
     with NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as cookies_file:
         if auth_session is None:
             json.dump([], cookies_file)
@@ -106,7 +114,7 @@ async def run_agent(
 
         ran_from_cache = False
 
-        if not run_without_cache and config.s3_client.exists(
+        if not run_without_cache and identifier is not None and config.s3_client.exists(
             f"{identifier}/history.json"
         ):
             logger.info(f"[{task_id}] Try Running agent from cached history")
@@ -130,14 +138,23 @@ async def run_agent(
         local_storage_data = await get_local_storage(context)
 
         logger.info(f"[{task_id}] Retrieved cookies and localStorage data")
-    except Exception as e:
-        raise e
+
+    except Exception:
+        raise
+
     finally:
         await context.close()
         await browser.close()
         logger.info(f"[{task_id}] Closed browser context and browser")
 
         os.remove(cookies_file.name)
+
+        if len((_files := os.listdir(report_directory))) > 0:
+            with open(os.path.join(report_directory, _files[0])) as f:
+                report = json.load(f)
+            error_message = f"{report.get('trigger', 'unknown')} - {report.get('event', 'unknown')}"
+            logger.info(f"[{task_id}] - {error_message}")
+            raise RuntimeError(error_message)
 
     session_data = {"cookies": cookies, "localStorage": local_storage_data}
 

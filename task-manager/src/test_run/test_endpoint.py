@@ -44,7 +44,6 @@ async def run_test(
     auth_session = dict()
     if test_obj.access_conditions and test_obj.access_conditions.get("must_be_logged_in") is True:
         auth_session = await get_auth_session(
-            identifier=None,
             task_id=ctx['job_id'],
             url=product_obj.url,
             secrets=decrypted_secrets,

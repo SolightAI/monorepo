@@ -41,7 +41,6 @@ async def test_privacy_banner_email_password_simple(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -69,7 +68,6 @@ async def test_privacy_modal_email_password_simple(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -97,7 +95,6 @@ async def test_generate_auth_session_simple_login(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -125,7 +122,6 @@ async def test_generate_auth_session_google_login(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_google_credentials,
@@ -155,7 +151,6 @@ async def test_generate_auth_session_messy_login(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -182,7 +177,6 @@ async def test_generate_auth_session_staged_login(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -210,7 +204,6 @@ async def test_generate_auth_session_staged_messy_login(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -238,7 +231,6 @@ async def test_generate_auth_session_instant_simple_login(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -266,7 +258,6 @@ async def test_generate_auth_session_instant_messy_login(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -293,7 +284,6 @@ async def test_generate_auth_session_combined_email_google_simple(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -320,7 +310,6 @@ async def test_generate_auth_session_combined_email_google_google_auth(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_google_credentials,
@@ -349,7 +338,6 @@ async def test_generate_auth_session_combined_email_google_messy(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -376,7 +364,6 @@ async def test_generate_auth_session_combined_email_instant_simple(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -404,7 +391,6 @@ async def test_generate_auth_session_combined_instant_google_messy(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -432,7 +418,6 @@ async def test_generate_auth_session_combined_instant_google_messy_google_auth(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_google_credentials,
@@ -461,7 +446,6 @@ async def test_generate_auth_session_invalid_credentials(
     with pytest.raises(Exception) as excinfo:
         await get_auth_session(
             config,
-            identifier=None,
             task_id=task_id,
             url=url,
             secrets=invalid_username_password_credentials,
@@ -483,7 +467,6 @@ async def test_generate_auth_session_invalid_google_credentials(
     with pytest.raises(Exception) as excinfo:
         session = await get_auth_session(
             config,
-            identifier=None,
             task_id=task_id,
             url=url,
             secrets=invalid_google_credentials,
@@ -510,7 +493,6 @@ async def test_session_reuse(
     # Generate a session first
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -520,7 +502,6 @@ async def test_session_reuse(
     # Now check if reuse_session=True returns the cached session
     reused_session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=valid_username_password_credentials,
@@ -549,7 +530,6 @@ async def test_generate_auth_session_farmzz(task_id: str, config: Config) -> Non
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=[
@@ -593,7 +573,6 @@ async def test_generate_auth_session_tecla_academy(
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=[
@@ -635,7 +614,6 @@ async def test_generate_auth_session_tickpick(task_id: str, config: Config) -> N
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=[
@@ -675,7 +653,6 @@ async def test_generate_auth_session_sesame_hr(task_id: str, config: Config) -> 
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=[
@@ -717,7 +694,6 @@ async def test_generate_auth_session_meandwho(task_id: str, config: Config) -> N
 
     session = await get_auth_session(
         config,
-        identifier=None,
         task_id=task_id,
         url=url,
         secrets=[
@@ -754,7 +730,6 @@ async def test_generate_auth_session_invalid_staged_login_credentials(
     with pytest.raises(Exception) as excinfo:
         await get_auth_session(
             config,
-            identifier=None,
             task_id=task_id,
             url=url,
             secrets=invalid_username_password_credentials,
@@ -776,7 +751,6 @@ async def test_generate_auth_session_invalid_instant_login_credentials(
     with pytest.raises(Exception) as excinfo:
         await get_auth_session(
             config,
-            identifier=None,
             task_id=task_id,
             url=url,
             secrets=invalid_username_password_credentials,
@@ -798,7 +772,6 @@ async def test_generate_auth_session_invalid_combined_email_google_credentials(
     with pytest.raises(Exception) as excinfo:
         await get_auth_session(
             config,
-            identifier=None,
             task_id=task_id,
             url=url,
             secrets=invalid_username_password_credentials,
@@ -820,7 +793,6 @@ async def test_generate_auth_session_invalid_combined_google_credentials(
     with pytest.raises(Exception) as excinfo:
         await get_auth_session(
             config,
-            identifier=None,
             task_id=task_id,
             url=url,
             secrets=invalid_google_credentials,
@@ -842,7 +814,6 @@ async def test_generate_auth_session_invalid_combined_email_instant_credentials(
     with pytest.raises(Exception) as excinfo:
         await get_auth_session(
             config,
-            identifier=None,
             task_id=task_id,
             url=url,
             secrets=invalid_username_password_credentials,

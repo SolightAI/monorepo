@@ -32,7 +32,6 @@ def get_user_id(secrets: list[dict[str, Any]]) -> str | None:
 
 async def get_auth_session(
     config: Config,
-    identifier: str,
     task_id: str,
     url: str,
     secrets: list[dict[str, Any]],
@@ -68,14 +67,12 @@ async def get_auth_session(
                 f"[{task_id}] No cached session found for {url} (user: {user_id}), generating a new one"
             )
 
-    session_data, history, _, __ = await login_to_website(
+    session_data, history, *_ = await login_to_website(
         config,
-        identifier,
         task_id,
         url,
         LoginMethod.ANY,
         secrets,
-        run_without_cache=not reuse_session,
     )
 
     if session_data is None:

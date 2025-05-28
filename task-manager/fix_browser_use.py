@@ -237,8 +237,9 @@ def wait_for_page_to_load_on_page_change() -> None:
 					if initial_url != new_url:
 						await new_page.wait_for_load_state()
 						logger.info(f'URL changed from {initial_url} to {new_url}, waited for page load state.')
-						await asyncio.sleep(10)
 						logger.info(f'Waiting an extra 10s just to be safe.')  # useful in case of slow page loading
+						await asyncio.sleep(10)
+						logger.info(f'Finished waiting the extra 10s.')  # useful in case of slow page loading
 
 					if isinstance(result, str):
 						return ActionResult(extracted_content=result)
@@ -407,7 +408,6 @@ def deactivate_extract_content_function() -> None:
     shutil.move(temp_file, file_to_change)
 
     print("Successfully deactivated extract_content function")
-
 
 
 if __name__ == "__main__":
