@@ -21,7 +21,7 @@ if LMNR_PROJECT_API_KEY is not None:
     Laminar.initialize(project_api_key=LMNR_PROJECT_API_KEY)
 
 
-MAX_JOBS = int(os.getenv("MAX_JOBS", 4))
+MAX_JOBS = int(os.getenv("MAX_JOBS", 50))
 
 
 async def startup(ctx: dict[str, Any]) -> None:

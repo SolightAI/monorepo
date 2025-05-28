@@ -22,8 +22,6 @@ services:
     networks:
       - default
       - api-tm_shared_network
-    mem_limit: 2048M
-    cpu_count: 1.0
 
 networks:
   default:

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import sys
 
@@ -23,6 +24,6 @@ app = FastAPI()
 
 @app.post("/")
 async def root(job: Job, background_tasks: BackgroundTasks):
-    background_tasks.add_task(dispatch_job, config, job)
+    asyncio.create_task(dispatch_job(config, job))
 
     return {"message": "Job dispatched successfully"}
