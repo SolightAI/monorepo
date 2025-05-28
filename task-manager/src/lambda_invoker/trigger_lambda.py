@@ -59,16 +59,19 @@ async def trigger_lambda(config: Config, job: Job) -> None:
     if config.dev_mode is True:
         # When we send a request to the dev endpoint, we need to wrap the payload
         # in a field body.
-        payload = {"Records": [{"body": job.model_dump_json()}]}
+        payload = job.model_dump()
 
         logger.info(
             f"Sending request {payload} to {config.test_aws_lambda_validate_url_endpoint}"
         )
 
-        requests.post(
+        res = requests.post(
             config.test_aws_lambda_validate_url_endpoint or "",
             json=payload,
         )
+        
+        if res.status_code != 200:
+            raise Exception(f"Failed to trigger lambda: {res.text}")
 
         return
 
