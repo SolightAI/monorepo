@@ -63,7 +63,16 @@ def on_step_start_hook(
     async def _on_step_start_hook(agent: Agent) -> None:
         _update_step_counter(agent)
 
-        if await check_for_google_mfa(agent):
+        task_id = getattr(agent, "_task_id", "unknown")
+
+        try:
+            if await check_for_google_mfa(agent):
+                return
+        except Exception as e:
+            logger.error(e, exc_info=True)
+            logger.warning(
+                f"[{task_id}] Couldn't load the page content, skipping mfa check"
+            )
             return
 
         await check_for_captcha(twocaptcha_api_key, agent)
