@@ -49,7 +49,7 @@ async def run_uncached_history(
         history = await agent.run(
             max_steps=50,
             on_step_start=on_step_start_hook(config.twocaptcha_api_key),
-            on_step_end=on_step_end_hook(report_directory),
+            on_step_end=on_step_end_hook(report_directory=f"/tmp/{task_id}"),
         )
 
         logger.info(f"[{task_id}] Agent finished running ({identifier})")

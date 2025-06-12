@@ -168,7 +168,7 @@ async def run_agent(
 
     logger.info(f"[{task_id}] Returning session data, history and evidences")
 
-    return session_data, history, evidences, not ran_from_cache  # type: ignore (TODO(TomChv): Is the value really unbound?)
+    return session_data, history, evidences, ran_from_cache  # type: ignore (TODO(TomChv): Is the value really unbound?)
 
 
 def _create_agent_params(
