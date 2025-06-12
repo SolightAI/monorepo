@@ -26,6 +26,6 @@ def on_step_end_hook(
 ) -> Callable[[Agent], Coroutine[Any, Any, None]]:
 
     async def _on_step_end_hook(agent: Agent) -> None:
-        _raise_if_fatal_report_exists(getattr(agent, "_task_id"), report_directory)
+        _raise_if_fatal_report_exists(getattr(agent, "_task_id", "unknown"), report_directory)
 
     return _on_step_end_hook
