@@ -258,7 +258,7 @@ def _create_browser_context(
             minimum_wait_page_load_time=1,
             wait_for_network_idle_page_load_time=1,
             viewport_expansion=0,
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246",
+            user_agent="Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.85 Safari/537.36",
             browser_window_size=BrowserContextWindowSize(width=1920, height=1080),
         ),
     )
