@@ -1643,7 +1643,8 @@ const TestsTable = () => {
                   <button
                     onClick={() => {
                       if (selectedFeature === 'all') return; // Prevent opening if disabled
-                      setIsAddTestDropdownOpen(!isAddTestDropdownOpen);
+                      setIsAddTestModalOpen(true);
+                      setIsAddTestDropdownOpen(false);
                     }}
                     disabled={selectedFeature === 'all'} // Disable if no specific feature is selected
                     className={`flex items-center justify-center w-full sm:w-auto px-3 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition duration-150 ${selectedFeature === 'all' ? 'opacity-50' : ''}`}
@@ -1651,58 +1652,10 @@ const TestsTable = () => {
                   >
                     <Plus size={18} className="mr-2" />
                     <span className="whitespace-nowrap">Add Test</span>
-                    <ChevronDown size={18} className={`ml-1 flex-shrink-0 text-blue-300 transition-transform ${isAddTestDropdownOpen ? 'transform rotate-180' : ''}`} />
                   </button>
                 </div>
               </Tooltip>
 
-              {isAddTestDropdownOpen && selectedFeature !== 'all' && (
-                <div className="absolute z-20 mt-1 w-full sm:w-64 bg-white border border-gray-300 rounded-md shadow-lg right-0 sm:right-auto sm:left-0 py-1">
-                  {/* Generate Tests button (Dropdown Item 1) */}
-                  <button
-                    onClick={() => { // This onClick is for the item action
-                      handleGenerateTests();
-                      setIsAddTestDropdownOpen(false);
-                    }}
-                    disabled={isGeneratingTests || !secrets || secrets.length === 0}
-                    className="w-full flex items-center px-4 py-2.5 text-sm text-purple-700 hover:bg-purple-50 transition duration-150 disabled:text-gray-400 disabled:hover:bg-white disabled:cursor-not-allowed"
-                    title={
-                      !secrets || secrets.length === 0 ? "Test credentials required to generate tests" :
-                      isGeneratingTests ? "Generation in progress..." :
-                      "Generate tests for selected feature using AI"
-                    }
-                  >
-                    {isGeneratingTests ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-700 mr-2"></div>
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Beaker size={16} className="mr-2 flex-shrink-0" />
-                        <span className="truncate">Generate Tests with AI</span>
-                      </>
-                    )}
-                  </button>
-
-                  <div className="border-t border-gray-200 my-1"></div>
-
-                  {/* Add Test to Feature button (Dropdown Item 2) */}
-                  <button
-                    onClick={() => { // This onClick is for the item action
-                      setIsAddTestModalOpen(true);
-                      setIsAddTestDropdownOpen(false);
-                    }}
-                    // disabled={selectedFeature === 'all'} // Already handled
-                    className="w-full flex items-center px-4 py-2.5 text-sm text-blue-700 hover:bg-blue-50 transition duration-150 disabled:text-gray-400 disabled:hover:bg-white disabled:cursor-not-allowed"
-                    title={"Add new test to selected feature" // Simplified title as feature selection is guaranteed here
-                    }
-                  >
-                    <Plus size={16} className="mr-2 flex-shrink-0" />
-                    <span className="truncate">Add Test Manually</span>
-                  </button>
-                </div>
-              )}
             </div> {/* End of Add Test button div */}
           </div>
 
