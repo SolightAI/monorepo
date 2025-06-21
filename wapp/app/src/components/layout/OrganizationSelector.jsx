@@ -80,7 +80,7 @@ const OrganizationSelector = ({ isMobile = false }) => {
       </button>
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
           {loading ? (
             <div className="px-4 py-2 text-sm text-gray-500">Loading...</div>
           ) : error ? (

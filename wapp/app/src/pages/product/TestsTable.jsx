@@ -1915,22 +1915,6 @@ const TestsTable = () => {
                   <span className="ml-2 text-gray-500 text-sm">({selectedTestIds.size} selected)</span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                {/* Pagination placeholder for future implementation */}
-                <button
-                  className="px-3 py-1 border border-gray-300 rounded-md text-gray-600 bg-white disabled:opacity-50"
-                  disabled
-                >
-                  Previous
-                </button>
-                <span className="text-sm text-gray-500">Page 1</span>
-                <button
-                  className="px-3 py-1 border border-gray-300 rounded-md text-gray-600 bg-white disabled:opacity-50"
-                  disabled
-                >
-                  Next
-                </button>
-              </div>
             </div>
           </div>
     </div>
