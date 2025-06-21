@@ -280,98 +280,91 @@ const ProductSelector = ({ isMobile = false }) => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center px-3 py-2 bg-white rounded-md border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors w-full"
+        className={`z-50 flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium w-full ${
+          selectedProduct
+            ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+        }`}
       >
         {loading ? (
           <div className="animate-pulse h-5 w-32 bg-gray-200 rounded"></div>
         ) : (
           <>
-            {selectedProduct ? (
-              <span className="font-medium text-gray-800 truncate max-w-[180px] mr-2">
-                {selectedProduct.name}
-              </span>
-            ) : (
-              <span className="text-gray-500 mr-2">Select a product</span>
-            )}
-            <ChevronDown size={18} className="text-gray-500 ml-auto" />
+            <span className="truncate">
+              {selectedProduct ? selectedProduct.name : 'Select a product'}
+            </span>
+            <ChevronDown size={16} className="ml-2 flex-shrink-0" />
           </>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 mt-1 w-60 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-          <div className="py-1 max-h-60 overflow-y-auto">
-            {error && (
-              <div className="px-4 py-2 text-sm text-red-600">
-                {error}
-              </div>
-            )}
-
-            {loading ? (
-              <div className="px-4 py-2 text-sm text-gray-500">
-                Loading products...
-              </div>
-            ) : (
-              <>
-                {products.length === 0 ? (
-                  <div className="px-4 py-2 text-sm text-gray-500">
-                    No products found
+        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+          {loading ? (
+            <div className="px-4 py-2 text-sm text-gray-500">Loading...</div>
+          ) : error ? (
+            <div className="px-4 py-2 text-sm text-red-500">{error}</div>
+          ) : (
+            <>
+              {products && products.length > 0 ? (
+                <div>
+                  <div className="px-3 py-2 text-xs font-semibold text-gray-500">
+                    Your Products
                   </div>
-                ) : (
-                  <div>
-                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 border-b border-gray-100">
-                      YOUR PRODUCTS
-                    </div>
-                    {products.map((product) => (
-                      <div key={product.id} className="group relative">
+                  {products.map((product) => (
+                    <div key={product.id} className="group relative">
+                      <button
+                        onClick={() => handleSelectProduct(product)}
+                        className={`flex items-center px-4 py-2 text-sm w-full text-left ${
+                          selectedProduct && selectedProduct.id === product.id
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Sparkles size={16} className="mr-2 text-purple-500" />
+                        <span className="truncate">{product.name}</span>
+                      </button>
+                      <div className="hidden group-hover:flex absolute right-2 top-1/2 transform -translate-y-1/2 bg-white shadow-sm rounded">
                         <button
-                          onClick={() => handleSelectProduct(product)}
-                          className={`flex items-center px-4 py-2 text-sm w-full hover:bg-gray-50 transition ${
-                            selectedProduct?.id === product.id ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditProduct(product);
+                          }}
+                          className="p-1 text-gray-500 hover:text-blue-600"
+                          title="Edit product"
                         >
-                          <Sparkles size={16} className="mr-2 text-purple-500" />
-                          <span className="truncate">{product.name}</span>
+                          <Edit size={14} />
                         </button>
-                        <div className="hidden group-hover:flex absolute right-2 top-1/2 transform -translate-y-1/2 bg-white shadow-sm rounded">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditProduct(product);
-                            }}
-                            className="p-1 text-gray-500 hover:text-blue-600"
-                            title="Edit product"
-                          >
-                            <Edit size={14} />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteProduct(product.id);
-                            }}
-                            className="p-1 text-gray-500 hover:text-red-600"
-                            title="Delete product"
-                          >
-                            <Trash size={14} />
-                          </button>
-                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteProduct(product.id);
+                          }}
+                          className="p-1 text-gray-500 hover:text-red-600"
+                          title="Delete product"
+                        >
+                          <Trash size={14} />
+                        </button>
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="border-t border-gray-100 mt-1">
-                  <button
-                    onClick={handleAddProduct}
-                    className="flex items-center px-4 py-2 text-sm w-full text-blue-600 hover:bg-blue-50 transition"
-                  >
-                    <Plus size={16} className="mr-2" />
-                    Add Product
-                  </button>
+                    </div>
+                  ))}
                 </div>
-              </>
-            )}
-          </div>
+              ) : (
+                <div className="px-4 py-2 text-sm text-gray-500">
+                  No products found
+                </div>
+              )}
+              <div className="border-t border-gray-100 mt-1 pt-1">
+                <button
+                  onClick={handleAddProduct}
+                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                >
+                  <Plus size={16} className="mr-2" />
+                  Create new product
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
