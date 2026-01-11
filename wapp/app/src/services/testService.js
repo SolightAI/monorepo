@@ -18,6 +18,21 @@ export const getAllTests = async () => {
 };
 
 /**
+ * Get tests by feature ID (for demo)
+ * @param {string} featureId - The UUID of the feature
+ * @returns {Promise<Array>} Promise with tests data for the feature
+ */
+export const getDemoTests = async (featureId) => {
+  try {
+    const response = await axios.get(`${API_URL}/demo/tests/${featureId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching tests for feature ${featureId}:`, error);
+    throw error;
+  }
+};
+
+/**
  * Get tests by feature ID
  * @param {string} featureId - The UUID of the feature
  * @returns {Promise<Array>} Promise with tests data for the feature
@@ -112,11 +127,13 @@ export const triggerFeatureTestGeneration = async (featureId, categories) => {
  * @param {string} featureId - The feature ID (UUID)
  * @returns {Promise<object>} Promise with the task status data
  */
-export const getTestGenerationStatus = async (featureId) => {
+export const getTestGenerationStatus = async (featureId, demo = false) => {
   try {
-    const response = await axios.get(`${API_URL}/tests/generate/status/${featureId}`, {
-      withCredentials: true
-    });
+    const url = demo 
+      ? `${API_URL}/demo/tests/generate/status/${featureId}`
+      : `${API_URL}/tests/generate/status/${featureId}`;
+    const config = demo ? {} : { withCredentials: true };
+    const response = await axios.get(url, config);
     return response.data;
   } catch (error) {
     console.error(`Error checking test generation status for feature ${featureId}:`, error);

@@ -726,10 +726,13 @@ const TestsTable = () => {
       },
       async (result) => { // onSuccess
         try {
+          // Fetch the newly generated tests
+          const tests = await getTestsByFeature(result.featureId);
+
           // First update the tests list with the new data
-          if (result.tests && result.tests.length > 0) {
+          if (tests && tests.length > 0) {
             // Add feature name to each test for easier sorting/display
-            const testsWithFeatureName = result.tests.map(test => ({
+            const testsWithFeatureName = tests.map(test => ({
               ...test,
               feature_name: featureName
             }));
@@ -1158,6 +1161,7 @@ const TestsTable = () => {
           }
         },
         (errorMsg) => {
+          setTimeout(() => window.location.reload(), 2000);
           setIsGeneratingTests(false);
           setGeneratingFeatures([]);
           pollingIntervalRef.current = null;

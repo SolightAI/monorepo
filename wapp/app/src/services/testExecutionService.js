@@ -5,13 +5,14 @@ import { API_URL } from '@/constants/api';
  * Get all executions for a specific test
  *
  * @param {string} testId - The UUID of the test
+ * @param {boolean} [demo] - Whether to use demo mode
  * @returns {Promise<Array>} Promise with the test executions data
  */
-export const getTestExecutions = async (testId) => {
+export const getTestExecutions = async (testId, demo = false) => {
   try {
-    const response = await axios.get(`${API_URL}/test-executions/by-test/${testId}`, {
-      withCredentials: true
-    });
+    const response = await axios.get(`${API_URL}${demo ? '/demo' : ''}/test-executions/by-test/${testId}`,
+      demo ? { withCredentials: true } : {}
+    );
     return response.data;
   } catch (error) {
     console.error(`Error fetching test executions for test ${testId}:`, error);
@@ -23,13 +24,14 @@ export const getTestExecutions = async (testId) => {
  * Get a specific test execution by ID
  *
  * @param {string} executionId - The UUID of the test execution
+ * @param {boolean} [demo] - Whether to use demo mode
  * @returns {Promise<Object>} Promise with the test execution data
  */
-export const getTestExecution = async (executionId) => {
+export const getTestExecution = async (executionId, demo = false) => {
   try {
-    const response = await axios.get(`${API_URL}/test-executions/${executionId}`, {
-      withCredentials: true
-    });
+    const response = await axios.get(`${API_URL}${demo ? '/demo' : ''}/test-executions/${executionId}`,
+      demo ? { withCredentials: true } : {}
+    );
     return response.data;
   } catch (error) {
     console.error(`Error fetching test execution ${executionId}:`, error);
@@ -49,9 +51,10 @@ export const getTestExecution = async (executionId) => {
  * @param {string} [executionData.notes] - Optional notes about the execution
  * @param {Array} [executionData.evidence] - Optional list of evidence URLs
  * @param {boolean} [executionData.run_without_cache] - Optional flag to run test without cache
+ * @param {boolean} [demo] - Whether to use demo mode
  * @returns {Promise<Object>} Promise with the created test execution data
  */
-export const createTestExecution = async (executionData) => {
+export const createTestExecution = async (executionData, demo = false) => {
   try {
     const payload = { ...executionData }; // Clone to avoid modifying original object if it's passed around
     // The backend expects run_without_cache to be explicitly false if not true.
@@ -60,7 +63,7 @@ export const createTestExecution = async (executionData) => {
       payload.run_without_cache = false;
     }
 
-    const response = await axios.post(`${API_URL}/test-executions/`, payload, {
+    const response = await axios.post(`${API_URL}${demo ? '/demo' : ''}/test-executions/`, payload, {
       withCredentials: true
     });
     return response.data;

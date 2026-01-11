@@ -1,6 +1,5 @@
 import { triggerFeatureTestGeneration, getTestGenerationStatus } from './testService';
 import { TEST_STATUS, formatStatus } from '@/utils/testExecutionUtils';
-import { getTestsByFeature } from './testService';
 
 /**
  * Polls the status of a test generation task.
@@ -9,12 +8,13 @@ import { getTestsByFeature } from './testService';
  * @param {Function} onSuccess - Callback for successful completion.
  * @param {Function} onError - Callback for errors.
  * @param {string} featureName - The name of the feature.
+ * @param {boolean} [demo=false] - Whether to run in demo mode.
  * @returns {number} - The interval ID for clearing.
  */
-export const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, onError, featureName) => {
+export const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, onError, featureName, demo = false) => {
     const intervalId = setInterval(async () => {
         try {
-            const response = await getTestGenerationStatus(featureId);
+            const response = await getTestGenerationStatus(featureId, demo);
 
             const statusMessage = `Test Generation in Progress. Status: ${response.status ? formatStatus(response.status) : formatStatus(TEST_STATUS.PENDING)}${response.progress ? ` (${response.progress})` : ''}`;
             onStatusUpdate(statusMessage);
@@ -22,15 +22,10 @@ export const pollTestGenerationStatus = (featureId, onStatusUpdate, onSuccess, o
             if (response.status === TEST_STATUS.PASSED) {
                 clearInterval(intervalId);
                 try {
-                    // Fetch the newly generated tests
-                    const tests = await getTestsByFeature(featureId);
-                    if (!tests || tests.length === 0) {
-                        console.warn('No tests returned after successful generation');
-                    }
-                    // Call onSuccess with both the message and the tests
+                    // Call onSuccess with message
                     onSuccess({
                         message: `Successfully generated tests for feature "${featureName || featureId}". Status: ${formatStatus(TEST_STATUS.PASSED)}`,
-                        tests: tests || []
+                        featureId,
                     });
                 } catch (fetchErr) {
                     console.error('Error fetching generated tests:', fetchErr);
@@ -107,6 +102,7 @@ export const handleFeatureTestGeneration = async (
             // Wrap onError to clear pollingIntervalId
             (errorMsg) => {
                 pollingIntervalId = null; // Mark interval as cleared
+                setTimeout(() => window.location.reload(), 2000);
                 onError(errorMsg);
             },
             featureName // Pass the feature name to the polling function

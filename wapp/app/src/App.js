@@ -21,6 +21,11 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { OnboardingProvider } from './context/OnboardingContext';
 import OnboardingModal from './components/onboarding/OnboardingModal';
 import { disableBodyScroll } from './utils/modalUtils';
+import { Home } from './pages/demo/Home';
+import { Results } from './pages/demo/Results';
+import { Processor } from './pages/demo/Processor';
+import { DemoLayout } from './components/layout/DemoLayout';
+import { DemoProvider } from './context/DemoContext';
 
 
 // Remove the local isAuthenticated function and use the one from AuthContext instead
@@ -83,61 +88,76 @@ function AppContent() {
   }, []);
 
   return (
-    <OnboardingProvider>
-      <OrganizationProvider>
-        <ProductProvider>
-          <SecretProvider>
-            {/* Render OnboardingModal at the top level */}
-            <OnboardingModal />
+    <Routes>
+      {/* Demo routes */}
+      <Route path="/demo/*" element={<DemoProvider><DemoLayout /></DemoProvider>}>
+        <Route index element={<Home />} />
+        <Route path="processing" element={<Processor />} />
+        <Route path="results" element={<Results />} />
+        <Route path="*" element={<NotFound />} />
+      </Route>
 
-            <div className="min-h-screen bg-gray-50">
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/reset-password/:token" element={<ResetPassword />} />
-                <Route path="/auth/callback" element={<OAuthCallbackPage />} />
-                <Route path="/join-organization/:code" element={<JoinOrganization />} />
+      <Route 
+        path="*"
+        element={
+          <OnboardingProvider>
+            <OrganizationProvider>
+              <ProductProvider>
+                <SecretProvider>
+                  {/* Render OnboardingModal at the top level */}
+                  <OnboardingModal />
 
-                {/* Organization Setup Route */}
-                <Route path="/organizations/create" element={
-                  <ProtectedRoute>
-                    <OrganizationCreate />
-                  </ProtectedRoute>
-                } />
-                <Route path="/organization/create" element={
-                  <ProtectedRoute>
-                    <OrganizationCreate />
-                  </ProtectedRoute>
-                } />
+                  <div className="min-h-screen bg-gray-50">
+                    <Routes>
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/reset-password/:token" element={<ResetPassword />} />
+                      <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+                      <Route path="/join-organization/:code" element={<JoinOrganization />} />
 
-                {/* Protected routes with Layout */}
-                <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                      {/* Organization Setup Route */}
+                      <Route path="/organizations/create" element={
+                        <ProtectedRoute>
+                          <OrganizationCreate />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/organization/create" element={
+                        <ProtectedRoute>
+                          <OrganizationCreate />
+                        </ProtectedRoute>
+                      } />
 
-                  {/* Test table page */}
-                  <Route path="/" element={<Navigate to="/tests" replace />} />  {/* Redirects to /tests*/}
+                      {/* Protected routes with Layout */}
+                      <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
 
-                  {/* TestCredentials Management page */}
-                  <Route path="/secrets" element={<TestCredentials />} />
-                  {/* Tests Table page */}
-                  <Route path="/tests" element={<TestsTable />} />
-                  {/* Organization routes */}
-                  <Route path="/organizations/dashboard" element={<OrganizationDashboard />} />
-                  {/* Other protected routes */}
-                  <Route path="/settings" element={<Settings />} />
-                </Route>
+                        {/* Test table page */}
+                        <Route path="/" element={<Navigate to="/tests" replace />} />  {/* Redirects to /tests*/}
 
-                {/* Admin routes with Layout */}
-                <Route element={<AdminRoute><Layout /></AdminRoute>}>
-                  <Route path="/admin/invitations" element={<AdminInvitations />} />
-                </Route>
+                        {/* TestCredentials Management page */}
+                        <Route path="/secrets" element={<TestCredentials />} />
+                        {/* Tests Table page */}
+                        <Route path="/tests" element={<TestsTable />} />
+                        {/* Organization routes */}
+                        <Route path="/organizations/dashboard" element={<OrganizationDashboard />} />
+                        {/* Other protected routes */}
+                        <Route path="/settings" element={<Settings />} />
+                      </Route>
 
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </div>
-          </SecretProvider>
-        </ProductProvider>
-      </OrganizationProvider>
-    </OnboardingProvider>
+                      {/* Admin routes with Layout */}
+                      <Route element={<AdminRoute><Layout /></AdminRoute>}>
+                        <Route path="/admin/invitations" element={<AdminInvitations />} />
+                      </Route>
+
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </div>
+                </SecretProvider>
+              </ProductProvider>
+            </OrganizationProvider>
+          </OnboardingProvider>
+        } 
+      />
+    </Routes>
   );
 }
 

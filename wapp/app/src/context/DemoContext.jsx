@@ -1,0 +1,52 @@
+import { createContext, useContext, useState, useCallback } from 'react';
+
+/**
+ * DemoContext is a React context that provides a way to manage and share demo-related state
+ */
+const defaultValue = {
+  url: '',
+  feature: null,
+  tests: [],
+}
+
+const DemoContext = createContext(defaultValue);
+
+export const useDemo = () => useContext(DemoContext);
+
+export function DemoProvider({ children }) {
+  const [url, setUrl] = useState(defaultValue.url);
+  const [feature, setFeature] = useState(defaultValue.feature);
+  const [tests, setTests] = useState(defaultValue.tests);
+
+  const updateUrl = (newUrl) => { 
+    setUrl(newUrl);
+  };
+
+  const updateTests = useCallback((newTests) => {
+    setTests(newTests);
+  }, []);
+  
+  const updateFeature = useCallback((newFeature) => {
+    setFeature(newFeature);
+  }, []);
+
+  const reset = useCallback(() => {
+    setUrl('');
+    setTests([]);
+    setFeature(null);
+  }, []);
+
+  return (
+    <DemoContext.Provider value={{
+      url,
+      tests,
+      feature,
+      updateUrl,
+      updateTests,
+      updateFeature,
+      reset,
+    }}>
+      {children}
+    </DemoContext.Provider>
+  );
+}
